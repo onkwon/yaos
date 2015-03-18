@@ -60,7 +60,7 @@ size_t __malloc_margin = 32;
 char *__brkval;
 struct __freelist *__flp;
 
-void *malloc(size_t len)
+void *__malloc(size_t len)
 {
 	struct __freelist *fp1, *fp2, *sfp1, *sfp2;
 	char *cp;
@@ -260,4 +260,16 @@ void free(void *p)
 			fp2->nx = NULL;
 		__brkval = cp2 - sizeof(size_t);
 	}
+}
+
+DEFINE_MUTEX(malloc_lock);
+void *malloc(size_t len)
+{
+	void *p;
+
+	mutex_lock(&malloc_lock);
+	p = __malloc(len);
+	mutex_unlock(&malloc_lock);
+
+	return p;
 }

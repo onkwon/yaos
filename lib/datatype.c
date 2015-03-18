@@ -1,6 +1,6 @@
 #include "types.h"
 
-/* double linked list */
+/* doubly linked list */
 
 void LIST_LINK_INIT(struct list_t *list)
 {
@@ -24,48 +24,49 @@ void list_del(struct list_t *item)
 
 /* fifo */
 
-void fifo_init(struct fifo_t *f, char *buf, int size)
+void fifo_init(struct fifo_t *q, void *queue, unsigned size)
 {
-	f->head = f->tail = 0;
-	f->size = size;
-	f->buf  = buf;
+	q->size  = size;
+	q->buf   = queue;
+	q->front = q->rear = 0;
 }
 
-int fifo_get(struct fifo_t *f, void *buf, int size)
+void fifo_flush(struct fifo_t *q)
 {
-	char *p = buf;
-	int   i;
-
-	for (i = 0; i < size; i++) {
-		if (f->tail == f->head) {
-			break; /* return number of bytes read */
-		} else {
-			*p++ = f->buf[f->tail];
-			f->tail++;
-			if (f->tail >= f->size) /* check for wrap-around */
-				f->tail = 0;
-		}
-	}
-
-	return i;
+	q->front = q->rear = 0;
 }
 
-int fifo_put(struct fifo_t *f, void *buf, int size)
+int fifo_get(struct fifo_t *q, int type_size)
 {
-	const char *p = buf;
-	int i;
+	char *p = q->buf;
+	int  v;
 
-	for (i = 0; i < size; i++) {
-		if ( (f->head + 1 == f->tail) ||
-			( (f->head + 1 == f->size) && (f->tail == 0) )) {
-			break; /* no more room */
-		} else {
-			f->buf[f->head] = *p++;
-			f->head++;
-			if (f->head >= f->size)
-				f->head = 0;
-		}
+	if (q->front == q->rear) /* empty */
+		return -1;
+
+	v = *(int *)&p[q->front * type_size];
+
+	q->front += 1;
+	q->front %= q->size;
+
+	return v;
+}
+
+int fifo_put(struct fifo_t *q, int value, int type_size)
+{
+	char *p = q->buf;
+	register int i;
+
+	if ( (q->rear+1) % q->size == q->front ) /* no more room */
+		return -1;
+
+	for (i = 0; i < type_size; i++) {
+		p[q->rear * type_size + i] = value;
+		value = (unsigned)value >> 8;
 	}
 
-	return i;
+	q->rear += 1;
+	q->rear %= q->size;
+
+	return value;
 }

@@ -34,11 +34,9 @@ static void __attribute__((naked, used)) svc_handler(unsigned *sp)
 		__asm__ __volatile__("b __schedule");
 		break;
 	default:
-#ifdef DEBUG
 		__asm__ __volatile__("push {lr}");
-		kprintf("no handler!\n");
+		DBUG(("no handler!\n"));
 		__asm__ __volatile__("pop {lr}");
-#endif
 		break;
 	}
 	__asm__ __volatile__("bx lr");
@@ -56,7 +54,6 @@ static void __attribute__((naked)) __svc_handler()
 
 static void __attribute__((naked)) isr_default()
 {
-#ifdef DEBUG
 	unsigned sp, lr, psr;
 
 	sp  = GET_SP ();
@@ -67,18 +64,15 @@ static void __attribute__((naked)) isr_default()
 	 * 0xFFFFFFF1 - MSP, return to handler mode
 	 * 0xFFFFFFF9 - MSP, return to thread mode
 	 * 0xFFFFFFFD - PSP, return to thread mode */
-	kprintf("\n%s() in %s %d:\n"
-	       "Stacked PSR    0x%08x\n"
-	       "Stacked PC     0x%08x\n"
-	       "Stacked LR     0x%08x\n"
-	       "Current LR     0x%08x\n"
-	       "Current PSR    0x%08x(vector number:%d)\n",
-	       __func__, __FILE__, __LINE__,
-	       *(unsigned *)(sp + 28),
-	       *(unsigned *)(sp + 24),
-	       *(unsigned *)(sp + 20),
-	       lr,
-	       psr, psr & 0x1ff);
+	DBUG(("\nStacked PSR    0x%08x\n"
+		"Stacked PC     0x%08x\n"
+		"Stacked LR     0x%08x\n"
+		"Current LR     0x%08x\n"
+		"Current PSR    0x%08x(vector number:%d)\n",
+		*(unsigned *)(sp + 28),
+		*(unsigned *)(sp + 24),
+		*(unsigned *)(sp + 20),
+		lr, psr, psr & 0x1ff));
 
 	/* led for debugging */
 	SET_PORT_CLOCK(ENABLE, PORTD);
@@ -87,8 +81,6 @@ static void __attribute__((naked)) isr_default()
 		PUT_PORT(PORTD, GET_PORT(PORTD) ^ 4);
 		mdelay(100);
 	}
-#endif
-	while (1);
 }
 
 extern char _sram_end;
@@ -300,6 +292,8 @@ __attribute__((used)) static void __init()
 {
 	unsigned i;
 
+	cli();
+
 	clock_init();
 
 	/* copy interrupt vector table to sram */
@@ -307,7 +301,7 @@ __attribute__((used)) static void __init()
 	for (i = 0; (int)isr_vectors[i] != EOF; i++)
 		*((unsigned *)&_sram_start + i) = (unsigned)isr_vectors[i];
 
-	__asm__ __volatile__ ("dmb");
+	__asm__ __volatile__("dsb");
 
 	/* activate vector table in sram */
 	SCB_VTOR = (unsigned)&_sram_start;
@@ -322,8 +316,10 @@ __attribute__((used)) static void __init()
 	for (i = 0; (&_bss + i) < &_ebss; i++)
 		*((char *)&_bss + i) = 0;
 
-	resetf     = RCC_CSR >> 26;
-	RCC_CSR   |= 0x01000000;  /* clear reset flags */
+	resetf   = RCC_CSR >> 26;
+	RCC_CSR |= 0x01000000;  /* clear reset flags */
+
+	sei();
 
 	extern int main();
 	main();

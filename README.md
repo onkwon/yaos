@@ -10,7 +10,7 @@ To access system resource, use provided API after checking how critical regions,
 
 shell environment provided.
 
-only stm32f103 supported at the moment.
+tested on stm32f103.
 
 ----
 
@@ -20,18 +20,43 @@ But still I want to make it for dynamic loader version providing shared library.
 
 ## API
 
-### Preventing preemption (for time critical task)
+### Critical regions and race conditions
 
-`preempt_disable()`
-`preempt_enable()`
+It disables all interrupts before jumping to the interrut vector when an interrupt occures. 
 
-For a task that should not be interrupted. In real time priority only.
+1. If data or region is accessed by more than a task, use mutex_lock()
+  It guarantees you access the data exclusively. You go sleep until you get the key.
+2. If the one you are accessing to is the resource that the system also manipulates in an interrupt, use spinlock_irqsave().
+  spinlock never goes to sleep.
+3. In case a task need to go sleep, then use_mutex_lock(). And as soon as you get the key, disable irq, cli().
+  Ensure that irq is not disabled before getting the key so that the task can go sleep. If you disable irq first before getting the key you never get awaken again.
+
+#### Preventing preemption
+
+	preempt_disable()
+	... here can't be interrupted ...
+	preempt_enable()
+
+preempt_disable() increases count by 1 while preempt_enable() decreases count. When the count reaches 0, interrupts get enabled.
+
+#### atomic data type
+
+~~`atomic_t` guarantees manipulating on the data is not interruptible.~~
+
+Let's just go with `int` type and `str`/`ldr` instructions.
+
+#### semaphore(mutex)
+
+long term waiting.
+sleeping lock.
+
+#### spin lock
+
+~~short term waiting~~
 
 ### waitqueue
 
-### Critical regions and race conditions
-
-api for lock and semaphore
+### timer
 
 ## Memory map
 
@@ -76,6 +101,10 @@ Task priority in flags
 1. sanity check
 2. stack allocation
 3. initial task register set
+4. put into runqueue
+5. the initial task takes place
+
+Initial task register set:
 
 	 __________ 
 	| psr      |  |
@@ -91,9 +120,6 @@ Task priority in flags
 	| lr       |
 	 ----------
 
-4. put into runqueue
-5. the initial task takes place
-
 ### User stack
 
 	alloc_user_stack()
@@ -108,6 +134,10 @@ the initial task takes place when no task in runqueue
 	schedule()
 
 Be aware that interrupt enabled after calling schedule().
+
+### context switch
+
+explained here: [https://viewy.org/bbs/board.php?bo_table=note&wr_id=17](https://viewy.org/bbs/board.php?bo_table=note&wr_id=17)
 
 ### NORMAL_PRIORITY
 

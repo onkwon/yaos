@@ -1,5 +1,6 @@
 #include "usart.h"
 #include "stdlib.h"
+#include "foundation.h"
 
 #define BUF_SIZE	256
 #define USART_NUM	5
@@ -7,8 +8,11 @@
 #define RXNE		5
 #define TXE		7
 
-static struct fifo_t fifo_rx[USART_NUM];
-static struct fifo_t fifo_tx[USART_NUM];
+static struct fifo_t rxq[USART_NUM];
+static struct fifo_t txq[USART_NUM];
+
+static struct semaphore rx_lock[USART_NUM];
+static struct semaphore tx_lock[USART_NUM];
 
 static void isr_usart();
 
@@ -68,15 +72,24 @@ void usart_open(unsigned channel, struct usart_t arg)
 
 	if (channel == USART1) {
 		SET_CLOCK_APB2(ENABLE, apb_nbit); /* USART1 clock enable */
-		fifo_init(&fifo_rx[0], (char *)malloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&fifo_tx[0], (char *)malloc(BUF_SIZE), BUF_SIZE);
+
+		fifo_init(&rxq[0], malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&txq[0], malloc(BUF_SIZE), BUF_SIZE);
+
+		semaphore_init(&rx_lock[0], 1);
+		semaphore_init(&tx_lock[0], 1);
 	} else {
 		SET_CLOCK_APB1(ENABLE, apb_nbit); /* USARTn clock enable */
-		fifo_init(&fifo_rx[apb_nbit - 16], (char *)malloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&fifo_tx[apb_nbit - 16], (char *)malloc(BUF_SIZE), BUF_SIZE);
+
+		fifo_init(&rxq[apb_nbit-16], malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&txq[apb_nbit-16], malloc(BUF_SIZE), BUF_SIZE);
+
+		semaphore_init(&rx_lock[apb_nbit - 16], 1);
+		semaphore_init(&tx_lock[apb_nbit - 16], 1);
 	}
 
 	SET_PORT_CLOCK(ENABLE, port);
+
 	/* gpio configuration. in case of remapping or UART5, check pinout. */
 	SET_PORT_PIN(port, pin, PIN_OUTPUT_50MHZ | PIN_ALT); /* tx */
 	SET_PORT_PIN(port, pin+1, PIN_INPUT | PIN_FLOATING); /* rx */
@@ -126,8 +139,15 @@ void __usart_putc(unsigned channel, int c)
 void usart_putc(unsigned channel, int c)
 {
 	unsigned idx = GET_USART_NR(channel);
+	unsigned long irq_flag;
+	int err;
 
-	while (fifo_put(&fifo_tx[idx], &c, 1) != 1);
+	do {
+		spinlock_irqsave(&tx_lock[idx], &irq_flag);
+		err = fifo_put(&txq[idx], c, 1);
+		spinlock_irqrestore(&tx_lock[idx], &irq_flag);
+	} while (err == -1);
+
 	*(volatile unsigned *)(channel + 0x0c) |= 1 << TXE;
 }
 
@@ -135,8 +155,13 @@ int usart_getc(unsigned channel)
 {
 	int data;
 	unsigned idx = GET_USART_NR(channel);
+	unsigned long irq_flag;
 	
-	if (fifo_get(&fifo_rx[idx], &data, 1) != 1)
+	spinlock_irqsave(&rx_lock[idx], &irq_flag);
+	data = fifo_get(&rxq[idx], 1);
+	spinlock_irqrestore(&rx_lock[idx], &irq_flag);
+
+	if (data == -1)
 		return -1;
 
 	return data & 0xff;
@@ -146,17 +171,18 @@ int usart_kbhit(unsigned channel)
 {
 	unsigned idx = GET_USART_NR(channel);
 
-	return (fifo_rx[idx].head != fifo_rx[idx].tail);
+	return (rxq[idx].front != rxq[idx].rear);
 }
 
 void usart_fflush(unsigned channel)
 {
 	unsigned idx = GET_USART_NR(channel);
+	unsigned long irq_flag;
 
-	fifo_rx[idx].head = fifo_rx[idx].tail = 0;
+	spinlock_irqsave(&rx_lock[idx], &irq_flag);
+	fifo_flush(&rxq[idx]);
+	spinlock_irqrestore(&rx_lock[idx], &irq_flag);
 }
-
-#include "foundation.h"
 
 static void isr_usart()
 {
@@ -164,6 +190,7 @@ static void isr_usart()
 	 * USART1 USART2 USART3 UART4 UART5
 	 * 53     54     55     68    69   */
 	unsigned nirq, reg;
+	unsigned long irq_flag;
 
 	nirq = GET_PSR() & 0x1ff;
 	nirq = nirq < 60? nirq - 53 : nirq - 65;
@@ -171,16 +198,27 @@ static void isr_usart()
 
 	if (*(volatile unsigned *)reg & (1 << RXNE)) {
 		unsigned rx = *(volatile unsigned *)(reg + 0x04);
-		if (fifo_put(&fifo_rx[nirq], &rx, 1) != 1) {
+		int      err;
+
+		spinlock_irqsave(&rx_lock[nirq], &irq_flag);
+		err = fifo_put(&rxq[nirq], rx, 1);
+		spinlock_irqrestore(&rx_lock[nirq], &irq_flag);
+
+		if (err == -1) {
 			/* overflow */
 		}
 	}
 
 	if (*(volatile unsigned *)reg & (1 << TXE)) {
-		unsigned char tx;
-		if (fifo_get(&fifo_tx[nirq], &tx, 1) == 1)
-			*(volatile unsigned *)(reg + 0x04) = tx;
-		else
+		int tx;
+
+		spinlock_irqsave(&tx_lock[nirq], &irq_flag);
+		tx = fifo_get(&txq[nirq], 1);
+		spinlock_irqrestore(&tx_lock[nirq], &irq_flag);
+
+		if (tx == -1)
 			*(volatile unsigned *)(reg + 0x0c) &= ~(1 << TXE);
+		else
+			*(volatile unsigned *)(reg + 0x04) = (unsigned char)tx;
 	}
 }

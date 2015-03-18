@@ -2,6 +2,7 @@
 #include "io.h"
 #include "sched.h"
 
+/* runqueue's head can be init task. think about it */
 LIST_HEAD(runqueue);
 
 static struct task_t init = { .rq = {&runqueue, &runqueue} };
@@ -9,15 +10,10 @@ struct task_t *current = &init;
 
 void __attribute__((naked)) __schedule()
 {
-	/* interrupt disable. schedule() must not be reentrant */
+	irq_save(current->primask);
 	cli();
-	context_save(current->stack);
 
-#ifdef DEBUG_CONTEXT
-	int i;
-	for (i = 0; i < CONTEXT_NR+8; i++) kprintf("%02d: %x = %x\n", i+1, (current->stack + i), *(current->stack + i));
-	kprintf("prev %x ", current->addr);
-#endif
+	context_save(current->stack);
 
 	static struct list_t *rq = &runqueue; /* rq counter */
 
@@ -31,29 +27,37 @@ void __attribute__((naked)) __schedule()
 
 	current = get_container_of(rq, struct task_t, rq);
 
-#ifdef DEBUG_CONTEXT
-	kprintf("next %x\n", current->addr);
-	for (i = 0; i < CONTEXT_NR+8; i++) kprintf("%02d: %x = %x\n", i+1, (current->stack + i), *(current->stack + i));
-#endif
-
 	context_restore(current->stack);
 
-	/* interrut enable; preempt enable */
-	sei();
+	irq_restore(current->primask);
+
 	__asm__ __volatile__("bx lr");
 }
 
+DEFINE_SPINLOCK(rq_lock);
+
 void runqueue_add(struct task_t *p)
 {
+	unsigned long flags;
+	spinlock_irqsave(&rq_lock, &flags);
+
 	/* newest is always head->next */
 	list_add(&p->rq, &runqueue);
+
+	spinlock_irqrestore(&rq_lock, &flags);
 }
 
 void runqueue_del(struct task_t *p)
 {
+	unsigned long flags;
+	spinlock_irqsave(&rq_lock, &flags);
+
 	list_del(&p->rq);
 
+	spinlock_irqrestore(&rq_lock, &flags);
+
 	/* release all related to the task */
+
 	schedule();
 }
 
@@ -62,18 +66,15 @@ void print_rq()
 	struct list_t *rq = runqueue.next;
 	struct task_t *p;
 
-#ifdef DEBUG_RQ
 	int i;
-#endif
 
 	while (rq != &runqueue) {
 		p = get_container_of(rq, struct task_t, rq);
 
-		kprintf("flags = %d, stack size = %d, addr = 0x%x\n", p->flags, p->stack_size, p->addr);
-#ifdef DEBUG_RQ
+		DBUG(("flags = %d, stack size = %d, addr = 0x%x\n", p->flags, p->stack_size, p->addr));
+
 		for (i = 0; i < CONTEXT_NR; i++)
-			kprintf("%x : %x\n", p->stack + i, *(p->stack + i));
-#endif
+			DBUG(("%x : %x\n", p->stack + i, *(p->stack + i)));
 
 		rq = rq->next;
 	}

@@ -1,29 +1,12 @@
 #ifndef __FOUNDATION_H__
 #define __FOUNDATION_H__
 
-#define HSI		8000000	/* 8MHz */
+#define HZ		50
 #define HEAP_SIZE	0x8000	/* 32KiB */
 
+#define HSI		8000000	/* 8MHz */
+
 #include "types.h"
-
-/*
-static inline int set_atomw(int var, int val)
-{
-	int res;
-
-	__asm__ __volatile__("ldrex %1, %0	\n\t"
-			     "strex %1, %2, %0	\n\t"
-			     : "+m" (var), "=l" (res) : "l" (val));
-
-	return res;
-}
-#define get_atomw(var)
-*/
-
-#define preempt_disable()
-#define preempt_enable()
-#define sei()		__asm__ __volatile__("cpsie i")
-#define cli()		__asm__ __volatile__("cpsid i")
 
 #define GET_PC() ({ \
 		unsigned __pc; \
@@ -56,13 +39,24 @@ static inline int set_atomw(int var, int val)
 		__control; \
 	})
 
-void udelay(unsigned us);
+extern void udelay(unsigned us);
 #define mdelay(ms)	udelay((ms)  * 1000)
 #define sdelay(sec)	mdelay((sec) * 1000)
 
-int printf(const char *format, ...);
-int kprintf(const char *format, ...);
+extern int printf(const char *format, ...);
+extern int kprintf(const char *format, ...);
 
-int get_resetf();
+extern int get_resetf();
+
+#ifdef DEBUG
+#define DBUG(fmt) do { \
+	kprintf("%s:%d:%s(): ", __FILE__, __LINE__, __func__); \
+	kprintf fmt; \
+} while (0)
+#else
+#define DBUG(fmt)
+#endif
+
+#include "lock.h"
 
 #endif /* __FOUNDATION_H__ */

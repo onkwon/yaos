@@ -9,20 +9,22 @@
 #include "types.h"
 
 struct task_t {
-	int flags;       /* priority */
+	int flags;       	/* priority */
+	unsigned long primask;
 
-	unsigned *stack; /* stack pointer */
-	int stack_size;  /* stack size */
+	unsigned *stack; 	/* stack pointer */
+	int stack_size;  	/* stack size */
 
-	void *addr;      /* address */
+	void *addr;      	/* address */
 
-	struct list_t rq; /* runqueue linked list */
+	struct list_t rq; 	/* runqueue linked list */
 } __attribute__((packed));
 
 #define REGISTER_TASK(func, size, pri) \
 	static struct task_t task_##func \
 	__attribute__((section(".user_task_list"), used)) = { \
 		.flags      = pri, \
+		.primask    = 0, \
 		.stack      = 0, \
 		.stack_size = size, \
 		.addr       = func, \

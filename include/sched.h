@@ -4,8 +4,6 @@
 #include "context.h"
 #include "task.h"
 
-#define HZ		50
-
 #define EXC_RETURN_MSPH	0xfffffff1	/* return to HANDLER mode using MSP */
 #define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
 #define EXC_RETURN_PSPT	0xfffffffd	/* return to THREAD  mode using PSP */

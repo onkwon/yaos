@@ -63,16 +63,12 @@ static void init_task()
 	 * prior to task and scheduler ready to run. */
 	systick_init();
 
-#ifdef DEBUG
-	SET_PORT_CLOCK(ENABLE, PORTD);
-	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
-	kprintf("psr : %x sp : %x int : %x control : %x lr : %x\n", GET_PSR(), GET_SP(), GET_INT(), GET_CON(), GET_LR());
-	kprintf("PC = %x\n", GET_PC());
+	DBUG(("psr : %x sp : %x int : %x control : %x lr : %x\n", GET_PSR(), GET_SP(), GET_INT(), GET_CON(), GET_LR()));
+	DBUG(("PC = %x\n", GET_PC()));
 	while (1) {
 		printf("init()\n");
 		mdelay(500);
 	}
-#endif
 }
 
 #include "driver/usart.h"

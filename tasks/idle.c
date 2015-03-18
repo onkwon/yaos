@@ -1,5 +1,6 @@
 #include "foundation.h"
 
+#include "driver/usart.h"
 static void idle()
 {
 	/*
@@ -12,8 +13,11 @@ static void idle()
 	}
 	*/
 	while (1) {
-		printf("idle()\n");
-		mdelay(500);
+		if (usart_kbhit(USART1)) {
+			printf("%c", usart_getc(USART1));
+		}
+		//printf("idle()\n");
+		//mdelay(500);
 	}
 }
 
