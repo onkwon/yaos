@@ -16,6 +16,8 @@
 #define SWS			2
 #define SW			0
 
+#include "sched.h"
+
 static void __attribute__((naked, used)) svc_handler(unsigned *sp)
 {
 	/* we have return address(pc) stacked in sp[6].
@@ -31,7 +33,9 @@ static void __attribute__((naked, used)) svc_handler(unsigned *sp)
 
 	switch ( ((char *)sp[6])[-2] ) {
 	case 0:
-		__asm__ __volatile__("b __schedule");
+		schedule_prepare();
+		schedule_core();
+		schedule_finish();
 		break;
 	default:
 		__asm__ __volatile__("push {lr}");
@@ -39,6 +43,7 @@ static void __attribute__((naked, used)) svc_handler(unsigned *sp)
 		__asm__ __volatile__("pop {lr}");
 		break;
 	}
+
 	__asm__ __volatile__("bx lr");
 }
 

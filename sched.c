@@ -8,13 +8,8 @@ LIST_HEAD(runqueue);
 static struct task_t init = { .rq = {&runqueue, &runqueue} };
 struct task_t *current = &init;
 
-void __attribute__((naked)) __schedule()
+void __attribute__((naked)) schedule_core()
 {
-	irq_save(current->primask);
-	cli();
-
-	context_save(current->stack);
-
 	static struct list_t *rq = &runqueue; /* rq counter */
 
 	rq = rq->next;
@@ -26,10 +21,6 @@ void __attribute__((naked)) __schedule()
 	}
 
 	current = get_container_of(rq, struct task_t, rq);
-
-	context_restore(current->stack);
-
-	irq_restore(current->primask);
 
 	__asm__ __volatile__("bx lr");
 }

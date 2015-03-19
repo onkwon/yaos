@@ -22,6 +22,8 @@ But still I want to make it for dynamic loader version providing shared library.
 
 ### Critical regions and race conditions
 
+considering single core cpu.
+
 It disables all interrupts before jumping to the interrut vector when an interrupt occures. 
 
 1. If data or region is accessed by more than a task, use mutex_lock()

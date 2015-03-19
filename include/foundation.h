@@ -6,6 +6,18 @@
 
 #define HSI		8000000	/* 8MHz */
 
+#define preempt_disable()
+#define preempt_enable()
+#define preempt_count()
+
+#define sei()		__asm__ __volatile__("cpsie i")
+#define cli()		__asm__ __volatile__("cpsid i")
+
+#define irq_save(flags) \
+	__asm__ __volatile__("mrs %0, primask" : "=r"(flags))
+#define irq_restore(flags) \
+	__asm__ __volatile__("msr primask, %0" :: "r"(flags))
+
 #include "types.h"
 
 #define GET_PC() ({ \

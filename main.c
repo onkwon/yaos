@@ -2,10 +2,22 @@
 #include "io.h"
 #include "sched.h"
 
+unsigned long long tick;
+
 static void __attribute__((naked)) isr_systick()
 {
+	/* All interrupts get disabled and current context is saved by
+	 * schedule_prepare(). Contrary it gets enabled and restored by
+	 * schedule_finish(). */
+	schedule_prepare();
+
 	SYSTICK_FLAG(); /* clear flag */
-	__asm__ __volatile__("b __schedule");
+	tick += STK_LOAD - GET_SYSTICK() + 1;
+
+	schedule_core();
+	schedule_finish();
+
+	__asm__ __volatile__("bx lr");
 }
 
 static void systick_init()
