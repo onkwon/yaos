@@ -1,8 +1,7 @@
 #include "foundation.h"
 #include "io.h"
 #include "sched.h"
-
-unsigned long long tick;
+#include "time.h"
 
 static void __attribute__((naked)) isr_systick()
 {
@@ -12,7 +11,7 @@ static void __attribute__((naked)) isr_systick()
 	schedule_prepare();
 
 	SYSTICK_FLAG(); /* clear flag */
-	tick += STK_LOAD - GET_SYSTICK() + 1;
+	ticks_64 += STK_LOAD + 1;
 
 	schedule_core();
 	schedule_finish();

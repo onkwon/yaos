@@ -60,6 +60,8 @@ sleeping lock.
 
 ### timer
 
+`get_ticks_64()` - `ticks` is not counted every HZ, but hardware system clock, get_stkclk(). To calculate elapsed time in second, ticks / get_stkclk().
+	        
 ## Memory map
 
 User stack gets allocated by malloc() call in alloc_user_stack(). Therefore the size of HEAP_SIZE(default 32KiB) determines the seating capacity of both of user stacks and user's heap allocation.

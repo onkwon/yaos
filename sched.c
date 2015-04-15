@@ -29,23 +29,23 @@ DEFINE_SPINLOCK(rq_lock);
 
 void runqueue_add(struct task_t *p)
 {
-	unsigned long flags;
-	spinlock_irqsave(&rq_lock, &flags);
+	unsigned long irq_flag;
+	spinlock_irqsave(&rq_lock, &irq_flag);
 
 	/* newest is always head->next */
 	list_add(&p->rq, &runqueue);
 
-	spinlock_irqrestore(&rq_lock, &flags);
+	spinlock_irqrestore(&rq_lock, &irq_flag);
 }
 
 void runqueue_del(struct task_t *p)
 {
-	unsigned long flags;
-	spinlock_irqsave(&rq_lock, &flags);
+	unsigned long irq_flag;
+	spinlock_irqsave(&rq_lock, &irq_flag);
 
 	list_del(&p->rq);
 
-	spinlock_irqrestore(&rq_lock, &flags);
+	spinlock_irqrestore(&rq_lock, &irq_flag);
 
 	/* release all related to the task */
 

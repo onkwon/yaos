@@ -261,7 +261,7 @@ unsigned get_stkclk(unsigned hclk)
 	return clk;
 }
 
-static void clock_init()
+static void sysclk_init()
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */
@@ -299,7 +299,7 @@ __attribute__((used)) static void __init()
 
 	cli();
 
-	clock_init();
+	sysclk_init();
 
 	/* copy interrupt vector table to sram */
 	extern char _sram_start;
