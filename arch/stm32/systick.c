@@ -1,25 +1,14 @@
 #include <foundation.h>
+#include <sched.h>
 #include <clock.h>
 #include <time.h>
-#include <sched.h>
 
-static void __attribute__((naked)) isr_systick()
+static void isr_systick()
 {
-	/* All interrupts get disabled and current context is saved by
-	 * schedule_prepare(). Contrary it gets enabled and restored by
-	 * schedule_finish(). */
-	schedule_prepare();
+	update_curr(STK_LOAD + 1);
 
-	SYSTICK_FLAG(); /* clear flag */
-	ticks_64 += STK_LOAD + 1;
-
-	schedule_core();
-	schedule_finish();
-
-	__asm__ __volatile__("bx lr");
+	SCB_ICSR |= 1 << 28; /* raising pendsv for scheduling */
 }
-
-#include <asm/clock.h>
 
 void systick_init()
 {
@@ -27,5 +16,4 @@ void systick_init()
 
 	RESET_SYSTICK();
 	SET_SYSTICK(get_stkclk(get_hclk(get_sysclk())) / HZ - 1);
-	SYSTICK(ON | SYSTICK_INT);
 }

@@ -62,7 +62,7 @@ void print_rq()
 		DBUG(("flags = %d, stack size = %d, addr = 0x%x\n", p->flags, p->stack_size, p->addr));
 
 		for (i = 0; i < CONTEXT_NR; i++)
-			DBUG(("%x : %x\n", p->stack + i, *(p->stack + i)));
+			DBUG(("%x : %x\n", p->sp + i, *(p->sp + i)));
 
 		rq = rq->next;
 	}

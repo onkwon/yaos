@@ -1,13 +1,13 @@
 #include <foundation.h>
-#include <io.h>
 
 extern char _sram_end;
 
 extern void sys_init();
 extern void isr_default();
 extern void __svc_handler();
+extern void pendsv_handler();
 
-static void *isr_vectors[] 
+static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4))) = {
 			/* NUM(IRQ): ADDR - DESC */
 			/* -------------------- */
@@ -25,7 +25,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 	__svc_handler,	/* 11     : 0x2c  - SVCall */
 	isr_default,	/* 12     : 0x30  - Debug Monitor */
 	NULL,		/* 13     : 0x34  - Reserved */
-	isr_default,	/* 14     : 0x38  - PendSV */
+	pendsv_handler,	/* 14     : 0x38  - PendSV */
 	isr_default,	/* 15     : 0x3c  - SysTick */
 	isr_default,	/* 16(00) : 0x40  - WWDG */
 	isr_default,	/* 17(01) : 0x44  - PVD */
@@ -90,6 +90,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 	(void *)EOF
 };
 
+#include <io.h>
 #include <clock.h>
 
 void mem_init()
@@ -101,7 +102,7 @@ void mem_init()
 	for (i = 0; (int)isr_vectors[i] != EOF; i++)
 		*((unsigned *)&_sram_start + i) = (unsigned)isr_vectors[i];
 
-	__asm__ __volatile__("dsb");
+	dmb();
 
 	/* activate vector table in sram */
 	SCB_VTOR = (unsigned)&_sram_start;

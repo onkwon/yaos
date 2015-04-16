@@ -12,7 +12,8 @@ struct task_t {
 	int flags;       	/* priority */
 	unsigned long primask;
 
-	unsigned *stack; 	/* stack pointer */
+	unsigned *stack; 	/* stack end, the lowest address */
+	unsigned *sp; 		/* stack pointer */
 	int stack_size;  	/* stack size */
 
 	void *addr;      	/* address */
@@ -26,6 +27,7 @@ struct task_t {
 		.flags      = pri, \
 		.primask    = 0, \
 		.stack      = 0, \
+		.sp         = 0, \
 		.stack_size = size, \
 		.addr       = func, \
 		.rq         = {NULL, NULL}, \

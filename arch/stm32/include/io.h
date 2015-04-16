@@ -1,31 +1,6 @@
 #ifndef __STM32_IO_H__
 #define __STM32_IO_H__
 
-#define GET_PC() ({ \
-		unsigned __pc; \
-		__asm__ __volatile__("mov %0, pc" : "=r" (__pc)); \
-		__pc; })
-#define GET_SP() ({ \
-		unsigned __sp; \
-		__asm__ __volatile__("mov %0, sp" : "=r" (__sp)); \
-		__sp; })
-#define GET_PSR() ({ \
-		unsigned __psr; \
-		__asm__ __volatile__("mrs %0, psr" : "=r" (__psr)); \
-		__psr; })
-#define GET_LR() ({ \
-		unsigned __lr; \
-		__asm__ __volatile__("mov %0, lr" : "=r" (__lr)); \
-		__lr; })
-#define GET_INT() ({ \
-		unsigned __primask; \
-		__asm__ __volatile__("mrs %0, primask" : "=r" (__primask)); \
-		__primask; })
-#define GET_CON() ({ \
-		unsigned __control; \
-		__asm__ __volatile__("mrs %0, control" : "=r" (__control)); \
-		__control; })
-
 /* Use these macros where needs atomic operation. */
 #define GET_BITBAND_ADDR(base, offset, bit) \
 		((base) + ((offset) << 5) + ((bit) << 2))
@@ -59,27 +34,6 @@
 #define PUT_PORT(port, data)		(*(volatile unsigned *)((port) + 0xc) = data)
 #define PUT_PORT_PIN(port, pin, on) \
 	(*(volatile unsigned *)((port) + 0x10) = on? 1 << pin : 1 << (pin + 16))
-
-/* Interrupt */
-#define sei()		__asm__ __volatile__("cpsie i")
-#define cli()		__asm__ __volatile__("cpsid i")
-
-#define irq_save(flags) \
-	__asm__ __volatile__("mrs %0, primask" : "=r"(flags))
-#define irq_restore(flags) \
-	__asm__ __volatile__("msr primask, %0" :: "r"(flags))
-
-#define ISR_REGISTER(vector_nr, func)	({ \
-		extern unsigned _sram_start; \
-		*((unsigned *)&_sram_start + vector_nr) = (unsigned)func; \
-		__asm__ __volatile__ ("dsb"); \
-	})
-
-#define SET_IRQ(on, irq_nr) ( \
-		*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)) = \
-		MASK_RESET(*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)), 1 << ((irq_nr) % 32)) \
-		| (on << ((irq_nr) % 32)) \
-	)
 
 /* Embedded flash */
 #define FLASH_WRITE_START()	(FLASH_CR |=   1 << PG)
@@ -189,6 +143,7 @@
 		
 /* System Control Block(SCB), Cortex-M3's internal peripherals */
 #define SCB_BASE		(0xE000ED00)
+#define SCB_ICSR		(*(volatile unsigned *)(SCB_BASE + 4))
 #define SCB_VTOR		(*(volatile unsigned *)(SCB_BASE + 8))
 #define SCB_AIRCR		(*(volatile unsigned *)(SCB_BASE + 0xc))
 #define SCB_CCR 		(*(volatile unsigned *)(SCB_BASE + 0x14))

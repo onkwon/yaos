@@ -190,7 +190,6 @@ static void isr_usart()
 	 * USART1 USART2 USART3 UART4 UART5
 	 * 53     54     55     68    69   */
 	unsigned nirq, reg;
-	unsigned long irq_flag;
 
 	nirq = GET_PSR() & 0x1ff;
 	nirq = nirq < 60? nirq - 53 : nirq - 65;
@@ -200,9 +199,9 @@ static void isr_usart()
 		unsigned rx = *(volatile unsigned *)(reg + 0x04);
 		int      err;
 
-		spinlock_irqsave(&rx_lock[nirq], &irq_flag);
+		spin_lock(&rx_lock[nirq]);
 		err = fifo_put(&rxq[nirq], rx, 1);
-		spinlock_irqrestore(&rx_lock[nirq], &irq_flag);
+		spin_unlock(&rx_lock[nirq]);
 
 		if (err == -1) {
 			/* overflow */
@@ -212,9 +211,9 @@ static void isr_usart()
 	if (*(volatile unsigned *)reg & (1 << TXE)) {
 		int tx;
 
-		spinlock_irqsave(&tx_lock[nirq], &irq_flag);
+		spin_lock(&tx_lock[nirq]);
 		tx = fifo_get(&txq[nirq], 1);
-		spinlock_irqrestore(&tx_lock[nirq], &irq_flag);
+		spin_unlock(&tx_lock[nirq]);
 
 		if (tx == -1)
 			*(volatile unsigned *)(reg + 0x0c) &= ~(1 << TXE);

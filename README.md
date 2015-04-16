@@ -2,11 +2,11 @@
 
 Two types of task are handled, normal priority and real time priority tasks. Completly fair scheduler for normal priority tasks while FIFO scheduler for real time priority tasks.
 
-It generates a periodic interrupt rated by HZ that is the heart rate of system. Change it as you wish.
+It generates a periodic interrupt rated by HZ fot the heart rate of system. Change HZ as you wish.
 
-Put a user task under /tasks directory. Code what is needed in general way using provided API and any other library. And simply register the task by REGISTER_TASK(main_function, stack_size, priority).
+Put a user task under /tasks directory. Code what is needed in general way using provided API and any other libraries. And simply register the task by REGISTER_TASK(main_function, stack_size, priority).
 
-To access system resource, use provided API after checking how critical regions, race conditions and wait queue are treated in the right sections below. Do not disable interrupt directly but use API.
+To access system resource, use provided API after checking how synchronization and wait queue are handled in the right sections below. Do not disable interrupt directly but use API.
 
 shell environment provided.
 
@@ -20,26 +20,25 @@ But still I want to make it for dynamic loader version providing shared library.
 
 ## API
 
-### Critical regions and race conditions
+### Synchronization
 
-considering single core cpu.
+schedule() never takes place in an interrupt context. When there is any interrupts active or pending, schedule() gets its chance to run after all the interrupts handled first.
 
-It disables all interrupts before jumping to the interrut vector when an interrupt occures. 
+Considering a single processor, `cli()` and semaphore(mutex) are enough to guarantee synchronization, I guess.
 
 1. If data or region is accessed by more than a task, use mutex_lock()
   - It guarantees you access the data exclusively. You go sleep until you get the key.
 2. If the one you are accessing to is the resource that the system also manipulates in an interrupt, use spinlock_irqsave().
   - spinlock never goes to sleep.
-3. In case a task need to go sleep, then use_mutex_lock(). And as soon as you get the key, disable irq, cli().
-  - Ensure that irq is not disabled before getting the key so that the task can go sleep. If you disable irq first before getting the key you never get awaken again.
+3. Or using mutex_lock(), do preempt_disable() as soon as you get the key.
+  - Ensure that irq is not disabled before getting the key so that the task can go sleep. If you disable irq first before getting the key you never get back, infinite loop.
+  - Watch out when you use cli() direct.
 
-#### Preventing preemption
+mutex and semaphore can go sleep.
 
-	preempt_disable()
-	... here can't be interrupted ...
-	preempt_enable()
+`preempt_xxx()` and `spinlock()_xxx` never get preempted.
 
-preempt_disable() increases count by 1 while preempt_enable() decreases count. When the count reaches 0, interrupts get enabled.
+scheduler can be preempted but disable all local interrupts, `cli()`.
 
 #### atomic data type
 
@@ -52,9 +51,25 @@ Let's just go with `int` type and `str`/`ldr` instructions.
 long term waiting.
 sleeping lock.
 
+`mutex_lock()`, `semaphore_down()`
+
+`semaphore_down_atomic()`
+
 #### spin lock
 
 ~~short term waiting~~
+
+`spin_lock()` - in context of interrupt. Actually it doesn't seem useful in a single processor because being in context of interrupt proves no one has the keys to where using spin lock. That means whenever you use spin lock in a task you must disable interrupts as you get the key using `spinlock_irqsave()`.
+
+`spinlock_irqsave()` - for both of interrupt handlers and user tasks.
+
+#### Preventing preemption
+
+	preempt_disable()
+	... here can't be interrupted ...
+	preempt_enable()
+
+preempt_disable() increases count by 1 while preempt_enable() decreases count. When the count reaches 0, interrupts get enabled.
 
 ### waitqueue
 
@@ -93,10 +108,12 @@ User stack gets allocated by malloc() call in alloc_user_stack(). Therefore the 
 
 	REGISTER_TASK() - collect tasks in .user_task_list section
 	  flags      \
+	  primask    |
 	  stack      |
-	  stack_size |-- struct task_t
+	  sp         |-- struct task_t
+	  stack_size |
 	  addr       |
-	             /
+	  runqueue   /
 
 Task priority in flags
 
@@ -161,6 +178,7 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 	|   `-- mem_init()
 	|-- main()
 	|   |-- console_open()
+	|   |-- systick_init()
 	|   `-- init_task()
 	|       |-- load_user_task()
-	|       `-- systick_init()
+	|       `-- schedule_on()

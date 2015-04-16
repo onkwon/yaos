@@ -42,7 +42,8 @@ waiting4key:
 	while (s->count <= 0) ;
 
 	cli();
-	/* in case an interrupt occures between cli() and exiting from loop */
+	/* In case of interrupting between cli() and exiting from the loop.
+	 * It works only for binary semaphore. */
 	if (s->count <= 0) {
 		DBUG(("critical region got polluted.\n"));
 		irq_restore(*flags);
@@ -66,6 +67,16 @@ static inline void semaphore_up_atomic(struct semaphore *s, unsigned long *flags
 #define DEFINE_SPINLOCK(name)		semaphore_new(name, 1)
 #define spinlock_irqsave(s, f)		semaphore_down_atomic(s, f)
 #define spinlock_irqrestore(s, f)	semaphore_up_atomic(s, f)
+#define spin_lock(s) { \
+	/* do the job in case of multi core processor */ \
+	/* spinlock_irqxxx() also need to be implemented */ \
+	preempt_disable(); \
+}
+#define spin_unlock(s)			preempt_enable()
+
+#define preempt_disable()
+#define preempt_enable()
+#define preempt_count()
 
 /*
 static inline int set_atomw(int var, int val)
