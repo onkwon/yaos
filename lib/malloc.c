@@ -43,8 +43,8 @@
  
 /* May be changed by the user only before the first malloc() call.  */
 
-#include "foundation.h"
-#include "stdlib.h"
+#include <foundation.h>
+#include <stdlib.h>
 
 extern char _ebss;
 #define HEAP_START	((unsigned)&_ebss)

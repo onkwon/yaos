@@ -27,11 +27,11 @@ considering single core cpu.
 It disables all interrupts before jumping to the interrut vector when an interrupt occures. 
 
 1. If data or region is accessed by more than a task, use mutex_lock()
-  It guarantees you access the data exclusively. You go sleep until you get the key.
+  - It guarantees you access the data exclusively. You go sleep until you get the key.
 2. If the one you are accessing to is the resource that the system also manipulates in an interrupt, use spinlock_irqsave().
-  spinlock never goes to sleep.
+  - spinlock never goes to sleep.
 3. In case a task need to go sleep, then use_mutex_lock(). And as soon as you get the key, disable irq, cli().
-  Ensure that irq is not disabled before getting the key so that the task can go sleep. If you disable irq first before getting the key you never get awaken again.
+  - Ensure that irq is not disabled before getting the key so that the task can go sleep. If you disable irq first before getting the key you never get awaken again.
 
 #### Preventing preemption
 
@@ -152,3 +152,15 @@ REALTIME_PRIORITY + n in REGISTER_TASK() in case there are real time tasks more 
 ### Runqueue
 
 It has only a queue for running task. When a task goes to sleep or wait state, it just removed from runqueue. Because the task must remain in a waitqueue in any situation except temination, task can get back into runqueue from the link that can be found from waitqueue.
+
+## Generalization
+
+	/
+	|-- sys_init()
+	|   |-- clock_init()
+	|   `-- mem_init()
+	|-- main()
+	|   |-- console_open()
+	|   `-- init_task()
+	|       |-- load_user_task()
+	|       `-- systick_init()

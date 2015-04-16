@@ -4,6 +4,10 @@
 #define CONTEXT_NR	(17)
 #define CONTEXT_SIZE	(CONTEXT_NR * sizeof(long)) /* depending on SCB_CCR[STKALIGN] */
 
+#define EXC_RETURN_MSPH	0xfffffff1	/* return to HANDLER mode using MSP */
+#define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
+#define EXC_RETURN_PSPT	0xfffffffd	/* return to THREAD  mode using PSP */
+
 /* We ignore CONTROL register that controls which stack to use
  * and the privilege level. Suppose we work only in privileged mode.
  *  __________
@@ -34,5 +38,7 @@
 		"pop 	{r4-r11}	\n\t"	\
 		:: "r"(sp)			\
 	);
+
+#define schedule()	__asm__ __volatile__("svc 0");
 
 #endif /* __CONTEXT_H__ */

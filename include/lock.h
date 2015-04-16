@@ -32,6 +32,8 @@ static inline void semaphore_up(struct semaphore *s)
 	}
 }
 
+#include <io.h>
+
 static inline void semaphore_down_atomic(struct semaphore *s, unsigned long *flags)
 {
 	irq_save(*flags);

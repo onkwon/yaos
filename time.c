@@ -1,9 +1,9 @@
-#include "time.h"
+#include <time.h>
 
 unsigned long __attribute__((section(".data"))) ticks;
 unsigned long long __attribute__((section(".data"))) ticks_64;
 
-#include "foundation.h"
+#include <foundation.h>
 
 unsigned long long get_ticks_64()
 {

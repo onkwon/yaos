@@ -18,7 +18,7 @@
 #define getarg(args, type)	(*(type *)args++)
 #define align_dword(args)	(args += ((int)args & ((INTSIZE<<1)-1))? 1 : 0)
 
-#include "driver/usart.h"
+#include <driver/usart.h>
 #define __printc(c)		__putc(USART1, c)
 static void (*__putc)(unsigned ch, int c) = usart_putc;
 void printf_setputc(void *f) { __putc = f; }

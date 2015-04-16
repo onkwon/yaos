@@ -1,6 +1,6 @@
-#include "usart.h"
-#include "stdlib.h"
-#include "foundation.h"
+#include <usart.h>
+#include <stdlib.h>
+#include <foundation.h>
 
 #define BUF_SIZE	256
 #define USART_NUM	5

@@ -1,6 +1,6 @@
-#include "foundation.h"
+#include <foundation.h>
 
-#include "driver/usart.h"
+#include <driver/usart.h>
 static void idle()
 {
 	/*
@@ -21,5 +21,5 @@ static void idle()
 	}
 }
 
-#include "task.h"
+#include <task.h>
 REGISTER_TASK(idle, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);

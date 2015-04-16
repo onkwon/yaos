@@ -1,6 +1,101 @@
-#ifndef __STM32_H__
-#define __STM32_H__
+#ifndef __STM32_IO_H__
+#define __STM32_IO_H__
 
+#define GET_PC() ({ \
+		unsigned __pc; \
+		__asm__ __volatile__("mov %0, pc" : "=r" (__pc)); \
+		__pc; })
+#define GET_SP() ({ \
+		unsigned __sp; \
+		__asm__ __volatile__("mov %0, sp" : "=r" (__sp)); \
+		__sp; })
+#define GET_PSR() ({ \
+		unsigned __psr; \
+		__asm__ __volatile__("mrs %0, psr" : "=r" (__psr)); \
+		__psr; })
+#define GET_LR() ({ \
+		unsigned __lr; \
+		__asm__ __volatile__("mov %0, lr" : "=r" (__lr)); \
+		__lr; })
+#define GET_INT() ({ \
+		unsigned __primask; \
+		__asm__ __volatile__("mrs %0, primask" : "=r" (__primask)); \
+		__primask; })
+#define GET_CON() ({ \
+		unsigned __control; \
+		__asm__ __volatile__("mrs %0, control" : "=r" (__control)); \
+		__control; })
+
+/* Use these macros where needs atomic operation. */
+#define GET_BITBAND_ADDR(base, offset, bit) \
+		((base) + ((offset) << 5) + ((bit) << 2))
+#define GET_BITBAND(addr, bit) \
+		GET_BITBAND_ADDR(((unsigned)(addr) & 0xf0000000) + 0x02000000, \
+				((unsigned)(addr) & 0xfffff), bit)
+#define BITBAND(addr, bit, v) \
+		(*(volatile unsigned *)GET_BITBAND(addr, bit) = v)
+
+/* RCC */
+#define SET_CLOCK_APB2(on, pin)		BITBAND(&RCC_APB2ENR, pin, on)
+#define SET_CLOCK_APB1(on, pin)		BITBAND(&RCC_APB1ENR, pin, on)
+#define RESET_CLOCK_APB2(pin) { \
+		BITBAND(&RCC_APB2RSTR, pin, ON); \
+		BITBAND(&RCC_APB2RSTR, pin, OFF); \
+	}
+#define RESET_CLOCK_APB1(pin) { \
+		BITBAND(&RCC_APB1RSTR, pin, ON); \
+		BITBAND(&RCC_APB1RSTR, pin, OFF); \
+	}
+
+/* GPIO */
+#define SET_PORT_PIN(port, pin, mode) ( \
+		*(volatile unsigned *)(port + (pin / 8 * 4)) = \
+		MASK_RESET(*(volatile unsigned *)(port + (pin / 8 * 4)), \
+			0xf << ((pin % 8) * 4)) \
+		| ((mode) << ((pin % 8) * 4)) \
+	)
+#define SET_PORT_CLOCK(on, port)	SET_CLOCK_APB2(on, (port >> 10) & 0xf)
+#define GET_PORT(port)			(*(volatile unsigned *)((port) + 8))
+#define PUT_PORT(port, data)		(*(volatile unsigned *)((port) + 0xc) = data)
+#define PUT_PORT_PIN(port, pin, on) \
+	(*(volatile unsigned *)((port) + 0x10) = on? 1 << pin : 1 << (pin + 16))
+
+/* Interrupt */
+#define sei()		__asm__ __volatile__("cpsie i")
+#define cli()		__asm__ __volatile__("cpsid i")
+
+#define irq_save(flags) \
+	__asm__ __volatile__("mrs %0, primask" : "=r"(flags))
+#define irq_restore(flags) \
+	__asm__ __volatile__("msr primask, %0" :: "r"(flags))
+
+#define ISR_REGISTER(vector_nr, func)	({ \
+		extern unsigned _sram_start; \
+		*((unsigned *)&_sram_start + vector_nr) = (unsigned)func; \
+		__asm__ __volatile__ ("dsb"); \
+	})
+
+#define SET_IRQ(on, irq_nr) ( \
+		*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)) = \
+		MASK_RESET(*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)), 1 << ((irq_nr) % 32)) \
+		| (on << ((irq_nr) % 32)) \
+	)
+
+/* Embedded flash */
+#define FLASH_WRITE_START()	(FLASH_CR |=   1 << PG)
+#define FLASH_WRITE_END()	(FLASH_CR &= ~(1 << PG))
+#define FLASH_WRITE_WORD(addr, data)	{ \
+		*(volatile unsigned short int *)addr = (unsigned short int)data; \
+		while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
+		*(volatile unsigned short int *)(addr+2) = (unsigned short int)(data >> 16); \
+		while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
+	}
+#define FLASH_LOCK()	(FLASH_CR |= 0x80)
+#define FLASH_UNLOCK() { \
+		FLASH_KEYR = KEY1; \
+		FLASH_KEYR = KEY2; \
+	}
+		
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40021000)
 #define RCC_CR			(*(volatile unsigned *)RCC_BASE)
@@ -160,4 +255,4 @@
 #define DAC_CR			(*(volatile unsigned *)DAC_BASE)
 #define DAC_DHR8R2		(*(volatile unsigned *)(DAC_BASE + 0x1c))
 
-#endif /* __STM32_H__ */
+#endif /* __STM32_IO_H__ */

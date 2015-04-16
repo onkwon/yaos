@@ -1,7 +1,7 @@
 #ifndef __STRING_H__
 #define __STRING_H__
 
-#include "types.h"
+#include <types.h>
 
 #define c2i(c)	(c >= 'a' && c <= 'f'? c - 87 : \
 		c >= 'A' && c <= 'F'? c - 55 : c - '0')

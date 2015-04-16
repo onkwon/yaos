@@ -39,8 +39,8 @@ struct fifo_t {
 };
 
 extern inline void fifo_init(struct fifo_t *q, void *queue, unsigned size);
-extern inline int fifo_get(struct fifo_t *q, int type_size);
-extern inline int fifo_put(struct fifo_t *q, int value, int type_size);
+extern inline int  fifo_get(struct fifo_t *q, int type_size);
+extern inline int  fifo_put(struct fifo_t *q, int value, int type_size);
 extern inline void fifo_flush(struct fifo_t *q);
 
 #define SWAP_WORD(word)	\

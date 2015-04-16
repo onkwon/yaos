@@ -1,6 +1,5 @@
-#include "foundation.h"
-#include "io.h"
-#include "sched.h"
+#include <foundation.h>
+#include <sched.h>
 
 /* runqueue's head can be init task. think about it */
 LIST_HEAD(runqueue);
@@ -8,7 +7,7 @@ LIST_HEAD(runqueue);
 static struct task_t init = { .rq = {&runqueue, &runqueue} };
 struct task_t *current = &init;
 
-void __attribute__((naked)) schedule_core()
+void schedule_core()
 {
 	static struct list_t *rq = &runqueue; /* rq counter */
 
@@ -21,8 +20,6 @@ void __attribute__((naked)) schedule_core()
 	}
 
 	current = get_container_of(rq, struct task_t, rq);
-
-	__asm__ __volatile__("bx lr");
 }
 
 DEFINE_SPINLOCK(rq_lock);

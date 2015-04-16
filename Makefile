@@ -1,51 +1,61 @@
+# Machine dependant
+
+MACH    = stm32
+ARCH    = cortex-m3
+
+CC      = arm-none-eabi-gcc
+LD      = arm-none-eabi-ld
+OC      = arm-none-eabi-objcopy
+OD      = arm-none-eabi-objdump
+
+CFLAGS  = -Wall -O2 -mcpu=$(ARCH) -mthumb -fno-builtin
+export MACH
+
+# Common 
+
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
 BASEDIR = $(shell pwd)
 export BASEDIR
 
-ARCH = cortex-m3
-MCU  = stm32f103
-
-CC = arm-none-eabi-gcc
-LD = arm-none-eabi-ld
-OC = arm-none-eabi-objcopy
-OD = arm-none-eabi-objdump
-
-CFLAGS  = -Wall -O2 $(INCS) -mcpu=$(ARCH) -mthumb -fno-builtin #-fno-common
-CFLAGS += -DVERSION=\"$(VERSION)\" -DHSE=8000000
+CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(MACH)\"
 ifeq ($(RELEASE),)
 CFLAGS += -g -DDEBUG -O0
 endif
-LDFLAGS = -nostartfiles -Tibox.lds
+LDFLAGS = -nostartfiles -Tarch/$(MACH)/ibox.lds
 OCFLAGS = -O binary
 ODFLAGS = -Dsx
-export CC OC OD CFLAGS OCFLAGS ODFLAGS
+export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
 
 SRCS_ASM = $(wildcard *.S)
-SRCS = $(shell ls | grep .*.c$$ | sed 's/main.c//')
-OBJS = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
-TARGET_SRCS = main.c
-TARGET_OBJS = $(TARGET_SRCS:%.c=%.o)
-TARGET = $(TARGET_SRCS:%.c=%)
+SRCS     = $(wildcard *.c)
+OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
+TARGET   = ibox
 
-INCS = -I./include
+INC  = -I./include
 LIBS = 
-export INCS LIBS
-SUBDIRS = drivers lib tasks
+export INC LIBS
 
-all: $(TARGET)
+SUBDIRS = drivers lib tasks arch
+
+all: asm $(TARGET)
 	@echo "Section Size(in bytes):"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(TARGET).map
 
-.SECONDEXPANSION:
-$(TARGET): $$@.o $(OBJS) subs
-	$(LD) $(LDFLAGS) -o $@ $< $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $@.map
+$(TARGET): $(OBJS) subs
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $@.map
 	$(OC) $(OCFLAGS) $@ $@.bin
 	$(OD) $(ODFLAGS) $@ > $@.dump
 
 subs:
 	@for i in $(SUBDIRS); do $(MAKE) --print-directory -C $$i || exit $?; done
 
-.SUFFIXES: .c.o
+asm:
+	cp -R arch/$(MACH)/include include/asm
+	cp -R drivers/include include/driver
+
+.c.o:
+	$(CC) -c $< $(CFLAGS) $(INC) $(LIBS)
+
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o
 
@@ -53,11 +63,13 @@ depend dep:
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
 clean:
+	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
 	@rm -f $(OBJS) $(TARGET_OBJS) $(TARGET) .depend
 	@rm -f $(TARGET:%=%.map)
-	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
 	@rm -f $(TARGET:%=%.bin)
 	@rm -f $(TARGET:%=%.dump)
+	@rm -rf include/asm
+	@rm -rf include/driver
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

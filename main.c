@@ -1,34 +1,6 @@
-#include "foundation.h"
-#include "io.h"
-#include "sched.h"
-#include "time.h"
-
-static void __attribute__((naked)) isr_systick()
-{
-	/* All interrupts get disabled and current context is saved by
-	 * schedule_prepare(). Contrary it gets enabled and restored by
-	 * schedule_finish(). */
-	schedule_prepare();
-
-	SYSTICK_FLAG(); /* clear flag */
-	ticks_64 += STK_LOAD + 1;
-
-	schedule_core();
-	schedule_finish();
-
-	__asm__ __volatile__("bx lr");
-}
-
-static void systick_init()
-{
-	ISR_REGISTER(15, isr_systick);
-
-	RESET_SYSTICK();
-	SET_SYSTICK(get_stkclk(get_hclk(get_sysclk())) / HZ - 1);
-	SYSTICK(ON | SYSTICK_INT);
-}
-
-#include "stdlib.h"
+#include <foundation.h>
+#include <stdlib.h>
+#include <task.h>
 
 static unsigned *alloc_user_stack(struct task_t *p)
 {
@@ -39,6 +11,8 @@ static unsigned *alloc_user_stack(struct task_t *p)
 	p->stack += (p->stack_size >> 2) - 1;
 	return p->stack;
 }
+
+#include <sched.h>
 
 static void load_user_task()
 {
@@ -66,10 +40,14 @@ static void load_user_task()
 	}
 }
 
-/* when no task in runqueue, this init_task gets the cpu.
+#include <asm/clock.h>
+
+/* when no task in runqueue, this init_task takes place.
  * do some power saving things */
 static void init_task()
 {
+	load_user_task();
+
 	/* ensure that systick is not activated 
 	 * prior to task and scheduler ready to run. */
 	systick_init();
@@ -82,7 +60,8 @@ static void init_task()
 	}
 }
 
-#include "driver/usart.h"
+#include <driver/usart.h>
+#include <asm/clock.h>
 
 int main()
 {
@@ -96,7 +75,6 @@ int main()
 			| (1 << 3)        /* TE    : Transmitter enable */
 			| (1 << 2)});     /* RE    : Receiver enable */
 
-	load_user_task();
 	init_task();
 
 	return 0;

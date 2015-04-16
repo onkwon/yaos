@@ -1,5 +1,5 @@
-#include "foundation.h"
-#include "sched.h"
+#include <foundation.h>
+#include <sched.h>
 
 static void test_task1()
 {
@@ -13,5 +13,5 @@ static void test_task1()
 	//}
 }
 
-#include "task.h"
+#include <task.h>
 REGISTER_TASK(test_task1, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);

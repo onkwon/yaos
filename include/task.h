@@ -6,7 +6,7 @@
 #define NORMAL_PRIORITY		1
 #define REALTIME_PRIORITY	2
 
-#include "types.h"
+#include <types.h>
 
 struct task_t {
 	int flags;       	/* priority */

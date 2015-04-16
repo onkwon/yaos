@@ -1,6 +1,6 @@
-#include "foundation.h"
+#include <foundation.h>
 
-#include "time.h"
+#include <time.h>
 
 static void test_task2()
 {
@@ -20,5 +20,5 @@ static void test_task2()
 	}
 }
 
-#include "task.h"
+#include <task.h>
 REGISTER_TASK(test_task2, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);

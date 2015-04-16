@@ -2,9 +2,9 @@ SRCS_ASM = $(wildcard *.S)
 SRCS     = $(wildcard *.c)
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
-INCS    += -I$(BASEDIR)/include
+INC     += -I$(BASEDIR)/include
 LIBS    += 
-CFLAGS  += $(INCS) $(LIBS)
+CFLAGS  += $(INC) $(LIBS)
 
 .SUFFIXES: .c.o
 .SUFFIXES: .s.o
