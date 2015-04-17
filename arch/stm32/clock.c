@@ -102,7 +102,9 @@ unsigned get_stkclk(unsigned hclk)
 	return clk;
 }
 
-void clock_init()
+#include <init.h>
+
+static void __init clock_init()
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */
@@ -131,3 +133,5 @@ void clock_init()
 
 	//BITBAND(&RCC_CR, CSSON, ON);
 }
+
+REGISTER_INIT_FUNC(clock_init, 0);

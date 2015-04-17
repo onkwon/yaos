@@ -59,10 +59,20 @@ static void init_task()
 	}
 }
 
+void sys_init()
+{
+	extern int _init_func_list;
+	unsigned *p = (unsigned *)&_init_func_list;
+
+	while (*p) ((void (*)())*p++)();
+}
+
 #include <driver/usart.h>
 
 int main()
 {
+	sys_init();
+
 	usart_open(USART1, (struct usart_t) {
 			.brr  = brr2reg(115200, get_sysclk()),
 			.gtpr = 0,

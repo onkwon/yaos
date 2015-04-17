@@ -172,13 +172,14 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 
 ## Generalization
 
-	/
-	|-- sys_init()
-	|   |-- clock_init()
-	|   `-- mem_init()
+	/entry()
 	|-- main()
+	|   |-- sys_init()
 	|   |-- console_open()
 	|   |-- systick_init()
 	|   `-- init_task()
 	|       |-- load_user_task()
 	|       `-- schedule_on()
+
+* entry() - is very first hardware setup code to boot, usally in assembly.
+* sys_init() - calls functions registered by `REGISTER_INIT_FUNC()`, architecture specific initialization.

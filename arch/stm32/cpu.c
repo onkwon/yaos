@@ -1,4 +1,10 @@
 #include <foundation.h>
+#include <init.h>
+
+static void __attribute__((naked, used)) entry()
+{
+	main();
+}
 
 extern char _sram_end;
 
@@ -12,7 +18,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 			/* NUM(IRQ): ADDR - DESC */
 			/* -------------------- */
 	&_sram_end,	/* 00     :       - Stack pointer */
-	sys_init,	/* 01     : 0x04  - Reset */
+	entry,		/* 01     : 0x04  - Reset */
 	isr_default,	/* 02     : 0x08  - NMI */
 	isr_default,	/* 03     : 0x0c  - HardFault */
 	isr_default,	/* 04     : 0x10  - MemManage */
@@ -93,7 +99,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 #include <io.h>
 #include <clock.h>
 
-void mem_init()
+static void __init mem_init()
 {
 	unsigned i;
 
@@ -101,8 +107,6 @@ void mem_init()
 	extern char _sram_start;
 	for (i = 0; (int)isr_vectors[i] != EOF; i++)
 		*((unsigned *)&_sram_start + i) = (unsigned)isr_vectors[i];
-
-	dmb();
 
 	/* activate vector table in sram */
 	SCB_VTOR = (unsigned)&_sram_start;
@@ -120,4 +124,8 @@ void mem_init()
 	/* reset flag */
 	//resetf   = RCC_CSR >> 26;
 	RCC_CSR |= 0x01000000;  /* clear reset flags */
+
+	dmb();
 }
+
+REGISTER_INIT_FUNC(mem_init, 1);

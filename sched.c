@@ -27,6 +27,7 @@ DEFINE_SPINLOCK(rq_lock);
 void runqueue_add(struct task_t *p)
 {
 	unsigned long irq_flag;
+
 	spinlock_irqsave(&rq_lock, &irq_flag);
 
 	/* newest is always head->next */
@@ -38,6 +39,7 @@ void runqueue_add(struct task_t *p)
 void runqueue_del(struct task_t *p)
 {
 	unsigned long irq_flag;
+
 	spinlock_irqsave(&rq_lock, &irq_flag);
 
 	list_del(&p->rq);

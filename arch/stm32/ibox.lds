@@ -18,6 +18,13 @@ SECTIONS
 	.text :
 	{
 		*(.vector)
+		. = (. + 3) & ~ 3;
+		_init_func_list = .;
+		*(.text.init_list.0)
+		*(.text.init_list.*)
+		. = (. + 3) & ~ 3;
+		LONG(0);
+		*(.text.init)
 		*(.text)
 		*(.text.*)
 		*(.rodata)
