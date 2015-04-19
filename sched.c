@@ -1,70 +1,150 @@
 #include <foundation.h>
-#include <sched.h>
+#include <kernel/sched.h>
 
-/* runqueue's head can be init task. think about it */
-LIST_HEAD(runqueue);
+static struct sched_t cfs;
+static struct sched_t rts;
 
-static struct task_t init = { .rq = {&runqueue, &runqueue} };
-struct task_t *current = &init;
+struct task_t *current;
+
+/* As a scheduler works only for a processor and runs in an interrupt context,
+ * we are rid of concern about synchronization. */
+
+#include <time.h>
+#include <kernel/cfs.h>
 
 void schedule_core()
 {
-	static struct list_t *rq = &runqueue; /* rq counter */
+	struct task_t *next;
 
-	rq = rq->next;
-	if (rq == &runqueue) { /* turnaround */
-		if ((rq = rq->next) == &runqueue) { /* no task to schedule */
-			/* wake up the init_task */
-			rq = &init.rq;
+	/* Real time scheduler */
+
+	if (rts.nr_running) {
+		/* rq_add() and rq_del() of real time scheduler must keep
+		 * the highest priority amongst tasks in `pri` variable.
+		 * `pri` has the least priority when no task in runqueue. */
+		if ( !IS_TASK_REALTIME(current) ||
+				(rts.pri <= GET_PRIORITY(current)) ) {
+rts_next:
+			next = rts_pick_next(&rts);
+
+			if (!IS_TASK_REALTIME(current))
+				cfs_rq_add(&cfs, current);
+			else
+				rts_rq_add(&rts, current);
+
+			current = next;
+
+			rts_rq_del(&rts, next);
+
+			/* count 1 for `current` */
+			rts.nr_running++;
 		}
+
+		/* If not runnable, it means the last real time task finished
+		 * or went to sleep. Now it's time for CFS. */
+		if (get_task_state(current) & TASK_RUNNING)
+			return;
+		else if (rts.nr_running > 1)
+			goto rts_next;
+
+		rts.nr_running = 0;
 	}
 
-	current = get_container_of(rq, struct task_t, rq);
+	/* Completely fair scheduler */
+
+	/* Find a better way to minimize scheduling overhead
+	 * when there is only one task, `current`. */
+	next = cfs_pick_next(&cfs);
+
+	/* add `current` back into runqueue after picking next */
+	cfs_rq_add(&cfs, current);
+
+	if (!next) { /* no task to schedule */
+		/* wake up the init task */
+	}
+
+	current = next;
+
+	/* remove the next task from runqueue */
+	cfs_rq_del(&cfs, next);
+
+	/* Update newly selected task's start time because it is stale
+	 * as much as how long the one has been waiting for. */
+	current->se.exec_start = __get_systick_64();
 }
 
-DEFINE_SPINLOCK(rq_lock);
-
-void runqueue_add(struct task_t *p)
+/* Calling update_curr() as soon as the system timer interrupt occurs would be
+ * the best chance other than elsewhere not to count scheduling overhead but to
+ * count only its running time, as long as systick gets updated asynchronous. */
+void update_curr()
 {
-	unsigned long irq_flag;
+	uint64_t clock = __get_systick_64();
+	unsigned delta_exec;
 
-	spinlock_irqsave(rq_lock, irq_flag);
+	delta_exec = clock - current->se.exec_start;
+	current->se.vruntime += delta_exec;
+	current->se.sum_exec_runtime += delta_exec;
+	current->se.exec_start = clock;
 
-	/* newest is always head->next */
-	list_add(&p->rq, &runqueue);
+	struct task_t *task;
 
-	spinlock_irqrestore(rq_lock, irq_flag);
+	cfs.vruntime_base = current->se.vruntime;
+
+	/* pick the least vruntime in runqueue for vruntime_base
+	 * to keep order properly. */
+	if (((struct list_t *)cfs.rq)->next != cfs.rq) { /* if it's not empty */
+		task = get_container_of( ((struct list_t *)cfs.rq)->next,
+				struct task_t, rq );
+		if (cfs.vruntime_base > task->se.vruntime)
+			cfs.vruntime_base = task->se.vruntime;
+	}
 }
 
-void runqueue_del(struct task_t *p)
+void runqueue_add(struct task_t *new)
 {
-	unsigned long irq_flag;
+	if (IS_TASK_REALTIME(new)) /* a real time task */
+		rts_rq_add(&rts, new);
+	else /* a normal task */
+		cfs_rq_add(&cfs, new);
+}
 
-	spinlock_irqsave(rq_lock, irq_flag);
+void scheduler_init()
+{
+	extern struct list_t cfs_rq;
 
-	list_del(&p->rq);
+	cfs.vruntime_base = 0;
+	cfs.nr_running    = 0;
+	cfs.rq            = (void *)&cfs_rq;
 
-	spinlock_irqrestore(rq_lock, irq_flag);
+	extern struct list_t rts_rq[RT_LEAST_PRIORITY+1];
 
-	/* release all related to the task */
+	rts.nr_running = 0;
+	rts.pri        = RT_LEAST_PRIORITY;
+	rts.rq         = (void *)rts_rq;
 
-	schedule();
+	int i;
+
+	for (i = 0; i <= RT_LEAST_PRIORITY; i++) {
+		LIST_LINK_INIT(&rts_rq[i]);
+	}
 }
 
 void print_rq()
 {
-	struct list_t *rq = runqueue.next;
+	struct list_t *rq = ((struct list_t *)cfs.rq)->next;
 	struct task_t *p;
 
-	int i;
+//	int i;
 
-	while (rq != &runqueue) {
+	while (rq != cfs.rq) {
 		p = get_container_of(rq, struct task_t, rq);
 
-		DBUG(("flags = %d, stack size = %d, addr = 0x%x\n", p->flags, p->stack_size, p->addr));
+		printf("nr_running[%d] state = %d, vruntime = %d, exec_runtime = %d (%d sec), addr = 0x%x\n", cfs.nr_running,
+				p->state, (unsigned)p->se.vruntime, (unsigned)p->se.sum_exec_runtime,
+				(unsigned)p->se.sum_exec_runtime/HZ, (unsigned)p->addr);
 
-		for (i = 0; i < CONTEXT_NR; i++)
-			DBUG(("%x : %x\n", p->sp + i, *(p->sp + i)));
+//		for (i = 0; i < CONTEXT_NR; i++)
+//			DBUG(("%x : %x\n", p->sp + i, *(p->sp + i)));
 
 		rq = rq->next;
 	}

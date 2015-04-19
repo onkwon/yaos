@@ -15,7 +15,4 @@ static inline int set_atomic(int *p, int v)
 	return result;
 }
 
-int atomic_dec(void *s);
-int atomic_inc(void *s);
-
 #endif /* __STM32_LOCK_H__ */

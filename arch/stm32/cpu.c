@@ -129,23 +129,3 @@ static void __init mem_init()
 }
 
 REGISTER_INIT_FUNC(mem_init, 1);
-
-int __attribute__((naked)) atomic_dec(void *s)
-{
-	__asm__ __volatile__(
-			"ldrex	r1, [r0]	\n\t"
-			"sub	r1, #1		\n\t"
-			"strex	r0, r1, [r0]	\n\t"
-			"bx	lr		\n\t"
-		);
-}
-
-int __attribute__((naked)) atomic_inc(void *s)
-{
-	__asm__ __volatile__(
-			"ldrex	r1, [r0]	\n\t"
-			"add	r1, #1		\n\t"
-			"strex	r0, r1, [r0]	\n\t"
-			"bx	lr		\n\t"
-		);
-}

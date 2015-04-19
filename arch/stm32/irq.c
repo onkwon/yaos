@@ -1,5 +1,5 @@
 #include <foundation.h>
-#include <sched.h>
+#include <kernel/sched.h>
 
 /* A register that is not yet saved in stack gets used by compiler optimization.
  * If I put all the registers that are not yet saved in clobber list,
@@ -79,10 +79,10 @@ void __attribute__((naked)) isr_default()
 	kprintf("\ncurrent->sp         0x%08x\n"
 		"current->stack      0x%08x\n"
 		"current->stack_size 0x%08x\n"
-		"current->flags      0x%08x\n"
+		"current->state      0x%08x\n"
 		"current->primask    0x%08x\n"
 		, current->sp, current->stack, current->stack_size
-		, current->flags, current->primask);
+		, current->state, current->primask);
 
 	/* led for debugging */
 	SET_PORT_CLOCK(ENABLE, PORTD);

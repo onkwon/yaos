@@ -25,7 +25,7 @@ extern int kprintf(const char *format, ...);
 
 #ifdef DEBUG
 #define DBUG(fmt) do { \
-	kprintf("%s:%d:%s(): ", __FILE__, __LINE__, __func__); \
+	kprintf("%s:%s():%d: ", __FILE__, __func__, __LINE__); \
 	kprintf fmt; \
 } while (0)
 #else

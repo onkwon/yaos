@@ -11,20 +11,20 @@ static void test_task2()
 	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
 
 	while (1) {
-		t = get_ticks_64();
+		t = get_systick_64();
 		th = t >> 32;
 		bh = t;
 
 		dmb();
-		v = ticks;
+		v = systick;
 
 		printf("%08x ", v);
 		printf("%08x", th);
-		printf("%08x %d\n", bh, v);
+		printf("%08x %d (%d sec)\n", bh, v, v/HZ);
 
 		mdelay(500);
 	}
 }
 
-#include <task.h>
-REGISTER_TASK(test_task2, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);
+#include <kernel/task.h>
+REGISTER_TASK(test_task2, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);

@@ -35,29 +35,29 @@ static void shared_test()
 {
 	while (1) {
 		set_shared(1);
-		mdelay(7);
+		sdelay(5);
 	}
 }
 
-#include <task.h>
-REGISTER_TASK(shared_test, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);
+#include <kernel/task.h>
+REGISTER_TASK(shared_test, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
 
 static void shared_test2()
 {
 	while (1) {
 		set_shared(4);
-		mdelay(8);
+		sdelay(5);
 	}
 }
 
-REGISTER_TASK(shared_test2, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);
+REGISTER_TASK(shared_test2, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
 
 static void shared_test3()
 {
 	while (1) {
 		set_shared(5);
-		mdelay(9);
+		sdelay(5);
 	}
 }
 
-REGISTER_TASK(shared_test3, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);
+REGISTER_TASK(shared_test3, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);

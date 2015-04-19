@@ -1,6 +1,6 @@
 #include <foundation.h>
 #include <stdlib.h>
-#include <task.h>
+#include <kernel/sched.h>
 
 static unsigned *alloc_user_stack(struct task_t *p)
 {
@@ -8,12 +8,11 @@ static unsigned *alloc_user_stack(struct task_t *p)
 		return NULL;
 
 	/* make its stack pointer to point out the highest memory address */
+	/* (p->stack_size >> 2) == (p->stack_size / sizeof(long)) */
 	p->sp = p->stack + ((p->stack_size >> 2) - 1);
 
 	return p->sp;
 }
-
-#include <sched.h>
 
 static void load_user_task()
 {
@@ -21,7 +20,7 @@ static void load_user_task()
 	struct task_t *p = (struct task_t *)&_user_task_list;
 	int i;
 
-	while (p->flags) {
+	while (p->state) {
 		/* sanity check */
 		if (!p->addr) continue;
 		if (!alloc_user_stack(p)) continue;
@@ -35,17 +34,36 @@ static void load_user_task()
 		}					/* . */
 		*p->sp = (unsigned)EXC_RETURN_MSPT;	/* lr */
 
-		/* initial state for all tasks are runnable, add into runqueue */
+		set_task_state(p, TASK_RUNNING);
+
+		/* initial state of all tasks are runnable, add into runqueue */
 		runqueue_add(p);
+
 		p++;
 	}
 }
+
+static void cleanup()
+{
+	/* Clean up redundant, one time code and date that only used during initializing */
+}
+
+struct task_t init;
 
 /* when no task in runqueue, this init_task takes place.
  * do some power saving things */
 static void init_task()
 {
-	load_user_task();
+	cleanup();
+
+	/* set init_task() into struct task_t init */
+	init.state = LEAST_PRIORITY;
+	init.sp    = (unsigned *)GET_SP();
+	init.addr  = init_task;
+	init.se    = (struct sched_entity){ 0, 0, 0 };
+	LIST_LINK_INIT(&init.rq);
+
+	current    = &init;
 
 	/* ensure that scheduler is not activated prior
 	 * until all things to be ready. */
@@ -84,6 +102,9 @@ int main()
 			| (1 << 2)});     /* RE    : Receiver enable */
 
 	systick_init();
+	scheduler_init();
+
+	load_user_task();
 	init_task();
 
 	return 0;

@@ -1,32 +1,41 @@
 #include <time.h>
 #include <foundation.h>
 
-unsigned long volatile __attribute__((section(".data"))) ticks;
-unsigned long long __attribute__((section(".data"))) ticks_64;
+unsigned long volatile __attribute__((section(".data"))) systick;
+uint64_t __attribute__((section(".data"))) systick_64;
 
-DEFINE_SPINLOCK(lock_ticks_64);
+DEFINE_SPINLOCK(lock_systick);
 
-unsigned long long get_ticks_64()
+unsigned long long inline __get_systick_64()
+{
+	return systick_64;
+}
+
+unsigned long long get_systick_64()
 {
 	unsigned long long stamp;
 	unsigned long irq_flag;
 
-	spinlock_irqsave(lock_ticks_64, irq_flag);
+	spinlock_irqsave(lock_systick, irq_flag);
 
-	stamp = ticks_64;
+	stamp = __get_systick_64();
 
-	spinlock_irqrestore(lock_ticks_64, irq_flag);
+	spinlock_irqrestore(lock_systick, irq_flag);
 
 	return stamp;
 }
 
-void update_curr(unsigned elapsed)
+void inline update_tick(unsigned delta)
 {
+	/* In multi processor system, systick_64 is global meaning it is
+	 * accessed by all processors while others related to a scheduler
+	 * are accessed by only its processor. */
+
 	preempt_disable();
-	spin_lock(lock_ticks_64);
+	spin_lock(lock_systick);
 
-	ticks_64 += elapsed;
+	systick_64 += delta;
 
-	spin_unlock(lock_ticks_64);
+	spin_unlock(lock_systick);
 	preempt_enable();
 }

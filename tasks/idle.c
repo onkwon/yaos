@@ -1,5 +1,22 @@
 #include <foundation.h>
+#include <kernel/sched.h>
 
+static struct task_t *get_rt_task()
+{
+	extern int _user_task_list;
+	struct task_t *p = (struct task_t *)&_user_task_list;
+
+	while (p->state) {
+		if (IS_TASK_REALTIME(p))
+			break;
+
+		p++;
+	}
+
+	return p;
+}
+
+extern void print_rq();
 extern int get_shared();
 #include <driver/usart.h>
 static void idle()
@@ -9,10 +26,12 @@ static void idle()
 	struct task_t *task = (struct task_t *)&_user_task_list;
 
 	while (task->stack) {
-		printf("%x\n", task->flags);
+		printf("%x\n", task->state);
 		task++;
 	}
 	*/
+	struct task_t *rt_test = get_rt_task();
+
 	SET_PORT_CLOCK(ENABLE, PORTD);
 	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
 	while (1) {
@@ -20,11 +39,13 @@ static void idle()
 			PUT_PORT(PORTD, GET_PORT(PORTD) ^ 4);
 			usart_getc(USART1);
 			//printf("idle() %c = %d\n", usart_getc(USART1), get_shared());
+			print_rq();
+			set_task_state(rt_test, TASK_RUNNING);
+			runqueue_add(rt_test);
 		}
 		//printf("idle()\n");
 		//mdelay(500);
 	}
 }
 
-#include <task.h>
-REGISTER_TASK(idle, STACK_SIZE_DEFAULT, NORMAL_PRIORITY);
+REGISTER_TASK(idle, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);

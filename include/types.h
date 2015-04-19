@@ -13,6 +13,7 @@
 
 typedef enum {FALSE = 0, TRUE = 1} bool;
 typedef unsigned long size_t;
+typedef unsigned long long uint64_t;
 
 #define get_container_of(ptr, type, member) \
 		((type *)((char *)ptr - (char *)&((type *)0)->member))
