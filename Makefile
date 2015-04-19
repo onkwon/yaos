@@ -41,14 +41,18 @@ all: asm $(TARGET)
 	@echo "Section Size(in bytes):"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(TARGET).map
 
-$(TARGET): $(OBJS) subs
+$(TARGET): $(OBJS) subdirs
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $@.map
 	$(OC) $(OCFLAGS) $@ $@.bin
 	$(OD) $(ODFLAGS) $@ > $@.dump
 
-subs:
-	@for i in $(SUBDIRS); do $(MAKE) --print-directory -C $$i || exit $?; done
+.PHONY: subdirs $(SUBDIRS)
+subdirs: $(SUBDIRS)
 
+$(SUBDIRS):
+	@$(MAKE) --print-directory -C $@
+
+.PHONY: asm
 asm:
 	cp -R arch/$(MACH)/include include/asm
 	cp -R drivers/include include/driver
@@ -59,9 +63,11 @@ asm:
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o
 
+.PHONY: depend dep
 depend dep:
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
+.PHONY: clean
 clean:
 	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
 	@rm -f $(OBJS) $(TARGET_OBJS) $(TARGET) .depend
@@ -81,7 +87,9 @@ endif
 endif
 endif
 
+.PHONY: burn
 burn:
 	tools/stm32flash/stm32flash -w $(TARGET:%=%.bin) -v -g 0x0 /dev/ttyUSB0
+.PHONY: dev
 dev:
 	tools/stm32flash/stm32flash /dev/ttyUSB0

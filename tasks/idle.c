@@ -1,5 +1,6 @@
 #include <foundation.h>
 
+extern int get_shared();
 #include <driver/usart.h>
 static void idle()
 {
@@ -12,9 +13,13 @@ static void idle()
 		task++;
 	}
 	*/
+	SET_PORT_CLOCK(ENABLE, PORTD);
+	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
 	while (1) {
 		if (usart_kbhit(USART1)) {
-			printf("%c", usart_getc(USART1));
+			PUT_PORT(PORTD, GET_PORT(PORTD) ^ 4);
+			usart_getc(USART1);
+			//printf("idle() %c = %d\n", usart_getc(USART1), get_shared());
 		}
 		//printf("idle()\n");
 		//mdelay(500);

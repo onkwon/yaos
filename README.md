@@ -22,23 +22,17 @@ But still I want to make it for dynamic loader version providing shared library.
 
 ### Synchronization
 
-schedule() never takes place in an interrupt context. When there is any interrupts active or pending, schedule() gets its chance to run after all the interrupts handled first.
+[공유 메모리 동기화](https://viewy.org/bbs/board.php?bo_table=note&wr_id=19)
 
-Considering a single processor, `cli()` and semaphore(mutex) are enough to guarantee synchronization, I guess.
+`schedule()` never takes place in an interrupt context. If there is any interrupts active or pending, `schedule()` gets its chance to run after all the interrupts handled first.
 
-1. If data or region is accessed by more than a task, use mutex_lock()
+1. If data or region is accessed by more than a task, `use mutex_lock()`
   - It guarantees you access the data exclusively. You go sleep until you get the key.
-2. If the one you are accessing to is the resource that the system also manipulates in an interrupt, use spinlock_irqsave().
+2. If the one you are accessing to is the resource that the system also manipulates in an interrupt, `use spinlock_irqsave()`.
   - spinlock never goes to sleep.
-3. Or using mutex_lock(), do preempt_disable() as soon as you get the key.
-  - Ensure that irq is not disabled before getting the key so that the task can go sleep. If you disable irq first before getting the key you never get back, infinite loop.
-  - Watch out when you use cli() direct.
+3. If you code an interrupt handler, already preemption disabled, `spin_lock()` enough to use since `spinlock_irqsave()` only do `preempt_disable()` before `spin_lock()`.
 
-mutex and semaphore can go sleep.
-
-`preempt_xxx()` and `spinlock()_xxx` never get preempted.
-
-scheduler can be preempted but disable all local interrupts, `cli()`.
+Don't use `cli()` direct but `preempt_disable()`.
 
 #### atomic data type
 
@@ -51,15 +45,15 @@ Let's just go with `int` type and `str`/`ldr` instructions.
 long term waiting.
 sleeping lock.
 
-`mutex_lock()`, `semaphore_down()`
+`mutex_lock()`, `mutex_unlock()`
 
-`semaphore_down_atomic()`
+`semaphore_down()`, `semaphore_up()`
 
 #### spin lock
 
 ~~short term waiting~~
 
-`spin_lock()` - in context of interrupt. Actually it doesn't seem useful in a single processor because being in context of interrupt proves no one has the keys to where using spin lock. That means whenever you use spin lock in a task you must disable interrupts as you get the key using `spinlock_irqsave()`.
+`spin_lock()` - in context of interrupt. Actually it doesn't seem useful in a single processor because being in context of interrupt proves no one has the keys to where using that spin lock. That means whenever you use spin lock in a task you must disable interrupts before you get the key using `spinlock_irqsave()`.
 
 `spinlock_irqsave()` - for both of interrupt handlers and user tasks.
 
@@ -75,7 +69,9 @@ preempt_disable() increases count by 1 while preempt_enable() decreases count. W
 
 ### timer
 
-`get_ticks_64()` - `ticks` is not counted every HZ, but hardware system clock, get_stkclk(). To calculate elapsed time in second, ticks / get_stkclk().
+Variable `ticks` can be accessed directly. `ticks` is not counted every HZ, but hardware system clock, get_stkclk(). To calculate elapsed time in second, ticks / get_stkclk().
+
+`get_ticks_64()` - to get whole 64-bit counter.
 	        
 ## Memory map
 
@@ -158,7 +154,7 @@ Be aware that interrupt enabled after calling schedule().
 
 ### context switch
 
-explained here: [https://viewy.org/bbs/board.php?bo_table=note&wr_id=17](https://viewy.org/bbs/board.php?bo_table=note&wr_id=17)
+[Cortex-M 문맥전환](https://viewy.org/bbs/board.php?bo_table=note&wr_id=17)
 
 ### NORMAL_PRIORITY
 

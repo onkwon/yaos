@@ -76,16 +76,16 @@ void usart_open(unsigned channel, struct usart_t arg)
 		fifo_init(&rxq[0], malloc(BUF_SIZE), BUF_SIZE);
 		fifo_init(&txq[0], malloc(BUF_SIZE), BUF_SIZE);
 
-		semaphore_init(&rx_lock[0], 1);
-		semaphore_init(&tx_lock[0], 1);
+		semaphore_init(rx_lock[0], 1);
+		semaphore_init(tx_lock[0], 1);
 	} else {
 		SET_CLOCK_APB1(ENABLE, apb_nbit); /* USARTn clock enable */
 
 		fifo_init(&rxq[apb_nbit-16], malloc(BUF_SIZE), BUF_SIZE);
 		fifo_init(&txq[apb_nbit-16], malloc(BUF_SIZE), BUF_SIZE);
 
-		semaphore_init(&rx_lock[apb_nbit - 16], 1);
-		semaphore_init(&tx_lock[apb_nbit - 16], 1);
+		semaphore_init(rx_lock[apb_nbit - 16], 1);
+		semaphore_init(tx_lock[apb_nbit - 16], 1);
 	}
 
 	SET_PORT_CLOCK(ENABLE, port);
@@ -143,9 +143,9 @@ void usart_putc(unsigned channel, int c)
 	int err;
 
 	do {
-		spinlock_irqsave(&tx_lock[idx], &irq_flag);
+		spinlock_irqsave(tx_lock[idx], irq_flag);
 		err = fifo_put(&txq[idx], c, 1);
-		spinlock_irqrestore(&tx_lock[idx], &irq_flag);
+		spinlock_irqrestore(tx_lock[idx], irq_flag);
 	} while (err == -1);
 
 	*(volatile unsigned *)(channel + 0x0c) |= 1 << TXE;
@@ -157,9 +157,9 @@ int usart_getc(unsigned channel)
 	unsigned idx = GET_USART_NR(channel);
 	unsigned long irq_flag;
 	
-	spinlock_irqsave(&rx_lock[idx], &irq_flag);
+	spinlock_irqsave(rx_lock[idx], irq_flag);
 	data = fifo_get(&rxq[idx], 1);
-	spinlock_irqrestore(&rx_lock[idx], &irq_flag);
+	spinlock_irqrestore(rx_lock[idx], irq_flag);
 
 	if (data == -1)
 		return -1;
@@ -179,9 +179,9 @@ void usart_fflush(unsigned channel)
 	unsigned idx = GET_USART_NR(channel);
 	unsigned long irq_flag;
 
-	spinlock_irqsave(&rx_lock[idx], &irq_flag);
+	spinlock_irqsave(rx_lock[idx], irq_flag);
 	fifo_flush(&rxq[idx]);
-	spinlock_irqrestore(&rx_lock[idx], &irq_flag);
+	spinlock_irqrestore(rx_lock[idx], irq_flag);
 }
 
 static void isr_usart()
@@ -199,9 +199,9 @@ static void isr_usart()
 		unsigned rx = *(volatile unsigned *)(reg + 0x04);
 		int      err;
 
-		spin_lock(&rx_lock[nirq]);
+		spin_lock(rx_lock[nirq]);
 		err = fifo_put(&rxq[nirq], rx, 1);
-		spin_unlock(&rx_lock[nirq]);
+		spin_unlock(rx_lock[nirq]);
 
 		if (err == -1) {
 			/* overflow */
@@ -211,9 +211,9 @@ static void isr_usart()
 	if (*(volatile unsigned *)reg & (1 << TXE)) {
 		int tx;
 
-		spin_lock(&tx_lock[nirq]);
+		spin_lock(tx_lock[nirq]);
 		tx = fifo_get(&txq[nirq], 1);
-		spin_unlock(&tx_lock[nirq]);
+		spin_unlock(tx_lock[nirq]);
 
 		if (tx == -1)
 			*(volatile unsigned *)(reg + 0x0c) &= ~(1 << TXE);

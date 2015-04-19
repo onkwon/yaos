@@ -180,7 +180,7 @@ void *__malloc(size_t len)
 	return 0;
 }
 
-void free(void *p)
+void __free(void *p)
 {
 	struct __freelist *fp1, *fp2, *fpnew;
 	char *cp1, *cp2, *cpnew;
@@ -267,9 +267,16 @@ void *malloc(size_t len)
 {
 	void *p;
 
-	mutex_lock(&malloc_lock);
+	mutex_lock(malloc_lock);
 	p = __malloc(len);
-	mutex_unlock(&malloc_lock);
+	mutex_unlock(malloc_lock);
 
 	return p;
+}
+
+void free(void *p)
+{
+	mutex_lock(malloc_lock);
+	__free(p);
+	mutex_unlock(malloc_lock);
 }
