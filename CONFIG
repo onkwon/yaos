@@ -1,0 +1,4 @@
+# Uncomment a line to enable its functionality
+
+#CONFIG_DEBUG=y
+CONFIG_REALTIME=y

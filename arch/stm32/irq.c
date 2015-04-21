@@ -35,7 +35,7 @@ static void __attribute__((naked, used)) svc_handler(unsigned *sp)
 		break;
 	default:
 		__asm__ __volatile__("push {lr}" ::: "memory");
-		DBUG(("no handler!\n"));
+		DEBUG(("no handler!\n"));
 		__asm__ __volatile__("pop {lr}" ::: "memory");
 		break;
 	}

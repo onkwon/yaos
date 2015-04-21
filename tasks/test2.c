@@ -11,12 +11,12 @@ static void test_task2()
 	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
 
 	while (1) {
-		t = get_systick_64();
+		t = get_jiffies_64();
 		th = t >> 32;
 		bh = t;
 
 		dmb();
-		v = systick;
+		v = jiffies;
 
 		printf("%08x ", v);
 		printf("%08x", th);

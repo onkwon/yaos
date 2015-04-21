@@ -63,9 +63,9 @@ sleeping lock.
 
 ### timer
 
-Variable `systick` can be accessed directly. `systick` is ~~not~~ counted every HZ, ~~but hardware system clock, `get_stkclk()`.~~ To calculate elapsed time in second, ~~`systick` / `get_stkclk()`~~ `systick` / `HZ`.
+Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every HZ, ~~but hardware system clock, `get_stkclk()`.~~ To calculate elapsed time in second, ~~`jiffies` / `get_stkclk()`~~ `jiffies` / `HZ`.
 
-`get_systick_64()` - to get whole 64-bit counter.
+`get_jiffies_64()` - to get whole 64-bit counter.
 	        
 ## Memory map
 
@@ -190,3 +190,9 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 
 * `entry()` - is very first hardware setup code to boot, usally in assembly.
 * `sys_init()` - calls functions registered by `REGISTER_INIT_FUNC()`, architecture specific initialization.
+
+## Porting
+
+Change "machine dependant" part in `Makefile`.
+
+Uncomment or comment out lines in `CONFIG` file to enable or disable its functionalities.

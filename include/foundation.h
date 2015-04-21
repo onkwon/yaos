@@ -23,13 +23,13 @@ extern void udelay(unsigned us);
 extern int printf(const char *format, ...);
 extern int kprintf(const char *format, ...);
 
-#ifdef DEBUG
-#define DBUG(fmt) do { \
+#ifdef CONFIG_DEBUG
+#define DEBUG(fmt) do { \
 	kprintf("%s:%s():%d: ", __FILE__, __func__, __LINE__); \
 	kprintf fmt; \
 } while (0)
 #else
-#define DBUG(fmt)
+#define DEBUG(fmt)
 #endif
 
 #include <types.h>

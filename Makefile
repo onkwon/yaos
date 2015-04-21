@@ -11,6 +11,16 @@ OD      = arm-none-eabi-objdump
 CFLAGS  = -Wall -O2 -mcpu=$(ARCH) -mthumb -fno-builtin
 export MACH
 
+# Configuration
+
+include CONFIG
+ifdef CONFIG_DEBUG
+	CFLAGS += -g -DCONFIG_DEBUG -O0
+endif
+ifdef CONFIG_REALTIME
+	CFLAGS += -DCONFIG_REALTIME
+endif
+
 # Common 
 
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
@@ -18,9 +28,6 @@ BASEDIR = $(shell pwd)
 export BASEDIR
 
 CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(MACH)\"
-ifeq ($(RELEASE),)
-CFLAGS += -g -DDEBUG -O0
-endif
 LDFLAGS = -nostartfiles -Tarch/$(MACH)/ibox.lds
 OCFLAGS = -O binary
 ODFLAGS = -Dsx
@@ -35,9 +42,9 @@ INC  = -I./include
 LIBS = 
 export INC LIBS
 
-SUBDIRS = drivers lib tasks arch
+SUBDIRS = lib arch kernel drivers tasks
 
-all: asm $(TARGET)
+all: include $(TARGET)
 	@echo "Section Size(in bytes):"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(TARGET).map
 
@@ -52,8 +59,8 @@ subdirs: $(SUBDIRS)
 $(SUBDIRS):
 	@$(MAKE) --print-directory -C $@
 
-.PHONY: asm
-asm:
+.PHONY: include
+include:
 	cp -R arch/$(MACH)/include include/asm
 	cp -R drivers/include include/driver
 

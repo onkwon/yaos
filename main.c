@@ -69,8 +69,10 @@ static void init_task()
 	 * until all things to be ready. */
 	schedule_on();
 
-	DBUG(("psr : %x sp : %x int : %x control : %x lr : %x\n", GET_PSR(), GET_SP(), GET_INT(), GET_CON(), GET_LR()));
-	DBUG(("PC = %x\n", GET_PC()));
+	kprintf("ibox %s %s\n", VERSION, MACHINE);
+
+	DEBUG(("psr : %x sp : %x int : %x control : %x lr : %x\n", GET_PSR(), GET_SP(), GET_INT(), GET_CON(), GET_LR()));
+	DEBUG(("PC = %x\n", GET_PC()));
 	while (1) {
 		printf("init()\n");
 		mdelay(500);

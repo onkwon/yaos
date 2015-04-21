@@ -42,6 +42,7 @@ static void idle()
 			print_rq();
 			set_task_state(rt_test, TASK_RUNNING);
 			runqueue_add(rt_test);
+			schedule();
 		}
 		//printf("idle()\n");
 		//mdelay(500);

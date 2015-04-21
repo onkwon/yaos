@@ -2,7 +2,9 @@
 #include <kernel/sched.h>
 
 static struct sched_t cfs;
+#ifdef CONFIG_REALTIME
 static struct sched_t rts;
+#endif
 
 struct task_t *current;
 
@@ -16,6 +18,7 @@ void schedule_core()
 {
 	struct task_t *next;
 
+#ifdef CONFIG_REALTIME
 	/* Real time scheduler */
 
 	if (rts.nr_running) {
@@ -49,6 +52,7 @@ rts_next:
 
 		rts.nr_running = 0;
 	}
+#endif
 
 	/* Completely fair scheduler */
 
@@ -70,15 +74,15 @@ rts_next:
 
 	/* Update newly selected task's start time because it is stale
 	 * as much as how long the one has been waiting for. */
-	current->se.exec_start = __get_systick_64();
+	current->se.exec_start = __get_jiffies_64();
 }
 
 /* Calling update_curr() as soon as the system timer interrupt occurs would be
  * the best chance other than elsewhere not to count scheduling overhead but to
- * count only its running time, as long as systick gets updated asynchronous. */
+ * count only its running time, as long as jiffies gets updated asynchronous. */
 void update_curr()
 {
-	uint64_t clock = __get_systick_64();
+	uint64_t clock = __get_jiffies_64();
 	unsigned delta_exec;
 
 	delta_exec = clock - current->se.exec_start;
@@ -102,9 +106,11 @@ void update_curr()
 
 void runqueue_add(struct task_t *new)
 {
-	if (IS_TASK_REALTIME(new)) /* a real time task */
+	if (IS_TASK_REALTIME(new)) { /* a real time task */
+#ifdef CONFIG_REALTIME
 		rts_rq_add(&rts, new);
-	else /* a normal task */
+#endif
+	} else /* a normal task */
 		cfs_rq_add(&cfs, new);
 }
 
@@ -116,6 +122,7 @@ void scheduler_init()
 	cfs.nr_running    = 0;
 	cfs.rq            = (void *)&cfs_rq;
 
+#ifdef CONFIG_REALTIME
 	extern struct list_t rts_rq[RT_LEAST_PRIORITY+1];
 
 	rts.nr_running = 0;
@@ -127,6 +134,7 @@ void scheduler_init()
 	for (i = 0; i <= RT_LEAST_PRIORITY; i++) {
 		LIST_LINK_INIT(&rts_rq[i]);
 	}
+#endif
 }
 
 void print_rq()
@@ -144,7 +152,7 @@ void print_rq()
 				(unsigned)p->se.sum_exec_runtime/HZ, (unsigned)p->addr);
 
 //		for (i = 0; i < CONTEXT_NR; i++)
-//			DBUG(("%x : %x\n", p->sp + i, *(p->sp + i)));
+//			DEBUG(("%x : %x\n", p->sp + i, *(p->sp + i)));
 
 		rq = rq->next;
 	}

@@ -43,7 +43,7 @@ void runqueue_add(struct task_t *new);
 #include <kernel/rts.h>
 
 /* from time.c but used only in the critical region like scheduler. */
-extern unsigned long long inline __get_systick_64();
+extern unsigned long long inline __get_jiffies_64();
 extern void inline update_tick(unsigned delta);
 
 #endif /* __SCHED_H__ */
