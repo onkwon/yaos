@@ -43,6 +43,8 @@ sleeping lock.
 
 `semaphore_down()`, `semaphore_up()`
 
+락을 얻지 못하면 대기큐에 들어가 `TASK_WAITING` 상태가 되는데, 락이 풀릴 때 들어간 순서대로 하나씩 깨어남. 일괄적으로 한번에 깨우기엔 오버헤드만 크고, 그렇게 해야만 하는 상황에 대해서는 아직 떠오르지 않음.
+
 #### spin lock
 
 ~~short term waiting~~
@@ -60,6 +62,24 @@ sleeping lock.
 `preempt_disable()` increases count by 1 while `preempt_enable()` decreases count. When the count reaches 0, interrupts get enabled.
 
 ### waitqueue
+
+	/* Wait for condition */
+	DEFINE_WAIT_HEAD(q)
+	DEFINE_WAIT(wait_task)
+
+	while (!condition) {
+		wait_in(&q, &wait_task);
+	}
+
+	/* Wake up */
+	wait_up(&q, option);
+
+	*option:
+	WQ_EXCLUSIVE - 하나의 태스크만 깨움
+	WQ_ALL - 대기큐의 모든 태스크 깨움
+	`숫자` - 숫자만큼의 태스크 깨움
+
+대기큐에 도착하는 순서대로 들어가서 그 순서 그대로 깨어남(FIFO). 동기화 관련부분만 테스트하고 대기큐 별도로는 테스트되지 않음.
 
 ### timer
 
@@ -161,7 +181,7 @@ The initial task takes place when no task in runqueue
 
 	 REALTIME |  NORMAL
 	----------|-----------
-	  0 - 99  | 100 - 120
+	  0 - 100 | 101 - 120
 
 	DEFAULT_PRIORITY = 110
 

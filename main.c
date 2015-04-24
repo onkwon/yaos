@@ -39,6 +39,10 @@ static void load_user_task()
 		/* initial state of all tasks are runnable, add into runqueue */
 		runqueue_add(p);
 
+		DEBUG(("%s: state %08x, sp %08x, addr %08x\n",
+					IS_TASK_REALTIME(p)? "REALTIME" : "NORMAL  ",
+					p->state, p->sp, p->addr));
+
 		p++;
 	}
 }

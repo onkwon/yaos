@@ -37,7 +37,7 @@ void schedule_core();
 
 #include <kernel/task.h>
 
-void runqueue_add(struct task_t *new);
+extern void inline runqueue_add(struct task_t *new);
 
 #include <kernel/cfs.h>
 #include <kernel/rts.h>

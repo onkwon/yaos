@@ -9,17 +9,20 @@
  *   reserved  |            state           |        priorty
  */
 #define TASK_STATE_BIT		8
-#define TASK_STATE_MASK		0xff
-#define TASK_PRIORITY_MASK	0xff
+#define TASK_STATE_MASK		0x0000ff00
+#define TASK_PRIORITY_MASK	0x000000ff
 
 #define TASK_RUNNING		1
+#define TASK_WAITING		2
 
 #define set_task_state(p, s) \
-	( ((struct task_t *)p)->state |= s << TASK_STATE_BIT )
+	( ((struct task_t *)p)->state = \
+	  (((struct task_t *)p)->state & ~TASK_STATE_MASK) | \
+	  (s << TASK_STATE_BIT) )
 #define reset_task_state(p, s) \
 	( ((struct task_t *)p)->state &= ~(s << TASK_STATE_BIT) )
 #define get_task_state(p) \
-	( (((struct task_t *)p)->state >> TASK_STATE_BIT) & TASK_STATE_MASK )
+	( (((struct task_t *)p)->state & TASK_STATE_MASK) >> TASK_STATE_BIT )
 
 /* The lower number, the higher priority.
  *

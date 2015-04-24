@@ -22,6 +22,11 @@ void list_del(struct list_t *item)
 	item->next->prev = item->prev;
 }
 
+int list_empty(const struct list_t *head)
+{
+	return head->next == head;
+}
+
 /* fifo */
 
 void fifo_init(struct fifo_t *q, void *queue, unsigned size)

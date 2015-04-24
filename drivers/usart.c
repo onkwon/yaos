@@ -11,8 +11,8 @@
 static struct fifo_t rxq[USART_NUM];
 static struct fifo_t txq[USART_NUM];
 
-static struct semaphore rx_lock[USART_NUM];
-static struct semaphore tx_lock[USART_NUM];
+static spinlock_t rx_lock[USART_NUM];
+static spinlock_t tx_lock[USART_NUM];
 
 static void isr_usart();
 
@@ -29,6 +29,8 @@ unsigned brr2reg(unsigned baudrate, unsigned clk)
 
 	return baudrate;
 }
+
+extern void *__malloc(size_t len);
 
 void usart_open(unsigned channel, struct usart_t arg)
 {
@@ -73,19 +75,19 @@ void usart_open(unsigned channel, struct usart_t arg)
 	if (channel == USART1) {
 		SET_CLOCK_APB2(ENABLE, apb_nbit); /* USART1 clock enable */
 
-		fifo_init(&rxq[0], malloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&txq[0], malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&rxq[0], __malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&txq[0], __malloc(BUF_SIZE), BUF_SIZE);
 
-		semaphore_init(rx_lock[0], 1);
-		semaphore_init(tx_lock[0], 1);
+		spinlock_init(rx_lock[0]);
+		spinlock_init(tx_lock[0]);
 	} else {
 		SET_CLOCK_APB1(ENABLE, apb_nbit); /* USARTn clock enable */
 
-		fifo_init(&rxq[apb_nbit-16], malloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&txq[apb_nbit-16], malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&rxq[apb_nbit-16], __malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&txq[apb_nbit-16], __malloc(BUF_SIZE), BUF_SIZE);
 
-		semaphore_init(rx_lock[apb_nbit - 16], 1);
-		semaphore_init(tx_lock[apb_nbit - 16], 1);
+		spinlock_init(rx_lock[apb_nbit - 16]);
+		spinlock_init(tx_lock[apb_nbit - 16]);
 	}
 
 	SET_PORT_CLOCK(ENABLE, port);

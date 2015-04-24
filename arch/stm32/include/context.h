@@ -29,7 +29,7 @@
 		"push	{r4-r11}	\n\t"	\
 		"push	{lr}		\n\t"	\
 	::: "memory");				\
-	__asm__ __volatile__("mov %0, sp" : "=&r"(sp) :: "memory");
+	__asm__ __volatile__("mov %0, sp" : "=&r"(sp) :: "memory")
 
 #define context_restore(sp)			\
 	__asm__ __volatile__(			\
@@ -39,6 +39,6 @@
 		:: "r"(sp) : "memory"		\
 	);
 
-#define schedule()	__asm__ __volatile__("svc 0");
+#define schedule()	__asm__ __volatile__("svc 0")
 
 #endif /* __CONTEXT_H__ */

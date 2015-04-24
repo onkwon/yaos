@@ -147,9 +147,10 @@ void print_rq()
 	while (rq != cfs.rq) {
 		p = get_container_of(rq, struct task_t, rq);
 
-		printf("nr_running[%d] state = %d, vruntime = %d, exec_runtime = %d (%d sec), addr = 0x%x\n", cfs.nr_running,
-				p->state, (unsigned)p->se.vruntime, (unsigned)p->se.sum_exec_runtime,
-				(unsigned)p->se.sum_exec_runtime/HZ, (unsigned)p->addr);
+		printf("[%08x] state = %x, vruntime = %d, exec_runtime = %d (%d sec)\n",
+				p->addr, p->state, (unsigned)p->se.vruntime,
+				(unsigned)p->se.sum_exec_runtime,
+				(unsigned)p->se.sum_exec_runtime / HZ);
 
 //		for (i = 0; i < CONTEXT_NR; i++)
 //			DEBUG(("%x : %x\n", p->sp + i, *(p->sp + i)));

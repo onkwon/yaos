@@ -31,6 +31,7 @@ struct list_t {
 extern inline void LIST_LINK_INIT(struct list_t *list);
 extern inline void list_add(struct list_t *new, struct list_t *ref);
 extern inline void list_del(struct list_t *item);
+extern inline int  list_empty(const struct list_t *list);
 
 /* fifo */
 struct fifo_t {
