@@ -11,9 +11,10 @@ void wait_in(struct waitqueue_head_t *q, struct waitqueue_t *wait)
 		list_add(&wait->link, q->list.prev);
 
 	set_task_state(current, TASK_WAITING);
-	schedule();
 
 	spinlock_irqrestore(q->lock, irq_flag);
+
+	schedule();
 }
 
 void wake_up(struct waitqueue_head_t *head, int nr_task)

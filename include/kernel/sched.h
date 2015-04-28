@@ -13,7 +13,7 @@ struct sched_t {
 
 void scheduler_init();
 
-void inline update_curr();
+inline void update_curr();
 
 #include <foundation.h>
 #include <asm/context.h>
@@ -30,6 +30,10 @@ void inline update_curr();
 
 void schedule_core();
 
+#include <syscall.h>
+
+#define schedule()	syscall(SYSCALL_SCHEDULE)
+
 #include <asm/clock.h>
 
 #define schedule_on()	systick_on()
@@ -37,13 +41,13 @@ void schedule_core();
 
 #include <kernel/task.h>
 
-extern void inline runqueue_add(struct task_t *new);
+extern inline void runqueue_add(struct task_t *new);
 
 #include <kernel/cfs.h>
 #include <kernel/rts.h>
 
 /* from time.c but used only in the critical region like scheduler. */
-extern unsigned long long inline __get_jiffies_64();
-extern void inline update_tick(unsigned delta);
+extern inline unsigned long long __get_jiffies_64();
+extern inline void update_tick(unsigned delta);
 
 #endif /* __SCHED_H__ */

@@ -1,7 +1,7 @@
 include $(BASEDIR)/CONFIG
 
 SRCS_ASM = $(wildcard *.S)
-SRCS     = sched.c cfs.c
+SRCS     = $(shell ls | grep .*.c$$ | sed 's/rts.c//')
 ifdef CONFIG_REALTIME
 	SRCS += rts.c
 endif

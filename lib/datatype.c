@@ -1,32 +1,5 @@
 #include <types.h>
 
-/* doubly linked list */
-
-void LIST_LINK_INIT(struct list_t *list)
-{
-	list->next = list;
-	list->prev = list;
-}
-
-void list_add(struct list_t *new, struct list_t *ref)
-{
-	new->prev = ref;
-	new->next = ref->next;
-	ref->next->prev = new;
-	ref->next = new;
-}
-
-void list_del(struct list_t *item)
-{
-	item->prev->next = item->next;
-	item->next->prev = item->prev;
-}
-
-int list_empty(const struct list_t *head)
-{
-	return head->next == head;
-}
-
 /* fifo */
 
 void fifo_init(struct fifo_t *q, void *queue, unsigned size)

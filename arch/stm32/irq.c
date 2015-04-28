@@ -3,7 +3,7 @@
 
 /* A register that is not yet saved in stack gets used by compiler optimization.
  * If I put all the registers that are not yet saved in clobber list,
- * it changes code ordering that ruins stack showing weird behavior.
+ * it changes code ordering that ruins stack, showing weird behavior.
  * Make it in an assembly file or do some study. */
 void __attribute__((naked, used, optimize("O0"))) pendsv_handler()
 {
@@ -16,41 +16,43 @@ void __attribute__((naked, used, optimize("O0"))) pendsv_handler()
 	__asm__ __volatile__("bx lr");
 }
 
-static void __attribute__((naked, used)) svc_handler(unsigned *sp)
+void __attribute__((naked)) sys_schedule()
 {
-	/* we have return address(pc) stacked in sp[6].
-	 * svc parameter can be gotten by accessing the prior code of return
-	 * address, pc[-2] while pc[-1] of 'df'(code of svc mnemonic).
-	 *
-	 * e.g.
-	 *  [-2][-1]
-	 *   `df 40      	svc	64`
-	 *   `f3 ef 83 03 	mrs	r3, PSR` # code of return address
-	 *    [0][1][2][3]
-	 */
-
-	switch ( ((char *)sp[6])[-2] ) {
-	case 0:
-		SCB_ICSR |= 1 << 28; /* raising pendsv for scheduling */
-		break;
-	default:
-		__asm__ __volatile__("push {lr}" ::: "memory");
-		DEBUG(("no handler!\n"));
-		__asm__ __volatile__("pop {lr}" ::: "memory");
-		break;
-	}
-
+	SCB_ICSR |= 1 << 28; /* raising pendsv for scheduling */
 	__asm__ __volatile__("bx lr");
 }
 
-void __attribute__((naked)) __svc_handler()
+#include <syscall.h>
+
+void __attribute__((naked)) svc_handler()
 {
+	/* What all those inline assembly do is
+	 * `syscall_table[((char *)sp[6])[-2]]();` in C. */
+
 	__asm__ __volatile__(
-		"mov	r0, sp		\n\t"
-		"b	svc_handler	\n\t"
-		/* never reach out up to the code below */
-		"bx	lr		\n\t"
-	);
+			//"ldr	r3, [sp, #24]		\n\t" /* get the `svc` parameter */
+			//"ldrb	r3, [r3, #-2]		\n\t"
+			//"cmp	r3, %0			\n\t" /* if nr >= SYSCALL_NR */
+			//"it	ge			\n\t" /* then nr = 0 */
+			//"movge	r3, #0			\n\t"
+			//"ldr	r12, =syscall_table	\n\t" /* get the syscall address */
+			//"ldr	r12, [r12, r3, lsl #2]	\n\t"
+			"cmp	r0, %0			\n\t" /* if nr >= SYSCALL_NR */
+			"it	ge			\n\t" /* then nr = 0 */
+			"movge	r0, #0			\n\t"
+			"ldr	r3, =syscall_table	\n\t" /* get the syscall address */
+			"ldr	r3, [r3, r0, lsl #2]	\n\t"
+
+			//"ldr	r3, [sp, #12]		\n\t" /* arguments in place */
+			"ldr	r2, [sp, #12]		\n\t"
+			"ldr	r1, [sp, #8]		\n\t"
+			"ldr	r0, [sp, #4]		\n\t"
+			"push	{lr}			\n\t"
+			"blx	r3			\n\t"
+			"pop	{lr}			\n\t"
+			"str	r0, [sp]		\n\t" /* store return value */
+			"bx	lr			\n\t"
+			:: "I"(SYSCALL_NR));
 }
 
 void __attribute__((naked)) isr_default()

@@ -39,6 +39,4 @@
 		:: "r"(sp) : "memory"		\
 	);
 
-#define schedule()	__asm__ __volatile__("svc 0")
-
 #endif /* __CONTEXT_H__ */

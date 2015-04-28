@@ -8,6 +8,8 @@ Put a user task under /tasks directory. Code what you want in general way using 
 
 To access system resource, use provided API after checking how synchronization and wait queue are handled in the right sections below. Do not disable interrupt directly but use API.
 
+인터럽트는 우선순위에 따라 중첩될 수 있으나 동일한 인터럽트가 실행중인 현재 인터럽트를 선점할 수는 없다. 스케쥴러는 인터럽트 컨텍스트 내에서 실행될 수 없다. 시스템 콜은 선점 가능하다.
+
 shell environment provided.
 
 tested on stm32f103.
@@ -47,6 +49,8 @@ sleeping lock.
 
 #### spin lock
 
+싱글 코어에 스핀락까지 구현할 필요는 없었지만, 구상할 때는 어쩐지 멀티코어까지 고려하게 되니까..
+
 ~~short term waiting~~
 
 `spin_lock()` - in context of interrupt. Actually it doesn't seem useful in a single processor because being in context of interrupt proves no one has the keys to where using that spin lock. That means whenever you use spin lock in a task you must disable interrupts before you get the key using `spinlock_irqsave()`.
@@ -79,14 +83,39 @@ sleeping lock.
 	WQ_ALL - 대기큐의 모든 태스크 깨움
 	`숫자` - 숫자만큼의 태스크 깨움
 
-대기큐에 도착하는 순서대로 들어가서 그 순서 그대로 깨어남(FIFO). 동기화 관련부분만 테스트하고 대기큐 별도로는 테스트되지 않음.
+대기큐에 도착하는 순서대로 들어가서 그 순서 그대로 깨어남(FIFO). 동기화 관련부분만 테스트하고 대기큐 별도로는 테스트하지 않음.
 
 ### timer
 
 Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every HZ, ~~but hardware system clock, `get_stkclk()`.~~ To calculate elapsed time in second, ~~`jiffies` / `get_stkclk()`~~ `jiffies` / `HZ`.
 
 `get_jiffies_64()` - to get whole 64-bit counter.
-	        
+
+### System call
+
+`syscall(number, arg1, ...)` 형식으로 시스템 콜을 호출할 수 있다. `int`형을 반환하고, 시스템 콜 번호를 포함해 최대 4개까지 매개변수를 전달할 수 있다.
+
+	int sys_test(int a, int b)
+	{
+		return a+b;
+	}
+
+위와 같은 시스템 콜을 정의했다면, `syscall.h` 파일에 해당 시스템 콜을 추가한다.
+
+	#define SYSCALL_RESERVED 0
+	#define SYSCALL_SCHEDULE 1
+	#define SYSCALL_TEST     2
+	#define SYSCALL_NR       3
+
+주의할 점은 해당 시스템 콜을 추가하고 `SYSCALL_NR` 값을 그만큼 증가시켜주어야 한다. `SYSCALL_NR`은 등록되지 않은 시스템 콜 호출을 방지하는 데 사용된다.
+
+그리고 추가한 번호 순서에 알맞은 테이블 위치에(`kernel/syscall.c`) 해당 함수를 등록한다.
+
+	void *syscall_table[] = {
+		sys_reserved,		/* 0 */
+	        sys_schedule,
+	        sys_test,
+
 ## Memory map
 
 User stack gets allocated by `malloc()` call in `alloc_user_stack()`. Therefore the size of `HEAP_SIZE`(default 32KiB) determines the seating capacity of both of user stacks and user's heap allocation.

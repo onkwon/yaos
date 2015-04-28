@@ -11,15 +11,16 @@
 
 typedef volatile int spinlock_t;
 
-#define DEFINE_SPINLOCK(name)		spinlock_t name = 1
-#define __SPINLOCK_INIT()		(1)
-#define spinlock_init(name)		(name = __SPINLOCK_INIT())
+#define SPINLOCK_UNLOCKED		(1)
+#define DEFINE_SPINLOCK(name)		spinlock_t name = SPINLOCK_UNLOCKED
+#define spinlock_init(name)		(name = SPINLOCK_UNLOCKED)
 
-#define spin_lock(lock) do { \
-	while (lock <= 0) ; \
-} while (set_atomic((int *)&lock, lock-1))
-#define spin_unlock(lock) \
-	while (set_atomic((int *)&lock, lock+1))
+#define spin_lock(count) do { \
+	while (count <= 0) ; \
+} while (set_atomic((int *)&count, count-1))
+#define spin_unlock(count) \
+	while (set_atomic((int *)&count, count+1))
+#define is_spin_locked(count)		(count <= 0)
 
 #include <io.h>
 
@@ -36,7 +37,8 @@ typedef volatile int spinlock_t;
 struct semaphore {
 	volatile int count;
 
-	/* can't use `waitqueue_head_t` because of circular dependency. */
+	/* can't use `waitqueue_head_t` because of circular dependency.
+	 * move spinlock_t typedef into types.h? */
 	spinlock_t  wait_lock;
 	struct list_t wait_list;
 };
@@ -46,7 +48,7 @@ typedef struct semaphore mutex_t;
 #define semaphore_new(name, v) \
 	struct semaphore name = { \
 		.count = v, \
-		.wait_lock = __SPINLOCK_INIT(), \
+		.wait_lock = SPINLOCK_UNLOCKED, \
 		.wait_list = LIST_HEAD_INIT((name).wait_list), \
 	}
 

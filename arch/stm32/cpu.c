@@ -10,7 +10,7 @@ extern char _sram_end;
 
 extern void sys_init();
 extern void isr_default();
-extern void __svc_handler();
+extern void svc_handler();
 extern void pendsv_handler();
 
 static void *isr_vectors[]
@@ -28,7 +28,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 	NULL,		/* 08     : 0x20  - Reserved */
 	NULL,		/* 09     : 0x24  - Reserved */
 	NULL,		/* 10     : 0x28  - Reserved */
-	__svc_handler,	/* 11     : 0x2c  - SVCall */
+	svc_handler,	/* 11     : 0x2c  - SVCall */
 	isr_default,	/* 12     : 0x30  - Debug Monitor */
 	NULL,		/* 13     : 0x34  - Reserved */
 	pendsv_handler,	/* 14     : 0x38  - PendSV */

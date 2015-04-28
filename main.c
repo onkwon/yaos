@@ -49,13 +49,13 @@ static void load_user_task()
 
 static void cleanup()
 {
-	/* Clean up redundant, one time code and date that only used during initializing */
+	/* Clean up redundant code and data, used during initializing */
 }
 
 struct task_t init;
 
 /* when no task in runqueue, this init_task takes place.
- * do some power saving things */
+ * do some power saving */
 static void init_task()
 {
 	cleanup();
@@ -70,7 +70,7 @@ static void init_task()
 	current    = &init;
 
 	/* ensure that scheduler is not activated prior
-	 * until all things to be ready. */
+	 * until everything to be ready. */
 	schedule_on();
 
 	kprintf("ibox %s %s\n", VERSION, MACHINE);

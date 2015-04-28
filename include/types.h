@@ -28,10 +28,30 @@ struct list_t {
 #define LIST_HEAD(name) \
 		struct list_t name = LIST_HEAD_INIT(name)
 
-extern inline void LIST_LINK_INIT(struct list_t *list);
-extern inline void list_add(struct list_t *new, struct list_t *ref);
-extern inline void list_del(struct list_t *item);
-extern inline int  list_empty(const struct list_t *list);
+static inline void LIST_LINK_INIT(struct list_t *list)
+{
+	list->next = list;
+	list->prev = list;
+}
+
+static inline void list_add(struct list_t *new, struct list_t *ref)
+{
+	new->prev = ref;
+	new->next = ref->next;
+	ref->next->prev = new;
+	ref->next = new;
+}
+
+static inline void list_del(struct list_t *item)
+{
+	item->prev->next = item->next;
+	item->next->prev = item->prev;
+}
+
+static inline int list_empty(const struct list_t *head)
+{
+	return head->next == head;
+}
 
 /* fifo */
 struct fifo_t {
