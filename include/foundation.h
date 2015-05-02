@@ -21,12 +21,13 @@ extern void udelay(unsigned us);
 #define sdelay(sec)		mdelay((sec) * 1000)
 
 extern int printf(const char *format, ...);
-extern int kprintf(const char *format, ...);
+extern int printk(const char *format, ...);
 
 #ifdef CONFIG_DEBUG
 #define DEBUG(fmt) do { \
-	kprintf("%s:%s():%d: ", __FILE__, __func__, __LINE__); \
-	kprintf fmt; \
+	printk("%s:%s():%d: ", __FILE__, __func__, __LINE__); \
+	printk fmt; \
+	printk("\n"); \
 } while (0)
 #else
 #define DEBUG(fmt)

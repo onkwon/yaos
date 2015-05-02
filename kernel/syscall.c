@@ -4,7 +4,6 @@ int sys_reserved();
 extern int sys_schedule();
 extern int sys_test(int a, int b, int c);
 
-//int (*syscall_table[])() = {
 void *syscall_table[] = {
 	sys_reserved,		/* 0 */
 	sys_schedule,

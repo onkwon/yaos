@@ -154,7 +154,7 @@ int sprintf(char *out, const char *format, ...)
 	return print(&out, (int *)&format);
 }
 
-int kprintf(const char *format, ...)
+int printk(const char *format, ...)
 {
 	__putc = __usart_putc;
 	return print(0, (int *)&format);

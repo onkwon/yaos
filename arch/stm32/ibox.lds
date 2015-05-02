@@ -7,8 +7,8 @@ MEMORY
 	rom (rx)	: ORIGIN = 0x00000000, LENGTH = 512K
 }
 
-PROVIDE(_sram_start  = ORIGIN(ram));
-PROVIDE(_sram_end    = ORIGIN(ram) + LENGTH(ram) - 1);
+PROVIDE(__mem_start  = ORIGIN(ram));
+PROVIDE(__mem_end    = ORIGIN(ram) + LENGTH(ram) - 1);
 PROVIDE(_vector_size = 0x200); /* The minimum alignment is 128 words. */
 
 jiffies = jiffies_64;
@@ -37,7 +37,7 @@ SECTIONS
 		_etext = .;
 	} > rom
 
-	. = _sram_start + _vector_size;
+	. = __mem_start + _vector_size;
 	.data . :
 	{
 		_data = .;
@@ -56,6 +56,8 @@ SECTIONS
 		_bss = .;
 		*(.bss)
 		*(COMMON)
+		. = (. + 3) & ~ 3;
+		LONG(0);
 		_ebss = .;
 	} > ram AT > rom
 }

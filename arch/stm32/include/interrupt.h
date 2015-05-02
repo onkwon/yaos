@@ -14,8 +14,8 @@
 	__asm__ __volatile__("msr primask, %0" :: "r"(flag) : "memory")
 
 #define ISR_REGISTER(vector_nr, func)	({ \
-		extern unsigned _sram_start; \
-		*((unsigned *)&_sram_start + vector_nr) = (unsigned)func; \
+		extern unsigned __mem_start; \
+		*((unsigned *)&__mem_start + vector_nr) = (unsigned)func; \
 		dmb(); \
 	})
 
@@ -43,5 +43,6 @@
 #define GET_CON() ({ unsigned __control; \
 		__asm__ __volatile__("mrs %0, control" : "=r" (__control)); \
 		__control; })
+#define SET_SP(sp) __asm__ __volatile__("mov sp, %0" :: "r"(sp) : "memory")
 
 #endif /* __STM32_INTERRUPT_H__ */

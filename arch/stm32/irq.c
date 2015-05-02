@@ -30,13 +30,6 @@ void __attribute__((naked)) svc_handler()
 	 * `syscall_table[((char *)sp[6])[-2]]();` in C. */
 
 	__asm__ __volatile__(
-			//"ldr	r3, [sp, #24]		\n\t" /* get the `svc` parameter */
-			//"ldrb	r3, [r3, #-2]		\n\t"
-			//"cmp	r3, %0			\n\t" /* if nr >= SYSCALL_NR */
-			//"it	ge			\n\t" /* then nr = 0 */
-			//"movge	r3, #0			\n\t"
-			//"ldr	r12, =syscall_table	\n\t" /* get the syscall address */
-			//"ldr	r12, [r12, r3, lsl #2]	\n\t"
 			"cmp	r0, %0			\n\t" /* if nr >= SYSCALL_NR */
 			"it	ge			\n\t" /* then nr = 0 */
 			"movge	r0, #0			\n\t"
@@ -67,7 +60,7 @@ void __attribute__((naked)) isr_default()
 	 * 0xFFFFFFF1 - MSP, return to handler mode
 	 * 0xFFFFFFF9 - MSP, return to thread mode
 	 * 0xFFFFFFFD - PSP, return to thread mode */
-	kprintf("\nSP             0x%08x\n"
+	printk("\nSP             0x%08x\n"
 		"Stacked PSR    0x%08x\n"
 		"Stacked PC     0x%08x\n"
 		"Stacked LR     0x%08x\n"
@@ -78,7 +71,7 @@ void __attribute__((naked)) isr_default()
 		*(unsigned *)(sp + 20),
 		lr, psr, psr & 0x1ff);
 
-	kprintf("\ncurrent->sp         0x%08x\n"
+	printk("\ncurrent->sp         0x%08x\n"
 		"current->stack      0x%08x\n"
 		"current->stack_size 0x%08x\n"
 		"current->state      0x%08x\n"

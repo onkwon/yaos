@@ -30,8 +30,6 @@ unsigned brr2reg(unsigned baudrate, unsigned clk)
 	return baudrate;
 }
 
-extern void *__malloc(size_t len);
-
 void usart_open(unsigned channel, struct usart_t arg)
 {
 	unsigned port, pin, nvector, apb_nbit;
@@ -75,16 +73,16 @@ void usart_open(unsigned channel, struct usart_t arg)
 	if (channel == USART1) {
 		SET_CLOCK_APB2(ENABLE, apb_nbit); /* USART1 clock enable */
 
-		fifo_init(&rxq[0], __malloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&txq[0], __malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&rxq[0], kmalloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&txq[0], kmalloc(BUF_SIZE), BUF_SIZE);
 
 		spinlock_init(rx_lock[0]);
 		spinlock_init(tx_lock[0]);
 	} else {
 		SET_CLOCK_APB1(ENABLE, apb_nbit); /* USARTn clock enable */
 
-		fifo_init(&rxq[apb_nbit-16], __malloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&txq[apb_nbit-16], __malloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&rxq[apb_nbit-16], kmalloc(BUF_SIZE), BUF_SIZE);
+		fifo_init(&txq[apb_nbit-16], kmalloc(BUF_SIZE), BUF_SIZE);
 
 		spinlock_init(rx_lock[apb_nbit - 16]);
 		spinlock_init(tx_lock[apb_nbit - 16]);

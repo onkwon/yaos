@@ -153,7 +153,7 @@ void print_rq()
 				(unsigned)p->se.sum_exec_runtime / HZ);
 
 //		for (i = 0; i < CONTEXT_NR; i++)
-//			DEBUG(("%x : %x\n", p->sp + i, *(p->sp + i)));
+//			DEBUG(("%x : %x", p->sp + i, *(p->sp + i)));
 
 		rq = rq->next;
 	}

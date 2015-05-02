@@ -6,7 +6,7 @@ static void __attribute__((naked, used)) entry()
 	main();
 }
 
-extern char _sram_end;
+extern char __mem_end;
 
 extern void sys_init();
 extern void isr_default();
@@ -17,7 +17,7 @@ static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4))) = {
 			/* NUM(IRQ): ADDR - DESC */
 			/* -------------------- */
-	&_sram_end,	/* 00     :       - Stack pointer */
+	&__mem_end,	/* 00     :       - Stack pointer */
 	entry,		/* 01     : 0x04  - Reset */
 	isr_default,	/* 02     : 0x08  - NMI */
 	isr_default,	/* 03     : 0x0c  - HardFault */
@@ -104,12 +104,12 @@ static void __init mem_init()
 	unsigned i;
 
 	/* copy interrupt vector table to sram */
-	extern char _sram_start;
+	extern char __mem_start;
 	for (i = 0; (int)isr_vectors[i] != EOF; i++)
-		*((unsigned *)&_sram_start + i) = (unsigned)isr_vectors[i];
+		*((unsigned *)&__mem_start + i) = (unsigned)isr_vectors[i];
 
 	/* activate vector table in sram */
-	SCB_VTOR = (unsigned)&_sram_start;
+	SCB_VTOR = (unsigned)&__mem_start;
 
 	/* copy .data section from flash to sram */
 	extern char _etext, _data, _edata;
@@ -129,3 +129,19 @@ static void __init mem_init()
 }
 
 REGISTER_INIT_FUNC(mem_init, 1);
+
+#include <context.h>
+
+void init_task_context(struct task_t *p)
+{
+	int i;
+
+	/* initialize task register set */
+	*(p->sp--) = 0x01000000;		/* psr */
+	*(p->sp--) = (unsigned)p->addr;		/* pc */
+	for (i = 2; i < (CONTEXT_NR-1); i++) {	/* lr */
+		*p->sp = 0;			/* . */
+		p->sp--;			/* . */
+	}					/* . */
+	*p->sp = (unsigned)EXC_RETURN_MSPT;	/* lr */
+}

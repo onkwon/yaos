@@ -4,7 +4,7 @@
 
 static unsigned *alloc_user_stack(struct task_t *p)
 {
-	if ( (p->stack_size <= 0) || !(p->stack = (unsigned *)malloc(p->stack_size)) )
+	if ( (p->stack_size <= 0) || !(p->stack = (unsigned *)kmalloc(p->stack_size)) )
 		return NULL;
 
 	/* make its stack pointer to point out the highest memory address */
@@ -18,28 +18,19 @@ static void load_user_task()
 {
 	extern int _user_task_list;
 	struct task_t *p = (struct task_t *)&_user_task_list;
-	int i;
 
 	while (p->state) {
 		/* sanity check */
 		if (!p->addr) continue;
 		if (!alloc_user_stack(p)) continue;
 
-		/* initialize task register set */
-		*(p->sp--) = 0x01000000;		/* psr */
-		*(p->sp--) = (unsigned)p->addr;		/* pc */
-		for (i = 2; i < (CONTEXT_NR-1); i++) {	/* lr */
-			*p->sp = 0;			/* . */
-			p->sp--;			/* . */
-		}					/* . */
-		*p->sp = (unsigned)EXC_RETURN_MSPT;	/* lr */
-
+		init_task_context(p);
 		set_task_state(p, TASK_RUNNING);
 
 		/* initial state of all tasks are runnable, add into runqueue */
 		runqueue_add(p);
 
-		DEBUG(("%s: state %08x, sp %08x, addr %08x\n",
+		DEBUG(("%s: state %08x, sp %08x, addr %08x",
 					IS_TASK_REALTIME(p)? "REALTIME" : "NORMAL  ",
 					p->state, p->sp, p->addr));
 
@@ -60,23 +51,23 @@ static void init_task()
 {
 	cleanup();
 
-	/* set init_task() into struct task_t init */
-	init.state = LEAST_PRIORITY;
-	init.sp    = (unsigned *)GET_SP();
-	init.addr  = init_task;
-	init.se    = (struct sched_entity){ 0, 0, 0 };
-	LIST_LINK_INIT(&init.rq);
+	printk("ibox %s %s\n", VERSION, MACHINE);
 
-	current    = &init;
+	/* set init_task() into struct task_t init */
+	init.stack_size = DEFAULT_STACK_SIZE;
+	init.state      = LEAST_PRIORITY;
+	init.addr       = init_task;
+	init.se         = (struct sched_entity){ 0, 0, 0 };
+	LIST_LINK_INIT(&init.rq);
+	alloc_user_stack(&init);
+	SET_SP(init.sp);
+
+	current = &init;
 
 	/* ensure that scheduler is not activated prior
 	 * until everything to be ready. */
 	schedule_on();
 
-	kprintf("ibox %s %s\n", VERSION, MACHINE);
-
-	DEBUG(("psr : %x sp : %x int : %x control : %x lr : %x\n", GET_PSR(), GET_SP(), GET_INT(), GET_CON(), GET_LR()));
-	DEBUG(("PC = %x\n", GET_PC()));
 	while (1) {
 		printf("init()\n");
 		mdelay(500);
@@ -88,14 +79,17 @@ void sys_init()
 	extern int _init_func_list;
 	unsigned *p = (unsigned *)&_init_func_list;
 
-	while (*p) ((void (*)())*p++)();
+	while (*p)
+		((void (*)())*p++)();
 }
 
 #include <driver/usart.h>
+#include <kernel/mm.h>
 
 int main()
 {
 	sys_init();
+	mm_init();
 
 	usart_open(USART1, (struct usart_t) {
 			.brr  = brr2reg(115200, get_sysclk()),

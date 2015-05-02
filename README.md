@@ -116,6 +116,11 @@ Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every 
 	        sys_schedule,
 	        sys_test,
 
+### Memory allocation
+
+`kmalloc()`
+`free()`
+
 ## Memory map
 
 User stack gets allocated by `malloc()` call in `alloc_user_stack()`. Therefore the size of `HEAP_SIZE`(default 32KiB) determines the seating capacity of both of user stacks and user's heap allocation.
@@ -140,6 +145,8 @@ User stack gets allocated by `malloc()` call in `alloc_user_stack()`. Therefore 
 	|-------------------------------|
 	| .vector                       |
 	--------------------------------- 0x20000000
+
+페이징 및 버디 할당자 추가됨.
 
 ## New task
 
@@ -229,6 +236,7 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 	/entry()
 	|-- main()
 	|   |-- sys_init()
+	|   |-- mm_init()
 	|   |-- console_open()
 	|   |-- systick_init()
 	|   |-- scheduler_init()
@@ -245,3 +253,7 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 Change "machine dependant" part in `Makefile`.
 
 Uncomment or comment out lines in `CONFIG` file to enable or disable its functionalities.
+
+### Memory Manager
+
+메모리 관리자를 초기화하기 위해서 아키텍처 단에서 `_ebss`, `__mem_start`, `__mem_end` 제공해주어야 함(`ibox.lds`). `PAGE_SHIFT` 디폴트 값이 4KiB이므로 이것도 아키텍처 단에서 지정해줄 것(`include/asm/mm.h`).

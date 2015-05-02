@@ -39,4 +39,8 @@
 		:: "r"(sp) : "memory"		\
 	);
 
+#include <kernel/task.h>
+
+extern inline void init_task_context(struct task_t *p);
+
 #endif /* __CONTEXT_H__ */
