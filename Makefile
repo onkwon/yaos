@@ -28,7 +28,7 @@ BASEDIR = $(shell pwd)
 export BASEDIR
 
 CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(MACH)\"
-LDFLAGS = -nostartfiles -Tarch/$(MACH)/ibox.lds
+LDFLAGS = -nostartfiles -Tmach/$(MACH)/ibox.lds
 OCFLAGS = -O binary
 ODFLAGS = -Dsx
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
@@ -42,7 +42,7 @@ INC  = -I./include
 LIBS = 
 export INC LIBS
 
-SUBDIRS = lib arch kernel drivers tasks
+SUBDIRS = lib mach kernel drivers tasks
 
 all: include $(TARGET)
 	@echo "Section Size(in bytes):"
@@ -61,7 +61,7 @@ $(SUBDIRS):
 
 .PHONY: include
 include:
-	cp -R arch/$(MACH)/include include/asm
+	cp -R mach/$(MACH)/include include/asm
 	cp -R drivers/include include/driver
 
 .c.o:

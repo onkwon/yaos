@@ -19,7 +19,6 @@ static struct task_t *get_rt_task()
 extern void print_rq();
 extern int get_shared();
 #include <driver/usart.h>
-#include <kernel/mm.h>
 static void idle()
 {
 	/*
@@ -40,14 +39,13 @@ static void idle()
 			PUT_PORT(PORTD, GET_PORT(PORTD) ^ 4);
 			usart_getc(USART1);
 			//printf("idle() %c = %d\n", usart_getc(USART1), get_shared());
-	show_free_list(NULL);
 			print_rq();
 			set_task_state(rt_test, TASK_RUNNING);
 			runqueue_add(rt_test);
 			schedule();
 		}
 		//printf("idle()\n");
-		//mdelay(500);
+		//msleep(500);
 	}
 }
 

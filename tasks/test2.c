@@ -1,6 +1,5 @@
 #include <foundation.h>
 
-#include <time.h>
 static void test_task2()
 {
 	unsigned long long t;
@@ -22,7 +21,7 @@ static void test_task2()
 		printf("%08x", th);
 		printf("%08x %d (%d sec)\n", bh, v, v/HZ);
 
-		mdelay(500);
+		msleep(500);
 	}
 }
 

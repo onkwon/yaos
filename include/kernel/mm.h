@@ -43,6 +43,8 @@ struct free_area_t {
 
 struct zone_t {
 	struct free_area_t free_area[BUDDY_MAX_ORDER];
+	unsigned long nr_free;
+	unsigned long nr_pages;
 	spinlock_t lock;
 };
 

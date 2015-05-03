@@ -1,7 +1,6 @@
-#include <time.h>
 #include <foundation.h>
 
-unsigned long volatile __attribute__((section(".data"))) jiffies;
+volatile unsigned long __attribute__((section(".data"))) jiffies;
 uint64_t __attribute__((section(".data"))) jiffies_64;
 
 DEFINE_SPINLOCK(lock_jiffies);
@@ -13,7 +12,7 @@ inline unsigned long long __get_jiffies_64()
 
 unsigned long long get_jiffies_64()
 {
-	unsigned long long stamp;
+	unsigned long long stamp = 0;
 
 	do {
 		if (!is_spin_locked(lock_jiffies))

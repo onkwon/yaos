@@ -11,7 +11,6 @@ struct task_t *current;
 /* As a scheduler works only for a processor and runs in an interrupt context,
  * we are rid of concern about synchronization. */
 
-#include <time.h>
 #include <kernel/cfs.h>
 
 void schedule_core()

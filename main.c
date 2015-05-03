@@ -70,7 +70,7 @@ static void init_task()
 
 	while (1) {
 		printf("init()\n");
-		mdelay(500);
+		msleep(500);
 	}
 }
 

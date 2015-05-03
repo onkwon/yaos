@@ -146,7 +146,17 @@ User stack gets allocated by `malloc()` call in `alloc_user_stack()`. Therefore 
 	| .vector                       |
 	--------------------------------- 0x20000000
 
-페이징 및 버디 할당자 추가됨.
+페이징 및 버디 할당자 구현됨.
+
+malloc()은 kmalloc()의 랩퍼일 뿐, 차후에 단편화를 고려한 slab과 같은 캐시를 구현하는 것도 고려해볼만..
+
+시스템 부팅부터 init 태스크로 제어가 넘어가기 전까지 커널 스택이 보호되지 않고 버디 `free_area`에 들어가 있음. 초기화 막바지에 커널 스택은 init 태스크 스택으로 교체되기 때문에 문제는 없을 것으로 보이지만, 주의하고 있을 필요가 있음. 버디 초기화 시에 확실히 마크하고 init으로 제어가 넘어갈 때 free해야함!
+
+AVR에 포팅할 것도 고려하고 있는데 페이징은 좀 무리인 듯. page 구조체 사이즈가 못해도 7바이트는 되어야 하는데 atmega128 sram이 4kb 밖에 안되니까.
+
+그에 알맞은 메모리 관리자를 생각해보고 구현하자. 그리고 페이징 메모리 관리자와 새로운 메모리 관리자 모두 CONFIG 할 수 있도록.
+
+일주일 생각하고 시작했던 일이 점점 커지더니 이제 끝이 안보여...
 
 ## New task
 
@@ -209,6 +219,12 @@ The initial task takes place when no task in runqueue
 
 한가지 떠오르는 문제는(사용목적에 따라 다르겠지만), 인터럽트 금지등으로 할당된 러닝타임을 초과하여 실행된 태스크는 그 다음 턴에 핸디캡을 가져야 할지, 아니면 무시해야할지.
 
+다음 할 일:
+
+1. 런큐 자료구조 변경
+2. 대기큐에 오래 잡혀있던 태스크의 vruntime 차이 때문에 wake-up 후 자원 독점 가능성. 모든 태스크에 최소 실행 시간이 보장되어야 함.
+3. CFS 우선순위에 따른 vruntime 계산
+
 ### context switch
 
 [Cortex-M 문맥전환](https://viewy.org/bbs/board.php?bo_table=note&wr_id=17)
@@ -253,6 +269,8 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 Change "machine dependant" part in `Makefile`.
 
 Uncomment or comment out lines in `CONFIG` file to enable or disable its functionalities.
+
+Change `HZ` in `include/foundation.h`
 
 ### Memory Manager
 

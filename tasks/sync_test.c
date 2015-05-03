@@ -25,7 +25,7 @@ void set_shared(int v)
 
 	printf("LOCKED (%d)\n", lock_shared.count);
 	shared = v;
-	mdelay(100);
+	msleep(100);
 
 	mutex_unlock(lock_shared);
 	printf("UNLOCKED\n");
@@ -35,7 +35,7 @@ static void shared_test()
 {
 	while (1) {
 		set_shared(1);
-		sdelay(5);
+		sleep(5);
 	}
 }
 
@@ -46,7 +46,7 @@ static void shared_test2()
 {
 	while (1) {
 		set_shared(4);
-		sdelay(5);
+		sleep(5);
 	}
 }
 
@@ -56,7 +56,7 @@ static void shared_test3()
 {
 	while (1) {
 		set_shared(5);
-		sdelay(5);
+		sleep(5);
 	}
 }
 

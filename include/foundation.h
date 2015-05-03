@@ -2,7 +2,6 @@
 #define __FOUNDATION_H__
 
 #define HZ			50
-#define HEAP_SIZE		0x8000	/* 32KiB */
 
 #define barrier()		__asm__ __volatile__("" ::: "memory")
 
@@ -15,10 +14,6 @@
 #define dmb()			__dmb()
 #define dsb()			__dsb()
 #define isb()			__isb()
-
-extern void udelay(unsigned us);
-#define mdelay(ms)		udelay((ms)  * 1000)
-#define sdelay(sec)		mdelay((sec) * 1000)
 
 extern int printf(const char *format, ...);
 extern int printk(const char *format, ...);
@@ -35,5 +30,12 @@ extern int printk(const char *format, ...);
 
 #include <types.h>
 #include <lock.h>
+
+#include <timer.h>
+
+/* hard coded delay functions, machine dependant */
+extern inline void udelay(unsigned us);
+#define mdelay(ms)		udelay((ms)  * 1000)
+#define sdelay(sec)		mdelay((sec) * 1000)
 
 #endif /* __FOUNDATION_H__ */

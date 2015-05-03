@@ -4,19 +4,17 @@
 struct page_t *mem_map;
 struct zone_t dzone;
 
-unsigned long nr_avail_pages, nr_free_pages;
-
-#define BITMAP_POS(bitmap, page_idx, order) \
-	(bitmap + (page_idx >> (order + 5 + 1)))
+#define BITMAP_POS(bitmap, pfn, order) \
+	(bitmap + (pfn >> (order + 5 + 1)))
 	/* `+5` for dividing by 32
-	 * == `(bitmap + ((page_idx >> order) / (sizeof(long)*8)))`
+	 * == `(bitmap + ((pfn >> order) / (sizeof(long)*8)))`
 	 * while `+1` for dividing by 2 */
-#define BITMAP_OFFSET(page_idx, order) \
-	(1 << ((page_idx >> (order+1)) & (sizeof(long)*8-1)))
-#define BITMAP_TOGGLE(bitmap, page_idx, order) \
-	(*BITMAP_POS(bitmap, page_idx, order) ^= BITMAP_OFFSET(page_idx, order))
-#define BITMAP_MASK(bitmap, page_idx, order) \
-	(*BITMAP_POS(bitmap, page_idx, order) & BITMAP_OFFSET(page_idx, order))
+#define BITMAP_OFFSET(pfn, order) \
+	(1 << ((pfn >> (order+1)) & (sizeof(long)*8-1)))
+#define BITMAP_TOGGLE(bitmap, pfn, order) \
+	(*BITMAP_POS(bitmap, pfn, order) ^= BITMAP_OFFSET(pfn, order))
+#define BITMAP_MASK(bitmap, pfn, order) \
+	(*BITMAP_POS(bitmap, pfn, order) & BITMAP_OFFSET(pfn, order))
 
 void free_pages(struct zone_t *zone, struct page_t *page)
 {
@@ -31,7 +29,7 @@ void free_pages(struct zone_t *zone, struct page_t *page)
 	area  = &zone->free_area[order];
 	index = PAGE_INDEX(page->addr);
 
-	nr_free_pages += 1 << order;
+	zone->nr_free += 1 << order;
 
 	while (order < BUDDY_MAX_ORDER) {
 		BITMAP_TOGGLE(area->bitmap, index, order);
@@ -66,7 +64,7 @@ void show_free_list(struct zone_t *zone)
 
 	if (!zone) zone = &dzone;
 
-	printf("available pages %d\nfree pages %d\n", nr_avail_pages, nr_free_pages);
+	printf("available pages %d\nfree pages %d\n", zone->nr_pages, zone->nr_free);
 
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
 		printf("============= order %02d =============\n", i);
@@ -78,7 +76,7 @@ void show_free_list(struct zone_t *zone)
 		}
 
 		printf("\n------ bitmap 0x%08x ------\n", zone->free_area[i].bitmap);
-		size = ALIGN_LONG(nr_avail_pages) >> (4 + i);
+		size = ALIGN_LONG(zone->nr_pages) >> (4 + i);
 		size = ALIGN_LONG(size);
 		size = size? size : sizeof(long);
 		size /= sizeof(long);
@@ -120,7 +118,7 @@ struct page_t *alloc_pages(struct zone_t *zone, unsigned long order)
 				page += 1 << i;
 			}
 
-			nr_free_pages -= 1 << order;
+			zone->nr_free -= 1 << order;
 
 			SET_PAGE_ORDER(page, order);
 
@@ -141,8 +139,6 @@ static void free_area_init(struct zone_t *zone, unsigned long nr_pages,
 	unsigned long size, offset;
 	int i;
 
-	//DEBUG(("&mem_map[nr_pages] 0x%08x - bitmap start addr", &array[nr_pages]));
-
 	offset = 0;
 
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
@@ -152,14 +148,12 @@ static void free_area_init(struct zone_t *zone, unsigned long nr_pages,
 		zone->free_area[i].bitmap = (unsigned long *) 
 				(((char *)&array[nr_pages]) + offset);
 		memset(zone->free_area[i].bitmap, 0, size);
-		//DEBUG(("[%02d] bitmap 0x%08x size %d bytes, order %d", i, zone->free_area[i].bitmap, size, 1UL << (PAGE_SHIFT+i)));
 		LIST_LINK_INIT(&zone->free_area[i].free_list);
 
 		offset += size;
 	}
 
 	offset = PAGE_ALIGN(((char *)&array[nr_pages]) + offset);
-	//DEBUG(("the first free page 0x%08x, page[%d]", offset, PAGE_INDEX(offset)));
 
 	struct free_area_t *area;
 	unsigned long order, index, next;
@@ -182,16 +176,13 @@ static void free_area_init(struct zone_t *zone, unsigned long nr_pages,
 			area--;
 			size = 1 << order;
 			next = index + size;
-			//DEBUG(("### order %02d", order));
 		}
 
 		list_add(&array[index].link, &area->free_list);
-		//DEBUG(("area->bitmap %08x bitmap %08x", area->bitmap, BITMAP_POS(area->bitmap, index, order)));
 		BITMAP_TOGGLE(area->bitmap, index, order);
-		//DEBUG(("index %d, size %d(%02d), addr %08x[%08x], bitmap %08x", index, size, order, &array[index], array[index].addr, *BITMAP_POS(area->bitmap, index, order)));
 		index = next;
 
-		nr_free_pages += 1 << order;
+		zone->nr_free += 1 << order;
 	}
 
 done_free_list:
@@ -213,15 +204,6 @@ void mm_init()
 
 	struct page_t *page = (struct page_t *)PAGE_ALIGN(&_ebss);
 
-	//DEBUG(("Memory initiailization"));
-	//DEBUG(("page size %d bytes", PAGE_SIZE));
-	//DEBUG(("page struct size %d bytes", sizeof(struct page_t)));
-	//DEBUG(("ram range 0x%08x - 0x%08x", start, end));
-	//DEBUG(("total %d pages", nr_pages));
-
-	nr_avail_pages = nr_pages;
-	nr_free_pages  = 0;
-
 	mem_map = page;
 
 	while (start < end) {
@@ -233,9 +215,8 @@ void mm_init()
 		page++;
 	}
 
-	//DEBUG(("0x%08x - mem_map first entry, page[%d]", mem_map, PAGE_INDEX(mem_map)));
-	//DEBUG(("0x%08x - mem_map last entry, page[%d]", page - 1, PAGE_INDEX((page-1)->addr)));
-	//DEBUG(("mem_map size : %d bytes", page - mem_map));
+	dzone.nr_free = 0;
+	dzone.nr_pages = nr_pages;
 
 	zone_init(&dzone, nr_pages, mem_map);
 }

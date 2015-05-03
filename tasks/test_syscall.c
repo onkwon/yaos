@@ -11,7 +11,7 @@ static void test_syscall()
 {
 	while (1) {
 		printf("syscall : %08x\n", syscall(SYSCALL_TEST, 1, 2, 3));
-		mdelay(500);
+		sleep(5);
 	}
 }
 
