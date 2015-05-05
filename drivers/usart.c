@@ -1,223 +1,137 @@
-#include <usart.h>
-#include <stdlib.h>
 #include <foundation.h>
+#include <stdlib.h>
+#include <kernel/device.h>
+#include <asm/usart.h>
 
-#define BUF_SIZE	256
-#define USART_NUM	5
+#define BUF_SIZE	PAGE_SIZE
 
-#define RXNE		5
-#define TXE		7
-
-static struct fifo_t rxq[USART_NUM];
-static struct fifo_t txq[USART_NUM];
-
-static spinlock_t rx_lock[USART_NUM];
-static spinlock_t tx_lock[USART_NUM];
+static struct fifo_t rxq, txq;
+static spinlock_t rx_lock, tx_lock;
 
 static void isr_usart();
 
-unsigned brr2reg(unsigned baudrate, unsigned clk)
+static int usart_open(int id, int mode)
 {
-	unsigned fraction, mantissa;
+	if (!(getdev(id)->count++)) { /* if it's the first access */
+		int nr_irq = __usart_open(mode);
 
-	baudrate /= 100;
-	mantissa  = (clk * 10) / (16 * baudrate);
-	fraction  = mantissa % 1000;
-	mantissa /= 1000;
-	fraction  = fraction * 16 / 1000;
-	baudrate  = (mantissa << 4) + fraction;
+		if (nr_irq > 0) {
+			fifo_init(&rxq, kmalloc(BUF_SIZE), BUF_SIZE);
+			fifo_init(&txq, kmalloc(BUF_SIZE), BUF_SIZE);
+			spinlock_init(rx_lock);
+			spinlock_init(tx_lock);
 
-	return baudrate;
-}
-
-void usart_open(unsigned channel, struct usart_t arg)
-{
-	unsigned port, pin, nvector, apb_nbit;
-
-	/* USART signal can be remapped to some other port pins. */
-	switch (channel) {
-	case USART1:
-		port      = PORTA;
-		pin       = 9;  /* PA9: TX, PA10: RX */
-		nvector   = 53; /* IRQ 37 */
-		apb_nbit  = 14;
-		break;
-	case USART2:
-		port      = PORTA;
-		pin       = 2;  /* PA2: TX, PA3: RX */
-		nvector   = 54; /* IRQ 38 */
-		apb_nbit  = 17;
-		break;
-	case USART3:
-		port      = PORTB;
-		pin       = 10; /* PB10: TX, PB11: RX */
-		nvector   = 55; /* IRQ 39 */
-		apb_nbit  = 18;
-		break;
-	case UART4:
-		port      = PORTC;
-		pin       = 10; /* PC10: TX, PC11: RX */
-		nvector   = 68; /* IRQ 52 */
-		apb_nbit  = 19;
-		break;
-	case UART5:
-		port      = PORTC;
-		pin       = 12; /* PC12: TX, PD2: RX */
-		nvector   = 69; /* IRQ 53 */
-		apb_nbit  = 20;
-		break;
-	default:
-		return;
+			register_isr(nr_irq, isr_usart);
+		}
 	}
 
-	if (channel == USART1) {
-		SET_CLOCK_APB2(ENABLE, apb_nbit); /* USART1 clock enable */
+	return 0;
+}
 
-		fifo_init(&rxq[0], kmalloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&txq[0], kmalloc(BUF_SIZE), BUF_SIZE);
-
-		spinlock_init(rx_lock[0]);
-		spinlock_init(tx_lock[0]);
-	} else {
-		SET_CLOCK_APB1(ENABLE, apb_nbit); /* USARTn clock enable */
-
-		fifo_init(&rxq[apb_nbit-16], kmalloc(BUF_SIZE), BUF_SIZE);
-		fifo_init(&txq[apb_nbit-16], kmalloc(BUF_SIZE), BUF_SIZE);
-
-		spinlock_init(rx_lock[apb_nbit - 16]);
-		spinlock_init(tx_lock[apb_nbit - 16]);
+static int usart_close(int id)
+{
+	if (--(getdev(id)->count) == 0) {
+		__usart_close();
+		free(rxq.buf);
+		free(txq.buf);
 	}
 
-	SET_PORT_CLOCK(ENABLE, port);
-
-	/* gpio configuration. in case of remapping or UART5, check pinout. */
-	SET_PORT_PIN(port, pin, PIN_OUTPUT_50MHZ | PIN_ALT); /* tx */
-	SET_PORT_PIN(port, pin+1, PIN_INPUT | PIN_FLOATING); /* rx */
-
-	ISR_REGISTER(nvector, isr_usart);
-	SET_IRQ(ON, nvector - 16);
-
-	*(volatile unsigned *)(channel + 0x08) = arg.brr;
-	*(volatile unsigned *)(channel + 0x0c) = arg.cr1;
-	*(volatile unsigned *)(channel + 0x10) = arg.cr2;
-	*(volatile unsigned *)(channel + 0x14) = arg.cr3;
-	*(volatile unsigned *)(channel + 0x18) = arg.gtpr;
+	return 0;
 }
 
-void usart_close(unsigned channel)
+static size_t usart_read(int id, void *buf, size_t size)
 {
-	/* check if still in transmission. */
-	while (!gbi(*(volatile unsigned *)channel, 7)); /* wait until TXE bit set */
+	int data;
+	char *c = (char *)buf;
+	unsigned long irq_flag;
 
-	/* Use APB2 peripheral reset register (RCC_APB2RSTR),
-	 * or just turn off enable bit of tranceiver, controller and clock. */
+	spinlock_irqsave(rx_lock, irq_flag);
+	data = fifo_get(&rxq, 1);
+	spinlock_irqrestore(rx_lock, irq_flag);
 
-	/* Turn off enable bit of transmitter, receiver, and clock.
-	 * It leaves port clock, pin, irq, and configuration as set */
-	*(volatile unsigned *)(channel + 0x0c) &= ~(
-			(1 << 13) |	/* UE: USART enable */
-			(1 << 3) |	/* TE: Transmitter enable */
-			(1 << 2));	/* RE: Receiver enable */
+	if (data == -1)
+		return 0;
 
-	if (channel == USART1)
-		SET_CLOCK_APB2(DISABLE, 14); /* USART1 clock disable */
-	else
-		SET_CLOCK_APB1(DISABLE, (((channel >> 8) & 0x1f) >> 2) + 16); /* USARTn clock disable */
+	if (c)
+		*c = data & 0xff;
 
-	/* SET_IRQ(OFF, nvector-16); */
+	return 1;
 }
 
-/* to get buf index from register address */
-#define GET_USART_NR(from)     (from == USART1? 0 : (((from >> 8) & 0xff) - 0x40) / 4)
-
-void __usart_putc(unsigned channel, int c)
+static size_t usart_write(int id, void *buf, size_t size)
 {
-	while (!gbi(*(volatile unsigned *)channel, 7)); /* wait until TXE bit set */
-	*(volatile unsigned *)(channel + 0x04) = (unsigned)c;
-}
+	char c = *(char *)buf;
 
-void usart_putc(unsigned channel, int c)
-{
-	unsigned idx = GET_USART_NR(channel);
+	/* if interrupt mode */
 	unsigned long irq_flag;
 	int err;
 
-	do {
-		spinlock_irqsave(tx_lock[idx], irq_flag);
-		err = fifo_put(&txq[idx], c, 1);
-		spinlock_irqrestore(tx_lock[idx], irq_flag);
-	} while (err == -1);
+	spinlock_irqsave(tx_lock, irq_flag);
+	err = fifo_put(&txq, c, 1);
+	spinlock_irqrestore(tx_lock, irq_flag);
 
-	*(volatile unsigned *)(channel + 0x0c) |= 1 << TXE;
+	__usart_tx_irq_raise();
+
+	if (err == -1) return 0;
+
+	return 1;
+
+	/* or polling
+	__usart_putc(c);
+
+	return 1;
+	*/
 }
 
-int usart_getc(unsigned channel)
+static struct driver_operations ops = {
+	.open  = usart_open,
+	.read  = usart_read,
+	.write = usart_write,
+	.close = usart_close,
+};
+REGISTER_DEVICE(USART, &ops);
+
+/* well, think about how to deliver this kind of functions to user
+static int kbhit()
 {
-	int data;
-	unsigned idx = GET_USART_NR(channel);
-	unsigned long irq_flag;
-	
-	spinlock_irqsave(rx_lock[idx], irq_flag);
-	data = fifo_get(&rxq[idx], 1);
-	spinlock_irqrestore(rx_lock[idx], irq_flag);
-
-	if (data == -1)
-		return -1;
-
-	return data & 0xff;
+	return (rxq.front != rxq.rear);
 }
 
-int usart_kbhit(unsigned channel)
+static void fflush()
 {
-	unsigned idx = GET_USART_NR(channel);
-
-	return (rxq[idx].front != rxq[idx].rear);
-}
-
-void usart_fflush(unsigned channel)
-{
-	unsigned idx = GET_USART_NR(channel);
 	unsigned long irq_flag;
 
-	spinlock_irqsave(rx_lock[idx], irq_flag);
-	fifo_flush(&rxq[idx]);
-	spinlock_irqrestore(rx_lock[idx], irq_flag);
+	spinlock_irqsave(rx_lock, irq_flag);
+	fifo_flush(&rxq);
+	spinlock_irqrestore(rx_lock, irq_flag);
 }
+*/
 
 static void isr_usart()
 {
-	/* IRQ number:
-	 * USART1 USART2 USART3 UART4 UART5
-	 * 53     54     55     68    69   */
-	unsigned nirq, reg;
+	int c;
+	unsigned long irq_flag;
 
-	nirq = GET_PSR() & 0x1ff;
-	nirq = nirq < 60? nirq - 53 : nirq - 65;
-	reg  = nirq? USART2 + ((nirq-1) * 0x400) : USART1;
+	if (__usart_check_rx()) {
+		c = __usart_getc();
 
-	if (*(volatile unsigned *)reg & (1 << RXNE)) {
-		unsigned rx = *(volatile unsigned *)(reg + 0x04);
-		int      err;
+		spinlock_irqsave(rx_lock, irq_flag);
+		c = fifo_put(&rxq, c, 1);
+		spinlock_irqrestore(rx_lock, irq_flag);
 
-		spin_lock(rx_lock[nirq]);
-		err = fifo_put(&rxq[nirq], rx, 1);
-		spin_unlock(rx_lock[nirq]);
-
-		if (err == -1) {
+		if (c == -1) {
 			/* overflow */
 		}
 	}
 
-	if (*(volatile unsigned *)reg & (1 << TXE)) {
-		int tx;
+	if (__usart_check_tx()) {
+		spinlock_irqsave(tx_lock, irq_flag);
+		c = fifo_get(&txq, 1);
+		spinlock_irqrestore(tx_lock, irq_flag);
 
-		spin_lock(tx_lock[nirq]);
-		tx = fifo_get(&txq[nirq], 1);
-		spin_unlock(tx_lock[nirq]);
-
-		if (tx == -1)
-			*(volatile unsigned *)(reg + 0x0c) &= ~(1 << TXE);
+		if (c == -1)
+			__usart_tx_irq_reset();
 		else
-			*(volatile unsigned *)(reg + 0x04) = (unsigned char)tx;
+			__usart_putc(c);
 	}
 }

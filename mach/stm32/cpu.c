@@ -3,6 +3,12 @@
 
 static void __attribute__((naked, used)) entry()
 {
+	cli();
+
+	SCB_SHPR3 |= 0x00f00000; /* PendSV : the lowest priority, 15 */
+	SCB_SHPR2 |= 0xf0000000; /* SVCall : the lowest priority, 15 */
+	SCB_SHCSR |= 0x00070000; /* enable faults */
+
 	main();
 }
 
@@ -96,7 +102,6 @@ __attribute__((section(".vector"), aligned(4))) = {
 	(void *)EOF
 };
 
-#include <io.h>
 #include <clock.h>
 
 static void __init mem_init()
@@ -127,7 +132,6 @@ static void __init mem_init()
 
 	dmb();
 }
-
 REGISTER_INIT_FUNC(mem_init, 1);
 
 #include <context.h>

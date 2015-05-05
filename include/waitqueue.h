@@ -1,5 +1,5 @@
-#ifndef __WAIT_H__
-#define __WAIT_H__
+#ifndef __WAITQUEUE_H__
+#define __WAITQUEUE_H__
 
 #include <types.h>
 #include <lock.h>
@@ -26,4 +26,4 @@ struct waitqueue_t {
 extern inline void wait_in(struct waitqueue_head_t *q, struct waitqueue_t *wait);
 extern inline void wake_up(struct waitqueue_head_t *head, int nr_task);
 
-#endif /* __WAIT_H__ */
+#endif /* __WAITQUEUE_H__ */

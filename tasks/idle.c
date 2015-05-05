@@ -16,9 +16,15 @@ static struct task_t *get_rt_task()
 	return p;
 }
 
+#include <syscall.h>
+#include <kernel/device.h>
+
+#ifdef CONFIG_DEBUG
 extern void print_rq();
+#else
+#define print_rq()
+#endif
 extern int get_shared();
-#include <driver/usart.h>
 static void idle()
 {
 	/*
@@ -35,9 +41,9 @@ static void idle()
 	SET_PORT_CLOCK(ENABLE, PORTD);
 	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
 	while (1) {
-		if (usart_kbhit(USART1)) {
+		if (read(stdin, NULL, 1)) {
+			display_devtab();
 			PUT_PORT(PORTD, GET_PORT(PORTD) ^ 4);
-			usart_getc(USART1);
 			//printf("idle() %c = %d\n", usart_getc(USART1), get_shared());
 			print_rq();
 			set_task_state(rt_test, TASK_RUNNING);
@@ -48,5 +54,4 @@ static void idle()
 		//msleep(500);
 	}
 }
-
 REGISTER_TASK(idle, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);

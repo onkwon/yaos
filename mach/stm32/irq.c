@@ -24,26 +24,43 @@ void __attribute__((naked)) sys_schedule()
 
 #include <syscall.h>
 
+#ifdef CONFIG_DEBUG
+unsigned syscall_count = 0;
+#endif
+
 void __attribute__((naked)) svc_handler()
 {
-	/* What all those inline assembly do is
-	 * `syscall_table[((char *)sp[6])[-2]]();` in C. */
-
+#ifdef CONFIG_DEBUG
+	__asm__ __volatile__("add %0, %1, #1"
+			: "=r"(syscall_count)
+			: "0"(syscall_count)
+			: "r0", "memory");
+#endif
 	__asm__ __volatile__(
-			"cmp	r0, %0			\n\t" /* if nr >= SYSCALL_NR */
-			"it	ge			\n\t" /* then nr = 0 */
+			/* r0 must be the same value to the stacked one
+			 * because of hardware mechanism. The meantime of
+			 * entering into interrupt service routine
+			 * nothing can change the value. But the problem
+			 * is that it sometimes gets polluted. how? why?
+			 * So here I get r0 from stack. */
+			"ldr	r0, [sp]		\n\t"
+			/* if nr >= SYSCALL_NR */
+			"cmp	r0, %0			\n\t"
+			"it	ge			\n\t"
+			/* then nr = 0 */
 			"movge	r0, #0			\n\t"
-			"ldr	r3, =syscall_table	\n\t" /* get the syscall address */
+			/* get the syscall address */
+			"ldr	r3, =syscall_table	\n\t"
 			"ldr	r3, [r3, r0, lsl #2]	\n\t"
-
-			//"ldr	r3, [sp, #12]		\n\t" /* arguments in place */
+			/* arguments in place */
 			"ldr	r2, [sp, #12]		\n\t"
 			"ldr	r1, [sp, #8]		\n\t"
 			"ldr	r0, [sp, #4]		\n\t"
 			"push	{lr}			\n\t"
 			"blx	r3			\n\t"
 			"pop	{lr}			\n\t"
-			"str	r0, [sp]		\n\t" /* store return value */
+			/* store return value */
+			"str	r0, [sp]		\n\t"
 			"bx	lr			\n\t"
 			:: "I"(SYSCALL_NR));
 }
@@ -78,6 +95,13 @@ void __attribute__((naked)) isr_default()
 		"current->primask    0x%08x\n"
 		, current->sp, current->stack, current->stack_size
 		, current->state, current->primask);
+
+	printk("\nSCB_ICSR  0x%08x\n"
+		"SCB_CFSR  0x%08x\n"
+		"SCB_HFSR  0x%08x\n"
+		"SCB_MMFAR 0x%08x\n"
+		"SCB_BFAR  0x%08x\n",
+		SCB_ICSR, SCB_CFSR, SCB_HFSR, SCB_MMFAR, SCB_BFAR);
 
 	/* led for debugging */
 	SET_PORT_CLOCK(ENABLE, PORTD);

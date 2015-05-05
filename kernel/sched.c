@@ -7,8 +7,9 @@ static struct sched_t rts;
 #endif
 
 struct task_t *current;
+extern struct task_t init;
 
-/* As a scheduler works only for a processor and runs in an interrupt context,
+/* As each processor has its own scheduler and it runs in an interrupt context,
  * we are rid of concern about synchronization. */
 
 #include <kernel/cfs.h>
@@ -43,36 +44,38 @@ rts_next:
 		}
 
 		/* If not runnable, it means the last real time task finished
-		 * or went to sleep. Now it's time for CFS. */
+		 * or went to sleep. */
 		if (get_task_state(current) & TASK_RUNNING)
 			return;
 		else if (rts.nr_running > 1)
 			goto rts_next;
 
+		/* Now it's time for CFS */
 		rts.nr_running = 0;
 	}
 #endif
 
 	/* Completely fair scheduler */
 
-	/* Find a better way to minimize scheduling overhead
-	 * when there is only one task, `current`. */
-	next = cfs_pick_next(&cfs);
+	if (!(next = cfs_pick_next(&cfs))) {
+		if (!(get_task_state(current) & TASK_RUNNING)) {
+			/* no task to schedule. wake up the init task */
+			current = &init;
+		}
+		goto cfs_update;
+	}
 
 	/* add `current` back into runqueue after picking next */
 	cfs_rq_add(&cfs, current);
-
-	if (!next) { /* no task to schedule */
-		/* wake up the init task */
-	}
 
 	current = next;
 
 	/* remove the next task from runqueue */
 	cfs_rq_del(&cfs, next);
 
+cfs_update:
 	/* Update newly selected task's start time because it is stale
-	 * as much as how long the one has been waiting for. */
+	 * as much as the one has been waiting for. */
 	current->se.exec_start = __get_jiffies_64();
 }
 
@@ -136,6 +139,7 @@ void scheduler_init()
 #endif
 }
 
+#ifdef CONFIG_DEBUG
 void print_rq()
 {
 	struct list_t *rq = ((struct list_t *)cfs.rq)->next;
@@ -157,3 +161,4 @@ void print_rq()
 		rq = rq->next;
 	}
 }
+#endif

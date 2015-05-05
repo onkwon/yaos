@@ -18,6 +18,7 @@
 		*((unsigned *)&__mem_start + vector_nr) = (unsigned)func; \
 		dmb(); \
 	})
+#define __register_isr(nirq, func)	ISR_REGISTER(nirq, func)
 
 #define SET_IRQ(on, irq_nr) ( \
 		*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)) = \

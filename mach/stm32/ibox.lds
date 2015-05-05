@@ -30,8 +30,8 @@ SECTIONS
 		*(.rodata)
 		*(.rodata.*)
 		. = (. + 3) & ~ 3;
-		_cmd_list = .;
-		*(.cmdlist)
+		_shell_cmdlist = .;
+		*(.shell_cmdlist)
 		. = (. + 3) & ~ 3;
 		LONG(0);
 		_etext = .;
@@ -48,6 +48,9 @@ SECTIONS
 		*(.user_task_list)
 		. = (. + 3) & ~ 3;
 		LONG(0);
+		_device_list = .;
+		*(.device_list)
+		_device_list_end = .;
 		_edata = .;
 	} > ram AT > rom
 
@@ -56,8 +59,6 @@ SECTIONS
 		_bss = .;
 		*(.bss)
 		*(COMMON)
-		. = (. + 3) & ~ 3;
-		LONG(0);
 		_ebss = .;
 	} > ram AT > rom
 }

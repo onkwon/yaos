@@ -3,17 +3,7 @@
 
 #define HZ			50
 
-#define barrier()		__asm__ __volatile__("" ::: "memory")
-
-#include <asm/interrupt.h>
-
-#define irq_save(flag)		__irq_save(flag)
-#define irq_restore(flag)	__irq_restore(flag)
-#define cli()			__cli()
-#define sei()			__sei()
-#define dmb()			__dmb()
-#define dsb()			__dsb()
-#define isb()			__isb()
+#include <io.h>
 
 extern int printf(const char *format, ...);
 extern int printk(const char *format, ...);
@@ -30,7 +20,6 @@ extern int printk(const char *format, ...);
 
 #include <types.h>
 #include <lock.h>
-
 #include <timer.h>
 
 /* hard coded delay functions, machine dependant */

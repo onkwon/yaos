@@ -54,7 +54,7 @@ typedef struct semaphore mutex_t;
 
 #define semaphore_init(name, v)		(name.count = v)
 
-#include <wait.h>
+#include <waitqueue.h>
 #include <kernel/sched.h>
 
 #define semaphore_down(s) { \

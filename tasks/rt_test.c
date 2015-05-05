@@ -13,5 +13,4 @@ static void rt_task1()
 		schedule();
 	}
 }
-
 REGISTER_TASK(rt_task1, DEFAULT_STACK_SIZE, RT_LEAST_PRIORITY);

@@ -5,10 +5,8 @@ struct page_t *mem_map;
 struct zone_t dzone;
 
 #define BITMAP_POS(bitmap, pfn, order) \
+	/* (bitmap + ((pfn >> order) / (sizeof(long)*8) / 2)) */ \
 	(bitmap + (pfn >> (order + 5 + 1)))
-	/* `+5` for dividing by 32
-	 * == `(bitmap + ((pfn >> order) / (sizeof(long)*8)))`
-	 * while `+1` for dividing by 2 */
 #define BITMAP_OFFSET(pfn, order) \
 	(1 << ((pfn >> (order+1)) & (sizeof(long)*8-1)))
 #define BITMAP_TOGGLE(bitmap, pfn, order) \
@@ -54,6 +52,7 @@ void free_pages(struct zone_t *zone, struct page_t *page)
 	list_add(&node[index].link, &area->free_list);
 }
 
+#ifdef CONFIG_DEBUG
 #include <foundation.h>
 
 void show_free_list(struct zone_t *zone)
@@ -88,6 +87,7 @@ void show_free_list(struct zone_t *zone)
 		printf("\n");
 	}
 }
+#endif
 
 struct page_t *alloc_pages(struct zone_t *zone, unsigned long order)
 {
@@ -129,40 +129,56 @@ struct page_t *alloc_pages(struct zone_t *zone, unsigned long order)
 	return NULL;
 }
 
+static inline int log2(int a)
+{
+	int i;
+	for (i = 0; a; i++) a >>= 1;
+	return i;
+}
+
 extern char __mem_start, __mem_end, _ebss;
 
-/* It could possibly overlap initial kernel stack. Initial stack region must
- * be reserved first, which is not implemented yet. */
 static void free_area_init(struct zone_t *zone, unsigned long nr_pages,
 		struct page_t *array)
 {
 	unsigned long size, offset;
 	int i;
 
+	/* bitmap initialization */
 	offset = 0;
-
+	size   = ALIGN_LONG(nr_pages) >> 4; /* nr_pages / 8-bit / 2 */
+	size   = ALIGN_LONG(size);
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		size = ALIGN_LONG(nr_pages) >> (4 + i);
-		size = ALIGN_LONG(size);
-		size = size? size : sizeof(long);
+		if (size < sizeof(long))
+			size = sizeof(long);
+
 		zone->free_area[i].bitmap = (unsigned long *) 
 				(((char *)&array[nr_pages]) + offset);
 		memset(zone->free_area[i].bitmap, 0, size);
 		LIST_LINK_INIT(&zone->free_area[i].free_list);
 
 		offset += size;
+		size >>= 1;
 	}
 
+	/* current offset is the first free page */
 	offset = PAGE_ALIGN(((char *)&array[nr_pages]) + offset);
 
+	/* buddy list initialization */
 	struct free_area_t *area;
 	unsigned long order, index, next;
+
+	/* preserve initial kernel stack to be free later */
+	nr_pages -= PAGE_ALIGN(DEFAULT_STACK_SIZE) >> PAGE_SHIFT;
+	order     = log2((PAGE_ALIGN(DEFAULT_STACK_SIZE)-1) >> PAGE_SHIFT);
+	SET_PAGE_ORDER(&array[nr_pages], order);
+	/* and mark kernel .data and .bss sections as used.
+	 * mem_map array and its bitmap region as well. */
+	index = next = PAGE_INDEX(offset);
 
 	order = BUDDY_MAX_ORDER - 1;
 	area  = &zone->free_area[order];
 	size  = 1 << order;
-	/* mark kernel .data and .bss sections as used */
-	index = next = PAGE_INDEX(PAGE_ALIGN(&_ebss));
 
 	while (1) {
 		next = index + size;
@@ -187,6 +203,18 @@ static void free_area_init(struct zone_t *zone, unsigned long nr_pages,
 
 done_free_list:
 	return;
+}
+
+#include <asm/init.h>
+void __init free_bootmem()
+{
+	void *addr;
+	unsigned index;
+
+	index = dzone.nr_pages - (PAGE_ALIGN(DEFAULT_STACK_SIZE) >> PAGE_SHIFT);
+	addr  = mem_map[index].addr;
+
+	free(addr);
 }
 
 static void zone_init(struct zone_t *zone, unsigned long nr_pages,
@@ -221,20 +249,13 @@ void mm_init()
 	zone_init(&dzone, nr_pages, mem_map);
 }
 
-static inline int log2(int a)
-{
-	int i;
-	for (i = 0; a; i++) a >>= 1;
-	return i;
-}
-
 void *kmalloc(unsigned long size)
 {
 	struct page_t *page;
 	unsigned long irq_flag;
 
 	spinlock_irqsave(dzone.lock, irq_flag);
-	page = alloc_pages(&dzone, log2((size-1) >> PAGE_SHIFT));
+	page = alloc_pages(&dzone, log2((PAGE_ALIGN(size)-1) >> PAGE_SHIFT));
 	spinlock_irqrestore(dzone.lock, irq_flag);
 
 	return page->addr;

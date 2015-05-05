@@ -1,4 +1,5 @@
 #include <foundation.h>
+#include <kernel/task.h>
 
 static void test_task1()
 {
@@ -7,6 +8,4 @@ static void test_task1()
 		sleep(1);
 	}
 }
-
-#include <kernel/task.h>
 REGISTER_TASK(test_task1, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);

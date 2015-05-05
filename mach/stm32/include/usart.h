@@ -1,5 +1,5 @@
-#ifndef __USART_H__
-#define __USART_H__
+#ifndef __STM32_USART_H__
+#define __STM32_USART_H__
 
 #include <io.h>
 
@@ -26,13 +26,13 @@ struct usart_t {
 		| (1 << 2)	/* RE    : Receiver enable */		\
 })
 
-void usart_open  (unsigned channel, struct usart_t arg);
-void usart_close (unsigned channel);
-void usart_putc  (unsigned channel, int c);
-void __usart_putc(unsigned channel, int c);
-int  usart_getc  (unsigned channel);
-int  usart_kbhit (unsigned channel);
-void usart_fflush(unsigned channel);
-unsigned brr2reg (unsigned baudrate, unsigned clk);
+int  __usart_open(unsigned baudrate);
+void __usart_close();
+void __usart_putc(int c);
+int __usart_getc();
+int __usart_check_rx();
+int __usart_check_tx();
+void __usart_tx_irq_raise();
+void __usart_tx_irq_reset();
 
-#endif /* __USART_H__ */
+#endif /* __STM32_USART_H__ */

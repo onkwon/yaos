@@ -1,5 +1,5 @@
 #include <foundation.h>
-#include <driver/usart.h>
+#include <kernel/task.h>
 
 static int shared;
 DEFINE_MUTEX(lock_shared);
@@ -38,8 +38,6 @@ static void shared_test()
 		sleep(5);
 	}
 }
-
-#include <kernel/task.h>
 REGISTER_TASK(shared_test, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
 
 static void shared_test2()
@@ -49,7 +47,6 @@ static void shared_test2()
 		sleep(5);
 	}
 }
-
 REGISTER_TASK(shared_test2, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
 
 static void shared_test3()
@@ -59,5 +56,4 @@ static void shared_test3()
 		sleep(5);
 	}
 }
-
 REGISTER_TASK(shared_test3, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);

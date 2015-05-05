@@ -147,7 +147,14 @@
 #define SCB_VTOR		(*(volatile unsigned *)(SCB_BASE + 8))
 #define SCB_AIRCR		(*(volatile unsigned *)(SCB_BASE + 0xc))
 #define SCB_CCR 		(*(volatile unsigned *)(SCB_BASE + 0x14))
+#define SCB_SHPR1		(*(volatile unsigned *)(SCB_BASE + 0x18))
+#define SCB_SHPR2		(*(volatile unsigned *)(SCB_BASE + 0x1c))
+#define SCB_SHPR3		(*(volatile unsigned *)(SCB_BASE + 0x20))
 #define SCB_SHCSR		(*(volatile unsigned *)(SCB_BASE + 0x24))
+#define SCB_CFSR		(*(volatile unsigned *)(SCB_BASE + 0x28))
+#define SCB_HFSR		(*(volatile unsigned *)(SCB_BASE + 0x2c))
+#define SCB_MMFAR		(*(volatile unsigned *)(SCB_BASE + 0x34))
+#define SCB_BFAR		(*(volatile unsigned *)(SCB_BASE + 0x38))
 
 /* Systick */
 #define SYSTICK_BASE		(0xe000e010)

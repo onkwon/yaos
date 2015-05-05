@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <kernel/sched.h>
 
-static unsigned *alloc_user_stack(struct task_t *p)
+static unsigned long *alloc_user_stack(struct task_t *p)
 {
-	if ( (p->stack_size <= 0) || !(p->stack = (unsigned *)kmalloc(p->stack_size)) )
+	if ( (p->stack_size <= 0) ||
+			!(p->stack = (unsigned long *)kmalloc(p->stack_size)) )
 		return NULL;
 
 	/* make its stack pointer to point out the highest memory address */
-	/* (p->stack_size >> 2) == (p->stack_size / sizeof(long)) */
-	p->sp = p->stack + ((p->stack_size >> 2) - 1);
+	p->sp = p->stack + ((p->stack_size / sizeof(long)) - 1);
 
 	return p->sp;
 }
@@ -31,8 +31,8 @@ static void load_user_task()
 		runqueue_add(p);
 
 		DEBUG(("%s: state %08x, sp %08x, addr %08x",
-					IS_TASK_REALTIME(p)? "REALTIME" : "NORMAL  ",
-					p->state, p->sp, p->addr));
+				IS_TASK_REALTIME(p)? "REALTIME" : "NORMAL  ",
+				p->state, p->sp, p->addr));
 
 		p++;
 	}
@@ -41,6 +41,7 @@ static void load_user_task()
 static void cleanup()
 {
 	/* Clean up redundant code and data, used during initializing */
+	free_bootmem();
 }
 
 struct task_t init;
@@ -49,10 +50,6 @@ struct task_t init;
  * do some power saving */
 static void init_task()
 {
-	cleanup();
-
-	printk("ibox %s %s\n", VERSION, MACHINE);
-
 	/* set init_task() into struct task_t init */
 	init.stack_size = DEFAULT_STACK_SIZE;
 	init.state      = LEAST_PRIORITY;
@@ -62,10 +59,12 @@ static void init_task()
 	alloc_user_stack(&init);
 	SET_SP(init.sp);
 
-	current = &init;
+	cleanup();
 
-	/* ensure that scheduler is not activated prior
-	 * until everything to be ready. */
+	printf("ibox %s %s\n", VERSION, MACHINE);
+
+	current = &init;
+	/* ensure that scheduler gets activated after everything ready. */
 	schedule_on();
 
 	while (1) {
@@ -74,33 +73,48 @@ static void init_task()
 	}
 }
 
-void sys_init()
+static void sys_init()
 {
-	extern int _init_func_list;
-	unsigned *p = (unsigned *)&_init_func_list;
+	extern char _init_func_list;
+	unsigned long *p = (unsigned long *)&_init_func_list;
 
 	while (*p)
 		((void (*)())*p++)();
 }
 
-#include <driver/usart.h>
+#include <kernel/device.h>
+
+static void devman_init()
+{
+	__devman_init();
+
+	extern char _device_list, _device_list_end;
+	struct device_t *dev = (struct device_t *)&_device_list;
+
+	while ((unsigned long)dev < (unsigned long)&_device_list_end) {
+		link_device(dev->id, dev);
+		dev++;
+	}
+}
+
+int stdin, stdout, stderr;
+static void console_init()
+{
+	open(USART, 115200);
+
+	stdin = stdout = stderr = USART;
+}
+
 #include <kernel/mm.h>
 
 int main()
 {
 	sys_init();
 	mm_init();
+	devman_init();
+	sei();
 
-	usart_open(USART1, (struct usart_t) {
-			.brr  = brr2reg(115200, get_sysclk()),
-			.gtpr = 0,
-			.cr3  = 0,
-			.cr2  = 0,
-			.cr1  = (1 << 13) /* UE    : USART enable */
-			| (1 << 5)        /* RXNEIE: RXNE interrupt enable */
-			| (1 << 3)        /* TE    : Transmitter enable */
-			| (1 << 2)});     /* RE    : Receiver enable */
-
+	console_init();
 	systick_init();
 	scheduler_init();
 

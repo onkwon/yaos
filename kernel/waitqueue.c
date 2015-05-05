@@ -1,4 +1,4 @@
-#include <wait.h>
+#include <waitqueue.h>
 #include <kernel/sched.h>
 
 void wait_in(struct waitqueue_head_t *q, struct waitqueue_t *wait)

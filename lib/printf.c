@@ -18,18 +18,19 @@
 #define getarg(args, type)	(*(type *)args++)
 #define align_dword(args)	(args += ((int)args & ((INTSIZE<<1)-1))? 1 : 0)
 
-#include <driver/usart.h>
-#define __printc(c)		__putc(USART1, c)
-static void (*__putc)(unsigned ch, int c) = usart_putc;
-void printf_setputc(void *f) { __putc = f; }
+#include <io.h>
 
 static void printc(char **s, int c)
 {
 	if (s) {
 		*(*s)++ = c;
 	} else {
-		if (c == '\n') __printc('\r');
-		__printc(c);
+		write(stdout, &c, 1);
+
+		if (c == '\n') {
+			c = '\r';
+			write(stdout, &c, 1);
+		}
 	}
 }
 
@@ -145,7 +146,6 @@ static int print(char **out, int *args)
 
 int printf(const char *format, ...)
 {
-	__putc = usart_putc;
 	return print(0, (int *)&format);
 }
 
@@ -156,7 +156,6 @@ int sprintf(char *out, const char *format, ...)
 
 int printk(const char *format, ...)
 {
-	__putc = __usart_putc;
 	return print(0, (int *)&format);
 }
 

@@ -21,7 +21,7 @@ struct page_t {
 	unsigned long flags; /* the lowest PG_ORDER_BIT for buddy order */
 	void *addr;
 	struct list_t link;
-};
+} __attribute__((packed));
 
 #define BUDDY_MAX_ORDER		10
 
@@ -53,6 +53,12 @@ void mm_init();
 void *kmalloc(unsigned long size);
 void free(void *addr);
 
+#ifdef CONFIG_DEBUG
 void show_free_list(struct zone_t *zone);
+#else
+#define show_free_list(nul)
+#endif
+
+void free_bootmem();
 
 #endif /* __MM_H__ */

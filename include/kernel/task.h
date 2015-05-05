@@ -47,12 +47,12 @@ struct sched_entity {
 } __attribute__((packed));
 
 struct task_t {
-	int state;       	/* priority */
+	long state;       	/* priority */
 	unsigned long primask;
 
-	unsigned *stack; 	/* stack end, the lowest address */
-	unsigned *sp; 		/* stack pointer */
-	int stack_size;  	/* stack size */
+	unsigned long *stack; 	/* stack end, the lowest address */
+	unsigned long *sp;	/* stack pointer */
+	long stack_size;  	/* stack size */
 
 	void *addr;      	/* address */
 
