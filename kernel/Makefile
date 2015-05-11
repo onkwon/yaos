@@ -1,9 +1,15 @@
 include $(BASEDIR)/CONFIG
 
 SRCS_ASM = $(wildcard *.S)
-SRCS     = $(shell ls | grep .*.c$$ | sed 's/rts.c//')
+SRCS     = sched.c cfs.c mm.c jiffies.c timer.c waitqueue.c
 ifdef CONFIG_REALTIME
 	SRCS += rts.c
+endif
+ifdef CONFIG_PAGING
+	SRCS += buddy.c
+endif
+ifdef CONFIG_DEVMAN
+	SRCS += device.c syscall.c
 endif
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 

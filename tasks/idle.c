@@ -7,7 +7,7 @@ static struct task_t *get_rt_task()
 	struct task_t *p = (struct task_t *)&_user_task_list;
 
 	while (p->state) {
-		if (IS_TASK_REALTIME(p))
+		if (is_task_realtime(p))
 			break;
 
 		p++;

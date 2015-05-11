@@ -32,6 +32,12 @@
 #define GET_SP() ({ unsigned __sp; \
 		__asm__ __volatile__("mov %0, sp" : "=r" (__sp)); \
 		__sp; })
+#define GET_KSP() ({ unsigned __ksp; \
+		__asm__ __volatile__("mrs %0, msp" : "=r" (__ksp)); \
+		__ksp; })
+#define GET_USP() ({ unsigned __usp; \
+		__asm__ __volatile__("mrs %0, psp" : "=r" (__usp)); \
+		__usp; })
 #define GET_PSR() ({ unsigned __psr; \
 		__asm__ __volatile__("mrs %0, psr" : "=r" (__psr)); \
 		__psr; })
@@ -45,5 +51,7 @@
 		__asm__ __volatile__("mrs %0, control" : "=r" (__control)); \
 		__control; })
 #define SET_SP(sp) __asm__ __volatile__("mov sp, %0" :: "r"(sp) : "memory")
+#define SET_KSP(sp) __asm__ __volatile__("msr msp, %0" :: "r"(sp) : "memory")
+#define SET_USP(sp) __asm__ __volatile__("msr psp, %0" :: "r"(sp) : "memory")
 
 #endif /* __STM32_INTERRUPT_H__ */

@@ -16,8 +16,10 @@ extern char __mem_end;
 
 extern void sys_init();
 extern void isr_default();
-extern void svc_handler();
 extern void pendsv_handler();
+#ifdef CONFIG_DEVMAN
+extern void svc_handler();
+#endif
 
 static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4))) = {
@@ -34,7 +36,11 @@ __attribute__((section(".vector"), aligned(4))) = {
 	NULL,		/* 08     : 0x20  - Reserved */
 	NULL,		/* 09     : 0x24  - Reserved */
 	NULL,		/* 10     : 0x28  - Reserved */
+#ifdef CONFIG_DEVMAN
 	svc_handler,	/* 11     : 0x2c  - SVCall */
+#else
+	isr_default,	/* 11     : 0x2c  - SVCall */
+#endif
 	isr_default,	/* 12     : 0x30  - Debug Monitor */
 	NULL,		/* 13     : 0x34  - Reserved */
 	pendsv_handler,	/* 14     : 0x38  - PendSV */
@@ -141,11 +147,8 @@ void init_task_context(struct task_t *p)
 	int i;
 
 	/* initialize task register set */
-	*(p->sp--) = 0x01000000;		/* psr */
-	*(p->sp--) = (unsigned)p->addr;		/* pc */
-	for (i = 2; i < (CONTEXT_NR-1); i++) {	/* lr */
-		*p->sp = 0;			/* . */
-		p->sp--;			/* . */
-	}					/* . */
-	*p->sp = (unsigned)EXC_RETURN_MSPT;	/* lr */
+	*p->sp     = 0x01000000;		/* psr */
+	*(--p->sp) = (unsigned)p->addr;		/* pc */
+	for (i = 2; i < CONTEXT_NR; i++)
+		*(--p->sp) = 0;
 }

@@ -23,7 +23,7 @@ struct device_t {
 
 struct device_t *getdev(int id);
 void link_device(int id, struct device_t *dev);
-void __devman_init();
+void devman_init();
 
 #define REGISTER_DEVICE(n, operations) \
 	static struct device_t dev_##n \

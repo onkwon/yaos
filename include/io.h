@@ -30,7 +30,9 @@
 
 extern int stdin, stdout, stderr;
 
-#define O_RDWR
-#define O_NONBLOCK
+#define O_RDONLY	1
+#define O_WRONLY	2
+#define O_RDWR		3
+#define O_NONBLOCK	4
 
 #endif /* __IO_H__ */

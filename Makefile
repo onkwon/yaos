@@ -14,11 +14,18 @@ export MACH
 # Configuration
 
 include CONFIG
+
 ifdef CONFIG_DEBUG
 	CFLAGS += -g -DCONFIG_DEBUG -O0
 endif
 ifdef CONFIG_REALTIME
 	CFLAGS += -DCONFIG_REALTIME
+endif
+ifdef CONFIG_PAGING
+	CFLAGS += -DCONFIG_PAGING
+endif
+ifdef CONFIG_DEVMAN
+	CFLAGS += -DCONFIG_DEVMAN
 endif
 
 # Common 
@@ -42,7 +49,10 @@ INC  = -I./include
 LIBS = 
 export INC LIBS
 
-SUBDIRS = lib mach kernel drivers tasks
+SUBDIRS = lib mach kernel tasks
+ifdef CONFIG_DEVMAN
+	SUBDIRS += drivers
+endif
 
 all: include $(TARGET)
 	@echo "Section Size(in bytes):"

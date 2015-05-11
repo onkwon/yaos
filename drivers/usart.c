@@ -8,35 +8,17 @@
 static struct fifo_t rxq, txq;
 static spinlock_t rx_lock, tx_lock;
 
-static void isr_usart();
-
-static int usart_open(int id, int mode)
-{
-	if (!(getdev(id)->count++)) { /* if it's the first access */
-		int nr_irq = __usart_open(mode);
-
-		if (nr_irq > 0) {
-			fifo_init(&rxq, kmalloc(BUF_SIZE), BUF_SIZE);
-			fifo_init(&txq, kmalloc(BUF_SIZE), BUF_SIZE);
-			spinlock_init(rx_lock);
-			spinlock_init(tx_lock);
-
-			register_isr(nr_irq, isr_usart);
-		}
-	}
-
-	return 0;
-}
-
 static int usart_close(int id)
 {
-	if (--(getdev(id)->count) == 0) {
+	struct device_t *dev = getdev(id);
+
+	if (--dev->count == 0) {
 		__usart_close();
 		free(rxq.buf);
 		free(txq.buf);
 	}
 
-	return 0;
+	return dev->count;
 }
 
 static size_t usart_read(int id, void *buf, size_t size)
@@ -58,11 +40,10 @@ static size_t usart_read(int id, void *buf, size_t size)
 	return 1;
 }
 
-static size_t usart_write(int id, void *buf, size_t size)
+static size_t usart_write_int(int id, void *buf, size_t size)
 {
 	char c = *(char *)buf;
 
-	/* if interrupt mode */
 	unsigned long irq_flag;
 	int err;
 
@@ -75,21 +56,16 @@ static size_t usart_write(int id, void *buf, size_t size)
 	if (err == -1) return 0;
 
 	return 1;
+}
 
-	/* or polling
+static size_t usart_write_polling(int id, void *buf, size_t size)
+{
+	char c = *(char *)buf;
+
 	__usart_putc(c);
 
 	return 1;
-	*/
 }
-
-static struct driver_operations ops = {
-	.open  = usart_open,
-	.read  = usart_read,
-	.write = usart_write,
-	.close = usart_close,
-};
-REGISTER_DEVICE(USART, &ops);
 
 /* well, think about how to deliver this kind of functions to user
 static int kbhit()
@@ -135,3 +111,41 @@ static void isr_usart()
 			__usart_putc(c);
 	}
 }
+
+static int usart_open(int id, int mode)
+{
+	struct device_t *dev = getdev(id);
+
+	if (!(dev->count++)) { /* if it's the first access */
+		int nr_irq = __usart_open(115200);
+
+		if (nr_irq > 0) {
+			if (mode & O_RDONLY) {
+				fifo_init(&rxq, kmalloc(BUF_SIZE), BUF_SIZE);
+				spinlock_init(rx_lock);
+			}
+
+			if (mode & O_WRONLY) {
+				fifo_init(&txq, kmalloc(BUF_SIZE), BUF_SIZE);
+				spinlock_init(tx_lock);
+			}
+
+			if (mode & O_NONBLOCK)
+				dev->ops->write = usart_write_polling;
+			else
+				dev->ops->write = usart_write_int;
+
+			register_isr(nr_irq, isr_usart);
+		}
+	}
+
+	return dev->count;
+}
+
+static struct driver_operations ops = {
+	.open  = usart_open,
+	.read  = usart_read,
+	.write = usart_write_int,
+	.close = usart_close,
+};
+REGISTER_DEVICE(USART, &ops);

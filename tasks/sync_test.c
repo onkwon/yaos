@@ -35,6 +35,7 @@ static void shared_test()
 {
 	while (1) {
 		set_shared(1);
+		get_shared();
 		sleep(5);
 	}
 }
@@ -43,7 +44,9 @@ REGISTER_TASK(shared_test, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
 static void shared_test2()
 {
 	while (1) {
+		printf("control %08x, sp %08x, msp %08x, psp %08x\n", GET_CON(), GET_SP(), GET_KSP(), GET_USP());
 		set_shared(4);
+		get_shared();
 		sleep(5);
 	}
 }
@@ -53,6 +56,7 @@ static void shared_test3()
 {
 	while (1) {
 		set_shared(5);
+		get_shared();
 		sleep(5);
 	}
 }

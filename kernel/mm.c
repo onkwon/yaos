@@ -1,236 +1,188 @@
-#include <kernel/mm.h>
+#include <kernel/page.h>
 #include <stdlib.h>
-
-struct page_t *mem_map;
-struct zone_t dzone;
-
-#define BITMAP_POS(bitmap, pfn, order) \
-	/* (bitmap + ((pfn >> order) / (sizeof(long)*8) / 2)) */ \
-	(bitmap + (pfn >> (order + 5 + 1)))
-#define BITMAP_OFFSET(pfn, order) \
-	(1 << ((pfn >> (order+1)) & (sizeof(long)*8-1)))
-#define BITMAP_TOGGLE(bitmap, pfn, order) \
-	(*BITMAP_POS(bitmap, pfn, order) ^= BITMAP_OFFSET(pfn, order))
-#define BITMAP_MASK(bitmap, pfn, order) \
-	(*BITMAP_POS(bitmap, pfn, order) & BITMAP_OFFSET(pfn, order))
-
-void free_pages(struct zone_t *zone, struct page_t *page)
-{
-	struct page_t *node = mem_map;
-	struct page_t *buddy;
-	struct free_area_t *area;
-	unsigned long order, index;
-
-	if (!page) return;
-
-	order = GET_PAGE_ORDER(page);
-	area  = &zone->free_area[order];
-	index = PAGE_INDEX(page->addr);
-
-	zone->nr_free += 1 << order;
-
-	while (order < BUDDY_MAX_ORDER) {
-		BITMAP_TOGGLE(area->bitmap, index, order);
-		/* If it was 0 before toggling, it means both of buddies
-		 * were allocated. So nothing can be merged to upper order
-		 * as one of them is still allocated. Otherwise, both of 
-		 * them are free now. Therefore merge it to upper order. */
-		if (BITMAP_MASK(area->bitmap, index, order))
-			break;
-
-		/* find buddy and detach it from current order to merge */
-		buddy = &node[index ^ (1<<order)];
-		list_del(&buddy->link);
-
-		order++;
-		area++;
-
-		/* grab the first address of merging buddies */
-		index &= ~0 << order;
-	}
-
-	list_add(&node[index].link, &area->free_list);
-}
-
-#ifdef CONFIG_DEBUG
-#include <foundation.h>
-
-void show_free_list(struct zone_t *zone)
-{
-	struct page_t *page;
-	struct list_t *p;
-	int i, j, size;
-
-	if (!zone) zone = &dzone;
-
-	printf("available pages %d\nfree pages %d\n", zone->nr_pages, zone->nr_free);
-
-	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		printf("============= order %02d =============\n", i);
-		p = zone->free_area[i].free_list.next;
-		while (p != &zone->free_area[i].free_list) {
-			page = get_container_of(p, struct page_t, link); 
-			printf("--> 0x%08x(0x%08x) ", page->addr, page);
-			p = p->next;
-		}
-
-		printf("\n------ bitmap 0x%08x ------\n", zone->free_area[i].bitmap);
-		size = ALIGN_LONG(zone->nr_pages) >> (4 + i);
-		size = ALIGN_LONG(size);
-		size = size? size : sizeof(long);
-		size /= sizeof(long);
-		for (j = size; j; j--) {
-			printf("%08x ", *(zone->free_area[i].bitmap + j - 1));
-			if (!((size-j+1) % 8))
-				printf("\n");
-		}
-		printf("\n");
-	}
-}
-#endif
-
-struct page_t *alloc_pages(struct zone_t *zone, unsigned long order)
-{
-	struct free_area_t *area = &zone->free_area[order];
-	struct list_t *head, *curr;
-	struct page_t *page;
-	unsigned long i;
-
-	for (i = order; i < BUDDY_MAX_ORDER; i++, area++) {
-		head = &area->free_list;
-		curr = head->next;
-
-		if (curr != head) {
-			page = get_container_of(curr, struct page_t, link); 
-
-			list_del(curr);
-			BITMAP_TOGGLE(area->bitmap, PAGE_INDEX(page->addr), i);
-
-			/* if allocating from higher order, split in two to add
-			 * one of them to current order. */
-			while (i > order) {
-				area--;
-				i--;
-
-				list_add(&page->link, &area->free_list);
-				BITMAP_TOGGLE(area->bitmap, PAGE_INDEX(page->addr), i);
-
-				page += 1 << i;
-			}
-
-			zone->nr_free -= 1 << order;
-
-			SET_PAGE_ORDER(page, order);
-
-			return page;
-		}
-	}
-
-	return NULL;
-}
-
-static inline int log2(int a)
-{
-	int i;
-	for (i = 0; a; i++) a >>= 1;
-	return i;
-}
 
 extern char __mem_start, __mem_end, _ebss;
 
-static void free_area_init(struct zone_t *zone, unsigned long nr_pages,
-		struct page_t *array)
-{
-	unsigned long size, offset;
-	int i;
-
-	/* bitmap initialization */
-	offset = 0;
-	size   = ALIGN_LONG(nr_pages) >> 4; /* nr_pages / 8-bit / 2 */
-	size   = ALIGN_LONG(size);
-	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		if (size < sizeof(long))
-			size = sizeof(long);
-
-		zone->free_area[i].bitmap = (unsigned long *) 
-				(((char *)&array[nr_pages]) + offset);
-		memset(zone->free_area[i].bitmap, 0, size);
-		LIST_LINK_INIT(&zone->free_area[i].free_list);
-
-		offset += size;
-		size >>= 1;
-	}
-
-	/* current offset is the first free page */
-	offset = PAGE_ALIGN(((char *)&array[nr_pages]) + offset);
-
-	/* buddy list initialization */
-	struct free_area_t *area;
-	unsigned long order, index, next;
-
-	/* preserve initial kernel stack to be free later */
-	nr_pages -= PAGE_ALIGN(DEFAULT_STACK_SIZE) >> PAGE_SHIFT;
-	order     = log2((PAGE_ALIGN(DEFAULT_STACK_SIZE)-1) >> PAGE_SHIFT);
-	SET_PAGE_ORDER(&array[nr_pages], order);
-	/* and mark kernel .data and .bss sections as used.
-	 * mem_map array and its bitmap region as well. */
-	index = next = PAGE_INDEX(offset);
-
-	order = BUDDY_MAX_ORDER - 1;
-	area  = &zone->free_area[order];
-	size  = 1 << order;
-
-	while (1) {
-		next = index + size;
-
-		/* split in half if short for current order region */
-		while ((long)(nr_pages - next) < 0) {
-			if (order == 0)
-				goto done_free_list;
-
-			order--;
-			area--;
-			size = 1 << order;
-			next = index + size;
-		}
-
-		list_add(&array[index].link, &area->free_list);
-		BITMAP_TOGGLE(area->bitmap, index, order);
-		index = next;
-
-		zone->nr_free += 1 << order;
-	}
-
-done_free_list:
-	return;
-}
-
-#include <asm/init.h>
-void __init free_bootmem()
-{
-	void *addr;
-	unsigned index;
-
-	index = dzone.nr_pages - (PAGE_ALIGN(DEFAULT_STACK_SIZE) >> PAGE_SHIFT);
-	addr  = mem_map[index].addr;
-
-	free(addr);
-}
-
+#ifdef CONFIG_PAGING
 static void zone_init(struct zone_t *zone, unsigned long nr_pages,
 		struct page_t *array)
 {
 	free_area_init(zone, nr_pages, array);
 	spinlock_init(zone->lock);
 }
+#else
+struct free_area_t {
+	void *addr;
+	unsigned long size;
+	struct list_t list;
+};
+
+#include <lock.h>
+
+static struct free_area_t *mem_map;
+DEFINE_SPINLOCK(mem_lock);
+
+static void *__kmalloc(unsigned long size)
+{
+	struct free_area_t *p, *new, **head;
+	struct list_t *curr;
+	unsigned long size_min;
+
+	head = &mem_map;
+	curr = &(*head)->list;
+	size_min = ALIGN_WORD(size + sizeof(struct free_area_t));
+	size = ALIGN_WORD(size);
+
+	do {
+		p = get_container_of(curr, struct free_area_t, list);
+
+		if (size == p->size) {
+			list_del(curr);
+			if (curr == &(*head)->list)
+				*head = get_container_of(curr->next,
+						struct free_area_t, list);
+			return p->addr;
+		}
+
+		if (size_min <= p->size) {
+			new = p;
+
+			p = (struct free_area_t *)((unsigned long)p + size_min);
+			p->addr = (void *)((unsigned long)p +
+					sizeof(struct free_area_t));
+			p->size = new->size - size_min;
+			list_add(&p->list, curr);
+			list_del(curr);
+
+			/* as allocating lower address first,
+			 * head must be replaced with next address */
+			if (curr == &(*head)->list)
+				*head = p;
+
+			new->size = size;
+
+			return new->addr;
+		}
+
+		curr = curr->next;
+	} while (curr != &(*head)->list);
+
+	return NULL;
+}
+
+static void __free(void *addr)
+{
+	struct free_area_t *new, *p, **head;
+	struct list_t *curr;
+
+	head = &mem_map;
+	curr = &(*head)->list;
+	new  = (struct free_area_t *)
+		((unsigned long)addr - sizeof(struct free_area_t));
+
+	do {
+		if (&new->list < curr) {
+			list_add(&new->list, curr->prev);
+
+			/* keep head to have the lowest address */
+			if (curr == &(*head)->list)
+				*head = new;
+
+			/* merge with the next chunk if possible */
+			for (curr = new->list.next; curr != &(*head)->list;
+					curr = curr->next) {
+__free_merge:
+				p = get_container_of(curr,
+						struct free_area_t, list);
+
+				if (((unsigned long)new->addr + new->size) ==
+						(unsigned long)p) {
+					new->size += p->size +
+						sizeof(struct free_area_t);
+					list_del(curr);
+				}
+			}
+
+			goto __free_done;
+		}
+
+		curr = curr->next;
+	} while (curr != &(*head)->list);
+
+	list_add(&new->list, (*head)->list.prev);
+
+	/* merge with the privious chunk if possible */
+	curr = &new->list;
+	new  = get_container_of(new->list.prev, struct free_area_t, list);
+	goto __free_merge;
+
+__free_done:
+	return;
+}
+
+void *kmalloc(unsigned long size)
+{
+	void *p;
+	unsigned long irq_flag;
+
+	spinlock_irqsave(mem_lock, irq_flag);
+	p = __kmalloc(size);
+	spinlock_irqrestore(mem_lock, irq_flag);
+
+	return p;
+}
+
+void free(void *addr)
+{
+	unsigned long irq_flag;
+
+	spinlock_irqsave(mem_lock, irq_flag);
+	__free(addr);
+	spinlock_irqrestore(mem_lock, irq_flag);
+}
+
+#ifdef CONFIG_DEBUG
+#include <foundation.h>
+
+void show_free_list(void *area)
+{
+	struct list_t *head, *curr;
+	struct free_area_t *p;
+	int i = 0;
+
+	head = curr = &mem_map->list;
+
+	do {
+		p = get_container_of(curr, struct free_area_t, list);
+		printf("[%4d] addr 0x%08x, size %d\n", ++i, p->addr, p->size);
+
+		curr = curr->next;
+	} while (curr != head);
+}
+#endif
+#include <asm/init.h>
+void __init free_bootmem()
+{
+	struct free_area_t *p;
+
+	p = (void *)ALIGN_WORD((unsigned long)&__mem_end -
+			(DEFAULT_STACK_SIZE + sizeof(struct free_area_t)));
+
+	free(p->addr);
+}
+#endif /* CONFIG_PAGING */
 
 void mm_init()
 {
-	unsigned long start    = PAGE_ALIGN(&__mem_start);
-	unsigned long end      = (unsigned long)&__mem_end;
+	unsigned long start = ALIGN_WORD(&__mem_start);
+	unsigned long end   = (unsigned long)&__mem_end;
+#ifdef CONFIG_PAGING
 	unsigned long nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
 
-	struct page_t *page = (struct page_t *)PAGE_ALIGN(&_ebss);
+	extern struct page_t *mem_map;
+	extern struct zone_t dzone;
+
+	struct page_t *page = (struct page_t *)ALIGN_PAGE(&_ebss);
 
 	mem_map = page;
 
@@ -243,32 +195,24 @@ void mm_init()
 		page++;
 	}
 
-	dzone.nr_free = 0;
 	dzone.nr_pages = nr_pages;
-
+	dzone.nr_free  = 0;
 	zone_init(&dzone, nr_pages, mem_map);
-}
+#else
+	struct free_area_t *p;
 
-void *kmalloc(unsigned long size)
-{
-	struct page_t *page;
-	unsigned long irq_flag;
+	/* preserve initial kernel stack to be free later */
+	p = (struct free_area_t *)ALIGN_WORD(end -
+			(DEFAULT_STACK_SIZE + sizeof(struct free_area_t)));
+	p->addr = (void *)((unsigned long)p + sizeof(struct free_area_t));
+	p->size = ALIGN_WORD(DEFAULT_STACK_SIZE);
 
-	spinlock_irqsave(dzone.lock, irq_flag);
-	page = alloc_pages(&dzone, log2((PAGE_ALIGN(size)-1) >> PAGE_SHIFT));
-	spinlock_irqrestore(dzone.lock, irq_flag);
-
-	return page->addr;
-}
-
-void free(void *addr)
-{
-	struct page_t *page;
-	unsigned long irq_flag;
-
-	page = &mem_map[PAGE_INDEX(addr)];
-
-	spinlock_irqsave(dzone.lock, irq_flag);
-	free_pages(&dzone, page);
-	spinlock_irqrestore(dzone.lock, irq_flag);
+	mem_map = (struct free_area_t *)&_ebss;
+	/* mark kernel .data and .bss sections as used */
+	mem_map->size = (unsigned long)p -
+		((unsigned long)&_ebss + sizeof(struct free_area_t));
+	mem_map->addr = (void *)((unsigned long)mem_map +
+			sizeof(struct free_area_t));
+	LIST_LINK_INIT(&mem_map->list);
+#endif
 }

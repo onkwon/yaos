@@ -25,12 +25,12 @@ void schedule_core()
 		/* rq_add() and rq_del() of real time scheduler must keep
 		 * the highest priority amongst tasks in `pri` variable.
 		 * `pri` has the least priority when no task in runqueue. */
-		if ( !IS_TASK_REALTIME(current) ||
-				(rts.pri <= GET_PRIORITY(current)) ) {
+		if ( !is_task_realtime(current) ||
+				(rts.pri <= get_task_priority(current)) ) {
 rts_next:
 			next = rts_pick_next(&rts);
 
-			if (!IS_TASK_REALTIME(current))
+			if (!is_task_realtime(current))
 				cfs_rq_add(&cfs, current);
 			else
 				rts_rq_add(&rts, current);
@@ -108,7 +108,7 @@ void update_curr()
 
 void runqueue_add(struct task_t *new)
 {
-	if (IS_TASK_REALTIME(new)) { /* a real time task */
+	if (is_task_realtime(new)) { /* a real time task */
 #ifdef CONFIG_REALTIME
 		rts_rq_add(&rts, new);
 #endif

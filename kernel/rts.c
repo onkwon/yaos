@@ -13,7 +13,7 @@ void rts_rq_add(struct sched_t *q, struct task_t *new)
 	if ( !new || !(get_task_state(new) & TASK_RUNNING) )
 		return;
 
-	int pri = GET_PRIORITY(new);
+	int pri = get_task_priority(new);
 	struct list_t *rq_head = &rts_rq[pri];
 
 	q->nr_running++;

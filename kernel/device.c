@@ -37,12 +37,20 @@ void link_device(int id, struct device_t *new)
 	list_add(&new->link, head);
 }
 
-void __devman_init()
+void devman_init()
 {
 	int i;
 
 	for (i = 0; i < TABLE_SIZE; i++) {
 		LIST_LINK_INIT(&devtab[i]);
+	}
+
+	extern char _device_list, _device_list_end;
+	struct device_t *dev = (struct device_t *)&_device_list;
+
+	while ((unsigned long)dev < (unsigned long)&_device_list_end) {
+		link_device(dev->id, dev);
+		dev++;
 	}
 }
 

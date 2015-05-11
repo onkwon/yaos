@@ -30,9 +30,13 @@ inline void update_curr();
 
 void schedule_core();
 
+#ifdef CONFIG_DEVMAN
 #include <syscall.h>
-
 #define schedule()	syscall(SYSCALL_SCHEDULE)
+#else
+extern void sys_schedule();
+#define schedule()	sys_schedule()
+#endif
 
 #include <asm/clock.h>
 
@@ -44,7 +48,9 @@ void schedule_core();
 extern inline void runqueue_add(struct task_t *new);
 
 #include <kernel/cfs.h>
+#ifdef CONFIG_REALTIME
 #include <kernel/rts.h>
+#endif
 
 /* from time.c but used only in the critical region like scheduler. */
 extern inline unsigned long long __get_jiffies_64();

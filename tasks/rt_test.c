@@ -1,7 +1,7 @@
 #include <foundation.h>
 #include <kernel/sched.h>
 
-#include <kernel/mm.h>
+#include <kernel/page.h>
 static void rt_task1()
 {
 	while (1) {

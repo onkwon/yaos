@@ -2,7 +2,13 @@
 #define __STDLIB_H__
 
 #include <types.h>
-#include <kernel/mm.h>
+
+#include <kernel/page.h>
+
+#ifndef CONFIG_PAGING
+void *kmalloc(unsigned long size);
+void free(void *addr);
+#endif
 
 void *malloc(size_t size);
 

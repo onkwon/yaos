@@ -1,6 +1,7 @@
 #include <foundation.h>
 #include <stdlib.h>
 #include <kernel/sched.h>
+#include <syscall.h>
 
 static unsigned long *alloc_user_stack(struct task_t *p)
 {
@@ -31,7 +32,7 @@ static void load_user_task()
 		runqueue_add(p);
 
 		DEBUG(("%s: state %08x, sp %08x, addr %08x",
-				IS_TASK_REALTIME(p)? "REALTIME" : "NORMAL  ",
+				is_task_realtime(p)? "REALTIME" : "NORMAL  ",
 				p->state, p->sp, p->addr));
 
 		p++;
@@ -52,12 +53,15 @@ static void init_task()
 {
 	/* set init_task() into struct task_t init */
 	init.stack_size = DEFAULT_STACK_SIZE;
-	init.state      = LEAST_PRIORITY;
 	init.addr       = init_task;
 	init.se         = (struct sched_entity){ 0, 0, 0 };
 	LIST_LINK_INIT(&init.rq);
 	alloc_user_stack(&init);
-	SET_SP(init.sp);
+	/* init task shares its stack with kernel. */
+	SET_KSP(init.sp);
+	SET_USP(init.sp);
+	set_task_priority(&init, LEAST_PRIORITY);
+	set_task_state(&init, TASK_KERNEL);
 
 	cleanup();
 
@@ -69,6 +73,8 @@ static void init_task()
 
 	while (1) {
 		printf("init()\n");
+		printf("control %08x, sp %08x, msp %08x, psp %08x\n",
+				GET_CON(), GET_SP(), GET_KSP(), GET_USP());
 		msleep(500);
 	}
 }
@@ -82,36 +88,24 @@ static void sys_init()
 		((void (*)())*p++)();
 }
 
-#include <kernel/device.h>
-
-static void devman_init()
-{
-	__devman_init();
-
-	extern char _device_list, _device_list_end;
-	struct device_t *dev = (struct device_t *)&_device_list;
-
-	while ((unsigned long)dev < (unsigned long)&_device_list_end) {
-		link_device(dev->id, dev);
-		dev++;
-	}
-}
-
 int stdin, stdout, stderr;
+
 static void console_init()
 {
-	open(USART, 115200);
+	open(USART, O_RDWR | O_NONBLOCK);
 
 	stdin = stdout = stderr = USART;
 }
 
-#include <kernel/mm.h>
+#include <kernel/page.h>
 
 int main()
 {
 	sys_init();
 	mm_init();
+#ifdef CONFIG_DEVMAN
 	devman_init();
+#endif
 	sei();
 
 	console_init();

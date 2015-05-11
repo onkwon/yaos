@@ -14,6 +14,24 @@ shell environment provided.
 
 tested on stm32f103.
 
+## CONFIG
+
+### `CONFIG_DEBUG`
+
+디버깅용 코드와 구체적인 로그 출력
+
+### `CONFIG_REALTIME`
+
+리얼타임 스케줄러 추가
+
+### `CONFIG_PAGING`
+
+페이징 메모리 관리자, 버디 할당자 추가
+
+### `CONFIG_DEVMAN`
+
+시스템 콜과 디바이스 매니저 추가
+
 ## API
 
 ### Synchronization
@@ -197,6 +215,27 @@ AVR에 포팅할 것도 고려하고 있는데 페이징은 좀 무리인 듯. p
 	 -----------------------------------------------------------
 	              ^mem_map
 
+	page flags:
+	31 30 29 ...... 26 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
+	 -----------------------------------------------------------------------
+	| reserved              |   ORDER   |           PAGE_FLAGS*             |
+	 -----------------------------------------------------------------------
+
+	  *PAGE_FLAGS
+	   -------------------------------------------------------
+	  | NO | ELEMENT        | DESCRIPTION                     |
+	   -------------------------------------------------------
+	  |  1 | PAGE_BUDDY     | page(s) allocated by buddy      |
+	  |  2 |                |                                 |
+	  |  3 |                |                                 |
+	  |  4 |                |                                 |
+	  |      ...                                              |
+	  | 12 |                |                                 |
+	   -------------------------------------------------------
+
+	   PAGE_BUDDY flag set by `alloc_pages()` and cleared by `free()`,
+	   checking if it is really allocated by buddy allocator.
+
 ## New task
 
 ### register user task
@@ -233,7 +272,6 @@ Initial task register set:
 	| r0       |
 	 ----------
 	| r4 - r11 |
-	| lr       |
 	 ----------
 
 ### User stack
@@ -277,15 +315,15 @@ The initial task takes place when no task in runqueue
 
 	 REALTIME |  NORMAL
 	----------|-----------
-	  0 - 100 | 101 - 120
+	  0 - 10  | 11 - 255
 
-	DEFAULT_PRIORITY = 110
+	DEFAULT_PRIORITY = 132
 
 The lower number, the higher priority.
 
-`GET_PRIORITY()`
+`get_task_priority()`
 
-`IS_TASK_REALTIME()`
+`is_task_realtime()`
 
 ### Runqueue
 
