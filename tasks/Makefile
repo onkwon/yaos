@@ -6,18 +6,29 @@ INC     += -I$(BASEDIR)/include
 LIBS    += 
 CFLAGS  += $(INC) $(LIBS)
 
+SUBDIRS = shell
+
 .SUFFIXES: .c.o
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o
 
-all: $(OBJS)
+all: $(OBJS) subdirs
+
+.PHONY: subdirs $(SUBDIRS)
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	@$(MAKE) -C $@
+	$(LD) -o $@.o -r $@/*.o
 
 depend dep:
 	echo $(CC)
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
 clean:
+	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
 	@rm -f $(OBJS) .depend
+	@rm -f $(SUBDIRS).o
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

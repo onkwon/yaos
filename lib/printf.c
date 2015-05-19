@@ -20,16 +20,38 @@
 
 #include <io.h>
 
+static void (*fputc)(int c) = putc;
+
+void puts(const char *s)
+{
+	while (*s) putc(*s++);
+}
+
+void putc(int c)
+{
+	write(stdout, &c, 1);
+}
+
+int getc()
+{
+	int c;
+
+	if (!read(stdin, &c, 1))
+		c = -1;
+
+	return c;
+}
+
 static void printc(char **s, int c)
 {
 	if (s) {
 		*(*s)++ = c;
 	} else {
-		write(stdout, &c, 1);
+		fputc(c);
 
 		if (c == '\n') {
 			c = '\r';
-			write(stdout, &c, 1);
+			fputc(c);
 		}
 	}
 }
@@ -146,6 +168,7 @@ static int print(char **out, int *args)
 
 int printf(const char *format, ...)
 {
+	fputc = putc;
 	return print(0, (int *)&format);
 }
 
@@ -154,8 +177,11 @@ int sprintf(char *out, const char *format, ...)
 	return print(&out, (int *)&format);
 }
 
+#include <driver/console.h>
+
 int printk(const char *format, ...)
 {
+	fputc = console_putc;
 	return print(0, (int *)&format);
 }
 

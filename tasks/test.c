@@ -1,35 +1,30 @@
 #include <foundation.h>
 #include <kernel/task.h>
-#include <stdlib.h>
 
-static void test_task1()
+static void test_task()
 {
-	void *p, *p2;
+	unsigned long long t;
+	unsigned th, bh;
+	unsigned v;
+
+	printf("test()\n");
+	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
 
 	while (1) {
-		printf("test1()\n");
-		printf("control %08x, sp %08x, msp %08x, psp %08x\n", GET_CON(), GET_SP(), GET_KSP(), GET_USP());
+		t = get_jiffies_64();
+		th = t >> 32;
+		bh = t;
 
-		printf("#ALLOC\n");
-		p = kmalloc(10);
-		show_free_list(NULL);
-		printf("#FREE\n");
-		free(p);
-		show_free_list(NULL);
-		printf("#ALLOC\n");
-		p = kmalloc(10);
-		show_free_list(NULL);
-		printf("#ALLOC\n");
-		p2 = kmalloc(10);
-		show_free_list(NULL);
-		printf("#FREE\n");
-		free(p);
-		show_free_list(NULL);
-		printf("#FREE\n");
-		free(p2);
-		show_free_list(NULL);
+		dmb();
+		v = jiffies;
 
+		printf("%08x ", v);
+		printf("%08x", th);
+		printf("%08x %d (%d sec)\n", bh, v, v/HZ);
+
+		//reset_task_state(current, TASK_RUNNING);
+		//schedule();
 		sleep(1);
 	}
 }
-REGISTER_TASK(test_task1, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
+REGISTER_TASK(test_task, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);

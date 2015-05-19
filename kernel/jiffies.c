@@ -5,7 +5,7 @@ uint64_t __attribute__((section(".data"))) jiffies_64;
 
 DEFINE_SPINLOCK(lock_jiffies);
 
-inline unsigned long long __get_jiffies_64()
+inline unsigned long long get_jiffies_64_core()
 {
 	return jiffies_64;
 }
@@ -16,7 +16,7 @@ unsigned long long get_jiffies_64()
 
 	do {
 		if (!is_spin_locked(lock_jiffies))
-			stamp = __get_jiffies_64();
+			stamp = get_jiffies_64_core();
 	} while (is_spin_locked(lock_jiffies));
 
 	return stamp;

@@ -1,8 +1,11 @@
 #ifndef __CONTEXT_H__
 #define __CONTEXT_H__
 
-#define CONTEXT_NR	(16)
-#define CONTEXT_SIZE	(CONTEXT_NR * sizeof(long)) /* depending on SCB_CCR[STKALIGN] */
+#define NR_CONTEXT_SOFT		8
+#define NR_CONTEXT_HARD		8
+#define NR_CONTEXT		(NR_CONTEXT_HARD + NR_CONTEXT_SOFT)
+#define CONTEXT_SIZE		(NR_CONTEXT * sizeof(long))
+/* depending on SCB_CCR[STKALIGN] */
 
 #define EXC_RETURN_MSPH	0xfffffff1	/* return to HANDLER mode using MSP */
 #define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
@@ -21,42 +24,38 @@
  * | r0       |
  *  ----------
  * | r4 - r11 |
- * | lr       |
  *  ----------
  */
-#define context_save(sp)				\
+#define context_save(task)				\
 	__asm__ __volatile__(				\
 			"mrs	r12, psp	\n\t"	\
-			"tst	lr, #4		\n\t"	\
-			"it	eq		\n\t"	\
-			"mrseq	r12, msp	\n\t"	\
 			"stmdb	r12!, {r4-r11}	\n\t"	\
 			"mov	%0, r12		\n\t"	\
-			: "=&r"(sp) :: "memory")
+			: "=&r"(task->stack.sp)		\
+			:: "memory")
 
-#define context_restore(sp)				\
+#define context_restore(task)				\
 	__asm__ __volatile__(				\
 			"ldmia	%0!, {r4-r11}	\n\t"	\
-			"tst	%1, %2		\n\t"	\
-			"bne	1f		\n\t"	\
-			"ldr	lr, =0xfffffffd	\n\t"	\
 			"msr	psp, %0		\n\t"	\
-			"mov	r3, #1		\n\t"	\
+			"ldr	lr, =0xfffffffd	\n\t"	\
+			"mov	r3, #3		\n\t"	\
+			"tst	%1, %2		\n\t"	\
+			"it	ne		\n\t"	\
+			"movne	r3, #2		\n\t"	\
 			"msr	control, r3	\n\t"	\
-			"b	2f		\n\t"	\
-		"1:"	"ldr	lr, =0xfffffff9	\n\t"	\
-			"msr	msp, %0		\n\t"	\
-			"mov	r3, #0		\n\t"	\
-			"msr	control, r3	\n\t"	\
-		"2:"					\
-			:: "r"(sp),			\
-			   "r"(get_task_state(current)),\
-			   "I"(TASK_KERNEL)		\
-			: "memory"			\
-	)
+			"msr	msp, %3		\n\t"	\
+			:: "r"(task->stack.sp),		\
+			   "r"(get_task_state(task)),	\
+			   "I"(TASK_KERNEL),		\
+			   "r"(task->stack.kernel)	\
+			: "memory")
+
+void sys_schedule();
 
 #include <kernel/task.h>
 
-extern inline void init_task_context(struct task_t *p);
+extern inline void set_task_context(struct task_t *p);
+extern inline void set_task_context_core(struct task_t *p);
 
 #endif /* __CONTEXT_H__ */

@@ -1,5 +1,12 @@
+include $(BASEDIR)/CONFIGURE
+
 SRCS_ASM = $(wildcard *.S)
-SRCS     = $(wildcard *.c)
+ifdef MODULE_CONSOLE
+	SRCS += console.c
+endif
+ifdef MODULE_IRC
+	SRCS += irc.c
+endif
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
 INC     += -I$(BASEDIR)/include

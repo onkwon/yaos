@@ -1,7 +1,9 @@
 #ifndef __PAGE_H__
 #define __PAGE_H__
 
-#ifdef CONFIG_PAGING
+#include <types.h>
+#include <lock.h>
+
 #include <asm/page.h>
 
 #ifndef PAGE_SHIFT
@@ -28,51 +30,23 @@
 #define SET_PAGE_FLAG(p, bit)	((p)->flags |= PAGE_FLAG_POS(bit))
 #define RESET_PAGE_FLAG(p, bit)	((p)->flags &= ~PAGE_FLAG_POS(bit))
 
-#include <types.h>
-
 struct page_t {
 	unsigned long flags;
 	void *addr;
 	struct list_t link;
 } __attribute__((packed));
 
-/* buddy order */
-#define BUDDY_MAX_ORDER		10
-
 #define GET_PAGE_ORDER(p)	\
 	(((p)->flags & PAGE_ORDER_MASK) >> PAGE_ORDER_BIT)
 #define SET_PAGE_ORDER(p, n)	\
 	((p)->flags = ((p)->flags & ~PAGE_ORDER_MASK) | (n << PAGE_ORDER_BIT))
 
-struct free_area_t {
-	struct list_t free_list;
-	unsigned long *bitmap;
-};
-
-#include <lock.h>
-
-struct zone_t {
-	struct free_area_t free_area[BUDDY_MAX_ORDER];
-	unsigned long nr_free;
-	unsigned long nr_pages;
-	spinlock_t lock;
-};
-
-void free_area_init(struct zone_t *zone, unsigned long nr_pages,
-		struct page_t *array);
-
 void *kmalloc(unsigned long size);
-void free(void *addr);
-#endif /* CONFIG_PAGING */
+void kfree(void *addr);
 
 void mm_init();
-
-#ifdef CONFIG_DEBUG
-void show_free_list(void *area);
-#else
-#define show_free_list(nul)
-#endif
-
 void free_bootmem();
+
+#include <kernel/buddy.h>
 
 #endif /* __PAGE_H__ */

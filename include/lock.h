@@ -24,12 +24,12 @@ typedef volatile int spinlock_t;
 
 #include <io.h>
 
-#define spinlock_irqsave(lock, f) do { \
+#define spin_lock_irqsave(lock, f) do { \
 	irq_save(f); \
-	cli(); \
+	local_irq_disable(); \
 	spin_lock(lock); \
 } while (0)
-#define spinlock_irqrestore(lock, f) do { \
+#define spin_unlock_irqrestore(lock, f) do { \
 	spin_unlock(lock); \
 	irq_restore(f); \
 } while (0)
@@ -62,11 +62,11 @@ typedef struct semaphore mutex_t;
 	unsigned __irq_flag; \
 	do { \
 		while (s.count <= 0) { \
-			spinlock_irqsave(s.wait_lock, __irq_flag); \
+			spin_lock_irqsave(s.wait_lock, __irq_flag); \
 			if (list_empty(&__wait.link)) \
 				list_add(&__wait.link, s.wait_list.prev); \
 			set_task_state(current, TASK_WAITING); \
-			spinlock_irqrestore(s.wait_lock, __irq_flag); \
+			spin_unlock_irqrestore(s.wait_lock, __irq_flag); \
 			schedule(); \
 		} \
 	} while (set_atomic((int *)&s.count, s.count-1)); \
@@ -77,7 +77,7 @@ typedef struct semaphore mutex_t;
 	unsigned __irq_flag; \
 	while (set_atomic((int *)&s.count, s.count+1)) ; \
 	if (s.count > 0) { \
-		spinlock_irqsave(s.wait_lock, __irq_flag); \
+		spin_lock_irqsave(s.wait_lock, __irq_flag); \
 		if (s.wait_list.next != &s.wait_list) { \
 			__task = get_container_of(s.wait_list.next, \
 					struct waitqueue_t, link)->task; \
@@ -85,7 +85,7 @@ typedef struct semaphore mutex_t;
 			runqueue_add(__task); \
 			list_del(s.wait_list.next); \
 		} \
-		spinlock_irqrestore(s.wait_lock, __irq_flag); \
+		spin_unlock_irqrestore(s.wait_lock, __irq_flag); \
 	} \
 } while (0)
 

@@ -23,8 +23,7 @@ typedef unsigned long long uint64_t;
 
 /* double linked list */
 struct list_t {
-	struct list_t *next;
-	struct list_t *prev;
+	struct list_t *next, *prev;
 };
 
 #define LIST_HEAD_INIT(name) 	{ &(name), &(name) }

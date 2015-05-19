@@ -15,5 +15,10 @@ void systick_init()
 	ISR_REGISTER(15, isr_systick);
 
 	RESET_SYSTIMER();
-	SET_SYSTIMER(get_stkclk(get_hclk(get_sysclk())) / HZ - 1);
+	SET_SYSTIMER(get_systick_hz() / HZ - 1);
+}
+
+unsigned int get_systick_hz()
+{
+	return get_stkclk(get_hclk(get_sysclk()));
 }

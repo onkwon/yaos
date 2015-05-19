@@ -3,21 +3,6 @@
 
 #define HZ			50
 
-#include <io.h>
-
-extern int printf(const char *format, ...);
-extern int printk(const char *format, ...);
-
-#ifdef CONFIG_DEBUG
-#define DEBUG(fmt) do { \
-	printk("%s:%s():%d: ", __FILE__, __func__, __LINE__); \
-	printk fmt; \
-	printk("\n"); \
-} while (0)
-#else
-#define DEBUG(fmt)
-#endif
-
 #include <types.h>
 #include <lock.h>
 #include <timer.h>
@@ -26,5 +11,9 @@ extern int printk(const char *format, ...);
 extern inline void udelay(unsigned us);
 #define mdelay(ms)		udelay((ms)  * 1000)
 #define sdelay(sec)		mdelay((sec) * 1000)
+
+#include <io.h>
+
+#include <error.h>
 
 #endif /* __FOUNDATION_H__ */

@@ -1,12 +1,9 @@
-#ifndef __DEVICE_H__
-#define __DEVICE_H__
-
-/* It must start from 1, not 0 to check sanity */
-#define USART		1
+#ifndef __MODULE_H__
+#define __MODULE_H__
 
 #include <types.h>
 
-struct driver_operations {
+struct device_interface_t {
 	int    (*open) (int id, int mode);
 	size_t (*read) (int id, void *buf, size_t size);
 	size_t (*write)(int id, void *buf, size_t size);
@@ -16,23 +13,21 @@ struct driver_operations {
 struct device_t {
 	int id;
 	int count; /* reference count */
-	struct driver_operations *ops;
+	char *name;
+	struct device_interface_t *ops;
 
 	struct list_t link;
 };
 
+int register_device(int id, struct device_interface_t *ops, char *name);
+int dev_get_newid();
 struct device_t *getdev(int id);
 void link_device(int id, struct device_t *dev);
-void devman_init();
+void driver_init();
 
-#define REGISTER_DEVICE(n, operations) \
-	static struct device_t dev_##n \
-	__attribute__((section(".device_list"), used)) = { \
-		.id    = n, \
-		.count = 0, \
-		.ops   = operations, \
-		.link  = {NULL, NULL}, \
-	}
+#define module_init(func) \
+	static void *module_##func \
+	__attribute__((section(".module_list"), used)) = func
 
 #ifdef CONFIG_DEBUG
 void display_devtab();
@@ -40,4 +35,4 @@ void display_devtab();
 #define display_devtab()
 #endif
 
-#endif /* __DEVICE_H__ */
+#endif /* __MODULE_H__ */

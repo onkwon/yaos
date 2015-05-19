@@ -16,9 +16,9 @@
 #define SWS			2
 #define SW			0
 
-unsigned get_sysclk()
+unsigned int get_sysclk()
 {
-	unsigned clk, pllmul;
+	unsigned int clk, pllmul;
 
 	switch ((RCC_CFGR >> SWS) & 0x3) {
 	case 0x00 :
@@ -46,9 +46,9 @@ unsigned get_sysclk()
 	return clk;
 }
 
-unsigned get_hclk(unsigned sysclk)
+unsigned int get_hclk(unsigned int sysclk)
 {
-	unsigned clk, pre;
+	unsigned int clk, pre;
 
 	pre = (RCC_CFGR >> HPRE) & 0xf; /* mask HPRE[7:4] */
 	pre = pre? pre - 7 : 0;         /* get prescaler division factor */
@@ -57,9 +57,9 @@ unsigned get_hclk(unsigned sysclk)
 	return clk;
 }
 
-unsigned get_pclk1(unsigned hclk)
+unsigned int get_pclk1(unsigned int hclk)
 {
-	unsigned clk, pre;
+	unsigned int clk, pre;
 
 	pre = (RCC_CFGR >> PPRE1) & 0x7; /* mask PPRE1[10:8] */
 	pre = pre? pre - 3 : 0;
@@ -68,9 +68,9 @@ unsigned get_pclk1(unsigned hclk)
 	return clk;
 }
 
-unsigned get_pclk2(unsigned hclk)
+unsigned int get_pclk2(unsigned int hclk)
 {
-	unsigned clk, pre;
+	unsigned int clk, pre;
 
 	pre = (RCC_CFGR >> PPRE2) & 0x7; /* mask PPRE2[13:11] */
 	pre = pre? pre - 3 : 0;
@@ -79,9 +79,9 @@ unsigned get_pclk2(unsigned hclk)
 	return clk;
 }
 
-unsigned get_adclk(unsigned pclk2)
+unsigned int get_adclk(unsigned int pclk2)
 {
-	unsigned clk, pre;
+	unsigned int clk, pre;
 
 	pre = (RCC_CFGR >> ADCPRE) & 0x3; /* mask PPRE2[15:14] */
 	pre = (pre + 1) << 1;             /* get prescaler division factor */
@@ -90,9 +90,9 @@ unsigned get_adclk(unsigned pclk2)
 	return clk;
 }
 
-unsigned get_stkclk(unsigned hclk)
+unsigned int get_stkclk(unsigned int hclk)
 {
-	unsigned clk;
+	unsigned int clk;
 
 	if (STK_CTRL & 4)
 		clk = hclk;

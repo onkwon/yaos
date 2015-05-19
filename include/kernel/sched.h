@@ -20,21 +20,20 @@ inline void update_curr();
 
 #define schedule_prepare() { \
 	irq_save(current->primask); \
-	cli(); \
-	context_save(current->sp); \
+	local_irq_disable(); \
+	context_save(current); \
 }
 #define schedule_finish() { \
-	context_restore(current->sp); \
+	context_restore(current); \
 	irq_restore(current->primask); \
 }
 
 void schedule_core();
 
-#ifdef CONFIG_DEVMAN
+#ifdef CONFIG_SYSCALL
 #include <syscall.h>
 #define schedule()	syscall(SYSCALL_SCHEDULE)
 #else
-extern void sys_schedule();
 #define schedule()	sys_schedule()
 #endif
 
@@ -53,7 +52,7 @@ extern inline void runqueue_add(struct task_t *new);
 #endif
 
 /* from time.c but used only in the critical region like scheduler. */
-extern inline unsigned long long __get_jiffies_64();
+extern inline unsigned long long get_jiffies_64_core();
 extern inline void update_tick(unsigned delta);
 
 #endif /* __SCHED_H__ */

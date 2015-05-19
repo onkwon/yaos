@@ -3,7 +3,7 @@
 
 #include <types.h>
 
-#ifdef CONFIG_DEVMAN
+#ifdef CONFIG_SYSCALL
 #define SYSCALL_RESERVED		0
 #define SYSCALL_SCHEDULE		1
 #define SYSCALL_TEST			2
@@ -11,16 +11,14 @@
 #define SYSCALL_READ			4
 #define SYSCALL_WRITE			5
 #define SYSCALL_CLOSE			6
-#define SYSCALL_NR			7
-
-/* return error code */
-#define SYSCALL_UNDEF			1
+#define SYSCALL_BRK			7
+#define SYSCALL_NR			8
 
 #ifdef MACHINE
 #include <asm/syscall.h>
 #endif
 
-#include <kernel/device.h>
+#include <module.h>
 
 static inline int open(int id, int mode)
 {
@@ -46,6 +44,6 @@ static inline int open(int id, int mode) { return 0; }
 static inline int read(int id, void *buf, size_t size) { return 0; }
 static inline int write(int id, void *buf, size_t size) { return 0; }
 static inline int close(int id) { return 0; }
-#endif /* CONFIG_DEVMAN */
+#endif /* CONFIG_SYSCALL */
 
 #endif /* __SYSCALL_H__ */

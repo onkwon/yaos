@@ -6,7 +6,7 @@
 #define c2i(c)	(c >= 'a' && c <= 'f'? c - 87 : \
 		c >= 'A' && c <= 'F'? c - 55 : c - '0')
 
-int      atoi    (char *s);
+int      atoi    (const char *s);
 int      strncmp (const char *s1, const char *s2, size_t n);
 int      strcmp  (const char *s1, const char *s2);
 char    *strncpy (char *s1, const char *s2, size_t n);

@@ -3,16 +3,12 @@
 
 #include <types.h>
 
-#include <kernel/page.h>
-
-#ifndef CONFIG_PAGING
-void *kmalloc(unsigned long size);
-void free(void *addr);
-#endif
-
 void *malloc(size_t size);
+void free(void *addr);
 
 void *memcpy(void *dst, const void *src, int len);
 void *memset(void *src, int c, int n);
+
+#include <firstfit.h>
 
 #endif /* __STDLIB_H__ */

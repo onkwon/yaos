@@ -122,6 +122,14 @@
 #define AFIO_EXTICR3		(*(volatile unsigned *)(AFIO_BASE + 0x10))
 #define AFIO_EXTICR4		(*(volatile unsigned *)(AFIO_BASE + 0x14))
 
+/* EXTI */
+#define EXTI_BASE		(0x40010400)
+#define EXTI_IMR		(*(volatile unsigned *)(EXTI_BASE + 0))
+#define EXTI_EMR		(*(volatile unsigned *)(EXTI_BASE + 4))
+#define EXTI_RTSR		(*(volatile unsigned *)(EXTI_BASE + 8))
+#define EXTI_FTSR		(*(volatile unsigned *)(EXTI_BASE + 0xc))
+#define EXTI_PR			(*(volatile unsigned *)(EXTI_BASE + 0x14))
+
 /* USART */
 #define USART1			(0x40013800)
 #define USART2			(0x40004400)

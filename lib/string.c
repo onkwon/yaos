@@ -1,6 +1,6 @@
 #include <string.h>
 
-int atoi(char *s)
+int atoi(const char *s)
 {
 	int v;
 	int nr_sys = 10;

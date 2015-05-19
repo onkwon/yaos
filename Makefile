@@ -13,7 +13,7 @@ export MACH
 
 # Configuration
 
-include CONFIG
+include CONFIGURE
 
 ifdef CONFIG_DEBUG
 	CFLAGS += -g -DCONFIG_DEBUG -O0
@@ -24,8 +24,11 @@ endif
 ifdef CONFIG_PAGING
 	CFLAGS += -DCONFIG_PAGING
 endif
-ifdef CONFIG_DEVMAN
-	CFLAGS += -DCONFIG_DEVMAN
+ifdef CONFIG_SYSCALL
+	CFLAGS += -DCONFIG_SYSCALL
+endif
+ifdef CONFIG_FS
+	CFLAGS += -DCONFIG_FS
 endif
 
 # Common 
@@ -50,7 +53,7 @@ LIBS =
 export INC LIBS
 
 SUBDIRS = lib mach kernel tasks
-ifdef CONFIG_DEVMAN
+ifdef CONFIG_SYSCALL
 	SUBDIRS += drivers
 endif
 

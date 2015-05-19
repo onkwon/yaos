@@ -12,12 +12,12 @@ static void __attribute__((naked, used)) entry()
 	main();
 }
 
-extern char __mem_end;
+extern char _mem_end;
 
 extern void sys_init();
 extern void isr_default();
 extern void pendsv_handler();
-#ifdef CONFIG_DEVMAN
+#ifdef CONFIG_SYSCALL
 extern void svc_handler();
 #endif
 
@@ -25,7 +25,7 @@ static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4))) = {
 			/* NUM(IRQ): ADDR - DESC */
 			/* -------------------- */
-	&__mem_end,	/* 00     :       - Stack pointer */
+	&_mem_end,	/* 00     :       - Stack pointer */
 	entry,		/* 01     : 0x04  - Reset */
 	isr_default,	/* 02     : 0x08  - NMI */
 	isr_default,	/* 03     : 0x0c  - HardFault */
@@ -36,7 +36,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 	NULL,		/* 08     : 0x20  - Reserved */
 	NULL,		/* 09     : 0x24  - Reserved */
 	NULL,		/* 10     : 0x28  - Reserved */
-#ifdef CONFIG_DEVMAN
+#ifdef CONFIG_SYSCALL
 	svc_handler,	/* 11     : 0x2c  - SVCall */
 #else
 	isr_default,	/* 11     : 0x2c  - SVCall */
@@ -115,12 +115,12 @@ static void __init mem_init()
 	unsigned i;
 
 	/* copy interrupt vector table to sram */
-	extern char __mem_start;
+	extern char _mem_start;
 	for (i = 0; (int)isr_vectors[i] != EOF; i++)
-		*((unsigned *)&__mem_start + i) = (unsigned)isr_vectors[i];
+		*((unsigned *)&_mem_start + i) = (unsigned)isr_vectors[i];
 
 	/* activate vector table in sram */
-	SCB_VTOR = (unsigned)&__mem_start;
+	SCB_VTOR = (unsigned)&_mem_start;
 
 	/* copy .data section from flash to sram */
 	extern char _etext, _data, _edata;
@@ -142,13 +142,23 @@ REGISTER_INIT_FUNC(mem_init, 1);
 
 #include <context.h>
 
-void init_task_context(struct task_t *p)
+void set_task_context_core(struct task_t *p)
 {
 	int i;
 
 	/* initialize task register set */
-	*p->sp     = 0x01000000;		/* psr */
-	*(--p->sp) = (unsigned)p->addr;		/* pc */
-	for (i = 2; i < CONTEXT_NR; i++)
-		*(--p->sp) = 0;
+	*p->stack.sp     = 0x01000000;		/* psr */
+	*(--p->stack.sp) = (unsigned)p->addr;	/* pc */
+	for (i = 2; i < NR_CONTEXT_HARD; i++)
+		*(--p->stack.sp) = 0;
+}
+
+void set_task_context(struct task_t *p)
+{
+	int i;
+
+	set_task_context_core(p);
+
+	for (i = 0; i < NR_CONTEXT_SOFT; i++)
+		*(--p->stack.sp) = 0;
 }

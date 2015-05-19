@@ -1,19 +1,5 @@
-include $(BASEDIR)/CONFIGURE
-
 SRCS_ASM = $(wildcard *.S)
-SRCS     = task.c sched.c cfs.c mm.c jiffies.c timer.c waitqueue.c
-ifdef CONFIG_REALTIME
-	SRCS += rts.c
-endif
-ifdef CONFIG_PAGING
-	SRCS += buddy.c
-endif
-ifdef CONFIG_SYSCALL
-	SRCS += syscall.c module.c
-endif
-ifdef CONFIG_FS
-	SRCS += fs.c
-endif
+SRCS     = $(wildcard *.c)
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
 INC     += -I$(BASEDIR)/include

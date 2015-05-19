@@ -14,8 +14,8 @@
 	__asm__ __volatile__("msr primask, %0" :: "r"(flag) : "memory")
 
 #define ISR_REGISTER(vector_nr, func)	({ \
-		extern unsigned __mem_start; \
-		*((unsigned *)&__mem_start + vector_nr) = (unsigned)func; \
+		extern unsigned _mem_start; \
+		*((unsigned *)&_mem_start + vector_nr) = (unsigned)func; \
 		dmb(); \
 	})
 #define __register_isr(nirq, func)	ISR_REGISTER(nirq, func)
@@ -53,5 +53,7 @@
 #define SET_SP(sp) __asm__ __volatile__("mov sp, %0" :: "r"(sp) : "memory")
 #define SET_KSP(sp) __asm__ __volatile__("msr msp, %0" :: "r"(sp) : "memory")
 #define SET_USP(sp) __asm__ __volatile__("msr psp, %0" :: "r"(sp) : "memory")
+#define __setusp(sp)	SET_USP(sp)
+#define __setksp(sp)	SET_KSP(sp)
 
 #endif /* __STM32_INTERRUPT_H__ */

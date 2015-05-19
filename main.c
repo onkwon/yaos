@@ -3,18 +3,6 @@
 #include <kernel/sched.h>
 #include <syscall.h>
 
-static unsigned long *alloc_user_stack(struct task_t *p)
-{
-	if ( (p->stack_size <= 0) ||
-			!(p->stack = (unsigned long *)kmalloc(p->stack_size)) )
-		return NULL;
-
-	/* make its stack pointer to point out the highest memory address */
-	p->sp = p->stack + ((p->stack_size / sizeof(long)) - 1);
-
-	return p->sp;
-}
-
 static void load_user_task()
 {
 	extern int _user_task_list;
@@ -23,17 +11,28 @@ static void load_user_task()
 	while (p->state) {
 		/* sanity check */
 		if (!p->addr) continue;
-		if (!alloc_user_stack(p)) continue;
+		if (!alloc_stack(p)) continue;
 
-		init_task_context(p);
+		/* share one kernel stack with all tasks to save memory */
+		p->stack.kernel = init.stack.kernel;
+
+		/* make relationship */
+		list_add(&p->sibling, &init.children);
+
+		set_task_context(p);
 		set_task_state(p, TASK_RUNNING);
 
-		/* initial state of all tasks are runnable, add into runqueue */
+		/* initial state of every tasks are runnable,
+		 * add into runqueue */
 		runqueue_add(p);
 
-		DEBUG(("%s: state %08x, sp %08x, addr %08x",
+		DEBUG(("%s: state %08x, addr %08x, "
+			"sp %08x brk %08x heap %08x size %d kernel %08x",
 				is_task_realtime(p)? "REALTIME" : "NORMAL  ",
-				p->state, p->sp, p->addr));
+				p->state, p->addr,
+				p->stack.sp, p->stack.brk, p->stack.heap,
+				p->stack.size,
+				get_kernel_stack(p->stack.kernel)));
 
 		p++;
 	}
@@ -45,31 +44,14 @@ static void cleanup()
 	free_bootmem();
 }
 
-struct task_t init;
-
-/* when no task in runqueue, this init_task takes place.
+/* when no task in runqueue, this one takes place.
  * do some power saving */
-static void init_task()
+static void idle()
 {
-	/* set init_task() into struct task_t init */
-	init.stack_size = DEFAULT_STACK_SIZE;
-	init.addr       = init_task;
-	init.se         = (struct sched_entity){ 0, 0, 0 };
-	LIST_LINK_INIT(&init.rq);
-	alloc_user_stack(&init);
-	/* init task shares its stack with kernel. */
-	SET_KSP(init.sp);
-	SET_USP(init.sp);
-	set_task_priority(&init, LEAST_PRIORITY);
-	set_task_state(&init, TASK_KERNEL);
-
 	cleanup();
 
-	printf("ibox %s %s\n", VERSION, MACHINE);
-
-	current = &init;
-	/* ensure that scheduler gets activated after everything ready. */
-	schedule_on();
+	reset_task_state(current, TASK_RUNNING);
+	schedule();
 
 	while (1) {
 		printf("init()\n");
@@ -77,6 +59,29 @@ static void init_task()
 				GET_CON(), GET_SP(), GET_KSP(), GET_USP());
 		msleep(500);
 	}
+}
+
+#include <asm/init.h>
+
+static void __init init_task()
+{
+	TASK_INIT(init, idle);
+	set_task_priority(&init, LEAST_PRIORITY);
+	set_task_state(&init, TASK_KERNEL | TASK_RUNNING);
+	set_task_sp(init.stack.sp);
+	set_kernel_sp(init.stack.kernel);
+
+	load_user_task();
+
+	/* everything ready now */
+	printk("ibox %s %s\n", VERSION, MACHINE);
+
+	sei();
+	sys_schedule();
+
+	/* it doesn't really reach up to this point. init task becomes
+	 * idle task by scheduler as its context already set to idle */
+	idle();
 }
 
 static void sys_init()
@@ -88,31 +93,21 @@ static void sys_init()
 		((void (*)())*p++)();
 }
 
-int stdin, stdout, stderr;
-
-static void console_init()
-{
-	open(USART, O_RDWR | O_NONBLOCK);
-
-	stdin = stdout = stderr = USART;
-}
-
 #include <kernel/page.h>
+#include <driver/console.h>
 
 int main()
 {
 	sys_init();
 	mm_init();
-#ifdef CONFIG_DEVMAN
-	devman_init();
+#ifdef CONFIG_SYSCALL
+	driver_init();
+#else
+	console_open(O_RDWR | O_NONBLOCK);
 #endif
-	sei();
-
-	console_init();
 	systick_init();
 	scheduler_init();
 
-	load_user_task();
 	init_task();
 
 	return 0;

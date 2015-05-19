@@ -1,6 +1,6 @@
 #include <foundation.h>
 #include <stdlib.h>
-#include <kernel/device.h>
+#include <module.h>
 #include <asm/usart.h>
 
 #define BUF_SIZE	PAGE_SIZE
@@ -14,8 +14,8 @@ static int usart_close(int id)
 
 	if (--dev->count == 0) {
 		__usart_close();
-		free(rxq.buf);
-		free(txq.buf);
+		kfree(rxq.buf);
+		kfree(txq.buf);
 	}
 
 	return dev->count;
@@ -27,9 +27,9 @@ static size_t usart_read(int id, void *buf, size_t size)
 	char *c = (char *)buf;
 	unsigned long irq_flag;
 
-	spinlock_irqsave(rx_lock, irq_flag);
+	spin_lock_irqsave(rx_lock, irq_flag);
 	data = fifo_get(&rxq, 1);
-	spinlock_irqrestore(rx_lock, irq_flag);
+	spin_unlock_irqrestore(rx_lock, irq_flag);
 
 	if (data == -1)
 		return 0;
@@ -47,9 +47,9 @@ static size_t usart_write_int(int id, void *buf, size_t size)
 	unsigned long irq_flag;
 	int err;
 
-	spinlock_irqsave(tx_lock, irq_flag);
+	spin_lock_irqsave(tx_lock, irq_flag);
 	err = fifo_put(&txq, c, 1);
-	spinlock_irqrestore(tx_lock, irq_flag);
+	spin_unlock_irqrestore(tx_lock, irq_flag);
 
 	__usart_tx_irq_raise();
 
@@ -67,22 +67,6 @@ static size_t usart_write_polling(int id, void *buf, size_t size)
 	return 1;
 }
 
-/* well, think about how to deliver this kind of functions to user
-static int kbhit()
-{
-	return (rxq.front != rxq.rear);
-}
-
-static void fflush()
-{
-	unsigned long irq_flag;
-
-	spinlock_irqsave(rx_lock, irq_flag);
-	fifo_flush(&rxq);
-	spinlock_irqrestore(rx_lock, irq_flag);
-}
-*/
-
 static void isr_usart()
 {
 	int c;
@@ -91,9 +75,9 @@ static void isr_usart()
 	if (__usart_check_rx()) {
 		c = __usart_getc();
 
-		spinlock_irqsave(rx_lock, irq_flag);
+		spin_lock_irqsave(rx_lock, irq_flag);
 		c = fifo_put(&rxq, c, 1);
-		spinlock_irqrestore(rx_lock, irq_flag);
+		spin_unlock_irqrestore(rx_lock, irq_flag);
 
 		if (c == -1) {
 			/* overflow */
@@ -101,9 +85,9 @@ static void isr_usart()
 	}
 
 	if (__usart_check_tx()) {
-		spinlock_irqsave(tx_lock, irq_flag);
+		spin_lock_irqsave(tx_lock, irq_flag);
 		c = fifo_get(&txq, 1);
-		spinlock_irqrestore(tx_lock, irq_flag);
+		spin_unlock_irqrestore(tx_lock, irq_flag);
 
 		if (c == -1)
 			__usart_tx_irq_reset();
@@ -115,18 +99,25 @@ static void isr_usart()
 static int usart_open(int id, int mode)
 {
 	struct device_t *dev = getdev(id);
+	void *buf;
 
-	if (!(dev->count++)) { /* if it's the first access */
+	if ((dev == NULL) || !(dev->count++)) { /* if it's the first access */
 		int nr_irq = __usart_open(115200);
 
 		if (nr_irq > 0) {
 			if (mode & O_RDONLY) {
-				fifo_init(&rxq, kmalloc(BUF_SIZE), BUF_SIZE);
+				if ((buf = kmalloc(BUF_SIZE)) == NULL)
+					return -ERR_ALLOC;
+
+				fifo_init(&rxq, buf, BUF_SIZE);
 				spinlock_init(rx_lock);
 			}
 
 			if (mode & O_WRONLY) {
-				fifo_init(&txq, kmalloc(BUF_SIZE), BUF_SIZE);
+				if ((buf = kmalloc(BUF_SIZE)) == NULL)
+					return -ERR_ALLOC;
+
+				fifo_init(&txq, buf, BUF_SIZE);
 				spinlock_init(tx_lock);
 			}
 
@@ -142,10 +133,58 @@ static int usart_open(int id, int mode)
 	return dev->count;
 }
 
-static struct driver_operations ops = {
+int stdin, stdout, stderr;
+
+int console_open(int mode)
+{
+	int id = 1;
+
+	usart_open(id, mode);
+
+	stdin = stdout = stderr = id;
+
+	return id;
+}
+
+void console_putc(int c)
+{
+	usart_write_polling(stdout, &c, 1);
+}
+
+/* well, think about how to deliver this kind of functions to user
+static int kbhit()
+{
+	return (rxq.front != rxq.rear);
+}
+
+static void fflush()
+{
+	unsigned long irq_flag;
+
+	spin_lock_irqsave(rx_lock, irq_flag);
+	fifo_flush(&rxq);
+	spin_unlock_irqrestore(rx_lock, irq_flag);
+}
+*/
+
+static struct device_interface_t ops = {
 	.open  = usart_open,
 	.read  = usart_read,
 	.write = usart_write_int,
 	.close = usart_close,
 };
-REGISTER_DEVICE(USART, &ops);
+
+static int console_init()
+{
+	int id = dev_get_newid();
+
+	register_device(id, &ops, "console");
+
+	usart_open(id, O_RDWR | O_NONBLOCK);
+
+	stdin = stdout = stderr = id;
+
+	return 0;
+}
+
+module_init(console_init);
