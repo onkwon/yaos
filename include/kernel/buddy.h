@@ -2,7 +2,7 @@
 #define __BUDDY_H__
 
 #include <types.h>
-#include <lock.h>
+#include <kernel/lock.h>
 
 #define BUDDY_MAX_ORDER		10
 

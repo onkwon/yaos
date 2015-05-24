@@ -57,7 +57,7 @@ char *strtok(char *line, const char *const token)
 {
 	static char *saveline = NULL;
 	char *p;
-	register unsigned i, j;
+	register unsigned int i, j;
 
 	if (line) saveline = line;
 
@@ -76,9 +76,9 @@ char *strtok(char *line, const char *const token)
 	return p;
 }
 
-unsigned toknum(const char *line, const char *const token)
+unsigned int toknum(const char *line, const char *const token)
 {
-	register unsigned i, cnt = 0;
+	register unsigned int i, cnt = 0;
 
 	while (*line) {
 		for (i = 0; token[i] && (*line != token[i]); i++) ;

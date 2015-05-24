@@ -1,7 +1,7 @@
 include $(BASEDIR)/CONFIGURE
 
 SRCS_ASM = $(wildcard *.S)
-SRCS     = task.c sched.c cfs.c mm.c jiffies.c timer.c waitqueue.c
+SRCS     = task.c sched.c cfs.c mm.c jiffies.c time.c waitqueue.c softirq.c
 ifdef CONFIG_REALTIME
 	SRCS += rts.c
 endif

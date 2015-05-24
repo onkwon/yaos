@@ -19,15 +19,15 @@ struct device_t {
 	struct list_t link;
 };
 
+#define module_init(func) \
+	static void *module_##func \
+	__attribute__((section(".module_list"), used)) = func
+
 int register_device(int id, struct device_interface_t *ops, char *name);
 int dev_get_newid();
 struct device_t *getdev(int id);
 void link_device(int id, struct device_t *dev);
 void driver_init();
-
-#define module_init(func) \
-	static void *module_##func \
-	__attribute__((section(".module_list"), used)) = func
 
 #ifdef CONFIG_DEBUG
 void display_devtab();

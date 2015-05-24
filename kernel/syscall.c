@@ -1,12 +1,7 @@
-#include <syscall.h>
-#include <module.h>
-
-#include <kernel/page.h>
-
-void *sys_brk(unsigned long size)
-{
-	return kmalloc(size);
-}
+#include <kernel/syscall.h>
+#include <kernel/module.h>
+#include <asm/context.h>
+#include <error.h>
 
 int sys_open(int id, int mode)
 {
@@ -56,6 +51,13 @@ int sys_reserved()
 int sys_test(int a, int b, int c)
 {
 	return a + b + c;
+}
+
+#include <kernel/page.h>
+
+void *sys_brk(unsigned long size)
+{
+	return kmalloc(size);
 }
 
 void *syscall_table[] = {

@@ -1,29 +1,30 @@
-#include <waitqueue.h>
+#include <kernel/waitqueue.h>
 #include <kernel/sched.h>
+#include <kernel/task.h>
 
-void wait_in(struct waitqueue_head_t *q, struct waitqueue_t *wait)
+void wq_wait(struct waitqueue_head_t *q, struct waitqueue_t *wait)
 {
-	unsigned irq_flag;
+	unsigned irqflag;
 
-	spin_lock_irqsave(q->lock, irq_flag);
+	spin_lock_irqsave(q->lock, irqflag);
 
 	if (list_empty(&wait->link))
 		list_add(&wait->link, q->list.prev);
 
 	set_task_state(current, TASK_WAITING);
 
-	spin_unlock_irqrestore(q->lock, irq_flag);
+	spin_unlock_irqrestore(q->lock, irqflag);
 
 	schedule();
 }
 
-void wake_up(struct waitqueue_head_t *head, int nr_task)
+void wq_wake(struct waitqueue_head_t *head, int nr_task)
 {
 	struct list_t *p = head->list.next;
 	struct task_t *task;
-	unsigned irq_flag;
+	unsigned irqflag;
 
-	spin_lock_irqsave(head->lock, irq_flag);
+	spin_lock_irqsave(head->lock, irqflag);
 
 	while (p != &head->list && nr_task) {
 		task = get_container_of(p, struct waitqueue_t, link)->task;
@@ -35,5 +36,5 @@ void wake_up(struct waitqueue_head_t *head, int nr_task)
 		nr_task--;
 	}
 
-	spin_unlock_irqrestore(head->lock, irq_flag);
+	spin_unlock_irqrestore(head->lock, irqflag);
 }

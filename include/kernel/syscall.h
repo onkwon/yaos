@@ -18,8 +18,6 @@
 #include <asm/syscall.h>
 #endif
 
-#include <module.h>
-
 static inline int open(int id, int mode)
 {
 	return syscall(SYSCALL_OPEN, id, mode);

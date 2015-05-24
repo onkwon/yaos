@@ -1,4 +1,5 @@
 #include <foundation.h>
+#include <kernel/jiffies.h>
 
 void sleep(unsigned long sec)
 {

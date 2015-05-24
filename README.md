@@ -4,7 +4,7 @@ Two types of task are handled, normal priority and real time priority tasks. Com
 
 It generates a periodic interrupt rated by HZ fot the heart rate of system. Change HZ as you wish, `include/foundation.h`.
 
-Put a user task under /tasks directory. Code what you want in general way using provided API and any other libraries. And simply register the task by `REGISTER_TASK(your_task, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY)`.
+Put a user task under /tasks directory. Code what you want in general way using provided API and any other libraries. And simply register the task by `REGISTER_TASK(function, type, priority)`.
 
 To access system resource, use provided API after checking how synchronization and wait queue are handled in the right sections below. Do not disable interrupt directly but use API.
 
@@ -37,6 +37,10 @@ tested on stm32f103.
 ### `CONFIG_SYSCALL`
 
 시스템 콜 및 디바이스 매니저 추가
+
+### `CONFIG_FS`
+
+가상 파일 시스템 추가
 
 ## API
 
@@ -202,6 +206,8 @@ id는 사실 전달할 필요가 없다. 인자를 하나씩 제거할 수 있�
 ### Memory allocation
 
 `kmalloc()`
+`kfree()`
+`malloc()`
 `free()`
 
 #### Buddy allocator
@@ -231,28 +237,44 @@ id는 사실 전달할 필요가 없다. 인자를 하나씩 제거할 수 있�
 
 ## Memory map
 
-~~User stack gets allocated by `malloc()` call in `alloc_user_stack()`. Therefore the size of `HEAP_SIZE`(default 32KiB) determines the seating capacity of both of user stacks and user's heap allocation.~~
+	* memory map at boot time
+	+-------------------------+ _mem_end(e.g. 0x2000ffff)
+	| | initial kernel stack  |
+	| |                       |
+	| v                       |
+	|-------------------------|
+	| .bss                    |
+	|-------------------------|
+	| .data                   |
+	|-------------------------|
+	| .vector                 |
+	+-------------------------+ _mem_start(e.g. 0x20000000)
 
-	--- .text --- 0x00000000(0x08000000)	--- .data --- 0x20000000
-	|           |                           |           |
-	|           |                           |           |
-	|           |                           |           |
-	|           |                           |           |
-	------------- 0x0007ffff(0x0807ffff)    ------------- 0x2000ffff
+	* task memory space
+	+-------------+ stack top      -
+	|   |         |                ^
+	|   |         |                |
+	|   |         |                |
+	|   | stack   |     STACK_SIZE |
+	|   |         |                |
+	|   |         |                |
+	|   |         |                |
+	|   v         |                |
+	|   -         |              - |
+	|   ^         |              ^ |
+	|   | heap    |    HEAP_SIZE | |
+	|   |         |              v v
+	+-------------+ mm.base      - -
 
-	--------------------------------- _mem_end(e.g. 0x2000ffff)
-	| | initial kernel stack        |
-	| |                             |
-	| v                             |
-	|-------------------------------|
-	| .bss                          |
-	|-------------------------------|
-	| .data                         |
-	|-------------------------------|
-	| .vector                       |
-	--------------------------------- _mem_start(e.g. 0x20000000)
+	+-------------+ mm.kernel      -
+	|   |         |                ^
+	|   | kernel  |                |
+	|   | stack   | KERNEL_STACK_SIZE
+	|   |         |                |
+	|   v         |                v
+	+-------------+                -
 
-초기 커널 스택은 `_mem_end`을 시작으로 `DEFAULT_STACK_SIZE`만큼 할당되어야 함. 초기 커널 스택에 해당하는 버디 `free_area`의 마지막 페이지들이 사용중으로 마크됨.
+초기 커널 스택은 `_mem_end`을 시작으로 `STACK_SIZE`만큼 할당되어야 함. 초기 커널 스택에 해당하는 버디 `free_area`의 마지막 페이지들이 사용중으로 마크됨.
 
 malloc()은 kmalloc()의 랩퍼일 뿐, 차후에 단편화를 고려한 slab과 같은 캐시를 구현하는 것도 고려해볼만..
 
@@ -292,70 +314,6 @@ AVR에 포팅할 것도 고려하고 있는데 페이징은 좀 무리인 듯. p
 	   checking if it is really allocated by buddy allocator.
 
 `mem_map`은 시스템 전체 메모리를 관리하기 위한 메타정보를 저장한 배열이고, 전체 메모리에서 zone 단위로 나눠 사용할 수 있다.
-
-## New task
-
-### register user task
-
-	REGISTER_TASK() - collect tasks in .user_task_list section
-	  state      \
-	  primask    |
-	  stack      |
-	  sp         |-- struct task_t
-	  stack_size |
-	  addr       |
-	  runqueue   /
-
-Task priority in state
-
-### load tasks from reset (in system's view)
-
-1. sanity check
-2. stack allocation
-3. initial task register set
-4. put into runqueue
-5. the initial task takes place
-
-Initial task register set:
-
-	 __________ 
-	| psr      |  |
-	| pc       |  | stack
-	| lr       |  |
-	| r12      |  v
-	| r3       |
-	| r2       |
-	| r1       |
-	| r0       |
-	 ----------
-	| r4 - r11 |
-	 ----------
-
-### User stack
-
-할당된 스택 사이즈에서 1/4 을 힙 영역으로 배정한다:
-
-	* user stack
-	+--------------------+ <-- stack top  -
-	|                    |                ^
-	|      |             |                |
-	|      |             |                |
-	|      |             |                |
-	|      | sp          |                |
-	|      |             |                |
-	|      |             |                |
-	|      v             |           stack size 
-	|                    |                |
-	|  - - - - - - - -   | <-- brk        |
-	|                    |                |
-	|      ^             |                |
-	|      | heap        |                |
-	|      |             |                |
-	|                    |                v
-	+--------------------+                -
-
-	alloc_user_stack()
-	  malloc()
 
 ## Scheduler
 
@@ -439,6 +397,22 @@ You can not use system call before init task runs, where interrupt gets enabled.
 시스템 콜은 OS에 필수적인 요소라 모듈화하지 않고 빌트인 하는 게 좋을 듯 한데, 여전히 AVR 포팅을 고려중이라 고민이다. AVR에서도 소프트웨어 인터럽트 트릭을 사용할 수 있을 것 같지만, 8비트 시스템의 낮은 클럭 주파수에서 시스템 콜을 호출하는 비용이 만만찮을 것이다. 그렇다고 시스템 콜을 때에 따라 빼버릴 수 있도록 그대로 모듈로 두기엔 구조적 취약성이 거슬리고.
 
 prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링커 스크립트 변수에 사용. postfix `_core` 는 bare 함수에 사용.
+
+대문자명 함수는 매크로. 인자를 넘길 때 포인터 대신 변수로 넘겨야 함. 더불어 `func_init()` 규칙과 반대로 `INIT_FUNC()`처럼 init을 먼저 쓴다.
+
+	Initial task register set:
+	 __________
+	| psr      |  |
+	| pc       |  | stack
+	| lr       |  |
+	| r12      |  v
+	| r3       |
+	| r2       |
+	| r1       |
+	| r0       |
+	 ----------
+	| r4 - r11 |
+	 ----------
 
 ### System clock
 

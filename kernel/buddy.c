@@ -95,6 +95,8 @@ struct page_t *alloc_pages(struct buddypool_t *pool, unsigned long order)
 	return NULL;
 }
 
+#include <kernel/task.h>
+
 static void buddy_freelist_init(struct buddypool_t *pool,
 		unsigned long nr_pages, struct page_t *array)
 {
@@ -112,7 +114,7 @@ static void buddy_freelist_init(struct buddypool_t *pool,
 		pool->free[i].bitmap = (unsigned long *) 
 				(((char *)&array[nr_pages]) + offset);
 		memset(pool->free[i].bitmap, 0, size);
-		LIST_LINK_INIT(&pool->free[i].list);
+		list_link_init(&pool->free[i].list);
 
 		offset += size;
 		size >>= 1;
@@ -126,8 +128,8 @@ static void buddy_freelist_init(struct buddypool_t *pool,
 	unsigned long order, index, next;
 
 	/* preserve initial kernel stack to be free later */
-	nr_pages -= ALIGN_PAGE(DEFAULT_STACK_SIZE) >> PAGE_SHIFT;
-	order     = log2((ALIGN_PAGE(DEFAULT_STACK_SIZE)-1) >> PAGE_SHIFT);
+	nr_pages -= ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT;
+	order     = log2((ALIGN_PAGE(STACK_SIZE)-1) >> PAGE_SHIFT);
 	SET_PAGE_ORDER(&array[nr_pages], order);
 	/* and mark kernel .data and .bss sections as used.
 	 * mem_map array and its bitmap region as well. */
@@ -166,7 +168,7 @@ void buddy_init(struct buddypool_t *pool, unsigned long nr_pages,
 		struct page_t *array)
 {
 	buddy_freelist_init(pool, nr_pages, array);
-	spinlock_init(pool->lock);
+	INIT_SPINLOCK(pool->lock);
 }
 
 #ifdef CONFIG_DEBUG

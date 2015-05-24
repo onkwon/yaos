@@ -108,7 +108,7 @@ struct ff_freelist_t *ff_freelist_init(void *start, void *end)
 	head->size = (unsigned long)end -
 		((unsigned long)head + sizeof(struct ff_freelist_t));
 	head->addr = (void *)((unsigned long)head + sizeof(struct ff_freelist_t));
-	LIST_LINK_INIT(&head->list);
+	list_link_init(&head->list);
 
 	return head;
 }

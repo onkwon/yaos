@@ -5,6 +5,9 @@
 #define ERR_UNDEF		1
 #define ERR_ALLOC		2
 #define ERR_RANGE		3
+#define ERR_PARAM		4
+
+#define freeze()
 
 #ifdef CONFIG_DEBUG
 #define DEBUG(fmt) do { \

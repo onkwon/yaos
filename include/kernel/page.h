@@ -2,7 +2,7 @@
 #define __PAGE_H__
 
 #include <types.h>
-#include <lock.h>
+#include <kernel/lock.h>
 
 #include <asm/page.h>
 

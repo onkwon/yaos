@@ -1,5 +1,6 @@
 #include <foundation.h>
 #include <kernel/sched.h>
+#include <asm/context.h>
 
 /* A register that is not yet saved in stack gets used by compiler optimization.
  * If I put all the registers that are not yet saved in clobber list,
@@ -23,7 +24,7 @@ void __attribute__((naked)) sys_schedule()
 }
 
 #ifdef CONFIG_SYSCALL
-#include <syscall.h>
+#include <kernel/syscall.h>
 
 #ifdef CONFIG_DEBUG
 unsigned syscall_count = 0;
@@ -99,20 +100,18 @@ void __attribute__((naked)) isr_default()
 		*(unsigned *)(usp + 20));
 
 	printk("\ncurrent->sp         0x%08x\n"
-		"current->brk        0x%08x\n"
-		"current->stack_size 0x%08x\n"
+		"current->base       0x%08x\n"
 		"current->heap       0x%08x\n"
 		"current->kernel     0x%08x\n"
 		"current->state      0x%08x\n"
-		"current->primask    0x%08x\n"
-		, current->stack.sp, current->stack.brk, current->stack.size
-		, current->stack.heap, current->stack.kernel, current->state
-		, current->primask);
+		"current->irqflag    0x%08x\n"
+		, current->mm.sp, current->mm.base, current->mm.heap,
+		current->mm.kernel, current->state, current->irqflag);
 
 	printk("\ncurrent context\n");
 	int i;
 	for (i = 0; i < NR_CONTEXT; i++)
-		printk("[%02d] 0x%08x\n", i, current->stack.sp[i]);
+		printk("[%02d] 0x%08x\n", i, current->mm.sp[i]);
 
 	printk("\nSCB_ICSR  0x%08x\n"
 		"SCB_CFSR  0x%08x\n"

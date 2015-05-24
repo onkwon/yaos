@@ -1,5 +1,5 @@
-#ifdef CONFIG_REALTIME
 #include <kernel/rts.h>
+#include <kernel/task.h>
 
 struct list_t rts_rq[RT_LEAST_PRIORITY+1];
 
@@ -43,4 +43,3 @@ void rts_rq_del(struct sched_t *q, struct task_t *p)
 
 	list_del(&p->rq);
 }
-#endif

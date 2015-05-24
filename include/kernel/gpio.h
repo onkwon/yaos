@@ -15,7 +15,8 @@
 #define GPIO_INT_FALLING		0x0100
 #define GPIO_INT_RISING			0x0200
 
-int gpio_init(unsigned int n, unsigned int flags);
+int gpio_init(unsigned int index, unsigned int flags);
+void gpio_close(unsigned int index);
 
 #include <asm/gpio.h>
 

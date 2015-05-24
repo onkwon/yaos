@@ -9,6 +9,8 @@
  *   to a function looking at disassembled codes.)
  */
 
+#include <io.h>
+
 #define PAD_RIGHT		1
 #define PAD_ZERO		2
 
@@ -17,8 +19,6 @@
 #define PRINT_BUFSIZE		(INTSIZE * 8 + 1)
 #define getarg(args, type)	(*(type *)args++)
 #define align_dword(args)	(args += ((int)args & ((INTSIZE<<1)-1))? 1 : 0)
-
-#include <io.h>
 
 static void (*fputc)(int c) = putc;
 
@@ -181,7 +181,9 @@ int sprintf(char *out, const char *format, ...)
 
 int printk(const char *format, ...)
 {
+#ifdef CONFIG_SYSCALL
 	fputc = console_putc;
+#endif
 	return print(0, (int *)&format);
 }
 

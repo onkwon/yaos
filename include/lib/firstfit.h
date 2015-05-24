@@ -3,8 +3,6 @@
 
 #include <types.h>
 
-#include <kernel/page.h>
-
 struct ff_freelist_t {
 	void *addr;
 	unsigned long size;

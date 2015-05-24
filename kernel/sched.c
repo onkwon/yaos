@@ -1,5 +1,5 @@
-#include <foundation.h>
 #include <kernel/sched.h>
+#include <kernel/task.h>
 
 static struct sched_t cfs;
 #ifdef CONFIG_REALTIME
@@ -8,8 +8,6 @@ static struct sched_t rts;
 
 /* As each processor has its own scheduler and it runs in an interrupt context,
  * we are rid of concern about synchronization. */
-
-#include <kernel/cfs.h>
 
 void schedule_core()
 {
@@ -134,7 +132,7 @@ void scheduler_init()
 	int i;
 
 	for (i = 0; i <= RT_LEAST_PRIORITY; i++) {
-		LIST_LINK_INIT(&rts_rq[i]);
+		list_link_init(&rts_rq[i]);
 	}
 #endif
 
@@ -142,6 +140,8 @@ void scheduler_init()
 }
 
 #ifdef CONFIG_DEBUG
+#include <foundation.h>
+
 void print_rq()
 {
 	struct list_t *rq = ((struct list_t *)cfs.rq)->next;

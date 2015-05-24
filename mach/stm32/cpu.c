@@ -142,23 +142,26 @@ REGISTER_INIT_FUNC(mem_init, 1);
 
 #include <context.h>
 
-void set_task_context_core(struct task_t *p)
+void set_task_context_hard(struct task_t *p)
 {
 	int i;
 
-	/* initialize task register set */
-	*p->stack.sp     = 0x01000000;		/* psr */
-	*(--p->stack.sp) = (unsigned)p->addr;	/* pc */
+	*p->mm.sp     = 0x01000000;		/* psr */
+	*(--p->mm.sp) = (unsigned)p->addr;	/* pc */
 	for (i = 2; i < NR_CONTEXT_HARD; i++)
-		*(--p->stack.sp) = 0;
+		*(--p->mm.sp) = 0;
+}
+
+void set_task_context_soft(struct task_t *p)
+{
+	int i;
+
+	for (i = 0; i < NR_CONTEXT_SOFT; i++)
+		*(--p->mm.sp) = 0;
 }
 
 void set_task_context(struct task_t *p)
 {
-	int i;
-
-	set_task_context_core(p);
-
-	for (i = 0; i < NR_CONTEXT_SOFT; i++)
-		*(--p->stack.sp) = 0;
+	set_task_context_hard(p);
+	set_task_context_soft(p);
 }

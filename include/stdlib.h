@@ -9,6 +9,4 @@ void free(void *addr);
 void *memcpy(void *dst, const void *src, int len);
 void *memset(void *src, int c, int n);
 
-#include <firstfit.h>
-
 #endif /* __STDLIB_H__ */

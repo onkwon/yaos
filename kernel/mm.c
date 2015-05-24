@@ -1,6 +1,5 @@
 #include <kernel/page.h>
-#include <stdlib.h>
-
+#include <kernel/task.h>
 #include <asm/init.h>
 
 extern char _mem_start, _mem_end, _ebss;
@@ -13,12 +12,12 @@ extern struct buddypool_t buddypool;
 void *kmalloc(unsigned long size)
 {
 	struct page_t *page;
-	unsigned long irq_flag;
+	unsigned long irqflag;
 
-	spin_lock_irqsave(buddypool.lock, irq_flag);
+	spin_lock_irqsave(buddypool.lock, irqflag);
 	page = alloc_pages(&buddypool,
 			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
-	spin_unlock_irqrestore(buddypool.lock, irq_flag);
+	spin_unlock_irqrestore(buddypool.lock, irqflag);
 
 	if (page)
 		return page->addr;
@@ -31,7 +30,7 @@ void kfree(void *addr)
 	struct page_t *page;
 	struct buddypool_t *pool = &buddypool;
 	unsigned long index;
-	unsigned long irq_flag;
+	unsigned long irqflag;
 
 	if (!addr) return;
 
@@ -46,9 +45,9 @@ void kfree(void *addr)
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
 
-	spin_lock_irqsave(pool->lock, irq_flag);
+	spin_lock_irqsave(pool->lock, irqflag);
 	free_pages(pool, page);
-	spin_unlock_irqrestore(pool->lock, irq_flag);
+	spin_unlock_irqrestore(pool->lock, irqflag);
 }
 
 void __init free_bootmem()
@@ -56,36 +55,37 @@ void __init free_bootmem()
 	void *addr;
 	unsigned index;
 
-	index = buddypool.nr_pages -
-		(ALIGN_PAGE(DEFAULT_STACK_SIZE) >> PAGE_SHIFT);
+	index = buddypool.nr_pages - (ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT);
 	addr  = mem_map[index].addr;
 
 	kfree(addr);
 }
 
 #else
+#include <lib/firstfit.h>
+
 static struct ff_freelist_t *mem_map;
 static spinlock_t mem_lock;
 
 void *kmalloc(unsigned long size)
 {
 	void *p;
-	unsigned long irq_flag;
+	unsigned long irqflag;
 
-	spin_lock_irqsave(mem_lock, irq_flag);
+	spin_lock_irqsave(mem_lock, irqflag);
 	p = ff_alloc(&mem_map, size);
-	spin_unlock_irqrestore(mem_lock, irq_flag);
+	spin_unlock_irqrestore(mem_lock, irqflag);
 
 	return p;
 }
 
 void kfree(void *addr)
 {
-	unsigned long irq_flag;
+	unsigned long irqflag;
 
-	spin_lock_irqsave(mem_lock, irq_flag);
+	spin_lock_irqsave(mem_lock, irqflag);
 	ff_free(&mem_map, addr);
-	spin_unlock_irqrestore(mem_lock, irq_flag);
+	spin_unlock_irqrestore(mem_lock, irqflag);
 }
 
 void __init free_bootmem()
@@ -93,7 +93,7 @@ void __init free_bootmem()
 	struct ff_freelist_t *p;
 
 	p = (void *)ALIGN_WORD((unsigned long)&_mem_end -
-			(DEFAULT_STACK_SIZE + sizeof(struct ff_freelist_t)));
+			(STACK_SIZE + sizeof(struct ff_freelist_t)));
 
 	kfree(p->addr);
 }
@@ -116,7 +116,7 @@ void mm_init()
 	while (start < end) {
 		page->flags = 0;
 		page->addr  = (void *)start;
-		LIST_LINK_INIT(&page->link);
+		list_link_init(&page->link);
 
 		start += PAGE_SIZE;
 		page++;
@@ -130,9 +130,9 @@ void mm_init()
 
 	/* preserve initial kernel stack to be free later */
 	p = (struct ff_freelist_t *)ALIGN_WORD(end -
-			(DEFAULT_STACK_SIZE + sizeof(struct ff_freelist_t)));
+			(STACK_SIZE + sizeof(struct ff_freelist_t)));
 	p->addr = (void *)((unsigned long)p + sizeof(struct ff_freelist_t));
-	p->size = ALIGN_WORD(DEFAULT_STACK_SIZE);
+	p->size = ALIGN_WORD(STACK_SIZE);
 
 	/* mark kernel .data and .bss sections as used */
 	mem_map = (struct ff_freelist_t *)&_ebss;
@@ -140,14 +140,8 @@ void mm_init()
 		((unsigned long)&_ebss + sizeof(struct ff_freelist_t));
 	mem_map->addr = (void *)((unsigned long)mem_map +
 			sizeof(struct ff_freelist_t));
-	LIST_LINK_INIT(&mem_map->list);
+	list_link_init(&mem_map->list);
 
-	spinlock_init(mem_lock);
+	INIT_SPINLOCK(mem_lock);
 #endif
-
-	/* alloc kernel stack for init */
-	unsigned long *kstack = (unsigned long *)
-		kmalloc(KERNEL_STACK_SIZE * sizeof(long));
-
-	init.stack.kernel = &kstack[KERNEL_STACK_SIZE-1];
 }

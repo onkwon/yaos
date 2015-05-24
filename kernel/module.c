@@ -1,6 +1,6 @@
-#include <module.h>
-#include <foundation.h>
+#include <kernel/module.h>
 #include <kernel/page.h>
+#include <error.h>
 
 #define HASH_SHIFT	4
 #define TABLE_SIZE	(1 << HASH_SHIFT)
@@ -57,7 +57,7 @@ int register_device(int id, struct device_interface_t *ops, char *name)
 	dev->id = id;
 	dev->count = 0;
 	dev->ops = ops;
-	LIST_LINK_INIT(&dev->link);
+	list_link_init(&dev->link);
 
 	link_device(dev->id, dev);
 
@@ -78,7 +78,7 @@ void driver_init()
 	nr_device = 0;
 
 	for (i = 0; i < TABLE_SIZE; i++) {
-		LIST_LINK_INIT(&devtab[i]);
+		list_link_init(&devtab[i]);
 	}
 
 	extern char _module_list;
@@ -101,8 +101,6 @@ void driver_init()
 }
 
 #ifdef CONFIG_DEBUG
-#include <foundation.h>
-
 void display_devtab()
 {
 	struct device_t *dev;

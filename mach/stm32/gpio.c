@@ -1,12 +1,12 @@
 #include <gpio.h>
 
-int gpio_init(unsigned int n, unsigned int flags)
+int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode = 0;
 	int vector = -1;
 
-	port = (n / PINS_PER_PORT) + 1;
-	pin  = n % PINS_PER_PORT;
+	port = (index / PINS_PER_PORT) + 1;
+	pin  = index % PINS_PER_PORT;
 
 	SET_CLOCK_APB2(ENABLE, port << 2);
 
@@ -65,4 +65,8 @@ int gpio_init(unsigned int n, unsigned int flags)
 	}
 
 	return vector;
+}
+
+void gpio_close(unsigned int index)
+{
 }

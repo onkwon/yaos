@@ -1,5 +1,6 @@
 #include <foundation.h>
-#include "shell.h"
+#include <shell.h>
+#include <kernel/task.h>
 
 static void visit(struct task_t *p)
 {
@@ -18,10 +19,10 @@ static void visit(struct task_t *p)
 			(unsigned)p->se.sum_exec_runtime,
 			(unsigned)p->se.sum_exec_runtime / HZ);
 	print_tab();
-	printf("|   /sp 0x%08x /brk 0x%08x /heap 0x%08x /size %d\n",
-			p->stack.sp, p->stack.brk, p->stack.heap, p->stack.size);
+	printf("|   /sp 0x%08x /base 0x%08x /heap 0x%08x /size %d\n",
+			p->mm.sp, p->mm.base, p->mm.heap, STACK_SIZE);
 	print_tab();
-	printf("|   /kernel stack 0x%08x\n", p->stack.kernel);
+	printf("|   /kernel stack 0x%08x\n", p->mm.kernel);
 	print_tab();
 	printf("|\n");
 

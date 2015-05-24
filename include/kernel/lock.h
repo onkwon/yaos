@@ -13,7 +13,7 @@ typedef volatile int spinlock_t;
 
 #define SPINLOCK_UNLOCKED		(1)
 #define DEFINE_SPINLOCK(name)		spinlock_t name = SPINLOCK_UNLOCKED
-#define spinlock_init(name)		(name = SPINLOCK_UNLOCKED)
+#define INIT_SPINLOCK(name)		(name = SPINLOCK_UNLOCKED)
 
 #define spin_lock(count) do { \
 	while (count <= 0) ; \
@@ -49,12 +49,12 @@ typedef struct semaphore mutex_t;
 	struct semaphore name = { \
 		.count = v, \
 		.wait_lock = SPINLOCK_UNLOCKED, \
-		.wait_list = LIST_HEAD_INIT((name).wait_list), \
+		.wait_list = INIT_LIST_HEAD((name).wait_list), \
 	}
 
 #define semaphore_init(name, v)		(name.count = v)
 
-#include <waitqueue.h>
+#include <kernel/waitqueue.h>
 #include <kernel/sched.h>
 
 #define semaphore_down(s) { \

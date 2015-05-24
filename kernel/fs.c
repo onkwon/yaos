@@ -1,6 +1,5 @@
 #include <kernel/fs.h>
-#include <foundation.h>
-#include <stdlib.h>
+#include <kernel/page.h>
 
 struct superblock_t rootfs;
 
@@ -43,8 +42,8 @@ void fs_init()
 	rootfs.free_inode_count = 0;
 	rootfs.block_size = RFS_BLOCK_SIZE;
 	rootfs.iop.mknod = rootfs_mknod;
-	LIST_LINK_INIT(&rootfs.list);
-	spinlock_init(rootfs.lock);
+	list_link_init(&rootfs.list);
+	INIT_SPINLOCK(rootfs.lock);
 
 	struct inode_t *inode = rootfs.iop.mknod(&rootfs, 0, NULL);
 	rootfs.root_inode = (void *)inode;

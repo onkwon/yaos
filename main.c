@@ -1,48 +1,40 @@
-#include <foundation.h>
-#include <stdlib.h>
-#include <kernel/sched.h>
-#include <syscall.h>
+#include <kernel/page.h>
+#include <kernel/module.h>
+#include <asm/context.h>
 
 static void load_user_task()
 {
 	extern int _user_task_list;
-	struct task_t *p = (struct task_t *)&_user_task_list;
+	struct task_t *p;
+	unsigned int pri;
 
-	while (p->state) {
+	for (p = (struct task_t *)&_user_task_list; p->state; p++) {
 		/* sanity check */
-		if (!p->addr) continue;
-		if (!alloc_stack(p)) continue;
+		if (p->addr == NULL)
+			continue;
 
 		/* share one kernel stack with all tasks to save memory */
-		p->stack.kernel = init.stack.kernel;
+		if (alloc_mm(p, init.mm.kernel, STACK_SHARE))
+			continue;
 
-		/* make relationship */
-		list_add(&p->sibling, &init.children);
-
+		pri = get_task_priority(p);
+		set_task_dressed(p, 0, p->addr);
 		set_task_context(p);
+		set_task_priority(p, pri);
+
+		/* make it runnable, and add into runqueue */
 		set_task_state(p, TASK_RUNNING);
-
-		/* initial state of every tasks are runnable,
-		 * add into runqueue */
 		runqueue_add(p);
-
-		DEBUG(("%s: state %08x, addr %08x, "
-			"sp %08x brk %08x heap %08x size %d kernel %08x",
-				is_task_realtime(p)? "REALTIME" : "NORMAL  ",
-				p->state, p->addr,
-				p->stack.sp, p->stack.brk, p->stack.heap,
-				p->stack.size,
-				get_kernel_stack(p->stack.kernel)));
-
-		p++;
 	}
 }
 
 static void cleanup()
 {
-	/* Clean up redundant code and data, used during initializing */
+	/* Clean up redundant code and data used during initialization */
 	free_bootmem();
 }
+
+#include <time.h>
 
 /* when no task in runqueue, this one takes place.
  * do some power saving */
@@ -50,6 +42,7 @@ static void idle()
 {
 	cleanup();
 
+	set_task_priority(&init, LEAST_PRIORITY);
 	reset_task_state(current, TASK_RUNNING);
 	schedule();
 
@@ -62,20 +55,35 @@ static void idle()
 }
 
 #include <asm/init.h>
+#include <error.h>
 
 static void __init init_task()
 {
-	TASK_INIT(init, idle);
-	set_task_priority(&init, LEAST_PRIORITY);
-	set_task_state(&init, TASK_KERNEL | TASK_RUNNING);
-	set_task_sp(init.stack.sp);
-	set_kernel_sp(init.stack.kernel);
+	current = &init;
 
-	load_user_task();
+	if (alloc_mm(&init, NULL, STACK_SEPARATE)) {
+		/* failed to alloc memory for the task. no way to go further */
+		freeze();
+	}
 
-	/* everything ready now */
+	set_task_dressed(&init, TASK_KERNEL, idle);
+	set_task_context_hard(&init);
+	set_task_state(&init, TASK_RUNNING);
+
+	/* make it the sole */
+	list_link_init(&init.children);
+	list_link_init(&init.sibling);
+
+	/* a quite and shy banner */
 	printk("ibox %s %s\n", VERSION, MACHINE);
 
+	load_user_task(); /* tasks that are registered statically */
+
+	/* switch from boot stack memory to new one */
+	set_user_sp(init.mm.sp);
+	set_kernel_sp(init.mm.kernel);
+
+	/* everything ready now */
 	sei();
 	sys_schedule();
 
@@ -93,7 +101,6 @@ static void sys_init()
 		((void (*)())*p++)();
 }
 
-#include <kernel/page.h>
 #include <driver/console.h>
 
 int main()
@@ -102,8 +109,6 @@ int main()
 	mm_init();
 #ifdef CONFIG_SYSCALL
 	driver_init();
-#else
-	console_open(O_RDWR | O_NONBLOCK);
 #endif
 	systick_init();
 	scheduler_init();

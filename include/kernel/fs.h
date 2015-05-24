@@ -9,7 +9,7 @@
 #endif
 
 #include <types.h>
-#include <lock.h>
+#include <kernel/lock.h>
 
 struct fop_t {
 	//open;

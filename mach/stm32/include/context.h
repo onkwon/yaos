@@ -7,6 +7,8 @@
 #define CONTEXT_SIZE		(NR_CONTEXT * sizeof(long))
 /* depending on SCB_CCR[STKALIGN] */
 
+#define INIT_IRQFLAG(flag)	((flag) = 0)
+
 #define EXC_RETURN_MSPH	0xfffffff1	/* return to HANDLER mode using MSP */
 #define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
 #define EXC_RETURN_PSPT	0xfffffffd	/* return to THREAD  mode using PSP */
@@ -31,7 +33,7 @@
 			"mrs	r12, psp	\n\t"	\
 			"stmdb	r12!, {r4-r11}	\n\t"	\
 			"mov	%0, r12		\n\t"	\
-			: "=&r"(task->stack.sp)		\
+			: "=&r"(task->mm.sp)		\
 			:: "memory")
 
 #define context_restore(task)				\
@@ -45,10 +47,10 @@
 			"movne	r3, #2		\n\t"	\
 			"msr	control, r3	\n\t"	\
 			"msr	msp, %3		\n\t"	\
-			:: "r"(task->stack.sp),		\
-			   "r"(get_task_state(task)),	\
+			:: "r"(task->mm.sp),		\
+			   "r"(get_task_type(task)),	\
 			   "I"(TASK_KERNEL),		\
-			   "r"(task->stack.kernel)	\
+			   "r"(task->mm.kernel)		\
 			: "memory")
 
 void sys_schedule();
@@ -56,6 +58,7 @@ void sys_schedule();
 #include <kernel/task.h>
 
 extern inline void set_task_context(struct task_t *p);
-extern inline void set_task_context_core(struct task_t *p);
+extern inline void set_task_context_soft(struct task_t *p);
+extern inline void set_task_context_hard(struct task_t *p);
 
 #endif /* __CONTEXT_H__ */

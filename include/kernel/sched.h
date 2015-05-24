@@ -3,6 +3,14 @@
 
 #include <types.h>
 
+struct sched_entity {
+	uint64_t vruntime;
+	uint64_t exec_start;
+	uint64_t sum_exec_runtime;
+} __attribute__((packed));
+
+#define INIT_SCHED_ENTITY(name)	((name) = (struct sched_entity){ 0, 0, 0 })
+
 struct sched_t {
 	int nr_running;
 	int pri;
@@ -15,25 +23,23 @@ void scheduler_init();
 
 inline void update_curr();
 
-#include <foundation.h>
-#include <asm/context.h>
-
 #define schedule_prepare() { \
-	irq_save(current->primask); \
+	irq_save(current->irqflag); \
 	local_irq_disable(); \
 	context_save(current); \
 }
 #define schedule_finish() { \
 	context_restore(current); \
-	irq_restore(current->primask); \
+	irq_restore(current->irqflag); \
 }
 
 void schedule_core();
 
 #ifdef CONFIG_SYSCALL
-#include <syscall.h>
+#include <kernel/syscall.h>
 #define schedule()	syscall(SYSCALL_SCHEDULE)
 #else
+#include <asm/context.h>
 #define schedule()	sys_schedule()
 #endif
 
@@ -42,8 +48,7 @@ void schedule_core();
 #define schedule_on()	systick_on()
 #define schedule_off()	systick_off()
 
-#include <kernel/task.h>
-
+struct task_t;
 extern inline void runqueue_add(struct task_t *new);
 
 #include <kernel/cfs.h>

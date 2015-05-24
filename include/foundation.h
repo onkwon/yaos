@@ -4,8 +4,7 @@
 #define HZ			50
 
 #include <types.h>
-#include <lock.h>
-#include <timer.h>
+#include <error.h>
 
 /* hard coded delay functions, machine dependant */
 extern inline void udelay(unsigned us);
@@ -13,7 +12,7 @@ extern inline void udelay(unsigned us);
 #define sdelay(sec)		mdelay((sec) * 1000)
 
 #include <io.h>
-
-#include <error.h>
+#include <kernel/lock.h>
+#include <time.h>
 
 #endif /* __FOUNDATION_H__ */

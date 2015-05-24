@@ -1,4 +1,5 @@
-#include <foundation.h>
+#include <types.h>
+#include <kernel/lock.h>
 
 volatile unsigned long __attribute__((section(".data"))) jiffies;
 uint64_t __attribute__((section(".data"))) jiffies_64;

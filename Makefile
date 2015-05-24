@@ -76,6 +76,7 @@ $(SUBDIRS):
 include:
 	cp -R mach/$(MACH)/include include/asm
 	cp -R drivers/include include/driver
+	cp -R lib/include include/lib
 
 .c.o:
 	$(CC) -c $< $(CFLAGS) $(INC) $(LIBS)

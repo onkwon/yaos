@@ -1,5 +1,5 @@
 #include <foundation.h>
-#include <stdlib.h>
+#include <kernel/page.h>
 
 #include <io.h>
 
@@ -26,17 +26,18 @@ unsigned int ir_get_nec(const unsigned int *buf)
 	return val;
 }
 
+#include <kernel/task.h>
+
 static void test_ir()
 {
 	/* alloc kernel stack for test */
 	set_task_state(current, TASK_KERNEL | TASK_RUNNING);
 	schedule();
 
-	unsigned long *kstack = (unsigned long *)
-		kmalloc(KERNEL_STACK_SIZE * sizeof(long));
-	current->stack.kernel = &kstack[KERNEL_STACK_SIZE-1];
+	unsigned int *kstack = (unsigned int *)kmalloc(KERNEL_STACK_SIZE);
+	current->mm.kernel = &kstack[KERNEL_STACK_SIZE / sizeof(int) - 1];
 	printk("kernel stack 0x%08x - 0x%08x\n",
-			kstack, (unsigned long)&current->stack.kernel[1] - 1);
+			kstack, (unsigned int)&current->mm.kernel[1] - 1);
 
 	reset_task_state(current, TASK_KERNEL);
 	schedule();

@@ -1,7 +1,7 @@
-#include <foundation.h>
-#include <stdlib.h>
-#include <module.h>
+#include <kernel/module.h>
+#include <kernel/page.h>
 #include <asm/usart.h>
+#include <error.h>
 
 #define BUF_SIZE	PAGE_SIZE
 
@@ -25,11 +25,11 @@ static size_t usart_read(int id, void *buf, size_t size)
 {
 	int data;
 	char *c = (char *)buf;
-	unsigned long irq_flag;
+	unsigned long irqflag;
 
-	spin_lock_irqsave(rx_lock, irq_flag);
+	spin_lock_irqsave(rx_lock, irqflag);
 	data = fifo_get(&rxq, 1);
-	spin_unlock_irqrestore(rx_lock, irq_flag);
+	spin_unlock_irqrestore(rx_lock, irqflag);
 
 	if (data == -1)
 		return 0;
@@ -44,12 +44,12 @@ static size_t usart_write_int(int id, void *buf, size_t size)
 {
 	char c = *(char *)buf;
 
-	unsigned long irq_flag;
+	unsigned long irqflag;
 	int err;
 
-	spin_lock_irqsave(tx_lock, irq_flag);
+	spin_lock_irqsave(tx_lock, irqflag);
 	err = fifo_put(&txq, c, 1);
-	spin_unlock_irqrestore(tx_lock, irq_flag);
+	spin_unlock_irqrestore(tx_lock, irqflag);
 
 	__usart_tx_irq_raise();
 
@@ -70,14 +70,14 @@ static size_t usart_write_polling(int id, void *buf, size_t size)
 static void isr_usart()
 {
 	int c;
-	unsigned long irq_flag;
+	unsigned long irqflag;
 
 	if (__usart_check_rx()) {
 		c = __usart_getc();
 
-		spin_lock_irqsave(rx_lock, irq_flag);
+		spin_lock_irqsave(rx_lock, irqflag);
 		c = fifo_put(&rxq, c, 1);
-		spin_unlock_irqrestore(rx_lock, irq_flag);
+		spin_unlock_irqrestore(rx_lock, irqflag);
 
 		if (c == -1) {
 			/* overflow */
@@ -85,9 +85,9 @@ static void isr_usart()
 	}
 
 	if (__usart_check_tx()) {
-		spin_lock_irqsave(tx_lock, irq_flag);
+		spin_lock_irqsave(tx_lock, irqflag);
 		c = fifo_get(&txq, 1);
-		spin_unlock_irqrestore(tx_lock, irq_flag);
+		spin_unlock_irqrestore(tx_lock, irqflag);
 
 		if (c == -1)
 			__usart_tx_irq_reset();
@@ -110,7 +110,7 @@ static int usart_open(int id, int mode)
 					return -ERR_ALLOC;
 
 				fifo_init(&rxq, buf, BUF_SIZE);
-				spinlock_init(rx_lock);
+				INIT_SPINLOCK(rx_lock);
 			}
 
 			if (mode & O_WRONLY) {
@@ -118,7 +118,7 @@ static int usart_open(int id, int mode)
 					return -ERR_ALLOC;
 
 				fifo_init(&txq, buf, BUF_SIZE);
-				spinlock_init(tx_lock);
+				INIT_SPINLOCK(tx_lock);
 			}
 
 			if (mode & O_NONBLOCK)
@@ -159,11 +159,11 @@ static int kbhit()
 
 static void fflush()
 {
-	unsigned long irq_flag;
+	unsigned long irqflag;
 
-	spin_lock_irqsave(rx_lock, irq_flag);
+	spin_lock_irqsave(rx_lock, irqflag);
 	fifo_flush(&rxq);
-	spin_unlock_irqrestore(rx_lock, irq_flag);
+	spin_unlock_irqrestore(rx_lock, irqflag);
 }
 */
 

@@ -1,6 +1,9 @@
 #include <foundation.h>
 #include <kernel/sched.h>
-#include <stdlib.h>
+#include <kernel/task.h>
+#include <kernel/page.h>
+#include <kernel/module.h>
+#include <lib/firstfit.h>
 
 static void rt_task1()
 {
@@ -9,7 +12,7 @@ static void rt_task1()
 #ifdef CONFIG_PAGING
 	show_buddy(NULL);
 #endif
-	show_freelist(current->stack.heap);
+	show_freelist(current->mm.heap);
 	display_devtab();
 		sleep(3);
 		printf("REALTIME END\n");
@@ -17,4 +20,4 @@ static void rt_task1()
 		schedule();
 	}
 }
-REGISTER_TASK(rt_task1, DEFAULT_STACK_SIZE, RT_LEAST_PRIORITY);
+REGISTER_TASK(rt_task1, TASK_USER, RT_LEAST_PRIORITY);

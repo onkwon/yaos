@@ -1,8 +1,7 @@
-#include <foundation.h>
+#include <shell.h>
 #include <string.h>
 #include <stdlib.h>
-#include "shell.h"
-#include <kernel/task.h>
+#include <foundation.h>
 
 #define MAXLEN		128
 #define MAXARG		10
@@ -54,6 +53,8 @@ static int getcmd(char *s, char **argv)
 	return i;
 }
 
+#include <kernel/task.h>
+
 void shell()
 {
 	int argc;
@@ -88,4 +89,4 @@ void shell()
 
 	free(argv);
 }
-REGISTER_TASK(shell, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
+REGISTER_TASK(shell, 0, DEFAULT_PRIORITY);

@@ -1,5 +1,5 @@
-#ifndef __TIMER_H__
-#define __TIMER_H__
+#ifndef __TIME_H__
+#define __TIME_H__
 
 #include <kernel/jiffies.h>
 
@@ -9,4 +9,4 @@ extern inline void msleep(unsigned long ms);
 extern inline unsigned long set_timeout(unsigned long ms);
 extern inline int is_timeout(unsigned long goal);
 
-#endif /* __TIMER_H__ */
+#endif /* __TIME_H__ */

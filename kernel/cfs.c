@@ -1,7 +1,8 @@
 #include <kernel/cfs.h>
+#include <kernel/task.h>
 
 /* runqueue's head can be init task. thnik about it */
-LIST_HEAD(cfs_rq);
+DEFINE_LIST_HEAD(cfs_rq);
 
 struct task_t *cfs_pick_next(struct sched_t *cfs)
 {

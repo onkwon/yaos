@@ -1,8 +1,9 @@
 #include <foundation.h>
-#include "shell.h"
+#include <shell.h>
 
 #include <string.h>
 #include <kernel/sched.h>
+#include <kernel/task.h>
 
 static int run(int argc, char **argv)
 {

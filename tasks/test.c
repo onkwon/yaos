@@ -27,4 +27,4 @@ static void test_task()
 		sleep(1);
 	}
 }
-REGISTER_TASK(test_task, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
+REGISTER_TASK(test_task, 0, DEFAULT_PRIORITY);
