@@ -10,11 +10,11 @@
 #define PAGE_SHIFT		12
 #endif
 #define PAGE_SIZE		(1UL << PAGE_SHIFT)
-#define PAGE_NR(x)		((unsigned long)(x) >> PAGE_SHIFT)
+#define PAGE_NR(x)		((unsigned int)(x) >> PAGE_SHIFT)
 #define PAGE_INDEX(x)		\
-	(PAGE_NR((unsigned long)(x) - (unsigned long)mem_map->addr))
+	(PAGE_NR((unsigned int)(x) - (unsigned int)mem_map->addr))
 #define ALIGN_PAGE(x)		\
-	( ((unsigned long)(x) + PAGE_SIZE-1) & ~(PAGE_SIZE-1) )
+	( ((unsigned int)(x) + PAGE_SIZE-1) & ~(PAGE_SIZE-1) )
 
 #define PAGE_FLAG_BIT		0
 #define PAGE_ORDER_BIT		12
@@ -31,7 +31,7 @@
 #define RESET_PAGE_FLAG(p, bit)	((p)->flags &= ~PAGE_FLAG_POS(bit))
 
 struct page_t {
-	unsigned long flags;
+	unsigned int flags;
 	void *addr;
 	struct list_t link;
 } __attribute__((packed));
@@ -41,7 +41,7 @@ struct page_t {
 #define SET_PAGE_ORDER(p, n)	\
 	((p)->flags = ((p)->flags & ~PAGE_ORDER_MASK) | (n << PAGE_ORDER_BIT))
 
-void *kmalloc(unsigned long size);
+void *kmalloc(size_t size);
 void kfree(void *addr);
 
 void mm_init();

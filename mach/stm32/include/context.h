@@ -4,7 +4,7 @@
 #define NR_CONTEXT_SOFT		8
 #define NR_CONTEXT_HARD		8
 #define NR_CONTEXT		(NR_CONTEXT_HARD + NR_CONTEXT_SOFT)
-#define CONTEXT_SIZE		(NR_CONTEXT * sizeof(long))
+#define CONTEXT_SIZE		(NR_CONTEXT * sizeof(int))
 /* depending on SCB_CCR[STKALIGN] */
 
 #define INIT_IRQFLAG(flag)	((flag) = 0)

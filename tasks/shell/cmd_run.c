@@ -11,7 +11,7 @@ static int run(int argc, char **argv)
 		return -1;
 
 	struct task_t *p;
-	unsigned long addr = atoi(argv[1]);
+	unsigned int addr = atoi(argv[1]);
 
 	p = find_task(addr, &init);
 
@@ -34,7 +34,7 @@ static int stop(int argc, char **argv)
 		return -1;
 
 	struct task_t *p;
-	unsigned long addr = atoi(argv[1]);
+	unsigned int addr = atoi(argv[1]);
 
 	p = find_task(addr, &init);
 

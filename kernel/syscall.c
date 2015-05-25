@@ -55,7 +55,7 @@ int sys_test(int a, int b, int c)
 
 #include <kernel/page.h>
 
-void *sys_brk(unsigned long size)
+void *sys_brk(size_t size)
 {
 	return kmalloc(size);
 }

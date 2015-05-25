@@ -1,30 +1,30 @@
 #include <foundation.h>
 #include <kernel/jiffies.h>
 
-void sleep(unsigned long sec)
+void sleep(unsigned int sec)
 {
-	unsigned long timeout = jiffies + sec_to_jiffies(sec);
+	unsigned int timeout = jiffies + sec_to_jiffies(sec);
 
 	while (time_before(timeout, jiffies)) {
 		/* sleep. Implement cascaded timer wheel */
 	}
 }
 
-void msleep(unsigned long ms)
+void msleep(unsigned int ms)
 {
-	unsigned long timeout = jiffies + msec_to_jiffies(ms);
+	unsigned int timeout = jiffies + msec_to_jiffies(ms);
 
 	while (time_before(timeout, jiffies)) {
 		/* sleep. Implement cascaded timer wheel */
 	}
 }
 
-unsigned long set_timeout(unsigned long ms)
+unsigned int set_timeout(unsigned int ms)
 {
 	return jiffies + msec_to_jiffies(ms);
 }
 
-int is_timeout(unsigned long goal)
+int is_timeout(unsigned int goal)
 {
 	if (time_after(goal, jiffies))
 		return 1;

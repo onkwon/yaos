@@ -1,5 +1,6 @@
 #include <kernel/sched.h>
 #include <kernel/task.h>
+#include <kernel/jiffies.h>
 
 static struct sched_t cfs;
 #ifdef CONFIG_REALTIME

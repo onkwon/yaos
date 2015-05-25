@@ -13,11 +13,11 @@
 #define DISABLE				0
 
 typedef enum {FALSE = 0, TRUE = 1} bool;
-typedef unsigned long size_t;
+typedef unsigned int size_t;
 typedef unsigned long long uint64_t;
 
 #define ALIGN_WORD(x) \
-	( ((unsigned long)(x) + sizeof(long)-1) & ~(sizeof(long)-1) )
+	( ((unsigned int)(x) + sizeof(int)-1) & ~(sizeof(int)-1) )
 
 #define get_container_of(ptr, type, member) \
 		((type *)((char *)ptr - (char *)&((type *)0)->member))
@@ -58,12 +58,12 @@ static inline int list_empty(const struct list_t *head)
 
 /* fifo */
 struct fifo_t {
-	unsigned int size;
+	size_t size;
 	unsigned int front, rear;
 	void *buf;
 };
 
-extern inline void fifo_init(struct fifo_t *q, void *queue, unsigned size);
+extern inline void fifo_init(struct fifo_t *q, void *queue, size_t size);
 extern inline int  fifo_get(struct fifo_t *q, int type_size);
 extern inline int  fifo_put(struct fifo_t *q, int value, int type_size);
 extern inline void fifo_flush(struct fifo_t *q);

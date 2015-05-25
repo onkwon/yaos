@@ -5,13 +5,13 @@
 
 struct ff_freelist_t {
 	void *addr;
-	unsigned long size;
+	size_t size;
 	struct list_t list;
 };
 
 struct ff_freelist_t *ff_freelist_init(void *start, void *end);
 
-void *ff_alloc(void *freelist, unsigned long size);
+void *ff_alloc(void *freelist, size_t size);
 void ff_free(void *freelist, void *addr);
 
 #ifdef CONFIG_DEBUG

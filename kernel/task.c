@@ -78,11 +78,11 @@ void kill(struct task_t *task)
 {
 }
 
-struct task_t *find_task(unsigned long id, struct task_t *head)
+struct task_t *find_task(unsigned int id, struct task_t *head)
 {
 	struct task_t *next, *p;
 
-	if ((unsigned long)head->addr == id)
+	if ((unsigned int)head->addr == id)
 		return head;
 
 	if (list_empty(&head->children))

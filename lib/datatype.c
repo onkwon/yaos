@@ -2,7 +2,7 @@
 
 /* fifo */
 
-void fifo_init(struct fifo_t *q, void *queue, unsigned size)
+void fifo_init(struct fifo_t *q, void *queue, size_t size)
 {
 	q->size  = size;
 	q->buf   = queue;

@@ -25,7 +25,7 @@ static size_t usart_read(int id, void *buf, size_t size)
 {
 	int data;
 	char *c = (char *)buf;
-	unsigned long irqflag;
+	unsigned int irqflag;
 
 	spin_lock_irqsave(rx_lock, irqflag);
 	data = fifo_get(&rxq, 1);
@@ -44,7 +44,7 @@ static size_t usart_write_int(int id, void *buf, size_t size)
 {
 	char c = *(char *)buf;
 
-	unsigned long irqflag;
+	unsigned int irqflag;
 	int err;
 
 	spin_lock_irqsave(tx_lock, irqflag);
@@ -70,7 +70,7 @@ static size_t usart_write_polling(int id, void *buf, size_t size)
 static void isr_usart()
 {
 	int c;
-	unsigned long irqflag;
+	unsigned int irqflag;
 
 	if (__usart_check_rx()) {
 		c = __usart_getc();
@@ -159,7 +159,7 @@ static int kbhit()
 
 static void fflush()
 {
-	unsigned long irqflag;
+	unsigned int irqflag;
 
 	spin_lock_irqsave(rx_lock, irqflag);
 	fifo_flush(&rxq);

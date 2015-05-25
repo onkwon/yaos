@@ -1,14 +1,17 @@
 #ifndef __JIFFIES_H__
 #define __JIFFIES_H__
 
-#define time_after(goal, chasing)	((long)goal    - (long)chasing < 0)
-#define time_before(goal, chasing)	((long)chasing - (long)goal    < 0)
+#define time_after(goal, chasing)	((int)goal    - (int)chasing < 0)
+#define time_before(goal, chasing)	((int)chasing - (int)goal    < 0)
 
 #define sec_to_jiffies(sec)	((sec) * HZ)
 #define msec_to_jiffies(sec)	(sec_to_jiffies(sec) / 1000)
 
-extern volatile unsigned long __attribute__((section(".data"))) jiffies;
+extern volatile unsigned int __attribute__((section(".data"))) jiffies;
 
 unsigned long long get_jiffies_64();
+
+extern inline unsigned long long get_jiffies_64_core();
+extern inline void update_tick(unsigned delta);
 
 #endif /* __JIFFIES_H__ */

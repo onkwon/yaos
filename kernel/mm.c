@@ -9,10 +9,10 @@ struct page_t *mem_map;
 
 extern struct buddypool_t buddypool;
 
-void *kmalloc(unsigned long size)
+void *kmalloc(size_t size)
 {
 	struct page_t *page;
-	unsigned long irqflag;
+	unsigned int irqflag;
 
 	spin_lock_irqsave(buddypool.lock, irqflag);
 	page = alloc_pages(&buddypool,
@@ -29,8 +29,8 @@ void kfree(void *addr)
 {
 	struct page_t *page;
 	struct buddypool_t *pool = &buddypool;
-	unsigned long index;
-	unsigned long irqflag;
+	unsigned int index;
+	unsigned int irqflag;
 
 	if (!addr) return;
 
@@ -67,10 +67,10 @@ void __init free_bootmem()
 static struct ff_freelist_t *mem_map;
 static spinlock_t mem_lock;
 
-void *kmalloc(unsigned long size)
+void *kmalloc(size_t size)
 {
 	void *p;
-	unsigned long irqflag;
+	unsigned int irqflag;
 
 	spin_lock_irqsave(mem_lock, irqflag);
 	p = ff_alloc(&mem_map, size);
@@ -81,7 +81,7 @@ void *kmalloc(unsigned long size)
 
 void kfree(void *addr)
 {
-	unsigned long irqflag;
+	unsigned int irqflag;
 
 	spin_lock_irqsave(mem_lock, irqflag);
 	ff_free(&mem_map, addr);
@@ -92,7 +92,7 @@ void __init free_bootmem()
 {
 	struct ff_freelist_t *p;
 
-	p = (void *)ALIGN_WORD((unsigned long)&_mem_end -
+	p = (void *)ALIGN_WORD((unsigned int)&_mem_end -
 			(STACK_SIZE + sizeof(struct ff_freelist_t)));
 
 	kfree(p->addr);
@@ -101,10 +101,10 @@ void __init free_bootmem()
 
 void mm_init()
 {
-	unsigned long start = ALIGN_WORD(&_mem_start);
-	unsigned long end   = (unsigned long)&_mem_end;
+	unsigned int start = ALIGN_WORD(&_mem_start);
+	unsigned int end   = (unsigned int)&_mem_end;
 #ifdef CONFIG_PAGING
-	unsigned long nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
+	unsigned int nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
 
 	extern struct page_t *mem_map;
 	extern struct buddypool_t buddypool;
@@ -131,14 +131,14 @@ void mm_init()
 	/* preserve initial kernel stack to be free later */
 	p = (struct ff_freelist_t *)ALIGN_WORD(end -
 			(STACK_SIZE + sizeof(struct ff_freelist_t)));
-	p->addr = (void *)((unsigned long)p + sizeof(struct ff_freelist_t));
+	p->addr = (void *)((unsigned int)p + sizeof(struct ff_freelist_t));
 	p->size = ALIGN_WORD(STACK_SIZE);
 
 	/* mark kernel .data and .bss sections as used */
 	mem_map = (struct ff_freelist_t *)&_ebss;
-	mem_map->size = (unsigned long)p -
-		((unsigned long)&_ebss + sizeof(struct ff_freelist_t));
-	mem_map->addr = (void *)((unsigned long)mem_map +
+	mem_map->size = (unsigned int)p -
+		((unsigned int)&_ebss + sizeof(struct ff_freelist_t));
+	mem_map->addr = (void *)((unsigned int)mem_map +
 			sizeof(struct ff_freelist_t));
 	list_link_init(&mem_map->list);
 

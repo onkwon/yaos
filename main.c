@@ -95,7 +95,7 @@ static void __init init_task()
 static void sys_init()
 {
 	extern char _init_func_list;
-	unsigned long *p = (unsigned long *)&_init_func_list;
+	unsigned int *p = (unsigned int *)&_init_func_list;
 
 	while (*p)
 		((void (*)())*p++)();

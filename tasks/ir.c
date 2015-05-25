@@ -45,7 +45,7 @@ static void test_ir()
 	/* Make a way of killing a task, releasing all the resource used */
 
 	unsigned int buf[80], i = 0;
-	unsigned long timeout = set_timeout(1000);
+	unsigned int timeout = set_timeout(1000);
 	while (1) {
 		//buf[i] = fifo_get(&ir_buf, sizeof(int));
 		if (buf[i] != -1) {

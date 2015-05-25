@@ -6,10 +6,10 @@ struct buddypool_t buddypool;
 extern struct page_t *mem_map;
 
 #define BITMAP_POS(bitmap, pfn, order) \
-	/* (bitmap + ((pfn >> order) / (sizeof(long)*8) / 2)) */ \
+	/* (bitmap + ((pfn >> order) / (sizeof(int)*8) / 2)) */ \
 	(bitmap + (pfn >> (order + 5 + 1)))
 #define BITMAP_OFFSET(pfn, order) \
-	(1 << ((pfn >> (order+1)) & (sizeof(long)*8-1)))
+	(1 << ((pfn >> (order+1)) & (sizeof(int)*8-1)))
 #define BITMAP_TOGGLE(bitmap, pfn, order) \
 	(*BITMAP_POS(bitmap, pfn, order) ^= BITMAP_OFFSET(pfn, order))
 #define BITMAP_MASK(bitmap, pfn, order) \
@@ -19,7 +19,7 @@ void free_pages(struct buddypool_t *pool, struct page_t *page)
 {
 	struct page_t *buddy;
 	struct buddy_freelist_t *freelist;
-	unsigned long order, index;
+	unsigned int order, index;
 
 	order    = GET_PAGE_ORDER(page);
 	freelist = &pool->free[order];
@@ -52,12 +52,12 @@ void free_pages(struct buddypool_t *pool, struct page_t *page)
 	RESET_PAGE_FLAG(page, PAGE_BUDDY);
 }
 
-struct page_t *alloc_pages(struct buddypool_t *pool, unsigned long order)
+struct page_t *alloc_pages(struct buddypool_t *pool, unsigned int order)
 {
 	struct buddy_freelist_t *freelist = &pool->free[order];
 	struct list_t *head, *curr;
 	struct page_t *page;
-	unsigned long i;
+	unsigned int i;
 
 	for (i = order; i < BUDDY_MAX_ORDER; i++, freelist++) {
 		head = &freelist->list;
@@ -98,9 +98,10 @@ struct page_t *alloc_pages(struct buddypool_t *pool, unsigned long order)
 #include <kernel/task.h>
 
 static void buddy_freelist_init(struct buddypool_t *pool,
-		unsigned long nr_pages, struct page_t *array)
+		unsigned int nr_pages, struct page_t *array)
 {
-	unsigned long size, offset;
+	size_t size;
+	unsigned int offset;
 	int i;
 
 	/* bitmap initialization */
@@ -108,10 +109,10 @@ static void buddy_freelist_init(struct buddypool_t *pool,
 	size   = ALIGN_WORD(nr_pages) >> 4; /* nr_pages / 8-bit / 2 */
 	size   = ALIGN_WORD(size);
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		if (size < sizeof(long))
-			size = sizeof(long);
+		if (size < sizeof(int))
+			size = sizeof(int);
 
-		pool->free[i].bitmap = (unsigned long *) 
+		pool->free[i].bitmap = (unsigned int *)
 				(((char *)&array[nr_pages]) + offset);
 		memset(pool->free[i].bitmap, 0, size);
 		list_link_init(&pool->free[i].list);
@@ -125,7 +126,7 @@ static void buddy_freelist_init(struct buddypool_t *pool,
 
 	/* buddy list initialization */
 	struct buddy_freelist_t *freelist;
-	unsigned long order, index, next;
+	unsigned int order, index, next;
 
 	/* preserve initial kernel stack to be free later */
 	nr_pages -= ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT;
@@ -143,7 +144,7 @@ static void buddy_freelist_init(struct buddypool_t *pool,
 		next = index + size;
 
 		/* split in half if short for current order region */
-		while ((long)(nr_pages - next) < 0) {
+		while ((int)(nr_pages - next) < 0) {
 			if (order == 0)
 				goto freelist_done;
 
@@ -164,7 +165,7 @@ freelist_done:
 	return;
 }
 
-void buddy_init(struct buddypool_t *pool, unsigned long nr_pages,
+void buddy_init(struct buddypool_t *pool, unsigned int nr_pages,
 		struct page_t *array)
 {
 	buddy_freelist_init(pool, nr_pages, array);
@@ -178,7 +179,8 @@ void show_buddy(void *zone)
 {
 	struct page_t *page;
 	struct list_t *p;
-	int i, j, size;
+	size_t size;
+	int i, j;
 
 	struct buddypool_t *pool = (struct buddypool_t *)zone;
 
@@ -200,8 +202,8 @@ void show_buddy(void *zone)
 				pool->free[i].bitmap);
 		size = ALIGN_WORD(pool->nr_pages) >> (4 + i);
 		size = ALIGN_WORD(size);
-		size = size? size : sizeof(long);
-		size /= sizeof(long);
+		size = size? size : sizeof(int);
+		size /= sizeof(int);
 		for (j = size; j; j--) {
 			printk("%08x ", *(pool->free[i].bitmap + j - 1));
 			if (!((size-j+1) % 8))

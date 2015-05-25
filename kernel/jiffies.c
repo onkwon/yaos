@@ -1,12 +1,12 @@
 #include <types.h>
 #include <kernel/lock.h>
 
-volatile unsigned long __attribute__((section(".data"))) jiffies;
+volatile unsigned int __attribute__((section(".data"))) jiffies;
 uint64_t __attribute__((section(".data"))) jiffies_64;
 
 DEFINE_SPINLOCK(lock_jiffies);
 
-inline unsigned long long get_jiffies_64_core()
+unsigned long long get_jiffies_64_core()
 {
 	return jiffies_64;
 }
@@ -23,7 +23,7 @@ unsigned long long get_jiffies_64()
 	return stamp;
 }
 
-inline void update_tick(unsigned delta)
+void update_tick(unsigned delta)
 {
 	/* In multi processor system, jiffies_64 is global, meaning it is
 	 * accessed by all processors while others related to a scheduler

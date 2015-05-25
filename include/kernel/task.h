@@ -81,7 +81,7 @@ struct task_t {
 	 * the start address as it is used for sanity check in initialization */
 	unsigned int state;	/* inclusive of priority */
 	void *addr;		/* address */
-	unsigned long irqflag;
+	unsigned int irqflag;
 
 	struct mm_t mm;
 
@@ -109,6 +109,6 @@ void kill(struct task_t *task);
 void set_task_dressed(struct task_t *task, unsigned int flags, void *addr);
 int alloc_mm(struct task_t *p, void *ref, int option);
 
-struct task_t *find_task(unsigned long id, struct task_t *head);
+struct task_t *find_task(unsigned int id, struct task_t *head);
 
 #endif /* __TASK_H__ */

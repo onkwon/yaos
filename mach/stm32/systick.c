@@ -1,5 +1,6 @@
 #include <foundation.h>
 #include <kernel/sched.h>
+#include <kernel/jiffies.h>
 #include <clock.h>
 
 static void isr_systick()
