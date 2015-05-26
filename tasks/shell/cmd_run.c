@@ -43,7 +43,7 @@ static int stop(int argc, char **argv)
 		return -1;
 	}
 
-	reset_task_state(p, TASK_RUNNING);
+	set_task_state(p, TASK_STOPPED);
 
 	return 0;
 }

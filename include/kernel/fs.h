@@ -43,7 +43,7 @@ struct superblock_t {
 
 	struct list_t list;
 
-	spinlock_t lock;
+	lock_t lock;
 };
 
 struct inode_t {

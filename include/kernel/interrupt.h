@@ -9,9 +9,15 @@
 #define sei()				__sei()
 #define local_irq_disable()		cli()
 #define local_irq_enable()		sei()
+
+#define preempt_disable()
+#define preempt_enable()
+#define preempt_count()
+
 #define dmb()				__dmb()
 #define dsb()				__dsb()
 #define isb()				__isb()
+
 #define register_isr(nirq, func)	__register_isr(nirq, func)
 
 #define set_user_sp(sp)			__setusp(sp)

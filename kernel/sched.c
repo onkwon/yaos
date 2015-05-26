@@ -1,11 +1,22 @@
 #include <kernel/sched.h>
 #include <kernel/task.h>
 #include <kernel/jiffies.h>
+#include <kernel/softirq.h>
 
 static struct sched_t cfs;
 #ifdef CONFIG_REALTIME
 static struct sched_t rts;
 #endif
+
+static inline void runqueue_add_core(struct task_t *new)
+{
+	if (is_realtime(new)) {
+#ifdef CONFIG_REALTIME
+		rts_rq_add(&rts, new);
+#endif
+	} else
+		cfs_rq_add(&cfs, new);
+}
 
 /* As each processor has its own scheduler and it runs in an interrupt context,
  * we are rid of concern about synchronization. */
@@ -14,34 +25,35 @@ void schedule_core()
 {
 	struct task_t *next;
 
-#ifdef CONFIG_REALTIME
-	/* Real time scheduler */
+	if (softirq.pending) {
+		if (get_task_state(softirqd) && (current != softirqd)) {
+			set_task_pri(softirqd, get_task_pri(current));
+			set_task_state(softirqd, TASK_RUNNING);
+			runqueue_add_core(softirqd);
+		}
+	}
 
+#ifdef CONFIG_REALTIME
 	if (rts.nr_running) {
 		/* rq_add() and rq_del() of real time scheduler must keep
 		 * the highest priority amongst tasks in `pri` variable.
 		 * `pri` has the least priority when no task in runqueue. */
-		if ( !is_task_realtime(current) ||
-				(rts.pri <= get_task_priority(current)) ) {
+		if ( !is_realtime(current) ||
+				(rts.pri <= get_task_pri(current)) ) {
 rts_next:
 			next = rts_pick_next(&rts);
-
-			if (!is_task_realtime(current))
-				cfs_rq_add(&cfs, current);
-			else
-				rts_rq_add(&rts, current);
-
+			runqueue_add_core(current);
 			current = next;
-
 			rts_rq_del(&rts, next);
 
 			/* count 1 for `current` */
-			rts.nr_running++;
+			if (!rts.nr_running)
+				rts.nr_running = 1;
 		}
 
-		/* If not runnable, it means the last real time task finished
-		 * or went to sleep. */
-		if (get_task_state(current) & TASK_RUNNING)
+		/* If not runnable when nr_running is 1,
+		 * it means no real task to run */
+		if (!get_task_state(current))
 			goto adjust_vruntime;
 		else if (rts.nr_running > 1)
 			goto rts_next;
@@ -51,11 +63,10 @@ rts_next:
 	}
 #endif
 
-	/* Completely fair scheduler */
-
 	if (!(next = cfs_pick_next(&cfs))) {
-		if (!(get_task_state(current) & TASK_RUNNING)) {
+		if (get_task_state(current)) {
 			/* no task to schedule. wake the init task up */
+			set_task_state(&init, TASK_RUNNING);
 			current = &init;
 		}
 		goto adjust_vruntime;
@@ -78,7 +89,7 @@ adjust_vruntime:
 /* Calling update_curr() as soon as the system timer interrupt occurs would be
  * the best chance other than elsewhere not to count scheduling overhead but to
  * count only its running time, as long as jiffies gets updated asynchronous. */
-void update_curr()
+void inline update_curr()
 {
 	uint64_t clock = get_jiffies_64_core();
 	unsigned delta_exec;
@@ -88,7 +99,7 @@ void update_curr()
 	current->se.sum_exec_runtime += delta_exec;
 	current->se.exec_start = clock;
 
-	if (is_task_realtime(current))
+	if (is_realtime(current))
 		return;
 
 	struct task_t *task;
@@ -105,17 +116,14 @@ void update_curr()
 	}
 }
 
-void runqueue_add(struct task_t *new)
+void inline runqueue_add(struct task_t *new)
 {
-	if (is_task_realtime(new)) { /* a real time task */
-#ifdef CONFIG_REALTIME
-		rts_rq_add(&rts, new);
-#endif
-	} else /* a normal task */
-		cfs_rq_add(&cfs, new);
+	runqueue_add_core(new);
 }
 
-void scheduler_init()
+#include <kernel/init.h>
+
+void __init scheduler_init()
 {
 	extern struct list_t cfs_rq;
 
@@ -153,8 +161,10 @@ void print_rq()
 	while (rq != cfs.rq) {
 		p = get_container_of(rq, struct task_t, rq);
 
-		printk("[%08x] state = %x, vruntime = %d, exec_runtime = %d (%d sec)\n",
-				p->addr, p->state, (unsigned)p->se.vruntime,
+		printk("[%08x] state = %x, type = %x, pri = %x, vruntime = %d"
+				"exec_runtime = %d (%d sec)\n",
+				p->addr, p->state, p->flags, p->pri,
+				(unsigned)p->se.vruntime,
 				(unsigned)p->se.sum_exec_runtime,
 				(unsigned)p->se.sum_exec_runtime / HZ);
 

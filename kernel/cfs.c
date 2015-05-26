@@ -16,7 +16,7 @@ struct task_t *cfs_pick_next(struct sched_t *cfs)
 
 void cfs_rq_add(struct sched_t *cfs, struct task_t *new)
 {
-	if ( !new || !(get_task_state(new) & TASK_RUNNING) )
+	if (!new || get_task_state(new))
 		return;
 
 	struct list_t *p, *rq_head;

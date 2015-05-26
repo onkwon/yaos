@@ -5,14 +5,15 @@
 #include <kernel/lock.h>
 
 struct waitqueue_head_t {
-	spinlock_t lock;
+	lock_t lock;
 	struct list_t list;
 };
 
-#define INIT_WAIT_HEAD(head) { \
-	INIT_SPINLOCK(head.lock); \
-	list_link_init(&head.list); \
-}
+#define DEFINE_WAIT_HEAD(name) \
+	struct waitqueue_head_t name = { \
+		.lock = UNLOCKED, \
+		.list = INIT_LIST_HEAD(name.list), \
+	}
 
 struct waitqueue_t {
 	struct task_t *task;
@@ -25,7 +26,7 @@ struct waitqueue_t {
 #define DEFINE_WAIT(name) \
 	struct waitqueue_t name = { \
 		.task = current, \
-		.link = INIT_LIST_HEAD((name).link), \
+		.link = INIT_LIST_HEAD(name.link), \
 	}
 
 extern inline void wq_wait(struct waitqueue_head_t *q, struct waitqueue_t *wait);

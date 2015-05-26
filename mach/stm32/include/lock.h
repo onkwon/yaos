@@ -1,8 +1,8 @@
 #ifndef __STM32_LOCK_H__
 #define __STM32_LOCK_H__
 
-/* The result is 0 if successful */
-static inline int set_atomic(int *p, int v)
+/* return 0 if success */
+static inline int atomic_set(int *p, int v)
 {
 	int result;
 
@@ -10,7 +10,8 @@ static inline int set_atomic(int *p, int v)
 			"ldrex	%1, [%0]	\n\t"
 			"strex	%1, %2, [%0]	\n\t"
 			: "+r"(p), "=&r"(result)
-			: "r"(v));
+			: "r"(v)
+			: "memory");
 
 	return result;
 }

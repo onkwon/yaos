@@ -20,39 +20,25 @@ struct mm_t {
 	unsigned int *kernel;	/* kernel stack */
 };
 
-/* task->state:
- *   31 ... 16 | 15 14 13 12 11 12 10 09 08 | 07 06 05 04 03 02 01 00
- *  -----------|----------------------------|-------------------------
- *   reserved  |          priority          |         state
- */
-#define TASK_STOPPED		0x01 /* state */
-#define TASK_RUNNING		0x02
-#define TASK_WAITING		0x04
-#define TASK_KERNEL		0x08 /* type */
+/* type */
 #define TASK_USER		0x00
+#define TASK_KERNEL		0x01
+
+#define set_task_type(p, v)	((p)->flags = v)
+#define get_task_type(p)	((p)->flags)
+
+/* state */
+#define TASK_RUNNING		0x00
+#define TASK_STOPPED		0x01
+#define TASK_WAITING		0x02
+#define TASK_SLEEPING		0x04
 #define TASK_REGISTERED		0x80
 
-#define TASK_STATE_BIT		0
-#define TASK_PRIORITY_BIT	8
-#define TASK_RSVD_BIT		16
+#define set_task_state(p, s)	((p)->state = s)
+#define get_task_state(p)	((p)->state)
 
-#define TASK_STATE_MASK		((1 << TASK_PRIORITY_BIT) - 1)
-#define TASK_PRIORITY_MASK	(((1 << TASK_RSVD_BIT) - 1) & ~TASK_STATE_MASK)
-
-#define TASK_STATE(s)		((s) << TASK_STATE_BIT)
-/* task type bit TASK_KERNEL must not be concerned with task state transition */
-#define set_task_state(p, s)	\
-	( ((struct task_t *)(p))->state = \
-	  (((struct task_t *)(p))->state & ~(TASK_STATE_MASK & ~TASK_KERNEL)) | \
-	  TASK_STATE(s) )
-#define reset_task_state(p, s)	\
-	( ((struct task_t *)(p))->state &= ~TASK_STATE(s) )
-#define get_task_state(p)	\
-	( (((struct task_t *)(p))->state & TASK_STATE_MASK) >> TASK_STATE_BIT )
-#define set_task_type(p, s)	set_task_state(p, s)
-#define get_task_type(p)	get_task_state(p)
-
-/* The lower number, the higher priority.
+/* priority */
+/* the lower number, the higher priority.
  *
  *  realtime |  normal
  * ----------|----------
@@ -63,24 +49,20 @@ struct mm_t {
 #define LEAST_PRIORITY		(RT_LEAST_PRIORITY + 245)
 #define DEFAULT_PRIORITY	(RT_LEAST_PRIORITY + 122)
 
-#define SET_PRIORITY(pri)	((pri) << TASK_PRIORITY_BIT)
-#define set_task_priority(p, s)	\
-	( ((struct task_t *)(p))->state = \
-	  (((struct task_t *)(p))->state & ~TASK_PRIORITY_MASK) | \
-	  SET_PRIORITY(s) )
-#define get_task_priority(p)	\
-	( (((struct task_t *)(p))->state & TASK_PRIORITY_MASK) >> \
-	  TASK_PRIORITY_BIT )
-#define is_task_realtime(p)	(get_task_priority(p) <= RT_LEAST_PRIORITY)
+#define set_task_pri(p, v)	((p)->pri = v)
+#define get_task_pri(p)		((p)->pri)
+#define is_realtime(p)		(get_task_pri(p) <= RT_LEAST_PRIORITY)
 
 #include <types.h>
 #include <kernel/sched.h>
 
 struct task_t {
-	/* `state` must be the first element in the structure, being located at
-	 * the start address as it is used for sanity check in initialization */
-	unsigned int state;	/* inclusive of priority */
-	void *addr;		/* address */
+	/* `state` must be the first element in the structure as it is used
+	 * for sanity check in initialization */
+	unsigned int state;
+	unsigned int flags;
+	unsigned int pri;
+	void *addr;
 	unsigned int irqflag;
 
 	struct mm_t mm;
@@ -89,16 +71,18 @@ struct task_t {
 	struct list_t children;
 	struct list_t sibling;
 
-	struct list_t rq;	/* runqueue linked list */
+	struct list_t rq;
 
 	struct sched_entity se;
 } __attribute__((packed));
 
-#define REGISTER_TASK(func, type, pri) \
+#define REGISTER_TASK(f, t, p) \
 	static struct task_t task_##func \
 	__attribute__((section(".user_task_list"), used)) = { \
-		.state = TASK_REGISTERED | type | SET_PRIORITY(pri), \
-		.addr  = func, \
+		.state = TASK_REGISTERED, \
+		.flags = t, \
+		.pri   = p, \
+		.addr  = f, \
 	}
 
 extern struct task_t *current;

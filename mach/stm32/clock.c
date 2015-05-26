@@ -102,7 +102,7 @@ unsigned int get_stkclk(unsigned int hclk)
 	return clk;
 }
 
-#include <init.h>
+#include <kernel/init.h>
 
 static void __init clock_init()
 {
@@ -133,5 +133,4 @@ static void __init clock_init()
 
 	//BITBAND(&RCC_CR, CSSON, ON);
 }
-
 REGISTER_INIT_FUNC(clock_init, 0);

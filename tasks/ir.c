@@ -31,7 +31,8 @@ unsigned int ir_get_nec(const unsigned int *buf)
 static void test_ir()
 {
 	/* alloc kernel stack for test */
-	set_task_state(current, TASK_KERNEL | TASK_RUNNING);
+	set_task_type(current, TASK_KERNEL);
+	set_task_state(current, TASK_RUNNING);
 	schedule();
 
 	unsigned int *kstack = (unsigned int *)kmalloc(KERNEL_STACK_SIZE);
@@ -39,7 +40,7 @@ static void test_ir()
 	printk("kernel stack 0x%08x - 0x%08x\n",
 			kstack, (unsigned int)&current->mm.kernel[1] - 1);
 
-	reset_task_state(current, TASK_KERNEL);
+	set_task_state(current, TASK_USER);
 	schedule();
 
 	/* Make a way of killing a task, releasing all the resource used */
@@ -66,4 +67,4 @@ static void test_ir()
 			i = 0;
 	}
 }
-//REGISTER_TASK(test_ir, DEFAULT_STACK_SIZE, DEFAULT_PRIORITY);
+//REGISTER_TASK(test_ir, 0, DEFAULT_PRIORITY);

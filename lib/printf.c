@@ -10,6 +10,7 @@
  */
 
 #include <io.h>
+#include <kernel/syscall.h>
 
 #define PAD_RIGHT		1
 #define PAD_ZERO		2

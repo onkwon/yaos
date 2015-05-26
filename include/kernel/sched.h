@@ -21,7 +21,7 @@ struct sched_t {
 
 void scheduler_init();
 
-inline void update_curr();
+extern inline void update_curr();
 
 #define schedule_prepare() { \
 	irq_save(current->irqflag); \
@@ -35,6 +35,9 @@ inline void update_curr();
 
 void schedule_core();
 
+struct task_t;
+extern inline void runqueue_add(struct task_t *new);
+
 #ifdef CONFIG_SYSCALL
 #include <kernel/syscall.h>
 #define schedule()	syscall(SYSCALL_SCHEDULE)
@@ -47,9 +50,6 @@ void schedule_core();
 
 #define schedule_on()	systick_on()
 #define schedule_off()	systick_off()
-
-struct task_t;
-extern inline void runqueue_add(struct task_t *new);
 
 #include <kernel/cfs.h>
 #ifdef CONFIG_REALTIME

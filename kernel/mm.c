@@ -1,6 +1,6 @@
 #include <kernel/page.h>
 #include <kernel/task.h>
-#include <asm/init.h>
+#include <kernel/init.h>
 
 extern char _mem_start, _mem_end, _ebss;
 
@@ -65,7 +65,7 @@ void __init free_bootmem()
 #include <lib/firstfit.h>
 
 static struct ff_freelist_t *mem_map;
-static spinlock_t mem_lock;
+static DEFINE_SPINLOCK(mem_lock);
 
 void *kmalloc(size_t size)
 {
@@ -99,7 +99,7 @@ void __init free_bootmem()
 }
 #endif /* CONFIG_PAGING */
 
-void mm_init()
+void __init mm_init()
 {
 	unsigned int start = ALIGN_WORD(&_mem_start);
 	unsigned int end   = (unsigned int)&_mem_end;
@@ -141,7 +141,5 @@ void mm_init()
 	mem_map->addr = (void *)((unsigned int)mem_map +
 			sizeof(struct ff_freelist_t));
 	list_link_init(&mem_map->list);
-
-	INIT_SPINLOCK(mem_lock);
 #endif
 }

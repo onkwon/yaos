@@ -3,6 +3,7 @@
 #include <kernel/task.h>
 #include <kernel/page.h>
 #include <kernel/module.h>
+#include <kernel/syscall.h>
 #include <lib/firstfit.h>
 
 static void rt_task1()
@@ -13,11 +14,12 @@ static void rt_task1()
 	show_buddy(NULL);
 #endif
 	show_freelist(current->mm.heap);
+#ifdef CONFIG_SYSCALL
 	display_devtab();
+#endif
 		sleep(3);
 		printf("REALTIME END\n");
-		reset_task_state(current, TASK_RUNNING);
-		schedule();
+		yield();
 	}
 }
 REGISTER_TASK(rt_task1, TASK_USER, RT_LEAST_PRIORITY);

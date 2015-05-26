@@ -169,7 +169,7 @@ void buddy_init(struct buddypool_t *pool, unsigned int nr_pages,
 		struct page_t *array)
 {
 	buddy_freelist_init(pool, nr_pages, array);
-	INIT_SPINLOCK(pool->lock);
+	INIT_LOCK(pool->lock);
 }
 
 #ifdef CONFIG_DEBUG

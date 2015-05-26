@@ -1,39 +1,29 @@
-#include <types.h>
 #include <kernel/lock.h>
 
 volatile unsigned int __attribute__((section(".data"))) jiffies;
 uint64_t __attribute__((section(".data"))) jiffies_64;
 
-DEFINE_SPINLOCK(lock_jiffies);
+static DEFINE_RWLOCK(lock_jiffies_64);
 
-unsigned long long get_jiffies_64_core()
+uint64_t get_jiffies_64_core()
 {
 	return jiffies_64;
 }
 
-unsigned long long get_jiffies_64()
+uint64_t get_jiffies_64()
 {
-	unsigned long long stamp = 0;
+	uint64_t stamp = 0;
 
-	do {
-		if (!is_spin_locked(lock_jiffies))
-			stamp = get_jiffies_64_core();
-	} while (is_spin_locked(lock_jiffies));
+	read_lock(lock_jiffies_64);
+	stamp = get_jiffies_64_core();
+	read_unlock(lock_jiffies_64);
 
 	return stamp;
 }
 
-void update_tick(unsigned delta)
+void inline update_tick(unsigned delta)
 {
-	/* In multi processor system, jiffies_64 is global, meaning it is
-	 * accessed by all processors while others related to a scheduler
-	 * are accessed by only its processor. */
-
-	preempt_disable();
-	spin_lock(lock_jiffies);
-
+	write_lock(lock_jiffies_64);
 	jiffies_64 += delta;
-
-	spin_unlock(lock_jiffies);
-	preempt_enable();
+	write_unlock(lock_jiffies_64);
 }

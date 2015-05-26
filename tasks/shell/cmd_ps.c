@@ -11,8 +11,8 @@ static void visit(struct task_t *p)
 #define print_tab() for (i = 0; i < tab; i++) puts("|\t");
 
 	print_tab();
-	printf("+-- 0x%x 0x%02x %d\n",
-			p->addr, get_task_state(p), get_task_priority(p));
+	printf("+-- 0x%x 0x%02x 0x%02x %d\n", p->addr,
+			get_task_type(p), get_task_state(p), get_task_pri(p));
 	print_tab();
 	printf("|   /vruntime %d /exec_runtime %d (%d sec)\n",
 			(unsigned)p->se.vruntime,
@@ -51,7 +51,7 @@ static void visit(struct task_t *p)
 
 static int ps(int argc, char **argv)
 {
-	printf("    ADDR  STAT PRI\n");
+	printf("    ADDR  TYPE STAT PRI\n");
 
 	visit(&init);
 
@@ -59,6 +59,14 @@ static int ps(int argc, char **argv)
 	extern struct buddypool_t buddypool;
 	printf("%d pages free out of %d pages\n",
 			buddypool.nr_free, buddypool.nr_pages);
+#endif
+
+#ifdef CONFIG_DEBUG
+#define MHZ	1000000
+#define FREQ	9 /* (get_systick_max() * HZ / MHZ) --> privileged */
+	extern int sched_overhead;
+	printf("scheduling overhead %dus / %dus (%d)\n",
+			sched_overhead / FREQ, MHZ / HZ, sched_overhead);
 #endif
 
 	return 0;

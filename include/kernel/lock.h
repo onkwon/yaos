@@ -1,96 +1,105 @@
 #ifndef __LOCK_H__
 #define __LOCK_H__
 
-#define preempt_disable()
-#define preempt_enable()
-#define preempt_count()
-
 #ifdef MACHINE
 #include <asm/lock.h>
 #endif
 
-typedef volatile int spinlock_t;
+/* general */
+typedef volatile int lock_t;
 
-#define SPINLOCK_UNLOCKED		(1)
-#define DEFINE_SPINLOCK(name)		spinlock_t name = SPINLOCK_UNLOCKED
-#define INIT_SPINLOCK(name)		(name = SPINLOCK_UNLOCKED)
+#define UNLOCKED			1
+#define DEFINE_LOCK(name)		lock_t name = UNLOCKED
+#define INIT_LOCK(name)			(name = UNLOCKED)
+#define is_locked(count)		(count <= 0)
 
+/* spinlock */
+#define DEFINE_SPINLOCK(name)		DEFINE_LOCK(name)
 #define spin_lock(count) do { \
-	while (count <= 0) ; \
-} while (set_atomic((int *)&count, count-1))
+	while (is_locked(count)) ; \
+} while (atomic_set((int *)&count, count-1))
+
 #define spin_unlock(count) \
-	while (set_atomic((int *)&count, count+1))
-#define is_spin_locked(count)		(count <= 0)
+	while (atomic_set((int *)&count, count+1))
 
 #include <io.h>
 
-#define spin_lock_irqsave(lock, f) do { \
-	irq_save(f); \
+#define spin_lock_irqsave(lock, flag) do { \
+	irq_save(flag); \
 	local_irq_disable(); \
 	spin_lock(lock); \
 } while (0)
-#define spin_unlock_irqrestore(lock, f) do { \
+
+#define spin_unlock_irqrestore(lock, flag) do { \
 	spin_unlock(lock); \
-	irq_restore(f); \
+	irq_restore(flag); \
 } while (0)
 
-struct semaphore {
-	volatile int count;
+#include <types.h>
 
+/* semaphore */
+struct semaphore {
+	lock_t count;
 	/* can't use `waitqueue_head_t` because of circular dependency.
-	 * move spinlock_t typedef into types.h? */
-	spinlock_t  wait_lock;
+	 * move lock_t typedef into types.h? */
+	lock_t wait_lock;
 	struct list_t wait_list;
 };
 
-typedef struct semaphore mutex_t;
-
-#define semaphore_new(name, v) \
+#define DEFINE_SEMAPHORE(name, v) \
 	struct semaphore name = { \
 		.count = v, \
-		.wait_lock = SPINLOCK_UNLOCKED, \
+		.wait_lock = UNLOCKED, \
 		.wait_list = INIT_LIST_HEAD((name).wait_list), \
 	}
-
-#define semaphore_init(name, v)		(name.count = v)
 
 #include <kernel/waitqueue.h>
 #include <kernel/sched.h>
 
 #define semaphore_down(s) { \
-	DEFINE_WAIT(__wait); \
-	unsigned __irq_flag; \
+	DEFINE_WAIT(wait); \
+	unsigned irqflag; \
 	do { \
-		while (s.count <= 0) { \
-			spin_lock_irqsave(s.wait_lock, __irq_flag); \
-			if (list_empty(&__wait.link)) \
-				list_add(&__wait.link, s.wait_list.prev); \
+		while (is_locked(s.count)) { \
+			spin_lock_irqsave(s.wait_lock, irqflag); \
+			if (list_empty(&wait.link)) \
+				list_add(&wait.link, s.wait_list.prev); \
 			set_task_state(current, TASK_WAITING); \
-			spin_unlock_irqrestore(s.wait_lock, __irq_flag); \
+			spin_unlock_irqrestore(s.wait_lock, irqflag); \
 			schedule(); \
 		} \
-	} while (set_atomic((int *)&s.count, s.count-1)); \
+	} while (atomic_set((int *)&s.count, s.count-1)); \
 }
 
 #define semaphore_up(s) do { \
-	struct task_t *__task; \
-	unsigned __irq_flag; \
-	while (set_atomic((int *)&s.count, s.count+1)) ; \
-	if (s.count > 0) { \
-		spin_lock_irqsave(s.wait_lock, __irq_flag); \
+	struct task_t *task; \
+	unsigned irqflag; \
+	while (atomic_set((int *)&s.count, s.count+1)) ; \
+	if (!is_locked(s.count)) { \
+		spin_lock_irqsave(s.wait_lock, irqflag); \
 		if (s.wait_list.next != &s.wait_list) { \
-			__task = get_container_of(s.wait_list.next, \
+			task = get_container_of(s.wait_list.next, \
 					struct waitqueue_t, link)->task; \
-			set_task_state(__task, TASK_RUNNING); \
-			runqueue_add(__task); \
+			set_task_state(task, TASK_RUNNING); \
+			runqueue_add(task); \
 			list_del(s.wait_list.next); \
 		} \
-		spin_unlock_irqrestore(s.wait_lock, __irq_flag); \
+		spin_unlock_irqrestore(s.wait_lock, irqflag); \
 	} \
 } while (0)
 
-#define DEFINE_MUTEX(name)		semaphore_new(name, 1)
-#define mutex_lock(s)			semaphore_down(s)
-#define mutex_unlock(s)			semaphore_up(s)
+/* mutex */
+typedef struct semaphore mutex_t;
+
+#define DEFINE_MUTEX(name)		DEFINE_SEMAPHORE(name, 1)
+#define mutex_lock(count)		semaphore_down(count)
+#define mutex_unlock(count)		semaphore_up(count)
+
+/* reader-writer spin lock */
+#define DEFINE_RWLOCK(name)		DEFINE_SPINLOCK(name)
+#define read_lock(count)		do { if (!is_locked(count)) {
+#define read_unlock(count)		} } while (is_locked(count))
+#define write_lock(count)		spin_lock(count)
+#define write_unlock(count)		spin_unlock(count)
 
 #endif /* __LOCK_H__ */

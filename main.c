@@ -1,3 +1,4 @@
+#include <kernel/task.h>
 #include <kernel/page.h>
 #include <kernel/module.h>
 #include <asm/context.h>
@@ -8,8 +9,8 @@ static void load_user_task()
 	struct task_t *p;
 	unsigned int pri;
 
-	for (p = (struct task_t *)&_user_task_list; p->state; p++) {
-		/* sanity check */
+	for (p = (struct task_t *)&_user_task_list;
+			get_task_state(p) == TASK_REGISTERED; p++) {
 		if (p->addr == NULL)
 			continue;
 
@@ -17,10 +18,10 @@ static void load_user_task()
 		if (alloc_mm(p, init.mm.kernel, STACK_SHARE))
 			continue;
 
-		pri = get_task_priority(p);
+		pri = get_task_pri(p);
 		set_task_dressed(p, 0, p->addr);
+		set_task_pri(p, pri);
 		set_task_context(p);
-		set_task_priority(p, pri);
 
 		/* make it runnable, and add into runqueue */
 		set_task_state(p, TASK_RUNNING);
@@ -35,49 +36,57 @@ static void cleanup()
 }
 
 #include <time.h>
+#include <kernel/syscall.h>
 
 /* when no task in runqueue, this one takes place.
  * do some power saving */
 static void idle()
 {
 	cleanup();
-
-	set_task_priority(&init, LEAST_PRIORITY);
-	reset_task_state(current, TASK_RUNNING);
-	schedule();
+	yield();
 
 	while (1) {
 		printf("init()\n");
+		printf("type %08x, state %08x, pri %08x\n",
+				get_task_type(current),
+				get_task_state(current),
+				get_task_pri(current));
 		printf("control %08x, sp %08x, msp %08x, psp %08x\n",
 				GET_CON(), GET_SP(), GET_KSP(), GET_USP());
 		msleep(500);
 	}
 }
 
-#include <asm/init.h>
+#include <kernel/init.h>
+#include <kernel/softirq.h>
 #include <error.h>
 
 static void __init init_task()
 {
+	/* firstly stack must be ready before getting dressed. after getting
+	 * dressed, what is inside starts to matter. and to build relationship
+	 * properly `current` must be set to `init`. */
 	current = &init;
 
 	if (alloc_mm(&init, NULL, STACK_SEPARATE)) {
-		/* failed to alloc memory for the task. no way to go further */
+		/* failed to alloc memory for init. no way to go further */
 		freeze();
 	}
 
 	set_task_dressed(&init, TASK_KERNEL, idle);
 	set_task_context_hard(&init);
+	set_task_pri(&init, LEAST_PRIORITY);
 	set_task_state(&init, TASK_RUNNING);
 
 	/* make it the sole */
 	list_link_init(&init.children);
 	list_link_init(&init.sibling);
 
-	/* a quite and shy banner */
-	printk("ibox %s %s\n", VERSION, MACHINE);
+	softirq_init(); /* must be called after init task built */
+	load_user_task(); /* that are registered statically */
 
-	load_user_task(); /* tasks that are registered statically */
+	/* a quiet and shy banner */
+	printk("ibox %s %s\n", VERSION, MACHINE);
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);
@@ -92,7 +101,7 @@ static void __init init_task()
 	idle();
 }
 
-static void sys_init()
+static void __init sys_init()
 {
 	extern char _init_func_list;
 	unsigned int *p = (unsigned int *)&_init_func_list;
@@ -103,7 +112,7 @@ static void sys_init()
 
 #include <driver/console.h>
 
-int main()
+int __init main()
 {
 	sys_init();
 	mm_init();

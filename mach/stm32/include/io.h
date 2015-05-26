@@ -33,7 +33,7 @@
 #define GET_PORT(port)			(*(volatile unsigned *)((port) + 8))
 #define PUT_PORT(port, data)		(*(volatile unsigned *)((port) + 0xc) = data)
 #define PUT_PORT_PIN(port, pin, on) \
-	(*(volatile unsigned *)((port) + 0x10) = on? 1 << pin : 1 << (pin + 16))
+	(*(volatile unsigned *)((port) + 0x10) = (on)? 1 << (pin) : 1 << ((pin) + 16))
 
 /* Embedded flash */
 #define FLASH_WRITE_START()	(FLASH_CR |=   1 << PG)

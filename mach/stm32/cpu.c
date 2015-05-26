@@ -1,7 +1,7 @@
 #include <foundation.h>
-#include <init.h>
+#include <kernel/init.h>
 
-static void __attribute__((naked, used)) entry()
+static void __init __attribute__((naked, used)) entry()
 {
 	cli();
 
@@ -140,6 +140,7 @@ static void __init mem_init()
 }
 REGISTER_INIT_FUNC(mem_init, 1);
 
+#include <kernel/task.h>
 #include <context.h>
 
 void set_task_context_hard(struct task_t *p)

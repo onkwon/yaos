@@ -20,7 +20,7 @@
 #include <asm/io.h>
 #endif
 
-extern int stdin, stdout, stderr;
+int stdin, stdout, stderr;
 
 extern int printf(const char *format, ...);
 extern int printk(const char *format, ...);
@@ -29,7 +29,6 @@ extern int getc();
 extern void puts(const char *s);
 
 #include <kernel/interrupt.h>
-#include <kernel/syscall.h>
 #include <kernel/gpio.h>
 
 #endif /* __IO_H__ */

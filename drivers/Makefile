@@ -1,6 +1,7 @@
 include $(BASEDIR)/CONFIGURE
 
 SRCS_ASM = $(wildcard *.S)
+SRCS     = led.c
 ifdef MODULE_CONSOLE
 	SRCS += console.c
 endif

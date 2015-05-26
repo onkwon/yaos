@@ -17,7 +17,7 @@ struct buddypool_t {
 	unsigned int nr_free;
 	unsigned int nr_pages;
 
-	spinlock_t lock;
+	lock_t lock;
 };
 
 #include <kernel/page.h>

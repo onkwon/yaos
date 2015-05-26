@@ -10,7 +10,7 @@ struct device_interface_t {
 	int    (*close)(int id);
 };
 
-struct device_t {
+struct dev_t {
 	int id;
 	int count; /* reference count */
 	char *name;
@@ -19,14 +19,14 @@ struct device_t {
 	struct list_t link;
 };
 
-#define module_init(func) \
+#define MODULE_INIT(func) \
 	static void *module_##func \
 	__attribute__((section(".module_list"), used)) = func
 
-int register_device(int id, struct device_interface_t *ops, char *name);
-int dev_get_newid();
-struct device_t *getdev(int id);
-void link_device(int id, struct device_t *dev);
+int register_dev(int id, struct device_interface_t *ops, char *name);
+int mkdev();
+struct dev_t *getdev(int id);
+void linkdev(int id, struct dev_t *dev);
 void driver_init();
 
 #ifdef CONFIG_DEBUG

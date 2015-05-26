@@ -43,7 +43,7 @@ void fs_init()
 	rootfs.block_size = RFS_BLOCK_SIZE;
 	rootfs.iop.mknod = rootfs_mknod;
 	list_link_init(&rootfs.list);
-	INIT_SPINLOCK(rootfs.lock);
+	INIT_LOCK(rootfs.lock);
 
 	struct inode_t *inode = rootfs.iop.mknod(&rootfs, 0, NULL);
 	rootfs.root_inode = (void *)inode;

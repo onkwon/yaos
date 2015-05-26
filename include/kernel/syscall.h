@@ -12,11 +12,17 @@
 #define SYSCALL_WRITE			5
 #define SYSCALL_CLOSE			6
 #define SYSCALL_BRK			7
-#define SYSCALL_NR			8
+#define SYSCALL_YIELD			8
+#define SYSCALL_NR			9
 
 #ifdef MACHINE
 #include <asm/syscall.h>
 #endif
+
+static inline void yield()
+{
+	syscall(SYSCALL_YIELD);
+}
 
 static inline int open(int id, int mode)
 {
@@ -38,6 +44,13 @@ static inline int close(int id)
 	return syscall(SYSCALL_CLOSE, id);
 }
 #else
+#include <kernel/task.h>
+static inline void yield()
+{
+	set_task_state(current, TASK_SLEEPING);
+	sys_schedule();
+}
+
 static inline int open(int id, int mode) { return 0; }
 static inline int read(int id, void *buf, size_t size) { return 0; }
 static inline int write(int id, void *buf, size_t size) { return 0; }

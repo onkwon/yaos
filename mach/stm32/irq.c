@@ -1,6 +1,11 @@
 #include <foundation.h>
+#include <kernel/task.h>
 #include <kernel/sched.h>
 #include <asm/context.h>
+
+#ifdef CONFIG_DEBUG
+int sched_overhead;
+#endif
 
 /* A register that is not yet saved in stack gets used by compiler optimization.
  * If I put all the registers that are not yet saved in clobber list,
@@ -8,12 +13,19 @@
  * Make it in an assembly file or do some study. */
 void __attribute__((naked, used, optimize("O0"))) pendsv_handler()
 {
+#ifdef CONFIG_DEBUG
+	sched_overhead = get_systick();
+#endif
 	/* schedule_prepare() saves the current context and
 	 * guarantees not to be preempted while schedule_finish()
 	 * does the opposite. */
 	schedule_prepare();
+	update_curr();
 	schedule_core();
 	schedule_finish();
+#ifdef CONFIG_DEBUG
+	sched_overhead -= get_systick();
+#endif
 	__asm__ __volatile__("bx lr");
 }
 
@@ -105,8 +117,10 @@ void __attribute__((naked)) isr_default()
 		"current->kernel     0x%08x\n"
 		"current->state      0x%08x\n"
 		"current->irqflag    0x%08x\n"
+		"current->addr       0x%08x\n"
 		, current->mm.sp, current->mm.base, current->mm.heap,
-		current->mm.kernel, current->state, current->irqflag);
+		current->mm.kernel, current->state, current->irqflag,
+		current->addr);
 
 	printk("\ncurrent context\n");
 	int i;

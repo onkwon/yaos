@@ -3,6 +3,11 @@
 
 #define HZ			50
 
+#define WORD_SIZE		sizeof(int)
+#define WORD_BITS		(WORD_SIZE << 3)
+
+#define HASH_CONSTANT		0x9e370001UL
+
 #include <types.h>
 #include <error.h>
 

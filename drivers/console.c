@@ -6,11 +6,13 @@
 #define BUF_SIZE	PAGE_SIZE
 
 static struct fifo_t rxq, txq;
-static spinlock_t rx_lock, tx_lock;
+
+static DEFINE_SPINLOCK(rx_lock);
+static DEFINE_SPINLOCK(tx_lock);
 
 static int usart_close(int id)
 {
-	struct device_t *dev = getdev(id);
+	struct dev_t *dev = getdev(id);
 
 	if (--dev->count == 0) {
 		__usart_close();
@@ -62,7 +64,9 @@ static size_t usart_write_polling(int id, void *buf, size_t size)
 {
 	char c = *(char *)buf;
 
+	spin_lock(tx_lock);
 	__usart_putc(c);
+	spin_unlock(tx_lock);
 
 	return 1;
 }
@@ -70,14 +74,12 @@ static size_t usart_write_polling(int id, void *buf, size_t size)
 static void isr_usart()
 {
 	int c;
-	unsigned int irqflag;
 
 	if (__usart_check_rx()) {
+		spin_lock(rx_lock);
 		c = __usart_getc();
-
-		spin_lock_irqsave(rx_lock, irqflag);
 		c = fifo_put(&rxq, c, 1);
-		spin_unlock_irqrestore(rx_lock, irqflag);
+		spin_unlock(rx_lock);
 
 		if (c == -1) {
 			/* overflow */
@@ -85,20 +87,21 @@ static void isr_usart()
 	}
 
 	if (__usart_check_tx()) {
-		spin_lock_irqsave(tx_lock, irqflag);
-		c = fifo_get(&txq, 1);
-		spin_unlock_irqrestore(tx_lock, irqflag);
+		spin_lock(tx_lock);
 
+		c = fifo_get(&txq, 1);
 		if (c == -1)
 			__usart_tx_irq_reset();
 		else
 			__usart_putc(c);
+
+		spin_unlock(tx_lock);
 	}
 }
 
 static int usart_open(int id, int mode)
 {
-	struct device_t *dev = getdev(id);
+	struct dev_t *dev = getdev(id);
 	void *buf;
 
 	if ((dev == NULL) || !(dev->count++)) { /* if it's the first access */
@@ -110,7 +113,6 @@ static int usart_open(int id, int mode)
 					return -ERR_ALLOC;
 
 				fifo_init(&rxq, buf, BUF_SIZE);
-				INIT_SPINLOCK(rx_lock);
 			}
 
 			if (mode & O_WRONLY) {
@@ -118,7 +120,6 @@ static int usart_open(int id, int mode)
 					return -ERR_ALLOC;
 
 				fifo_init(&txq, buf, BUF_SIZE);
-				INIT_SPINLOCK(tx_lock);
 			}
 
 			if (mode & O_NONBLOCK)
@@ -148,7 +149,7 @@ int console_open(int mode)
 
 void console_putc(int c)
 {
-	usart_write_polling(stdout, &c, 1);
+	__usart_putc(c);
 }
 
 /* well, think about how to deliver this kind of functions to user
@@ -174,11 +175,13 @@ static struct device_interface_t ops = {
 	.close = usart_close,
 };
 
-static int console_init()
-{
-	int id = dev_get_newid();
+#include <kernel/init.h>
 
-	register_device(id, &ops, "console");
+static int __init console_init()
+{
+	int id = mkdev();
+
+	register_dev(id, &ops, "console");
 
 	usart_open(id, O_RDWR | O_NONBLOCK);
 
@@ -186,5 +189,4 @@ static int console_init()
 
 	return 0;
 }
-
-module_init(console_init);
+MODULE_INIT(console_init);

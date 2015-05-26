@@ -1,6 +1,8 @@
 #ifndef __JIFFIES_H__
 #define __JIFFIES_H__
 
+#include <types.h>
+
 #define time_after(goal, chasing)	((int)goal    - (int)chasing < 0)
 #define time_before(goal, chasing)	((int)chasing - (int)goal    < 0)
 
@@ -9,9 +11,9 @@
 
 extern volatile unsigned int __attribute__((section(".data"))) jiffies;
 
-unsigned long long get_jiffies_64();
+uint64_t get_jiffies_64();
 
-extern inline unsigned long long get_jiffies_64_core();
+extern inline uint64_t get_jiffies_64_core();
 extern inline void update_tick(unsigned delta);
 
 #endif /* __JIFFIES_H__ */

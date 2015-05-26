@@ -46,6 +46,8 @@ tested on stm32f103.
 
 ### Synchronization
 
+`lock_t` - 락 기본형. 0 이하 값은 잠김, 1 이상의 값은 풀림이라는 것이 구현된 모든 락의 기본 전제.
+
 [공유 메모리 동기화](https://note.toanyone.net/bbs/board.php?bo_table=note&wr_id=19)
 
 `schedule()` never takes place in an interrupt context. If there are any interrupts active or pending, `schedule()` gets its chance to run after all that interrupts handled first.
@@ -77,7 +79,9 @@ sleeping lock.
 
 #### spin lock
 
-싱글 코어에 스핀락까지 구현할 필요는 없었지만, 구상할 때는 어쩐지 멀티코어까지 고려하게 되니까..
+싱글코어가 타겟이지만 락을 쓸 때는 어쩐지 멀티코어까지 가정하게 되어서, 싱글코어로 최적화 한다면 `spin_lock()`은 공백으로, `spin_lock_irqsave()`는 `local_irq_disable()`로 변경.
+
+멀티코어에 대해 아는바가 별로 없어서 동기화 관련 코드를 작성할 때마다 고민이 많다. 멀티코어는 잊어버리자 싶다가도, 왠지 얼렁뚱땅 허술한 인간이 되는 거 같아서..
 
 ~~short term waiting~~
 
@@ -154,11 +158,11 @@ Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every 
 
 `dev_get_newid()` - 새로운 디바이스 아이디 얻기
 
-`register_device(id, ops, name)` - 디바이스 등록
+`register_dev(id, ops, name)` - 디바이스 등록
 
 등록하는 `name`이 이미 `/dev`에 등록되어 있다면 `name1`, `name2`식으로 번호 할당. 디바이스 등록 후 해당 디바이스 접근은 `/dev`하 `name`으로 실현
 
-`module_init(func)` - 디바이스 초기화 함수 등록
+`MODULE_INIT(func)` - 디바이스 초기화 함수 등록
 
 e.g.
 
@@ -183,15 +187,15 @@ e.g.
 	{
 		int id = dev_get_newid();
 
-		register_device(id, &your_ops, "your_dev");
+		register_dev(id, &your_ops, "your_dev");
 		...
 	}
 
-	module_init(console_init);
+	MODULE_INIT(console_init);
 
 id는 사실 전달할 필요가 없다. 인자를 하나씩 제거할 수 있지만, 디바이스 상위 시스템 추상화를 어떻게 할지 감을 못잡았으므로 일단 그대로 두는 걸로.
 
-`module_init`은 부트 타임 등록만 된다. 런타임 등록도 고려해볼 것.
+`MODULE_INIT`은 부트 타임 등록만 된다. 런타임 등록도 고려해볼 것.
 
 통합 버퍼 관리자 고려해볼 것. 디바이스 드라이버에서 사용하는 버퍼 같은 경우 직접 kmalloc 사용하기보단 상위 관리자를 이용.
 
@@ -202,6 +206,34 @@ id는 사실 전달할 필요가 없다. 인자를 하나씩 제거할 수 있�
 각 포트와 핀은 0~n으로 지시. 포트당 8핀일 경우 PORTA와 PORTB의 각 마지막 핀 번호는 7과 13으로 지시.
 
 `ret_from_gpio_int()` - 인터럽트 서비스 루틴 구현시 이 함수로 리턴해야 함
+
+### Softirq
+
+`register_softirq()`
+`raise_softirq()`
+
+할당받은 softirq 번호가 `SOFTIRQ_MAX` 보다 크거나 같다면 오류. softirq pool이 이미 꽉 찬 상태. 등록시 반드시 체크필요.
+
+`softirqd` 커널 태스크는 softirq가 raise된 경우에만 실행된다. `RT_LEAST_PRIORITY` 우선순위. 우선순위별 softirq 운행할 필요가 있어보임. 일반 태스크를 모두 선점해버리는 softirq라면 인터럽트와 다를바가 없고, 반면 리얼타임 태스크에서 동작을 하지 않는 softirq라면 리얼타임 태스크가 필요한 자원을 얻지 못해서 데드락에 걸리는 문제.
+
+리얼타임 태스크 : softirqd 의 우선순위가 `RT_LEAST_PRIORITY` 이기 때문에 보다 우선순위가 높은 리얼타임 태스크가 softirq 자원이 필요한 경우에는 태스크의 우선순위를 일시적으로 낮추어 자원을 확보해야한다. 또는, softirq 핸들러 우선순위를 일시적으로 높이는 방법?
+
+일반 태스크 : HIGH, NORMAL, LOW 세가지를 고려중.
+
+	LOW = LEAST_PRIORITY
+	NORMAL = DEFAULT_PRIORITY
+	HIGH = 리얼타임 스케줄러 모듈을 빼고 컴파일 했다면 RT_LEAST_PRIORITY + 1,
+	       아니면 RT_LEAST_PRIORITY
+
+	       * RT_LEAST_PRIORITY 라면, softirq 수행이 종료될 때까지 일반 태스크는 실행되지 않는다. 동일(최하위) 우선순위의 리얼타임 태스크의 경우 함께 스케줄링되는 반면 상위 리얼타임 태스크가 실행중일 때는 상위 리얼타임 태스크가 종료할 때까지 softirq는 지연된다.
+
+	       * RT_LEAST_PRIORITY+1 인 경우 일반 태스크와 함께 스케쥴링 된다(다만 가장 높은 일반 태스크 우선순위를 갖고 있으므로 프로세서 점유시간이 낮은 우선순위 태스크보다 길다).
+
+----
+
+~~일단, 기본 softirqd 우선순위는 `DEFAULT_PRIORITY`. 우선순위 변경이 필요한 경우 콜백에서 처리하는 걸로 하고 다음 진행.~~ time critical 한 부분은 이미 인터럽트 핸들러에서 처리되었으니 softirq는 current 태스크와 동일한 우선순위로 스케줄링하면 적절하지 않을까? 우선순위를 current에 맞추면 리얼타임 태스크/일반 태스크 구분할 필요가 사라진다. 그리고 softirq의 의도 역시 독점보다 자원을 효율적으로 배분하는 데 있으니까 이 방법이 적당해 보인다. 32비트 시스템에서 32개, 8비트 시스템에서 8개의 softirq 밖에 운용하지 못한다는 게 현재 자료구조의 한계랄수도 있지만 적절한 제한이 효율적일지도 모를일이다. 어쩌면 내 머리의 한계일지도 모른다. 그렇게 많은 softirq를 운용해야할 필요성이 딱히 떠오르지 않는다. 차후 필요성이 생기면 보완하기로.
+
+softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. 등록시 배열 인덱스를 지정해서 구현하면 간단하겠으나 순차적으로 32개의 루틴을 모두 돈다면 우선순위 효과를 의심해볼만 하다. 떠오르는 대안은 두가지인데 (1) 최상위 우선순위 pending 만 실행하고 탈출한다. 그럼 스케줄될 때마다 다음 pending이 순차적으로 실행될 것이다. 물론 그 사이 더 높은 pending이 발생했다면 높은 pending을 먼저 처리한다. 한번의 스케줄에 가장 높은 하나의 pending 만을 처리한다는 게 요점인데, 우선순위가 낮은 pending이 무한정 지연될 가능성이 있다. (2) 스레드 처리한다. 몽땅 스레드 처리하기는 비용이 커보이고, 높은 우선순위 몇개만 스레드처리하고 나머지는 순차처리.
 
 ### Memory allocation
 
@@ -340,8 +372,20 @@ The initial task takes place when no task in runqueue
 
 리얼타임 우선순위가 너무 많음. 현재 0~100까지 있는데 메모리 아끼기 위해 대폭 줄일 필요성. 그리고 리얼타임 태스크 우선순위가 그렇게 많이 필요하지 않잖아?
 
-* 이미 런큐에 등록된 태스크가 중복 등록되어서는 안됨. 런큐 링크가 깨짐.
-* 이미 런큐에서 삭제된 태스크를 거듭 삭제하면 `nr_running`이 잘못된 값을 가짐.
+* 이미 런큐에 등록/삭제된 태스크가 중복 등록/삭제되어서는 안됨. 런큐 링크가 깨짐.
+* 리얼타임 태스크의 경우 중복 등록/삭제는 `nr_running` 값을 망침.
+
+`TASK_RUNNING` - 스케줄링 연산량을 줄이기 위해 상태 체크를 `0 아니면 그외 모든 값`식으로 하기 때문에 값이 반드시 0 이어야 함.
+`TASK_STOPPED`
+`TASK_WAITING`
+`TASK_SLEEPING`
+
+`*_task_*` 패밀리 매크로에서 이루어지는 포인터 캐스팅 연산량도 체크후, 인자를 포인터가 아니라 일반 변수로 받도록 수정
+
+`schedule()` - 스케줄링. 태스크 상태는 그대로 유지
+`yield()` - 스케줄링. 태스크 상태는 `TASK_SLEEPING`로 전환
+
+`update_curr()` - 태스크 정보는 스케줄링시 업데이트. 인터럽트 핸들러의 점유시간 역시 각 태스크의 사용시간에 포함된다. 섬세하게 구분하기에는 오버헤드가 큰데다, 시스템 콜 같은 경우에도 사용자 태스크니까. 업데이트를 원래 타임 인터럽트에서 처리했는데, `yield()`할 경우 한 사이클을 까먹게되어서 수정.
 
 ### context switch
 
@@ -357,7 +401,7 @@ The initial task takes place when no task in runqueue
 
 The lower number, the higher priority.
 
-`get_task_priority()`
+`get_task_pri()`
 
 `is_task_realtime()`
 
@@ -375,9 +419,12 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 	|   |-- systick_init()
 	|   |-- scheduler_init()
 	|   `-- init_task()
+	|       |-- softirq_init()
 	|       |-- load_user_task()
-	|       |-- cleanup()
-	|       `-- sei() #interrupt enabled
+	|       |-- sei() #interrupt enabled
+	|       `-- idle()
+	|           |-- cleanup()
+	|           `-- loop
 
 * `entry()` - is very first hardware setup code to boot, usally in assembly.
 * `sys_init()` - calls functions registered by `REGISTER_INIT_FUNC()`, architecture specific initialization.
@@ -390,7 +437,7 @@ Uncomment or comment out lines in `CONFIGURE` file to enable or disable its func
 
 Change `HZ` in `include/foundation.h`
 
-You can not use system call before init task runs, where interrupt gets enabled. So there is restriction using such functions like printf(), triggered by system call.
+You can not use system call before init task runs, where interrupt gets enabled. So there is restriction using such functions like printf(), triggering system call.
 
 ~~데이터 타입 사이즈 정의 및 통일. 기본 시스템 데이터 타입을 long으로 썼는데 int로 수정해야 할까 싶다. 간혹 64비트 시스템에 int형이 32비트인 경우가 있다지만 64비트는 고려하지 않은데다, avr의 경우 long이 32비트 int가 16비트인지라 공통으로 사용하기엔 long보다 int가 더 적절할 지 모르겠다. 사용자 지정 데이터 타입은 코드 가독성을 망쳐서 피하고 싶고, word 타입을 표준화 해주면 좋을텐데.~~
 
@@ -407,6 +454,8 @@ prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링
 
 대문자명 함수는 매크로. 인자를 넘길 때 포인터 대신 변수로 넘겨야 함. 더불어 `func_init()` 규칙과 반대로 `INIT_FUNC()`처럼 init을 먼저 쓴다.
 
+`INIT_IRQFLAG()` - MCU 마다 다른 레지스터 초기값을 설정하기 위한 매크로
+
 	Initial task register set:
 	 __________
 	| psr      |  |
@@ -421,6 +470,8 @@ prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링
 	| r4 - r11 |
 	 ----------
 
+`atomic_set()` in `asm/lock.h`
+
 ### System clock
 
 `get_systick()`
@@ -432,7 +483,14 @@ prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링
 
 ### Task Manager
 
-`init_task_context(struct task_t *p)`
+`set_task_context(struct task_t *p)`
+`set_task_context_soft(struct task_t *p)`
+`set_task_context_hard(struct task_t *p)`
+
+`STACK_SEPARATE` 서로 다른 메모리 공간 사용
+`STACK_SHARE`    커널스택만 공유
+
+`set_task_type()` 태스크 타입을 변경하면 태스크 상태는 리셋된다
 
 ## Interrupt
 

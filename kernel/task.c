@@ -40,13 +40,13 @@ int alloc_mm(struct task_t *p, void *ref, int option)
 
 void set_task_dressed(struct task_t *task, unsigned int flags, void *addr)
 {
-	task->state = 0;
-
 	if (flags & TASK_KERNEL)
 		set_task_type(task, TASK_KERNEL);
+	else
+		set_task_type(task, TASK_USER);
 
 	set_task_state(task, TASK_STOPPED);
-	set_task_priority(task, DEFAULT_PRIORITY);
+	set_task_pri(task, DEFAULT_PRIORITY);
 	task->addr = addr;
 	INIT_IRQFLAG(task->irqflag);
 
@@ -67,7 +67,7 @@ struct task_t *make(unsigned int flags, void (*func)(), void *ref, int option)
 			new = NULL;
 		} else {
 			set_task_dressed(new, flags, func);
-			set_task_context_hard(new);
+			set_task_context(new); /* get dressed first */
 		}
 	}
 

@@ -97,6 +97,7 @@ clean:
 	@rm -f $(TARGET:%=%.dump)
 	@rm -rf include/asm
 	@rm -rf include/driver
+	@rm -rf include/lib
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

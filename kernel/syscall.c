@@ -5,7 +5,7 @@
 
 int sys_open(int id, int mode)
 {
-	struct device_t *dev = getdev(id);
+	struct dev_t *dev = getdev(id);
 
 	if (!dev || !dev->ops->open)
 		return -ERR_UNDEF;
@@ -15,7 +15,7 @@ int sys_open(int id, int mode)
 
 int sys_read(int id, void *buf, size_t size)
 {
-	struct device_t *dev = getdev(id);
+	struct dev_t *dev = getdev(id);
 
 	if (!dev || !dev->ops->read)
 		return -ERR_UNDEF;
@@ -25,7 +25,7 @@ int sys_read(int id, void *buf, size_t size)
 
 int sys_write(int id, void *buf, size_t size)
 {
-	struct device_t *dev = getdev(id);
+	struct dev_t *dev = getdev(id);
 
 	if (!dev || !dev->ops->write)
 		return -ERR_UNDEF;
@@ -35,7 +35,7 @@ int sys_write(int id, void *buf, size_t size)
 
 int sys_close(int id)
 {
-	struct device_t *dev = getdev(id);
+	struct dev_t *dev = getdev(id);
 
 	if (!dev || !dev->ops->write)
 		return -ERR_UNDEF;
@@ -60,6 +60,12 @@ void *sys_brk(size_t size)
 	return kmalloc(size);
 }
 
+void sys_yield()
+{
+	set_task_state(current, TASK_SLEEPING);
+	sys_schedule();
+}
+
 void *syscall_table[] = {
 	sys_reserved,		/* 0 */
 	sys_schedule,
@@ -69,4 +75,5 @@ void *syscall_table[] = {
 	sys_write,		/* 5 */
 	sys_close,
 	sys_brk,
+	sys_yield,
 };

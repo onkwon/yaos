@@ -10,10 +10,10 @@ struct task_t *rts_pick_next(struct sched_t *q)
 
 void rts_rq_add(struct sched_t *q, struct task_t *new)
 {
-	if ( !new || !(get_task_state(new) & TASK_RUNNING) )
+	if (!new || get_task_state(new))
 		return;
 
-	int pri = get_task_priority(new);
+	int pri = get_task_pri(new);
 	struct list_t *rq_head = &rts_rq[pri];
 
 	q->nr_running++;
@@ -30,7 +30,7 @@ void rts_rq_del(struct sched_t *q, struct task_t *p)
 {
 	int i;
 
-	if (--q->nr_running) {
+	if (--q->nr_running > 1) {
 		for (i = 0; i <= RT_LEAST_PRIORITY; i++) {
 			if (rts_rq[i].next != &rts_rq[i]) {
 				q->pri = i;
