@@ -11,7 +11,7 @@ struct buddy_freelist_t {
 	unsigned int *bitmap;
 };
 
-struct buddypool_t {
+struct buddy_t {
 	struct buddy_freelist_t free[BUDDY_MAX_ORDER];
 
 	unsigned int nr_free;
@@ -22,9 +22,9 @@ struct buddypool_t {
 
 #include <kernel/page.h>
 
-struct page_t *alloc_pages(struct buddypool_t *pool, unsigned int order);
-void free_pages(struct buddypool_t *pool, struct page_t *page);
-void buddy_init(struct buddypool_t *pool, unsigned int nr_pages,
+struct page_t *alloc_pages(struct buddy_t *pool, unsigned int order);
+void free_pages(struct buddy_t *pool, struct page_t *page);
+void buddy_init(struct buddy_t *pool, unsigned int nr_pages,
 		struct page_t *array);
 
 static inline unsigned int log2(unsigned int v)

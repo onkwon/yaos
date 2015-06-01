@@ -69,7 +69,7 @@ void ff_free(void *freelist, void *addr)
 			/* merge with the next chunk if possible */
 			for (curr = new->list.next; curr != &(*head)->list;
 					curr = curr->next) {
-ff_merge:
+merge:
 				p = get_container_of(curr,
 						struct ff_freelist_t, list);
 
@@ -83,7 +83,7 @@ ff_merge:
 				}
 			}
 
-			goto ff_done;
+			goto out;
 		}
 
 		curr = curr->next;
@@ -94,9 +94,9 @@ ff_merge:
 	/* merge with the privious chunk if possible */
 	curr = &new->list;
 	new  = get_container_of(new->list.prev, struct ff_freelist_t, list);
-	goto ff_merge;
+	goto merge;
 
-ff_done:
+out:
 	return;
 }
 

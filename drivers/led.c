@@ -5,31 +5,26 @@
 #define GPIO_PIN_INDEX		50
 
 int led_id;
-static DEFINE_SPINLOCK(lock);
 
-static size_t led_read(int id, void *buf, size_t len)
+static size_t led_read(unsigned int id, void *buf, size_t len)
 {
 	unsigned int *p = (unsigned int *)buf;
 
-	spin_lock(lock);
 	*p = gpio_get(GPIO_PIN_INDEX);
-	spin_unlock(lock);
 
 	return 1;
 }
 
-static size_t led_write(int id, void *buf, size_t len)
+static size_t led_write(unsigned int id, void *buf, size_t len)
 {
 	unsigned int *p = (unsigned int *)buf;
 
-	spin_lock(lock);
 	gpio_put(GPIO_PIN_INDEX, *p);
-	spin_unlock(lock);
 
 	return 1;
 }
 
-static struct device_interface_t ops = {
+static struct dev_interface_t ops = {
 	.open  = NULL,
 	.read  = led_read,
 	.write = led_write,

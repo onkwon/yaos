@@ -12,7 +12,7 @@ static int nr_device;
 static DEFINE_RWLOCK(lock_devtab);
 static DEFINE_SPINLOCK(nr_lock);
 
-struct dev_t *getdev(int id)
+struct dev_t *getdev(unsigned int id)
 {
 	struct dev_t *dev;
 	struct list_t *head, *next;
@@ -36,8 +36,11 @@ struct dev_t *getdev(int id)
 	return dev;
 }
 
-int mkdev()
+unsigned int mkdev()
 {
+	if (nr_device >= MAJOR_MAX)
+		return 0;
+
 	spin_lock(nr_lock);
 	nr_device += 1;
 	spin_unlock(nr_lock);
@@ -45,7 +48,7 @@ int mkdev()
 	return nr_device;
 }
 
-void linkdev(int id, struct dev_t *new)
+void linkdev(unsigned int id, struct dev_t *new)
 {
 	struct list_t *head = &devtab[hash(id, HASH_SHIFT)];
 
@@ -54,27 +57,29 @@ void linkdev(int id, struct dev_t *new)
 	write_unlock(lock_devtab);
 }
 
-int register_dev(int id, struct device_interface_t *ops, char *name)
+#include <kernel/fs.h>
+
+int register_dev(unsigned int id, struct dev_interface_t *ops, char *name)
 {
 	if (id <= 0)
 		return -ERR_RANGE;
 
-	struct dev_t *dev = (struct dev_t *)
-		kmalloc(sizeof(struct dev_t));
+	struct dev_t *dev = (struct dev_t *)kmalloc(sizeof(struct dev_t));
 
 	dev->id = id;
 	dev->count = 0;
 	dev->ops = ops;
+	dev->name = name;
 	list_link_init(&dev->link);
 
+	int err = sys_mknod(name, FT_DEV, dev);
+
+	if (err) {
+		kfree(dev);
+		return err;
+	}
+
 	linkdev(dev->id, dev);
-
-	/* make a file interface under /dev directory */
-	if (name == NULL)
-		;
-	/* add count at the end of name if the same name already exists */
-
-	dev->name = name;
 
 	return 0;
 }

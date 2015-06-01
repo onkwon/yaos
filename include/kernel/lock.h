@@ -53,6 +53,12 @@ struct semaphore {
 		.wait_list = INIT_LIST_HEAD((name).wait_list), \
 	}
 
+#define INIT_SEMAPHORE(name, v)	name = (struct semaphore){ \
+	.count = v, \
+	.wait_lock = UNLOCKED, \
+	.wait_list = INIT_LIST_HEAD((name).wait_list), \
+}
+
 #include <kernel/waitqueue.h>
 #include <kernel/sched.h>
 

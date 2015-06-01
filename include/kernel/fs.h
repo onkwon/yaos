@@ -1,11 +1,12 @@
 #ifndef __FS_H__
 #define __FS_H__
 
-#define NR_DATA_BLOCK		15
+#define NR_DATA_BLOCK			10
+#define NR_DATA_BLOCK_DIRECT		(NR_DATA_BLOCK - 3)
 #ifdef CONFIG_PAGING
-#define RFS_BLOCK_SIZE		PAGE_SIZE
+#define RFS_BLOCK_SIZE			PAGE_SIZE
 #else
-#define RFS_BLOCK_SIZE		64
+#define RFS_BLOCK_SIZE			64
 #endif
 
 #include <types.h>
@@ -22,10 +23,10 @@ typedef struct superblock_t fs_sb_t;
 typedef struct inode_t fs_inode_t;
 
 struct iop_t {
-	fs_inode_t *(*mknod)(
-		fs_sb_t *fs, unsigned int mode, fs_inode_t *parent);
+	fs_inode_t *(*mknod)(unsigned int mode, struct inode_t *parent);
+	int (*mkdir)(char *path);
+	int (*create)(char *path, unsigned int mode);
 	//rmnod;
-	//mkdir;
 	//rmdir;
 };
 
@@ -34,7 +35,7 @@ struct superblock_t {
 	void *next_inode; /* or number of allocated inodes */
 	unsigned int free_inode_count;
 
-	unsigned int block_size;
+	size_t block_size;
 
 	unsigned int count; /* mount count */
 
@@ -48,8 +49,7 @@ struct superblock_t {
 
 struct inode_t {
 	unsigned int mode;
-	unsigned int size;
-
+	size_t size;
 	unsigned int count; /* reference count */
 
 	void *data[NR_DATA_BLOCK];
@@ -57,24 +57,31 @@ struct inode_t {
 	struct inode_t *parent;
 	struct superblock_t *sb;
 
-	struct semaphore lock;
+	lock_t lock;
 } __attribute__((packed));
 
+#define INODE_TYPE_MASK		0xf
+
 enum file_type {
-	FT_UNKNOWN,
-	FT_FILE,
-	FT_DIR,
-	FT_CHRDEV,
-	FT_BLKDEV,
+	FT_UNKNOWN	= 0x00,
+	FT_FILE		= 0x01,
+	FT_DIR		= 0x02,
+	FT_DEV		= 0x04,
 };
 
 struct dir_t {
 	void *inode;
-	unsigned int rec_len;
 	int type;
-
-	unsigned int name_len;
 	char *name;
 } __attribute__((packed));
+
+int sys_create(char *path, unsigned int mode);
+int sys_mkdir(char *path);
+void fs_init();
+int readblk(struct inode_t *inode, unsigned int offset, void *buf, size_t len);
+struct inode_t *get_inode(char **path, struct inode_t *parent);
+
+struct dev_t;
+int sys_mknod(char *name, unsigned int mode, struct dev_t *dev);
 
 #endif /* __FS_H__ */

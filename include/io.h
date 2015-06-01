@@ -22,9 +22,11 @@
 
 int stdin, stdout, stderr;
 
-extern int printf(const char *format, ...);
-extern int printk(const char *format, ...);
-extern void putc(int c);
+#include <types.h>
+
+extern size_t printf(const char *format, ...);
+extern size_t printk(const char *format, ...);
+extern void (*putchar)(int c);
 extern int getc();
 extern void puts(const char *s);
 

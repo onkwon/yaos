@@ -63,13 +63,12 @@ static void idle()
 
 static void __init init_task()
 {
-	/* firstly stack must be ready before getting dressed. after getting
-	 * dressed, what is inside starts to matter. and to build relationship
-	 * properly `current` must be set to `init`. */
+	/* stack must be allocated the first to make a task. and to build root
+	 * relationship properly `current` must be set to `init`. */
 	current = &init;
 
 	if (alloc_mm(&init, NULL, STACK_SEPARATE)) {
-		/* failed to alloc memory for init. no way to go further */
+		/* failed to make the init task. no way to go further */
 		freeze();
 	}
 
@@ -85,7 +84,7 @@ static void __init init_task()
 	softirq_init(); /* must be called after init task built */
 	load_user_task(); /* that are registered statically */
 
-	/* a quiet and shy banner */
+	/* a banner */
 	printk("ibox %s %s\n", VERSION, MACHINE);
 
 	/* switch from boot stack memory to new one */
@@ -111,11 +110,15 @@ static void __init sys_init()
 }
 
 #include <driver/console.h>
+#include <kernel/fs.h>
 
 int __init main()
 {
 	sys_init();
 	mm_init();
+#ifdef CONFIG_FS
+	fs_init();
+#endif
 #ifdef CONFIG_SYSCALL
 	driver_init();
 #endif

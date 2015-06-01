@@ -10,7 +10,7 @@ static struct fifo_t rxq, txq;
 static DEFINE_SPINLOCK(rx_lock);
 static DEFINE_SPINLOCK(tx_lock);
 
-static int usart_close(int id)
+static int usart_close(unsigned int id)
 {
 	struct dev_t *dev = getdev(id);
 
@@ -23,7 +23,7 @@ static int usart_close(int id)
 	return dev->count;
 }
 
-static size_t usart_read(int id, void *buf, size_t size)
+static size_t usart_read(unsigned int id, void *buf, size_t size)
 {
 	int data;
 	char *c = (char *)buf;
@@ -42,7 +42,7 @@ static size_t usart_read(int id, void *buf, size_t size)
 	return 1;
 }
 
-static size_t usart_write_int(int id, void *buf, size_t size)
+static size_t usart_write_int(unsigned int id, void *buf, size_t size)
 {
 	char c = *(char *)buf;
 
@@ -60,13 +60,14 @@ static size_t usart_write_int(int id, void *buf, size_t size)
 	return 1;
 }
 
-static size_t usart_write_polling(int id, void *buf, size_t size)
+static size_t usart_write_polling(unsigned int id, void *buf, size_t size)
 {
 	char c = *(char *)buf;
+	unsigned int irqflag;
 
-	spin_lock(tx_lock);
+	spin_lock_irqsave(tx_lock, irqflag);
 	__usart_putc(c);
-	spin_unlock(tx_lock);
+	spin_unlock_irqrestore(tx_lock, irqflag);
 
 	return 1;
 }
@@ -76,8 +77,9 @@ static void isr_usart()
 	int c;
 
 	if (__usart_check_rx()) {
-		spin_lock(rx_lock);
 		c = __usart_getc();
+
+		spin_lock(rx_lock);
 		c = fifo_put(&rxq, c, 1);
 		spin_unlock(rx_lock);
 
@@ -88,18 +90,17 @@ static void isr_usart()
 
 	if (__usart_check_tx()) {
 		spin_lock(tx_lock);
-
 		c = fifo_get(&txq, 1);
+		spin_unlock(tx_lock);
+
 		if (c == -1)
 			__usart_tx_irq_reset();
 		else
 			__usart_putc(c);
-
-		spin_unlock(tx_lock);
 	}
 }
 
-static int usart_open(int id, int mode)
+static int usart_open(unsigned int id, int mode)
 {
 	struct dev_t *dev = getdev(id);
 	void *buf;
@@ -138,7 +139,7 @@ int stdin, stdout, stderr;
 
 int console_open(int mode)
 {
-	int id = 1;
+	unsigned int id = 1;
 
 	usart_open(id, mode);
 
@@ -168,7 +169,7 @@ static void fflush()
 }
 */
 
-static struct device_interface_t ops = {
+static struct dev_interface_t ops = {
 	.open  = usart_open,
 	.read  = usart_read,
 	.write = usart_write_int,
@@ -179,7 +180,7 @@ static struct device_interface_t ops = {
 
 static int __init console_init()
 {
-	int id = mkdev();
+	unsigned int id = mkdev();
 
 	register_dev(id, &ops, "console");
 

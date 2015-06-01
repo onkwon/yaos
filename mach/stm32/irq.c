@@ -142,3 +142,12 @@ void __attribute__((naked)) isr_default()
 		mdelay(100);
 	}
 }
+
+#include <kernel/lock.h>
+static DEFINE_SPINLOCK(nvic_lock);
+void SET_IRQ(int on, unsigned irq_nr)
+{
+	spin_lock(nvic_lock);
+	__SET_IRQ(on&1, irq_nr);
+	spin_unlock(nvic_lock);
+}

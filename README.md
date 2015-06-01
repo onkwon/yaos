@@ -60,11 +60,17 @@ tested on stm32f103.
 
 Don't use `cli()` direct but `preempt_disable()`.
 
+데드락은 아무래도 골치거리라서 체크할 방법이 필요한데, 전체락을 리스트로 일괄관리하면 어떨까? 디버깅시에 인터럽트 우선순위를 조정해서 벽돌이 된 지점에 걸린 락을 찾을 수 있도록. 아니면 디버깅용 인터럽트 하나를 최상위 우선순위로 지정하고 스택킹된 pc의 값을 출력.
+
+(1)디폴트 우선순위를 0보다 크게 설정. (2)디버깅용 핀을 하나 지정, 우선순위를 0으로 가장 높게 설정. (3) 핀에 신호가 걸리면 스택킹된 pc(즉 실행중이던 위치)를 출력.
+
 #### atomic data type
 
 ~~`atomic_t` guarantees manipulating on the data is not interruptible.~~
 
 Let's just go with `int` type and `str`/`ldr` instructions.
+
+기본 자료형 int을 atomic 형 으로 사용할 경우 단순 대입연산(e.g. `a = value`)과 다르게 `a |= value` 와 같은 연산은 atomic으로 수행되지 않음을 주지할 필요가 있다.
 
 #### semaphore(mutex)
 
@@ -90,6 +96,13 @@ sleeping lock.
 `spin_lock_irqsave()` - for both of interrupt handlers and user tasks.
 
 rw lock 필요. 콘솔이나 irc 값 읽는데 스핀락은 비용이 큰 듯. 자료구조와 락 형태 개선.
+
+#### rw lock
+
+`read_lock()`
+`write_lock()`
+
+`read_lock()`으로 임계영역에 진입하더라도 그 와중에 `write_lock()`이 발생하고 `read_unlock()`전에 write 연산이 종료된다면 read 쪽에서는 이를 감지하지 못함. read 연산이 write 연산보다 짧다는 것이 보장되어야 함.
 
 #### Preventing preemption
 
@@ -166,17 +179,17 @@ Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every 
 
 e.g.
 
-	static int your_open(int id)
+	static int your_open(unsigned int id)
 	{
 		...
 	}
 
-	static size_t your_read(int id, void *buf, size_t size)
+	static size_t your_read(unsigned int id, void *buf, size_t size)
 	{
 		...
 	}
 
-	static struct device_interface_t your_ops = {
+	static struct dev_interface_t your_ops = {
 		.open  = your_open,
 		.read  = your_read,
 		.write = NULL,
@@ -185,13 +198,15 @@ e.g.
 
 	static your_init()
 	{
-		int id = dev_get_newid();
+		unsigned int id = mkdev();
 
 		register_dev(id, &your_ops, "your_dev");
 		...
 	}
 
 	MODULE_INIT(console_init);
+
+`mkdev()` 리턴값이  0이면 오류. 디바이스를 등록할 가용공간이 없음.
 
 id는 사실 전달할 필요가 없다. 인자를 하나씩 제거할 수 있지만, 디바이스 상위 시스템 추상화를 어떻게 할지 감을 못잡았으므로 일단 그대로 두는 걸로.
 
@@ -209,7 +224,7 @@ id는 사실 전달할 필요가 없다. 인자를 하나씩 제거할 수 있�
 
 ### Softirq
 
-`register_softirq()`
+`request_softirq()`
 `raise_softirq()`
 
 할당받은 softirq 번호가 `SOFTIRQ_MAX` 보다 크거나 같다면 오류. softirq pool이 이미 꽉 찬 상태. 등록시 반드시 체크필요.
@@ -266,6 +281,10 @@ softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. �
 할당은 낮은주소-높은주소 순으로 이루어지기 때문에 할당/해제 두 경우 모두 head 포인터를 적절히 변경해주어야 한다.
 
 페이징 대용뿐만 아니라 유저용 `malloc()`으로 사용할까? `kmalloc()`으로 커널로부터 확보된 메모리의 2차 할당자로. 고비용의 인터럽트 금지 부분을 제거할 수 있으니까. 해제함수에서 내부 단편화를 고려한 루프문도 제거하고.
+
+#### miscellaneous
+
+`itoa()` 함수원형: `char *itoa(int v, char *buf, unsigned int base, size_t maxlen)`. 오버플로어를 방지하기 위해 마지막 maxlen 인자가 추가됨. 변환된 문자열의 시작주소가 반환됨. 인자로 넘긴 buf변수를 변환된 문자열로 사용하면 안됨. 반드시 리턴값을 문자열로 사용해야 함.
 
 ## Memory map
 
@@ -415,6 +434,7 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 	|-- main()
 	|   |-- sys_init()
 	|   |-- mm_init()
+	|   |-- fs_init()
 	|   |-- driver_init()
 	|   |-- systick_init()
 	|   |-- scheduler_init()
@@ -428,6 +448,8 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 
 * `entry()` - is very first hardware setup code to boot, usally in assembly.
 * `sys_init()` - calls functions registered by `REGISTER_INIT_FUNC()`, architecture specific initialization.
+
+`softirq_init()` 내부에서 커널스레드를(init 자식인) 생성하기 때문에 init 태스크가 형성된 후에 호출되어야 함.
 
 ## Porting
 
@@ -495,3 +517,21 @@ prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링
 ## Interrupt
 
 자원배분에 대한 공정성은 스케줄러의 역량에 달려있지만 인터럽트 처리의 경우, 바쁜 인터럽트 때문에 자원이 계속 인터럽트 처리에 매달릴 수 있다. 해당 인터럽트에 핸디캡 주는 방법을 찾아볼 것.
+
+## File system
+
+프로토타입인데다 공간낭비를 막기 위해 블럭 쓰기/읽기를 바이트 단위로 처리하다보니 최적화 여지가 많다.
+
+직접블럭 7개 1/2/3차 간접 블럭 각 하나씩 총 10개의 데이터 블럭. 블럭 사이즈에 따라 파일의 최대 크기는 달라질 수 있지만, `WORD_SIZE`의 주소범위를 넘어서지는 못한다. inode의 사이즈 변수가 `int`형이기 떄문이다. 즉, 32비트 시스템에서 파일의 사이즈는 4GB가 최대이다.
+
+	블럭 사이즈(bytes) || 64      | 128       | 256        | 512
+	-------------------||---------|-----------|------------|--------------
+	파일 최대 크기     || 280,000 | 4,330,368 | 68,175,616 | 1,082,199,552
+
+데이터 블럭 갯수를 늘리고 블럭 사이즈를 작게 유지하는 게 메모리 절약에 유리해보인다. 하지만 데이터 블럭의 갯수를 늘리거나 4차 5차까지 확장하는 건 코딩에 부담이 될 뿐더러 오버헤드가 커진다. 1k 미만 파일의 비중이 압도적인 것과 멀티미디어 파일까지 수용할 것을 고려한다면 직접블럭으로 1k까지 커버, 간접블럭 포함하여 수MB 단위를 지원하는 게 적당해보인다. 루트 파일시스템의 경우 `/dev` 용도정도 뿐, 멀티미디어 파일 같은 경우 ext나 fat등의 여타 파일시스템을 마운트 해서 사용하게 될 것이므로 디폴트는 페이지 사이즈로.
+
+`FT_DEV` 타입일 경우 디바이스의 주번호와 부번호는 `data[0]`, `fata[1]`에 저장됨.
+
+할당받은 고유한 물리 메모리 주소를 그대로 inode로 사용하는 것은 보안상 문제가 발생할 수 있음.
+
+파일 시스템 구현을 앞두고 보름 넘게 손을 놓았다. 잘 몰라서 그런지 한없이 게을러지는. 이번주에는 마무리 합시다!!

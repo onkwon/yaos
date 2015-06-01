@@ -5,47 +5,60 @@
 struct softirq_t softirq;
 struct task_t *softirqd;
 
-static DEFINE_MUTEX(registration);
+static DEFINE_MUTEX(req_lock);
 
-unsigned int register_softirq(void (*func)())
+unsigned int request_softirq(void (*func)())
 {
 	if (func == NULL)
 		return -ERR_PARAM;
 
 	unsigned int i;
 
-	mutex_lock(registration);
+	mutex_lock(req_lock);
 	for (i = 0; i < SOFTIRQ_MAX; i++) {
 		if ((softirq.bitmap & (1 << i)) == 0) {
 			softirq.bitmap |= 1 << i;
-			softirq.call[i] = func;
+			softirq.action[i] = func;
 			break;
 		}
 	}
-	mutex_unlock(registration);
+	mutex_unlock(req_lock);
 
 	return i;
 }
 
-static void softirq_handler()
+static inline unsigned int softirq_pending()
 {
 	unsigned int pending, irqflag;
-	void (*(*call))();
+
+	spin_lock_irqsave(softirq.wlock, irqflag);
+	pending = softirq.pending;
+	softirq.pending = 0;
+	spin_unlock_irqrestore(softirq.wlock, irqflag);
+
+	return pending;
+}
+
+static inline void (**get_actions())()
+{
+	return softirq.action;
+}
+
+static void softirq_handler()
+{
+	unsigned int pending;
+	void (*(*action))();
 
 	while (1) {
-		spin_lock_irqsave(softirq.wlock, irqflag);
-		pending = softirq.pending;
-		softirq.pending = 0;
-		spin_unlock_irqrestore(softirq.wlock, irqflag);
-
-		call = softirq.call;
+		pending = softirq_pending();
+		action = get_actions();
 
 		while (pending) {
 			if (pending & 1)
-				(*call)();
+				(*action)();
 
 			pending >>= 1;
-			call++;
+			action++;
 		}
 
 		yield();

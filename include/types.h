@@ -16,8 +16,13 @@ typedef enum {FALSE = 0, TRUE = 1} bool;
 typedef unsigned int size_t;
 typedef unsigned long long uint64_t;
 
+#define WORD_SIZE		sizeof(int)
+#define WORD_BITS		(WORD_SIZE << 3)
+
 #define ALIGN_WORD(x) \
-	( ((unsigned int)(x) + sizeof(int)-1) & ~(sizeof(int)-1) )
+	(((unsigned int)(x) + sizeof(int)-1) & ~(sizeof(int)-1))
+#define ALIGN_DWORD(x) \
+	(((unsigned int)(x) + ((WORD_SIZE << 1) - 1)) & ~((WORD_SIZE << 1) - 1))
 
 #define get_container_of(ptr, type, member) \
 		((type *)((char *)ptr - (char *)&((type *)0)->member))

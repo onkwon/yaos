@@ -1,7 +1,7 @@
 #include <kernel/page.h>
 #include <stdlib.h>
 
-struct buddypool_t buddypool;
+struct buddy_t buddypool;
 
 extern struct page_t *mem_map;
 
@@ -15,7 +15,7 @@ extern struct page_t *mem_map;
 #define BITMAP_MASK(bitmap, pfn, order) \
 	(*BITMAP_POS(bitmap, pfn, order) & BITMAP_OFFSET(pfn, order))
 
-void free_pages(struct buddypool_t *pool, struct page_t *page)
+void free_pages(struct buddy_t *pool, struct page_t *page)
 {
 	struct page_t *buddy;
 	struct buddy_freelist_t *freelist;
@@ -52,7 +52,7 @@ void free_pages(struct buddypool_t *pool, struct page_t *page)
 	RESET_PAGE_FLAG(page, PAGE_BUDDY);
 }
 
-struct page_t *alloc_pages(struct buddypool_t *pool, unsigned int order)
+struct page_t *alloc_pages(struct buddy_t *pool, unsigned int order)
 {
 	struct buddy_freelist_t *freelist = &pool->free[order];
 	struct list_t *head, *curr;
@@ -97,7 +97,7 @@ struct page_t *alloc_pages(struct buddypool_t *pool, unsigned int order)
 
 #include <kernel/task.h>
 
-static void buddy_freelist_init(struct buddypool_t *pool,
+static void buddy_freelist_init(struct buddy_t *pool,
 		unsigned int nr_pages, struct page_t *array)
 {
 	size_t size;
@@ -146,7 +146,7 @@ static void buddy_freelist_init(struct buddypool_t *pool,
 		/* split in half if short for current order region */
 		while ((int)(nr_pages - next) < 0) {
 			if (order == 0)
-				goto freelist_done;
+				goto out;
 
 			order--;
 			freelist--;
@@ -161,11 +161,11 @@ static void buddy_freelist_init(struct buddypool_t *pool,
 		pool->nr_free += 1 << order;
 	}
 
-freelist_done:
+out:
 	return;
 }
 
-void buddy_init(struct buddypool_t *pool, unsigned int nr_pages,
+void buddy_init(struct buddy_t *pool, unsigned int nr_pages,
 		struct page_t *array)
 {
 	buddy_freelist_init(pool, nr_pages, array);
@@ -182,7 +182,7 @@ void show_buddy(void *zone)
 	size_t size;
 	int i, j;
 
-	struct buddypool_t *pool = (struct buddypool_t *)zone;
+	struct buddy_t *pool = (struct buddy_t *)zone;
 
 	if (!pool) pool = &buddypool;
 

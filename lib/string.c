@@ -1,17 +1,72 @@
 #include <string.h>
 
+char *itoa(int v, char *buf, unsigned int base, size_t maxlen)
+{
+	char *s;
+	int neg = 0;
+
+	s = &buf[maxlen-1];
+	*s = '\0';
+
+	if ((v < 0) && (base == 10)) {
+		neg = 1;
+		v = -v;
+	}
+
+	while (v && maxlen) {
+		*--s = "0123456789abcdef"[v % base];
+		v /= base;
+		maxlen--;
+	}
+
+	if (neg)
+		*--s = '-';
+
+	return s;
+/*
+	char *s = buf;
+
+	if ((v < 0) && (base == 10)) {
+		*s++ = '-';
+		v *= -1;
+	}
+
+	while (v) {
+		*s++ = "0123456789abcdef"[v % base];
+		v /= base;
+	}
+	*s = '\0';
+
+	unsigned int len, i = 0;
+	char t;
+
+	if (buf[0] == '-')
+		i = 1;
+
+	len = s - buf + i;
+
+	for (s = buf; i < (len/2); i++) {
+		t = s[i];
+		s[i] = s[len-i-1];
+		s[len-i-1] = t;
+	}
+
+	return buf;
+	*/
+}
+
 int atoi(const char *s)
 {
 	int v;
-	int nr_sys = 10;
+	int base = 10;
 
 	if (s[0] == '0') {
 		if (s[1] == 'x' || s[1] == 'X')
-			nr_sys = 16, s += 2;
+			base = 16, s += 2;
 	}
 
 	for (v = 0; *s; s++) {
-		v *= nr_sys;
+		v *= base;
 		v += c2i(*s);
 	}
 
@@ -34,14 +89,14 @@ int strcmp(const char *s1, const char *s2)
 	return *(const unsigned char *)s1 - *(const unsigned char *)s2;
 }
 
-char *strncpy(char *s1, const char *s2, size_t n)
+char *strncpy(char *d, const char *s, size_t n)
 {
-	char *s;
+	char *p;
 
-	for (s = s1; n && *s2; n--) *s++ = *s2++;
-	for (; n--; *s++ = '\0');
+	for (p = d; n && *s; n--) *p++ = *s++;
+	for (; n--; *p++ = '\0');
 
-	return s1;
+	return d;
 }
 
 size_t strlen(const char *s)

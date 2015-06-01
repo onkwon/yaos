@@ -11,7 +11,7 @@ struct softirq_t {
 	unsigned int bitmap;
 	lock_t wlock;
 
-	void (*call[SOFTIRQ_MAX])();
+	void (*action[SOFTIRQ_MAX])();
 };
 
 struct softirq_t softirq;
@@ -26,7 +26,7 @@ static inline void raise_softirq(unsigned int nr)
 
 struct task_t *softirqd;
 
-unsigned int register_softirq(void (*func)());
+unsigned int request_softirq(void (*func)());
 int softirq_init();
 
 #endif /* __SOFTIRQ_H__ */

@@ -20,11 +20,12 @@
 	})
 #define __register_isr(nirq, func)	ISR_REGISTER(nirq, func)
 
-#define SET_IRQ(on, irq_nr) ( \
+#define __SET_IRQ(on, irq_nr) ( \
 		*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)) = \
 		MASK_RESET(*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)), 1 << ((irq_nr) % 32)) \
-		| (on << ((irq_nr) % 32)) \
+		| ((on) << ((irq_nr) % 32)) \
 	)
+void SET_IRQ(int on, unsigned irq_nr);
 
 #define GET_PC() ({ unsigned __pc; \
 		__asm__ __volatile__("mov %0, pc" : "=r" (__pc)); \

@@ -11,7 +11,7 @@ static void test_led()
 		read(led_id, &v, 1);
 		printf("led %08x\n", v);
 		v ^= 1;
-		sleep(2);
+		sleep(1);
 	}
 }
 REGISTER_TASK(test_led, 0, DEFAULT_PRIORITY);

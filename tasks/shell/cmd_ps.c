@@ -56,7 +56,7 @@ static int ps(int argc, char **argv)
 	visit(&init);
 
 #ifdef CONFIG_PAGING
-	extern struct buddypool_t buddypool;
+	extern struct buddy_t buddypool;
 	printf("%d pages free out of %d pages\n",
 			buddypool.nr_free, buddypool.nr_pages);
 #endif

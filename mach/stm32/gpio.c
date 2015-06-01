@@ -2,6 +2,7 @@
 #include <types.h>
 
 DEFINE_SPINLOCK(gpio_irq_lock);
+DEFINE_SPINLOCK(gpio_init_lock);
 
 #define calc_port(i)		(i / PINS_PER_PORT)
 #define calc_pin(i)		(i % PINS_PER_PORT)
@@ -34,6 +35,8 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	port = calc_port(index);
 	pin  = calc_pin(index);
+
+	spin_lock(gpio_init_lock);
 
 	SET_CLOCK_APB2(ENABLE, port + 2);
 
@@ -92,6 +95,8 @@ int gpio_init(unsigned int index, unsigned int flags)
 			break;
 		}
 	}
+
+	spin_unlock(gpio_init_lock);
 
 	return vector;
 }

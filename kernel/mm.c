@@ -7,7 +7,7 @@ extern char _mem_start, _mem_end, _ebss;
 #ifdef CONFIG_PAGING
 struct page_t *mem_map;
 
-extern struct buddypool_t buddypool;
+extern struct buddy_t buddypool;
 
 void *kmalloc(size_t size)
 {
@@ -28,7 +28,7 @@ void *kmalloc(size_t size)
 void kfree(void *addr)
 {
 	struct page_t *page;
-	struct buddypool_t *pool = &buddypool;
+	struct buddy_t *pool = &buddypool;
 	unsigned int index;
 	unsigned int irqflag;
 
@@ -107,7 +107,7 @@ void __init mm_init()
 	unsigned int nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
 
 	extern struct page_t *mem_map;
-	extern struct buddypool_t buddypool;
+	extern struct buddy_t buddypool;
 
 	struct page_t *page = (struct page_t *)ALIGN_PAGE(&_ebss);
 

@@ -1,36 +1,28 @@
-/* IMPORTANT: Make sure getarg() works properly on the target system.
- * Each compilers may have its own way to place parameters when calling
- * a function, depending on the architecture.
- * Don't suppose it works the way you expect before checking yourself.
- *
- * - Support floating point output
- *   how FPU and its registers are used?
- *   (don't understand the way of passing float-point variable
- *   to a function looking at disassembled codes.)
- */
+#include <foundation.h>
+#include <string.h>
 
-#include <io.h>
-#include <kernel/syscall.h>
+#define BUF_SIZE		(WORD_SIZE * 8 + 1) /* max length of binary */
+
+#define FORWARD(addr)		((int *)(addr)++)
+#define BACKWARD(addr)		((int *)(addr)--)
+#define getarg(args, type)	(*(type *)FORWARD(args))
 
 #define PAD_RIGHT		1
 #define PAD_ZERO		2
 
-/* architecture specific: parameters are INTSIZE-aligned for optimization */
-#define INTSIZE			4
-#define PRINT_BUFSIZE		(INTSIZE * 8 + 1)
-#define getarg(args, type)	(*(type *)args++)
-#define align_dword(args)	(args += ((int)args & ((INTSIZE<<1)-1))? 1 : 0)
+void __putchar(int c)
+{
+	write(stdout, &c, 1);
 
-static void (*fputc)(int c) = putc;
+	if (c == '\n')
+		__putchar('\r');
+}
+
+void (*putchar)(int c) = __putchar;
 
 void puts(const char *s)
 {
-	while (*s) putc(*s++);
-}
-
-void putc(int c)
-{
-	write(stdout, &c, 1);
+	while (*s) putchar(*s++);
 }
 
 int getc()
@@ -45,80 +37,133 @@ int getc()
 
 static void printc(char **s, int c)
 {
-	if (s) {
+	if (s)
 		*(*s)++ = c;
-	} else {
-		fputc(c);
-
-		if (c == '\n') {
-			c = '\r';
-			fputc(c);
-		}
-	}
+	else
+		putchar(c);
 }
 
-static int prints(char **out, const char *s, int width, int pad)
+static size_t prints(char **out, const char *s, size_t width, int pad,
+		size_t maxlen)
 {
 	int len;
 	char padchar = ' ';
 
-	if (pad & PAD_ZERO) padchar = '0';
+	if (pad & PAD_ZERO)
+		padchar = '0';
 
-	for (len = 0; s[len]; len++);
+	for (len = 0; s[len]; len++) ;
 
 	if (pad & PAD_RIGHT)
-		for (; *s; s++) printc(out, *s);
+		for (; *s && maxlen; s++, maxlen--) printc(out, *s);
 
-	if (width > len)
-		for (len = width - len; len; len--) printc(out, padchar);
-	else
+	if (width > len) {
+		for (len = width - len; len && maxlen; len--, maxlen--)
+			printc(out, padchar);
+	} else
 		width = len;
 
 	if (!(pad & PAD_RIGHT))
-		for (; *s; s++) printc(out, *s);
+		for (; *s && maxlen; s++, maxlen--) printc(out, *s);
 
-	return width;
+	return maxlen;
 }
 
-static int printi(char **out, int v, int base, int width, int pad)
+static size_t printi(char **out, int v, unsigned int base, size_t width,
+		int pad, size_t maxlen)
 {
-	char buf[PRINT_BUFSIZE], *s;
-	int t, neg = 0;
-	unsigned u;
+	char buf[BUF_SIZE], *s;
 
-	s  = &buf[PRINT_BUFSIZE-1];
-	*s = '\0';
+	s = itoa(v, buf, base, BUF_SIZE);
 
-	if ((v < 0) && (base == 10)) {
-		neg = 1;
-		v = -v;
-	}
-
-	for (u = v; u; u /= base) {
-		t    = u % base;
-		*--s = "0123456789abcdef"[t];
-	}
-
-	if (neg) {
+	if (*s == '-') {
 		if ((pad & PAD_ZERO) && !(pad & PAD_RIGHT)) {
 			printc(out, '-');
 			if (width > 0) width--;
-		} else {
-			*--s = '-';
-			neg  = 0;
+			maxlen--;
+			s++;
 		}
 	}
 
-	return prints(out, s, width, pad) + neg;
+	if (strlen(s) == 0) {
+		*s = '0';
+		s[1] = '\0';
+	}
+
+	return prints(out, s, width, pad, maxlen);
 }
 
-static int print(char **out, int *args)
+/* n = s * 1.m * 2^(e-127)
+ * ex) -6.25(-110.01)
+ *     = -1 * 1.1001 * 2^2
+ *     s = 1,
+ *     e = 2 + 127 = 10000001,
+ *     m = [1.]1001
+ */
+/*
+#define EXPONENT_SIZE	8
+#define MANTISSA_SIZE	23
+#define BIAS		127
+#define RESOLUTION	1000000
+#define GETEXP(r)	(r.i.e - BIAS)
+static size_t printr(char **out, double v, unsigned int base, size_t width,
+		int pad, size_t maxlen)
 {
-	const char *format = getarg(args, char *);
-	int pad, width;
-	int len = 0;
+	unsigned int integer, decimal, i;
+	int exp;
+	union {
+		float f;
+		struct {
+			unsigned int m: MANTISSA_SIZE;
+			unsigned int e: EXPONENT_SIZE;
+			unsigned int s: 1;
+		} i;
+	} r;
 
-	while (*format) {
+	r.f = v;
+	integer = 0;
+	decimal = 0;
+
+	if ((exp = GETEXP(r)) >= 0) {
+		integer = (1 << exp) | (r.i.m >> (MANTISSA_SIZE - exp));
+	} else {
+		r.i.m = ((1 << MANTISSA_SIZE) | r.i.m) >> -exp;
+		exp = 0;
+	}
+
+	for (i = 0; i < (MANTISSA_SIZE - exp); i++) {
+		if (r.i.m & (1 << i))
+			decimal +=(RESOLUTION / (1 << ((MANTISSA_SIZE - exp) - i)));
+	}
+
+	char buf[BUF_SIZE], *s;
+
+	s = buf;
+	if (v < 0)
+		*s++ = '-';
+
+	itoa(integer, s, 10);
+	i = strlen(s);
+	s[i] = '.';
+	itoa(decimal, &s[i+1], 10);
+	if (strlen(buf) == 1)
+		buf[0] = '0';
+
+	return prints(out, buf, width, pad, maxlen);
+}
+*/
+
+static size_t print(char **out, size_t limit, int *args)
+{
+	const char *format;
+	size_t width, len, maxlen;
+	int pad;
+
+	format = getarg(args, char *);
+	maxlen = limit;
+	len = 0;
+
+	while (*format && limit) {
 		if (*format == '%') {
 			format++;
 			pad = width = 0;
@@ -136,90 +181,72 @@ static int print(char **out, int *args)
 				width += *format - '0';
 				format++;
 			}
-			if (*format == 'l') {
-				format++;
-				align_dword(args);
-			}
 
 			switch (*format) {
-			case 'd': len += printi(out, getarg(args, int), 10, width, pad);
-				  if (*(format-1) == 'l') args++;
+			case 'd': len = limit - printi(out, getarg(args, int),
+						  10, width, pad, limit);
 				  break;
-			case 'x': len += printi(out, getarg(args, int), 16, width, pad);
+			case 'x': len = limit - printi(out, getarg(args, int),
+						  16, width, pad, limit);
 				  break;
-			case 'b': len += printi(out, getarg(args, int),  2, width, pad);
+			case 'b': len = limit - printi(out, getarg(args, int),
+						  2, width, pad, limit);
 				  break;
-			case 's': len += prints(out, getarg(args, char *),  width, pad);
+			/*
+			case 'f': FORWARD(args);
+				  args = (int *)ALIGN_DWORD(args);
+				  len = limit - printr(out, getarg(args, double),
+						  10, width, pad, limit);
+				  FORWARD(args);
 				  break;
-			case 'c': /*len += prints(out, (const char *)args++, width, pad);*/
-				  printc(out, getarg(args, char));
-				  len++;
+			*/
+			case 's': len = limit - prints(out, getarg(args, char *)
+						  , width, pad, limit);
+				  break;
+			case 'c': printc(out, getarg(args, char));
+				  len = 1;
 				  break;
 			default : format--;
 				  break;
 			}
 
 			format++;
-		} else
+		} else {
 			printc(out, *format++);
+			len = 1;
+		}
+
+		limit -= len;
 	}
 
-	return len;
+	if (out)
+		printc(out, '\0');
+
+	return maxlen - limit;
 }
 
-int printf(const char *format, ...)
+size_t printf(const char *format, ...)
 {
-	fputc = putc;
-	return print(0, (int *)&format);
+	putchar = __putchar;
+	return print(0, -1, (int *)&format);
 }
 
-int sprintf(char *out, const char *format, ...)
+size_t sprintf(char *out, const char *format, ...)
 {
-	return print(&out, (int *)&format);
+	return print(&out, -1, (int *)&format);
+}
+
+size_t snprintf(char *out, size_t maxlen, const char *format, ...)
+{
+	return print(&out, maxlen, (int *)&format);
 }
 
 #include <driver/console.h>
 
-int printk(const char *format, ...)
+size_t printk(const char *format, ...)
 {
 #ifdef CONFIG_SYSCALL
-	fputc = console_putc;
+	putchar = console_putc;
 #endif
-	return print(0, (int *)&format);
+	return print(0, -1, (int *)&format);
 }
-
-#ifdef PRINTF_TEST
-int main()
-{
-	int a, c;
-	char b = 'C';
-	int d;
-	long long r = 123456789;
-
-	a = -12345;
-	c = -56789;
-	d = 12345;
-
-	ptf("Hello, World! %d, %-8c, %08d, %x\n", a, b, c, d);
-	ptf("%s - %010s\n", "12345678", "abcde");
-	ptf("%% asf %d\n", a);
-	ptf("%d %8d %-8d %08d %-08d\n", c, c, c, c, c);
-	ptf("%b\n", c);
-	ptf("%d %ld %d\n", a, r, a);
-	ptf("%ld %d\n", r, a);
-	ptf("%d %ld %d %ld %ld\n", a, r, a, r, r);
-	ptf("%ld %d %ld %d\n", r, a, r, a);
-	ptf("%c %d %c %c %d\n", b, a, b, b, a);
-
-	char buf[50];
-
-	spf(buf, "SPRINTF TEST\n %d %ld %-8d %c", a, r, d, b);
-	printf("%s\n", buf);
-
-	float f = 9876;
-	ptf("size: %d, %d %f %d\n", sizeof(float), d, f, d);
-	ptf("size: %d, %d%d\n", sizeof(float), d, d);
-
-	return 0;
-}
-#endif

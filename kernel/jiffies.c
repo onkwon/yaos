@@ -23,7 +23,9 @@ uint64_t get_jiffies_64()
 
 void inline update_tick(unsigned delta)
 {
-	write_lock(lock_jiffies_64);
+	unsigned int irqflag;
+
+	spin_lock_irqsave(lock_jiffies_64, irqflag);
 	jiffies_64 += delta;
-	write_unlock(lock_jiffies_64);
+	spin_unlock_irqrestore(lock_jiffies_64, irqflag);
 }

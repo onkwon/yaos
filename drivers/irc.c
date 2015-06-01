@@ -41,7 +41,7 @@ static void isr_irc()
 	ret_from_gpio_int(GPIO_PIN_INDEX);
 }
 
-static size_t irc_read(int id, void *buf, size_t len)
+static size_t irc_read(unsigned int id, void *buf, size_t len)
 {
 	int i, *data;
 	unsigned int irqflag;
@@ -58,7 +58,7 @@ static size_t irc_read(int id, void *buf, size_t len)
 	return i;
 }
 
-static struct device_interface_t ops = {
+static struct dev_interface_t ops = {
 	.open  = NULL,
 	.read  = irc_read,
 	.write = NULL,
@@ -97,7 +97,7 @@ static int __init irc_init()
 	register_isr(vector_nr, isr_irc);
 
 	if (!(result = register_dev(mkdev(), &ops, "irc"))) {
-		if ((nr_softirq = register_softirq(daemon)) >= SOFTIRQ_MAX) {
+		if ((nr_softirq = request_softirq(daemon)) >= SOFTIRQ_MAX) {
 			kfree(buf);
 			gpio_close(GPIO_PIN_INDEX);
 

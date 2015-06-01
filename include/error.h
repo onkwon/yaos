@@ -7,6 +7,9 @@
 #define ERR_RANGE		3
 #define ERR_PARAM		4
 #define ERR_PERM		5
+#define ERR_MKDIR		6
+#define ERR_EXIST		7
+#define ERR_PATH		8
 
 #define freeze()
 

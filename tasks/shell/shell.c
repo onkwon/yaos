@@ -26,15 +26,14 @@ static unsigned int getline(char *buf, int maxlen)
 		default:
 			if(i < maxlen - 1){
 				buf[i++] = c;
-				putc(c);
+				putchar(c);
 			}
 			break;
 		}
 	}
 
 	buf[i] = '\0';
-	putc('\r');
-	putc('\n');
+	putchar('\n');
 
 	return i;
 }
