@@ -2,8 +2,8 @@
 #include <kernel/syscall.h>
 #include <error.h>
 
-struct softirq_t softirq;
-struct task_t *softirqd;
+struct softirq softirq;
+struct task *softirqd;
 
 static DEFINE_MUTEX(req_lock);
 

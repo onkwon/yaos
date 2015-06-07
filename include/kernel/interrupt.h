@@ -9,6 +9,7 @@
 #define sei()				__sei()
 #define local_irq_disable()		cli()
 #define local_irq_enable()		sei()
+#define get_active_irq()		__get_active_irq()
 
 #define preempt_disable()
 #define preempt_enable()

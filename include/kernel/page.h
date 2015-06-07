@@ -2,7 +2,6 @@
 #define __PAGE_H__
 
 #include <types.h>
-#include <kernel/lock.h>
 
 #include <asm/page.h>
 
@@ -30,10 +29,10 @@
 #define SET_PAGE_FLAG(p, bit)	((p)->flags |= PAGE_FLAG_POS(bit))
 #define RESET_PAGE_FLAG(p, bit)	((p)->flags &= ~PAGE_FLAG_POS(bit))
 
-struct page_t {
+struct page {
 	unsigned int flags;
 	void *addr;
-	struct list_t link;
+	struct list link;
 } __attribute__((packed));
 
 #define GET_PAGE_ORDER(p)	\
@@ -46,6 +45,8 @@ void kfree(void *addr);
 
 void mm_init();
 void free_bootmem();
+
+void *sys_brk(size_t size);
 
 #include <kernel/buddy.h>
 

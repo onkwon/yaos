@@ -11,21 +11,22 @@
 
 #define barrier()			__asm__ __volatile__("" ::: "memory")
 
-#define O_RDONLY			1
-#define O_WRONLY			2
-#define O_RDWR				3
-#define O_NONBLOCK			4
+#define O_RDONLY			0x01
+#define O_WRONLY			0x02
+#define O_RDWR				0x03
+#define O_NONBLOCK			0x04
+#define O_CREATE			0x08
 
 #ifdef MACHINE
 #include <asm/io.h>
 #endif
 
-int stdin, stdout, stderr;
+unsigned int stdin, stdout, stderr;
 
 #include <types.h>
 
-extern size_t printf(const char *format, ...);
 extern size_t printk(const char *format, ...);
+extern size_t printf(const char *format, ...);
 extern void (*putchar)(int c);
 extern int getc();
 extern void puts(const char *s);

@@ -1,4 +1,6 @@
-# ibox
+# ~~ibox~~ yaos
+
+ibox was initially the name of a device that I was making. In the course of it this OS came out, holding affection from me. And now I think it's time to give its own name, YAOS. Well, not final. I will pick one amongst others of coming up in mind.
 
 Two types of task are handled, normal priority and real time priority tasks. Completly fair scheduler for normal priority tasks while FIFO scheduler for real time priority tasks.
 
@@ -10,7 +12,7 @@ To access system resource, use provided API after checking how synchronization a
 
 인터럽트는 우선순위에 따라 중첩될 수 있으나 동일한 인터럽트가 실행중인 현재 인터럽트를 선점할 수는 없다. 스케쥴러는 인터럽트 컨텍스트 내에서 실행될 수 없다. 스케줄러를 포함한 시스템 콜은 최하위 우선순위를 가진다. 시스템 콜은 다른 시스템 콜 및 스케줄러를 선점하지 못하고 그 반대도 마찬가지다. 하지만 우선순위가 높은 인터럽트에 의해 선점될 수 있다. 다만, 스케줄러는 스케줄링 단계에서 로컬 인터럽트를 비활성화 시키므로 선점되지 않는다.
 
-각 태스크별로 하나의 커널 스택과 태스크 스택을 갖는다. 커널 태스트, 유저 태스크 모두 태스크 스택(psp) 사용. 핸들러(인터럽트) 문맥에서만 커널스택(msp)을 사용한다. 시스템 콜과 문맥전환은 최하위 우선순위로 일반모드에서만 발생할 수 있다. 따라서 유저 태스크의 인터럽트 진입점인 시스템 콜과 문맥전환에서는 psp만 고려하면 된다. 인터럽트 진입 후 스택은 msp가 사용되고 스택 포인터는 인터럽트 중첩이 아니라면 항상 top을 가리킨다.
+태스크다마 커널 스택과 태스크 스택 하나씩을 갖는다. 태스크 문맥 내에서 태스크 스택(psp)을 사용하고, 핸들러(인터럽트) 문맥에서 커널스택(msp)을 사용한다. 시스템 콜과 문맥전환은 최하위 우선순위로 일반모드에서만 발생할 수 있다. 따라서 유저 태스크의 인터럽트 진입점인 시스템 콜과 문맥전환에서는 태스크 스택psp만 고려하면 된다. 인터럽트 진입 후 스택은 커널스택msp가 사용되고 스택 포인터는 인터럽트 중첩이 아니라면 항상 top을 가리킨다.
 
 Each task has one kernel stack and one task stack. Each task's kernel stack pointer address the same one memory region at the moment actually because allocating kernel stack per each task seemed quite waste of memory. But it can easily alloc one for each.
 	        
@@ -36,11 +38,21 @@ tested on stm32f103.
 
 ### `CONFIG_SYSCALL`
 
-시스템 콜 및 디바이스 매니저 추가
+시스템 콜 추가
 
 ### `CONFIG_FS`
 
 가상 파일 시스템 추가
+
+### include/foundation.h
+
+#### HZ
+
+시스템 클럭 주파수
+
+#### CONSOLE
+
+콘솔 디바이스 설정. 디폴트 usart1
 
 ## API
 
@@ -163,6 +175,8 @@ Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every 
 	        sys_schedule,
 	        sys_test,
 
+시스템 콜은 보통 관련소스(파일 시스템이라면 fs.c) 하단에 정의되어 있다.
+
 ### Device Driver
 
 `devtab` 해시 테이블에 모든 디바이스가 등록된다.
@@ -173,23 +187,23 @@ Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every 
 
 `register_dev(id, ops, name)` - 디바이스 등록
 
-등록하는 `name`이 이미 `/dev`에 등록되어 있다면 `name1`, `name2`식으로 번호 할당. 디바이스 등록 후 해당 디바이스 접근은 `/dev`하 `name`으로 실현
+`/dev/` 아래 `name` 노드 생성. `name`이 NULL일 경우 노드가 이미 생성된 것으로 가정하고 디바이스만 등록. minor 번호가 `name` 접미사로 붙음. e.g. name1
 
 `MODULE_INIT(func)` - 디바이스 초기화 함수 등록
 
 e.g.
 
-	static int your_open(unsigned int id)
+	static int your_open(struct file *file)
 	{
 		...
 	}
 
-	static size_t your_read(unsigned int id, void *buf, size_t size)
+	static size_t your_read(struct file *file, void *buf, size_t size)
 	{
 		...
 	}
 
-	static struct dev_interface_t your_ops = {
+	static struct file_operations your_ops = {
 		.open  = your_open,
 		.read  = your_read,
 		.write = NULL,
@@ -198,7 +212,7 @@ e.g.
 
 	static your_init()
 	{
-		unsigned int id = mkdev();
+		dev_t id = mkdev(0, 0);
 
 		register_dev(id, &your_ops, "your_dev");
 		...
@@ -207,6 +221,10 @@ e.g.
 	MODULE_INIT(console_init);
 
 `mkdev()` 리턴값이  0이면 오류. 디바이스를 등록할 가용공간이 없음.
+
+첫번째 인자 major 값이 0이면 자동할당. 이미 할당된 major 번호를 공유하는 공통 드라이버를 구현할 경우 이미 생성된 노드에서 major 번호를 구할 것. major 번호는 순차적으로 증가한 값을 갖는다. 즉, 지정한 major 번호가 등록되지 않은 번호라면 요청한 번호는 적절한 값으로 변경될 수 있다. 반면 지정한 minor 번호가 이미 존재할 경우에는 자동으로 비어있는 번호를 찾아 등록된다. 대부분의 경우, `mkdev(0, 0)`으로 충분.
+
+major 16 비트, minor 16 비트. 각 65535개씩 등록 가능(0번째 항목은 에러체크로 제외).
 
 id는 사실 전달할 필요가 없다. 인자를 하나씩 제거할 수 있지만, 디바이스 상위 시스템 추상화를 어떻게 할지 감을 못잡았으므로 일단 그대로 두는 걸로.
 
@@ -257,6 +275,8 @@ softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. �
 `malloc()`
 `free()`
 
+디폴트 스택 사이즈가 1KB이므로 버퍼 용도의 사이즈가 큰 로컬 변수 사용은 피해야 한다. 가급적 동적할당 malloc 또는 kmalloc을 사용해야 한다.
+
 #### Buddy allocator
 
 지수법칙을 활용한 메모리 할당자. 2의 누승에서 `n^2 = n + n` 이 된다. 쪼개진 이 두 개의 n을 버디라고 한다. 두개가 한 쌍인 버디는 하나의 상태비트를 갖는다. 상태비트는 버디가 할당되거나 해제될 때마다 토글된다. 즉, 비트 값이 0일 경우 한쌍인 두개의 버디는 모두 할당되었거나 해제된 상태이고, 비트 값이 1일 경우 둘 중 하나의 버디만 할당된 상태를 뜻한다.
@@ -289,7 +309,7 @@ softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. �
 ## Memory map
 
 	* memory map at boot time
-	+-------------------------+ _mem_end(e.g. 0x2000ffff)
+	+-------------------------+ _ram_end(e.g. 0x2000ffff)
 	| | initial kernel stack  |
 	| |                       |
 	| v                       |
@@ -299,7 +319,7 @@ softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. �
 	| .data                   |
 	|-------------------------|
 	| .vector                 |
-	+-------------------------+ _mem_start(e.g. 0x20000000)
+	+-------------------------+ _ram_start(e.g. 0x20000000)
 
 	* task memory space
 	+-------------+ stack top      -
@@ -325,7 +345,7 @@ softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. �
 	|   v         |                v
 	+-------------+                -
 
-초기 커널 스택은 `_mem_end`을 시작으로 `STACK_SIZE`만큼 할당되어야 함. 초기 커널 스택에 해당하는 버디 `free_area`의 마지막 페이지들이 사용중으로 마크됨.
+초기 커널 스택은 `_ram_end`을 시작으로 `STACK_SIZE`만큼 할당되어야 함. 초기 커널 스택에 해당하는 버디 `free_area`의 마지막 페이지들이 사용중으로 마크됨.
 
 malloc()은 kmalloc()의 랩퍼일 뿐, 차후에 단편화를 고려한 slab과 같은 캐시를 구현하는 것도 고려해볼만..
 
@@ -337,7 +357,7 @@ AVR에 포팅할 것도 고려하고 있는데 페이징은 좀 무리인 듯. p
 
 ### Paging
 
-	_mem_start(e.g. 0x20000000)                                _mem_end
+	_ram_start(e.g. 0x20000000)                                _ram_end
 	^----------------------------------------------------------^
 	| kernel data | mem_map | bitmap |//////////////////////////|
 	 -----------------------------------------------------------
@@ -435,19 +455,20 @@ It has only a queue for running task. When a task goes to sleep or wait state, i
 	|   |-- sys_init()
 	|   |-- mm_init()
 	|   |-- fs_init()
-	|   |-- driver_init()
+	|   |-- device_init()
 	|   |-- systick_init()
 	|   |-- scheduler_init()
-	|   `-- init_task()
-	|       |-- softirq_init()
-	|       |-- load_user_task()
-	|       |-- sei() #interrupt enabled
-	|       `-- idle()
-	|           |-- cleanup()
-	|           `-- loop
+	|   |-- make_init_task()
+	|   |-- load_user_task()
+	|   |-- softirq_init()
+	|   |-- console_init()
+	|   |-- sei() #interrupt enabled
+	|   `-- idle()
+	|       |-- cleanup()
+	|       `-- sleep
 
 * `entry()` - is very first hardware setup code to boot, usally in assembly.
-* `sys_init()` - calls functions registered by `REGISTER_INIT_FUNC()`, architecture specific initialization.
+* `sys_init()` - calls functions registered by `REGISTER_INIT()`, architecture specific initialization.
 
 `softirq_init()` 내부에서 커널스레드를(init 자식인) 생성하기 때문에 init 태스크가 형성된 후에 호출되어야 함.
 
@@ -469,6 +490,32 @@ sizeof(int)를 기본 word 타입으로 결정했다. 위키피디아의 다음 
 
 [http://en.wikipedia.org/wiki/C_data_types](http://en.wikipedia.org/wiki/C_data_types)
 [https://gcc.gnu.org/wiki/avr-gcc](https://gcc.gnu.org/wiki/avr-gcc)
+
+가독성을 위해 사용자 지정 데이터 형 사용을 최대한 삼가했다. 기본 데이터 형 이외에 일관(호환)성을 유지하기 위해 지정한 데이터 타입은 다음과 같다:
+
+	bool         false or true         - enum
+	refcnt_t     reference count       - unsigned short int
+	mode_t       mode(flags)           - unsigned short int
+	lock_t       lock                  - volatile int
+	size_t       size(len)             - unsigned int
+	offset_t     offset                - unsigned int
+	dev_t        device                - unsigned int
+	uint64_t     64 bit unsigned       - unsigned long long
+
+	struct list  doubly linked list
+	struct fifo  first in first out
+
+	buf_t        buffer cache          - struct list
+	mutex_t      mutual exclusive lock - struct semaphore
+
+`list_add`, `slist_add` - new 노드는 ref의 다음 노드가 된다. 즉 `list_add_next`. 그 이외의 함수는 지원하지 않는다. ref 조작으로 추가적인 함수(`list_add_prev`)를 실현할 수 있기 때문이다.
+
+`slist_del_next` - 단일 링크드 리스트 자료구조는 인자로 넘어 온 노드의 다음 노드를 삭제하는 함수만 지원한다. 자료구조의 특성상 리스트 순회중에 삽입/삭제가 이루어지기 때문이다.
+
+	용량 확보를 위해 단일 링크드 리스트로 변경 고려:
+
+	struct device
+	struct active_superblock_list
 
 시스템 콜은 OS에 필수적인 요소라 모듈화하지 않고 빌트인 하는 게 좋을 듯 한데, 여전히 AVR 포팅을 고려중이라 고민이다. AVR에서도 소프트웨어 인터럽트 트릭을 사용할 수 있을 것 같지만, 8비트 시스템의 낮은 클럭 주파수에서 시스템 콜을 호출하는 비용이 만만찮을 것이다. 그렇다고 시스템 콜을 때에 따라 빼버릴 수 있도록 그대로 모듈로 두기엔 구조적 취약성이 거슬리고.
 
@@ -501,13 +548,13 @@ prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링
 
 ### Memory Manager
 
-메모리 관리자를 초기화하기 위해서 아키텍처 단에서 `_ebss`, `_mem_start`, `_mem_end` 제공해주어야 함(`ibox.lds`). `PAGE_SHIFT` 디폴트 값이 4KiB이므로 이것도 아키텍처 단에서 지정해줄 것(`include/asm/mm.h`).
+메모리 관리자를 초기화하기 위해서 아키텍처 단에서 `_ebss`, `_ram_start`, `_ram_end` 제공해주어야 함(`ibox.lds`). `PAGE_SHIFT` 디폴트 값이 4KiB이므로 이것도 아키텍처 단에서 지정해줄 것(`include/asm/mm.h`).
 
 ### Task Manager
 
-`set_task_context(struct task_t *p)`
-`set_task_context_soft(struct task_t *p)`
-`set_task_context_hard(struct task_t *p)`
+`set_task_context(struct task *p)`
+`set_task_context_soft(struct task *p)`
+`set_task_context_hard(struct task *p)`
 
 `STACK_SEPARATE` 서로 다른 메모리 공간 사용
 `STACK_SHARE`    커널스택만 공유
@@ -520,9 +567,9 @@ prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링
 
 ## File system
 
-프로토타입인데다 공간낭비를 막기 위해 블럭 쓰기/읽기를 바이트 단위로 처리하다보니 최적화 여지가 많다.
+프로토타입인데다 공간낭비를 막기 위해 블럭 쓰기/읽기를 바이트 단위로 처리하다보니 최적화 여지가 많다. 아직 전체그림을 그리지 못해서 구조적으로도 허술한데 FAT이나 ext2 드라이버 구현하면서 대폭 개선될 듯.
 
-직접블럭 7개 1/2/3차 간접 블럭 각 하나씩 총 10개의 데이터 블럭. 블럭 사이즈에 따라 파일의 최대 크기는 달라질 수 있지만, `WORD_SIZE`의 주소범위를 넘어서지는 못한다. inode의 사이즈 변수가 `int`형이기 떄문이다. 즉, 32비트 시스템에서 파일의 사이즈는 4GB가 최대이다.
+직접블럭 7개 1/2/3차 간접 블럭 각 하나씩 총 10개의 데이터 블럭. 블럭 사이즈에 따라 파일의 최대 크기는 달라질 수 있지만, `WORD_SIZE`의 주소범위를 넘어서지는 못한다. inode의 사이즈 변수가 `int`형이기 때문이다. 즉, 32비트 시스템에서 파일의 사이즈는 4GB가 최대이다.
 
 	블럭 사이즈(bytes) || 64      | 128       | 256        | 512
 	-------------------||---------|-----------|------------|--------------
@@ -530,8 +577,244 @@ prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링
 
 데이터 블럭 갯수를 늘리고 블럭 사이즈를 작게 유지하는 게 메모리 절약에 유리해보인다. 하지만 데이터 블럭의 갯수를 늘리거나 4차 5차까지 확장하는 건 코딩에 부담이 될 뿐더러 오버헤드가 커진다. 1k 미만 파일의 비중이 압도적인 것과 멀티미디어 파일까지 수용할 것을 고려한다면 직접블럭으로 1k까지 커버, 간접블럭 포함하여 수MB 단위를 지원하는 게 적당해보인다. 루트 파일시스템의 경우 `/dev` 용도정도 뿐, 멀티미디어 파일 같은 경우 ext나 fat등의 여타 파일시스템을 마운트 해서 사용하게 될 것이므로 디폴트는 페이지 사이즈로.
 
-`FT_DEV` 타입일 경우 디바이스의 주번호와 부번호는 `data[0]`, `fata[1]`에 저장됨.
+`FT_DEV` 타입일 경우 디바이스의 주번호와 부번호는 `data[0]`에 저장됨.
 
 할당받은 고유한 물리 메모리 주소를 그대로 inode로 사용하는 것은 보안상 문제가 발생할 수 있음.
 
 파일 시스템 구현을 앞두고 보름 넘게 손을 놓았다. 잘 몰라서 그런지 한없이 게을러지는. 이번주에는 마무리 합시다!!
+
+----
+
+램 상에 인터페이스만 구현해두고 디바이스 노드만 생성해서 사용한다는 대충의 생각으로 코딩을 시작했는데, 결과가 썩 만족스럽지 않다. 그래서 어설픈 위의 초기 구현을 대체할 파일 시스템을 구축하기로. 버퍼와 같은 최적화는 차후에 고려하도록 하고, 커널외의 플래시 공간 또는 EEPROM을 적절한 블럭크기의 파일 시스템을 구축한다.
+
+플래시 메모리의 비영구적 쓰기 특성을 고려하지 않은 소형 시스템을 운영하기 위한 기본 파일 시스템으로 설계되었기 때문에 쓰기는 가급적 제한하도록 한다. 소형 시스템의 내부 플래시 메모리는 파일 시스템을 운용할만큼 용량이 크지도 않다. 그리고 내장 플래시 메모리에 쓰는 동안 플래시 메모리로 접근이 stall된다. 즉 그동안 플래시 메모리에 저장된 코드를 실행할 수 없으므로(중지되므로) 시스템 성능이 저하된다.
+
+파일 시스템을 구축하기로 한 이상, 모든 디바이스 노드는 파일을 통해, 즉 inode 형으로 일반화한다.
+
+	내부 플래시 메모리 맵:
+
+	                         [0]      [1]      [2]                ......               [N-1]
+	 --------------------------------------------------- ~ --------- ~ ------------ ~ ----------
+	| .text | .data | .bss   | super  | inode  | data       | inode     | data   |  ~  | data   |
+	|                        | block  | bitmap | bitmap     | table     | block  |  ~  | block  |
+	|------------------------|-------------------------- ~ --------- ~ ------------ ~ ----------|
+	|<---- kernel space ---->|<------------------------- file system -------------------------->|
+	v
+	0x00000000
+
+	kernel space 와 super block 사이에는 블럭크기로 정렬하기 위한 padding이 삽입된다.
+
+	block[0] = superblock
+	block[1] = inode bitmap
+	block[2] = data bitmap
+
+inode는 디스크 전체 사이즈의 1% 를 취하도록 한다.
+
+	The total number of inodes = disk_size * 1/100 / inode_size
+
+inode 크기를 최소 64바이트라 가정할 때 최소 10개의 inode를 확보하기 위해서는 적어도 64KiB 이상의 디스크 용량이 필요하다. 최소한의 정보만 유지하더라도 inode 사이즈는 60바이트 전후가 최소다. 커널 자체 공간도 고려한다면 64KiB 이하는 무리다(하지만, SD 카드등 외부 디스크를 활용할 수 있을 것이다). 최소한의 디바이스 노드만 생성할 요량이라면 inode 비율을 늘려 32KiB 까지 어찌저찌 커버할 수 있을지도 모르겠다. 커널 크기가 있으므로 그 이하는 욕심내지 않기로.
+
+메타 데이터 백업본을 유지하는 게 좋겠지만 차후 추가하는 걸로.
+
+디렉토리 항목에서 레코드 길이를 유지함으로써 파일 삭제시 해당 공간을 재할당 가능하도록 한다(램 상에 그냥 인터페이스만 구현할 때는 왜 레코드 길이를 유지해야 하나 싶었는데).
+
+구현에 앞서 포팅을 염두해 둔 시스템들의 롬 블럭 사이즈와 in application programming 의 가능여부를 확인해 둘 것.
+
+super block 과 inode bitmap 크기는 항상 1블럭. 할당 가능한 inode와 block 갯수만 유지하고, 할당시 순차검색.
+
+할당 가능한 최대 inode 갯수는 65536(2 bytes).
+
+블럭 사이즈가 커질 경우, 버퍼로 사용되는 로컬 변수들 때문에 스택 오버플로우 발생 여지
+
+### mount
+
+파일 시스템 드라이버는 해당 파일 시스템 타입을 등록한다(`add_file_system()`). 등록된 파일 시스템 타입은 링크드 리스트로 모두 연결되어 있으며 name으로 구분된다.
+
+마운트 시 해당 파일 시스템 타입을 찾아 수퍼블럭을 읽어들인다. `read_super()` 함수는 특정 파일시스템의 고유 수퍼블럭을 VFS에서 사용할 수 있도록 공통 수퍼블럭(struct superblock)형으로 변환해 제공한다.
+
+마운트 포인트가 해당 파일 시스템의 진입점이 된다. 마운트된 모든 수퍼블럭은 링크드 리스트로 연결된다.
+
+### `fs_init()`
+
+디바이스 노드를 등록하기 위해서 devfs가 마운트 되어 있어야 한다. devfs는 ramfs으로 구현된다. `device_init()`에서 디바이스 노드를 등록할 수 있도록 `fs_init()`에서 devfs를 마운트한다.
+
+### super block
+
+	inode_size
+	block_size
+	free_inodes_count
+	free_blocks_count
+	inode_table
+	data_block
+	root_inode
+	magic
+
+### inode bitmap
+
+항상 1블럭만 차지하므로 할당할 수 있는 최대 inode 갯수는 `block_size * 8`. inodes 전체 갯수 이상의 비트맵 영역은 사용중(1)으로 체크.
+
+### data bitmap
+
+	disk_size / block_size / 8
+
+`block_size` 단위로 정렬. 남은 비트맵 영역은 사용중(1)으로 체크.
+
+## embedfs
+
+내장 플래시 파일 시스템(`/dev/efm`).
+
+커널이 위치한 내장 플래시 메모리 공간은 /dev/efm. embedfs 사용할 공간은 /dev/efm1.
+
+## VFS
+
+### mount
+
+file system 자료구조 필요.
+
+	mount(pathname, fs_type);
+
+	1. 블럭 디바이스
+	2. 해당 블럭 디바이스 특정 파일시스템으로 마운트
+	3. 수퍼블럭의 fop는 파일시스템의 op로 등록
+	4. 파일 시스템의 디바이스 접근은 수퍼블럭의 dev 변수로
+	open/read/write 류 함수는 file 타입을 매개변수로 받기 때문에 특정디바이스 연산은 file->dev->op로 접근가능
+
+	fs_list_head
+
+	1. 해당 수퍼블럭 찾음
+	2. 수퍼블럭 fop ---> file->op
+
+	e.g.
+	1. ls dev
+	2. find superblock
+	3. sb->fop->read(pathname)
+	4. find inode of pathname starting from sb->root_inode
+	5. return data of inode
+
+	1. open(pathname)
+	2. find superblock
+	3. sb->fop->read(pathname)
+	4. find inode of pathname starting from sb->root_inode
+	5. return data of inode
+
+	1. read(fd)
+	2. retrieve file object of fd from filetab
+
+struct file
+
+`filelist`에 열린 전체 파일을 관리. open 시 새로운 항목을 할당, index 리턴. close 시 삭제(참조하는 객체가 없는 경우).
+
+`file_link()` 새로운 파일을 등록
+
+`file_get()` 등록된 파일 얻기
+
+`file_unlink()`
+
+### super block
+
+	dev
+	pathname
+	pathname_len
+	count
+	fop
+	iop
+	list
+	magic
+	lock
+
+root inode 는 항상 0으로 가정.
+
+파일 접근시 연결리스트에 등록된 수퍼블럭의 마운트 포인트(pathname)와 비교해 올바른 파일 시스템을 찾는다. 매칭 문자열 길이가 가장 긴 쪽이 해당 파일 시스템. 다음 단계부터는 파일 시스템 특정 루틴(iop) 사용.
+
+### inode
+
+	mode
+	size
+	count
+	data
+	parent
+	sb
+	lock
+
+parent는 꼭 필요한 요소는 아니지만 연산 오버헤드를 줄일 수 있지 않을까 싶은 생각에..
+
+	|<---- block 1 ---->|<---- block 2 ---->|
+	 -------------------|-------------------
+	|            | fore | rest |            |
+	 -------------------|-------------------
+	             |<-- entry -->|
+	             v
+	           offset
+
+	fore_size = entry_size
+	if offset + entry_size > block_size
+	  fore_size = block_size - offset
+	  rest_size = entry_size - fore_size
+
+dir
+
+	(bytes) |    2    |    2    |  1  |  1  |        4        |
+	         -------------------------------------------------
+	        |  inode  | rec_len | ty- | name| name string     |
+		|         |         | pe  | len |                 |
+	         -------------------------------------------------
+
+	neme_len이 1바이트이므로 파일명은 255자가 최대.
+
+## buffer cache
+
+버퍼, 캐시와 같은 최적화 기술과 거듭 추상화 단계를 거친 자료구조가 코드에 대한 진입장벽을 높이기 때문에 최대한 그 수준을 낮게 유지하는 것이 하나의 목표였다. 하지만, 블럭 디바이스를 다루면서 최소한의 최적화는 불가피해보인다. 그렇지 않고서는 연산 오버헤드가 클 뿐더러 코드의 일관성을 유지하기 힘들다.
+
+블럭 디바이스 같은 경우 커널로부터 버퍼를 할당받아 사용.
+
+커널에서 버퍼를 관리. 드라이버에서 버퍼를 요청하면(`request_buffer()`) 인자로 넘어온 사이즈의 버퍼를 할당해서 `buf_t` 리턴.
+
+최근에 사용된 버퍼는 head 바로 뒤에, 가장 오래된 버퍼는 끝에 위치하게 된다. 따라서 사용자가 요청한 블럭이 이미 버퍼로 읽혀졌는지 리스트를 순회할 때, 마지막 버퍼에 이르기까지 해당 블럭이 존재하지 않는다면 마지막 버퍼에 자료를 읽어들이면 된다. 마지막 버퍼가 사용된지 가장 오래된 버퍼이기 때문이다.
+
+`buf_t *request_buffer(nr, BLOCK_SIZE)` - nr: 요청 버퍼 갯수. 리턴값이 NULL 이면 오류. 가용공간이 부족한 경우, 요청된 버퍼 갯수보다 적은 버퍼가 할당될 수 있음.
+
+`void release_buffer(buf_t)`
+
+`void *getblk(unsigned int n, struct device *dev)` - 블럭 디바이스 dev의 n번째 블럭을 읽어들임. 리턴되는 버퍼캐시는 유저 스페이스로 복사된 것이 아닌 공통 버퍼. ~~고려해야할 문제가 하나 있는 데 여러 태스크가 하나의 버퍼캐시에 접근하는 경우 버퍼의 내용을 사용자 공간으로 복사하는 와중에 해당 버퍼가 lru로 채택되어 다른 값이 써질 수 있다. 파일시스템 쪽에서 락을 걸면 간단히 해결되긴 하는데 버퍼캐시 내에서 어떻게 해결할 수 없나...~~ `getblk_lock()`사용 할 것.
+
+`void *getblk_lock(unsigned int n, struct device *dev)` - `getbuf_lru()`에서 개별 버퍼락을 걸고 해당 버퍼 락을 해제하는 `putblk_unlock()` 함수를 대칭적으로 사용해야 함.
+
+`void putblk_unlock(unsigned int nblock, struct device *dev)` - 해당 블럭 버퍼캐시 락 해제
+
+!! sleep 가능한 뮤텍스를 사용하므로 시스템 콜을 선점할 방법을 강구해야 함. 혹은 커널 스레드로 업무를 넘기던가.
+
+`void updateblk(unsigned int nblock, struct device *dev)` - 버퍼를 수정한 경우 사용. 더티 플래그를 셋함.
+
+
+아래는 사용자에게 보이지 않는 함수들(deprecated).
+
+`struct buffer_cache *getbuf(block_no, buf_t)` - 버퍼 리스트에서(`buf_t`) 해당 블럭이(`block_no`) 존재하는 버퍼를 리턴. ~~리턴 받은 버퍼와 블럭번호가 일치하지 않다면, 버퍼는 사용된지 가장 오래된 버퍼임. 고로 리턴된 버퍼에 새로운 블럭을 읽어오면 됨.~~ NULL 이면 오류.
+
+`unsigned int getbuf_lru(buf_t, struct buffer_cache *)` - 인자로 넘어간 버퍼 변수에 사용한지 가장 오래된 버퍼를 얻음. 얻어진 버퍼는 더이상 유효하지 않음. 다른 곳에서 사용되지 않는다는 것이 보장되어야 함. 리턴값은 버퍼의 블럭넘버. 리턴값이 -1(0xffffffff) 이면 오류. (자료구조를 더블리 링크드 리스트로 변경하면 검색시간을 O(1)로 대폭 줄일 수 있지만, 검색연산 대비 자료구조의 크기 증가 및 사용되는 버퍼 갯수를 고려할 때 자료구조의 경량화가 소형 시스템에 더 이득을 주리라 생각됨). write back 할 시점으로 적당함. dirty를 추가할지 무조건 라이트할지..
+
+주기적으로 sync해주지 않으면 자료유실 가능성.
+
+`int putbuf(struct buffer_cache *buffer, block_no, buf_t)` - 버퍼에 할당된 블럭 넘버를 기입. lru 업데이트. 리턴값이 0이 아니면 오류.
+
+`getblk()`
+
+`putblk()`
+
+### 블럭 디바이스 드라이버, 블럭 버퍼 사용하기
+
+	blkbuf_t *buffer;
+
+	if ((buffer = request_blkbuf(nr, block_size)) == NULL)
+		error;
+
+	char *data = blkbuf_get_lru(buffer);
+	read(fd, data, block_size);
+	blkbuf_put(buffer, data, block_no);
+
+## fs superblock list
+
+동일 파일 시스템은 하나의 드라이버를 공유하지만 개별적인 자료구조를 유지해야 한다. 활성화된 파일시스템의 각 수퍼블럭은 `fs_superblocks_list` 라는 커널 자료구조로 관리된다. 파일시스템마다 수퍼블럭이 다르므로 void 형 포인터를 사용.
+
+`int register_superblock(void *sb, dev_t id)` - 새로운 수퍼블럭을 등록. 리턴값이 0이 아니면 오류
+
+`void *get_superblock(dev_t id)` - 해당 디바이스로 등록된 파일시스템의 수퍼블럭을 구함. 리턴값이 NULL 이면 오류

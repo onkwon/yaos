@@ -2,14 +2,26 @@
 #include <kernel/task.h>
 #include <kernel/jiffies.h>
 #include <kernel/softirq.h>
-
-static struct sched_t cfs;
+#include "fair.h"
 #ifdef CONFIG_REALTIME
-static struct sched_t rts;
+#include "rt.h"
 #endif
 
-static inline void runqueue_add_core(struct task_t *new)
+static struct scheduler cfs;
+#ifdef CONFIG_REALTIME
+static struct scheduler rts;
+#endif
+
+static inline void runqueue_add_core(struct task *new)
 {
+#ifdef CONFIG_DEBUG
+	/* stack overflow */
+	if (new->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL)
+	{
+		printk("stack overflow\n");
+		return;
+	}
+#endif
 	if (is_realtime(new)) {
 #ifdef CONFIG_REALTIME
 		rts_rq_add(&rts, new);
@@ -23,7 +35,7 @@ static inline void runqueue_add_core(struct task_t *new)
 
 void schedule_core()
 {
-	struct task_t *next;
+	struct task *next;
 
 	if (softirq.pending) {
 		if (get_task_state(softirqd) && (current != softirqd)) {
@@ -102,21 +114,21 @@ void inline update_curr()
 	if (is_realtime(current))
 		return;
 
-	struct task_t *task;
+	struct task *task;
 
 	cfs.vruntime_base = current->se.vruntime;
 
 	/* pick the least vruntime in runqueue for vruntime_base
 	 * to keep order properly. */
-	if (((struct list_t *)cfs.rq)->next != cfs.rq) { /* if it's not empty */
-		task = get_container_of( ((struct list_t *)cfs.rq)->next,
-				struct task_t, rq );
+	if (((struct list *)cfs.rq)->next != cfs.rq) { /* if it's not empty */
+		task = get_container_of( ((struct list *)cfs.rq)->next,
+				struct task, rq );
 		if (cfs.vruntime_base > task->se.vruntime)
 			cfs.vruntime_base = task->se.vruntime;
 	}
 }
 
-void inline runqueue_add(struct task_t *new)
+void inline runqueue_add(struct task *new)
 {
 	runqueue_add_core(new);
 }
@@ -125,14 +137,14 @@ void inline runqueue_add(struct task_t *new)
 
 void __init scheduler_init()
 {
-	extern struct list_t cfs_rq;
+	extern struct list cfs_rq;
 
 	cfs.vruntime_base = 0;
 	cfs.nr_running    = 0;
 	cfs.rq            = (void *)&cfs_rq;
 
 #ifdef CONFIG_REALTIME
-	extern struct list_t rts_rq[RT_LEAST_PRIORITY+1];
+	extern struct list rts_rq[RT_LEAST_PRIORITY+1];
 
 	rts.nr_running = 0;
 	rts.pri        = RT_LEAST_PRIORITY;
@@ -148,20 +160,26 @@ void __init scheduler_init()
 	schedule_on();
 }
 
+void sys_yield()
+{
+	set_task_state(current, TASK_SLEEPING);
+	sys_schedule();
+}
+
 #ifdef CONFIG_DEBUG
 #include <foundation.h>
 
 void print_rq()
 {
-	struct list_t *rq = ((struct list_t *)cfs.rq)->next;
-	struct task_t *p;
+	struct list *rq = ((struct list *)cfs.rq)->next;
+	struct task *p;
 
 //	int i;
 
 	while (rq != cfs.rq) {
-		p = get_container_of(rq, struct task_t, rq);
+		p = get_container_of(rq, struct task, rq);
 
-		printk("[%08x] state = %x, type = %x, pri = %x, vruntime = %d"
+		printf("[%08x] state = %x, type = %x, pri = %x, vruntime = %d"
 				"exec_runtime = %d (%d sec)\n",
 				p->addr, p->state, p->flags, p->pri,
 				(unsigned)p->se.vruntime,
@@ -169,7 +187,7 @@ void print_rq()
 				(unsigned)p->se.sum_exec_runtime / HZ);
 
 //		for (i = 0; i < NR_CONTEXT; i++)
-//			DEBUG(("%x : %x", p->sp + i, *(p->sp + i)));
+//			printf(("%x : %x", p->sp + i, *(p->sp + i));
 
 		rq = rq->next;
 	}

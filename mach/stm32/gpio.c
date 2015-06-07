@@ -6,7 +6,7 @@ DEFINE_SPINLOCK(gpio_init_lock);
 
 #define calc_port(i)		(i / PINS_PER_PORT)
 #define calc_pin(i)		(i % PINS_PER_PORT)
-#define calc_port_addr(p)	((((p) * sizeof(int)) << 8) + PORTA)
+#define calc_port_addr(p)	((((p) * WORD_SIZE) << 8) + PORTA)
 
 unsigned int gpio_get(unsigned int index)
 {

@@ -1,5 +1,5 @@
 #include <foundation.h>
-#include <shell.h>
+#include "shell.h"
 
 #include <string.h>
 #include <kernel/sched.h>
@@ -10,7 +10,7 @@ static int run(int argc, char **argv)
 	if (argc != 2)
 		return -1;
 
-	struct task_t *p;
+	struct task *p;
 	unsigned int addr = atoi(argv[1]);
 
 	p = find_task(addr, &init);
@@ -33,7 +33,7 @@ static int stop(int argc, char **argv)
 	if (argc != 2)
 		return -1;
 
-	struct task_t *p;
+	struct task *p;
 	unsigned int addr = atoi(argv[1]);
 
 	p = find_task(addr, &init);

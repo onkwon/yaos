@@ -5,9 +5,9 @@
 #define RXNE		5
 #define TXE		7
 
-static unsigned brr2reg(unsigned baudrate, unsigned clk)
+static unsigned int brr2reg(unsigned int baudrate, unsigned int clk)
 {
-	unsigned fraction, mantissa;
+	unsigned int fraction, mantissa;
 
 	baudrate /= 100;
 	mantissa  = (clk * 10) / (16 * baudrate);
@@ -19,9 +19,9 @@ static unsigned brr2reg(unsigned baudrate, unsigned clk)
 	return baudrate;
 }
 
-static int usart_open(unsigned channel, struct usart_t arg)
+static int usart_open(unsigned int channel, struct usart arg)
 {
-	unsigned port, pin, nvector, apb_nbit;
+	unsigned int port, pin, nvector, apb_nbit;
 
 	/* USART signal can be remapped to some other port pins. */
 	switch (channel) {
@@ -73,26 +73,26 @@ static int usart_open(unsigned channel, struct usart_t arg)
 
 	SET_IRQ(ON, nvector - 16);
 
-	*(volatile unsigned *)(channel + 0x08) = arg.brr;
-	*(volatile unsigned *)(channel + 0x0c) = arg.cr1;
-	*(volatile unsigned *)(channel + 0x10) = arg.cr2;
-	*(volatile unsigned *)(channel + 0x14) = arg.cr3;
-	*(volatile unsigned *)(channel + 0x18) = arg.gtpr;
+	*(volatile unsigned int *)(channel + 0x08) = arg.brr;
+	*(volatile unsigned int *)(channel + 0x0c) = arg.cr1;
+	*(volatile unsigned int *)(channel + 0x10) = arg.cr2;
+	*(volatile unsigned int *)(channel + 0x14) = arg.cr3;
+	*(volatile unsigned int *)(channel + 0x18) = arg.gtpr;
 
 	return nvector;
 }
 
-static void usart_close(unsigned channel)
+static void usart_close(unsigned int channel)
 {
 	/* check if still in transmission. */
-	while (!gbi(*(volatile unsigned *)channel, 7)); /* wait until TXE bit set */
+	while (!gbi(*(volatile unsigned int *)channel, 7)); /* wait until TXE bit set */
 
 	/* Use APB2 peripheral reset register (RCC_APB2RSTR),
 	 * or just turn off enable bit of tranceiver, controller and clock. */
 
 	/* Turn off enable bit of transmitter, receiver, and clock.
 	 * It leaves port clock, pin, irq, and configuration as set */
-	*(volatile unsigned *)(channel + 0x0c) &= ~(
+	*(volatile unsigned int *)(channel + 0x0c) &= ~(
 			(1 << 13) |	/* UE: USART enable */
 			(1 << 3) |	/* TE: Transmitter enable */
 			(1 << 2));	/* RE: Receiver enable */
@@ -108,15 +108,35 @@ static void usart_close(unsigned channel)
 /* to get buf index from register address */
 #define GET_USART_NR(from)     (from == USART1? 0 : (((from >> 8) & 0xff) - 0x40) / 4)
 
-static void usart_putc(unsigned channel, int c)
+static void usart_putc(unsigned int channel, int c)
 {
-	while (!gbi(*(volatile unsigned *)channel, 7)); /* wait until TXE bit set */
-	*(volatile unsigned *)(channel + 0x04) = (unsigned)c;
+	while (!gbi(*(volatile unsigned int *)channel, 7)); /* wait until TXE bit set */
+	*(volatile unsigned int *)(channel + 0x04) = (unsigned int)c;
 }
 
-int __usart_open(unsigned baudrate)
+static inline unsigned int conv_channel(unsigned int channel)
 {
-	return usart_open(USART1, (struct usart_t) {
+	switch (channel) {
+	case 1: channel = USART2;
+		break;
+	case 2: channel = USART3;
+		break;
+	case 3: channel = UART4;
+		break;
+	case 4: channel = UART5;
+		break;
+	case 0: channel = USART1;
+		break;
+	default:channel = -1;
+		break;
+	}
+
+	return channel;
+}
+
+int __usart_open(unsigned int channel, unsigned int baudrate)
+{
+	return usart_open(conv_channel(channel), (struct usart) {
 		.brr  = brr2reg(baudrate, get_sysclk()),
 		.gtpr = 0,
 		.cr3  = 0,
@@ -128,45 +148,63 @@ int __usart_open(unsigned baudrate)
 	});
 }
 
-void __usart_close()
+void __usart_close(unsigned int channel)
 {
-	usart_close(USART1);
+	usart_close(conv_channel(channel));
 }
 
-void __usart_putc(int c)
+void __usart_putc(unsigned int channel, int c)
 {
-	usart_putc(USART1, c);
+	usart_putc(conv_channel(channel), c);
 }
 
-int __usart_check_rx()
+int __usart_check_rx(unsigned int channel)
 {
-	if (*(volatile unsigned *)USART1 & (1 << RXNE))
+	channel = conv_channel(channel);
+
+	if (*(volatile unsigned int *)channel & (1 << RXNE))
 		return 1;
 
 	return 0;
 }
 
-int __usart_check_tx()
+int __usart_check_tx(unsigned int channel)
 {
-	if (*(volatile unsigned *)USART1 & (1 << TXE))
+	channel = conv_channel(channel);
+
+	if (*(volatile unsigned int *)channel & (1 << TXE))
 		return 1;
 
 	return 0;
 }
 
-int __usart_getc()
+int __usart_getc(unsigned int channel)
 {
-	return *(volatile unsigned *)(USART1 + 0x04);
+	channel = conv_channel(channel);
+
+	return *(volatile unsigned int *)(channel + 0x04);
 }
 
-void __usart_tx_irq_reset()
+void __usart_tx_irq_reset(unsigned int channel)
 {
+	channel = conv_channel(channel);
+
 	/* TXE interrupt disable */
-	*(volatile unsigned *)(USART1 + 0x0c) &= ~(1 << TXE); /* TXEIE */
+	*(volatile unsigned int *)(channel + 0x0c) &= ~(1 << TXE); /* TXEIE */
 }
 
-void __usart_tx_irq_raise()
+void __usart_tx_irq_raise(unsigned int channel)
 {
+	channel = conv_channel(channel);
+
 	/* TXE interrupt enable */
-	*(volatile unsigned *)(USART1 + 0x0c) |= 1 << TXE; /* TXEIE */
+	*(volatile unsigned int *)(channel + 0x0c) |= 1 << TXE; /* TXEIE */
+}
+
+void __putc_debug(int c)
+{
+	__usart_putc(0, c);
+
+	if (c == '\n')
+		__usart_putc(0, '\r');
 }

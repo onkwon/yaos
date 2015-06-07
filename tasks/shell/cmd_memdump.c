@@ -1,5 +1,5 @@
 #include <foundation.h>
-#include <shell.h>
+#include "shell.h"
 #include <string.h>
 
 #define DUMPSIZE_DEFAULT	256

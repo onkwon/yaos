@@ -1,10 +1,10 @@
 #include <foundation.h>
-#include <shell.h>
+#include "shell.h"
 #include <kernel/task.h>
 
-static void visit(struct task_t *p)
+static void visit(struct task *p)
 {
-	struct task_t *next;
+	struct task *next;
 	static int tab = 0;
 
 	int i;
@@ -31,13 +31,13 @@ static void visit(struct task_t *p)
 
 	tab++;
 
-	next = get_container_of(p->children.next, struct task_t, sibling);
+	next = get_container_of(p->children.next, struct task, sibling);
 	visit(next);
 	p = next;
 
 	while (p->sibling.next != &p->parent->children) {
 		next = get_container_of(
-				p->sibling.next, struct task_t, sibling);
+				p->sibling.next, struct task, sibling);
 		visit(next);
 		p = next;
 	}
@@ -56,7 +56,7 @@ static int ps(int argc, char **argv)
 	visit(&init);
 
 #ifdef CONFIG_PAGING
-	extern struct buddy_t buddypool;
+	extern struct buddy buddypool;
 	printf("%d pages free out of %d pages\n",
 			buddypool.nr_free, buddypool.nr_pages);
 #endif

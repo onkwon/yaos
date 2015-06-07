@@ -2,21 +2,20 @@
 
 MACH    = stm32
 ARCH    = cortex-m3
+export MACH
 
 CC      = arm-none-eabi-gcc
 LD      = arm-none-eabi-ld
 OC      = arm-none-eabi-objcopy
 OD      = arm-none-eabi-objdump
 
-CFLAGS  = -Wall -O2 -mcpu=$(ARCH) -mthumb -fno-builtin
-export MACH
+CFLAGS  = -mcpu=$(ARCH) -mthumb
 
 # Configuration
 
 include CONFIGURE
-
-ifdef CONFIG_DEBUG
-	CFLAGS += -g -DCONFIG_DEBUG -O0
+ifdef CONFIG_SMP
+	CFLAGS += -DCONFIG_SMP
 endif
 ifdef CONFIG_REALTIME
 	CFLAGS += -DCONFIG_REALTIME
@@ -33,12 +32,18 @@ endif
 
 # Common 
 
+TARGET  = yaos
+
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
 BASEDIR = $(shell pwd)
 export BASEDIR
 
+CFLAGS += -Wall -O2 -fno-builtin
 CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(MACH)\"
-LDFLAGS = -nostartfiles -Tmach/$(MACH)/ibox.lds
+ifdef CONFIG_DEBUG
+	CFLAGS += -g -DCONFIG_DEBUG -O0
+endif
+LDFLAGS = -nostartfiles -Tmach/$(MACH)/$(TARGET).lds
 OCFLAGS = -O binary
 ODFLAGS = -Dsx
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
@@ -46,16 +51,12 @@ export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
 SRCS_ASM = $(wildcard *.S)
 SRCS     = $(wildcard *.c)
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
-TARGET   = ibox
 
 INC  = -I./include
 LIBS = 
 export INC LIBS
 
-SUBDIRS = lib mach kernel tasks
-ifdef CONFIG_SYSCALL
-	SUBDIRS += drivers
-endif
+SUBDIRS = lib mach kernel fs drivers tasks
 
 all: include $(TARGET)
 	@echo "Section Size(in bytes):"
@@ -74,9 +75,10 @@ $(SUBDIRS):
 
 .PHONY: include
 include:
-	cp -R mach/$(MACH)/include include/asm
-	cp -R drivers/include include/driver
-	cp -R lib/include include/lib
+	-cp -R mach/$(MACH)/include include/asm
+	-cp -R drivers/include include/driver
+	-cp -R lib/include include/lib
+	-cp -R fs/include include/fs
 
 .c.o:
 	$(CC) -c $< $(CFLAGS) $(INC) $(LIBS)
@@ -98,6 +100,7 @@ clean:
 	@rm -rf include/asm
 	@rm -rf include/driver
 	@rm -rf include/lib
+	@rm -rf include/fs
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

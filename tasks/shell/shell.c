@@ -1,4 +1,4 @@
-#include <shell.h>
+#include "shell.h"
 #include <string.h>
 #include <stdlib.h>
 #include <foundation.h>
@@ -74,7 +74,7 @@ void shell()
 			struct shell_cmd *cmd = (struct shell_cmd *)&_shell_cmdlist;
 
 			for (exit_code = 0; cmd->name; cmd++) {
-				if (!strcmp(cmd->name, argv[0])) {
+				if (!strncmp(cmd->name, argv[0], MAXLEN)) {
 					if ((exit_code = cmd->run(argc, argv))) {
 						printf("usage: %s\n", cmd->usage);
 					}

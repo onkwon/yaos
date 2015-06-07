@@ -13,36 +13,49 @@
 #define DISABLE				0
 
 typedef enum {FALSE = 0, TRUE = 1} bool;
+typedef unsigned short int refcnt_t;
+typedef unsigned short int mode_t;
+typedef volatile int lock_t;
+typedef unsigned int dev_t;
 typedef unsigned int size_t;
 typedef unsigned long long uint64_t;
+struct list;
+typedef struct list buf_t;
 
-#define WORD_SIZE		sizeof(int)
-#define WORD_BITS		(WORD_SIZE << 3)
+#define WORD_SIZE			sizeof(int)
+#define WORD_BITS			(WORD_SIZE << 3)
 
-#define ALIGN_WORD(x) \
-	(((unsigned int)(x) + sizeof(int)-1) & ~(sizeof(int)-1))
-#define ALIGN_DWORD(x) \
-	(((unsigned int)(x) + ((WORD_SIZE << 1) - 1)) & ~((WORD_SIZE << 1) - 1))
+#define WORD_BASE(x)			((unsigned int)(x) & ~(WORD_SIZE-1))
+#define ALIGN_WORD(x)			\
+	WORD_BASE((unsigned int)(x) + (WORD_SIZE-1))
+#define DWORD_BASE(x)			\
+	((unsigned int)(x) & ~((WORD_SIZE << 1) - 1))
+#define ALIGN_DWORD(x)			\
+	DWORD_BASE((unsigned int)(x) + ((WORD_SIZE << 1) - 1))
+#define BLOCK_BASE(x, size)		\
+	((unsigned int)(x) & ~((size)-1))
+#define ALIGN_BLOCK(x, size)		\
+	BLOCK_BASE((unsigned int)(x) + ((size)-1), size)
 
 #define get_container_of(ptr, type, member) \
-		((type *)((char *)ptr - (char *)&((type *)0)->member))
+	((type *)((char *)ptr - (char *)&((type *)0)->member))
 
 /* double linked list */
-struct list_t {
-	struct list_t *next, *prev;
+struct list {
+	struct list *next, *prev;
 };
 
 #define INIT_LIST_HEAD(name) 		{ &(name), &(name) }
-#define DEFINE_LIST_HEAD(name) \
-		struct list_t name = INIT_LIST_HEAD(name)
+#define DEFINE_LIST_HEAD(name)		\
+	struct list name = INIT_LIST_HEAD(name)
 
-static inline void list_link_init(struct list_t *list)
+static inline void list_link_init(struct list *list)
 {
 	list->next = list;
 	list->prev = list;
 }
 
-static inline void list_add(struct list_t *new, struct list_t *ref)
+static inline void list_add(struct list *new, struct list *ref)
 {
 	new->prev = ref;
 	new->next = ref->next;
@@ -50,28 +63,28 @@ static inline void list_add(struct list_t *new, struct list_t *ref)
 	ref->next = new;
 }
 
-static inline void list_del(struct list_t *item)
+static inline void list_del(struct list *node)
 {
-	item->prev->next = item->next;
-	item->next->prev = item->prev;
+	node->prev->next = node->next;
+	node->next->prev = node->prev;
 }
 
-static inline int list_empty(const struct list_t *head)
+static inline int list_empty(const struct list *node)
 {
-	return head->next == head;
+	return node->next == node;
 }
 
 /* fifo */
-struct fifo_t {
+struct fifo {
 	size_t size;
 	unsigned int front, rear;
 	void *buf;
 };
 
-extern inline void fifo_init(struct fifo_t *q, void *queue, size_t size);
-extern inline int  fifo_get(struct fifo_t *q, int type_size);
-extern inline int  fifo_put(struct fifo_t *q, int value, int type_size);
-extern inline void fifo_flush(struct fifo_t *q);
+extern inline void fifo_init(struct fifo *q, void *queue, size_t size);
+extern inline int  fifo_get(struct fifo *q, int type_size);
+extern inline int  fifo_put(struct fifo *q, int value, int type_size);
+extern inline void fifo_flush(struct fifo *q);
 
 #define SWAP_WORD(word)	\
 		((word >> 24) | (word << 24) | ((word >> 8) & 0xff00) | \

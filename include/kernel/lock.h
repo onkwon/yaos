@@ -1,12 +1,11 @@
 #ifndef __LOCK_H__
 #define __LOCK_H__
 
+#include <types.h>
+
 #ifdef MACHINE
 #include <asm/lock.h>
 #endif
-
-/* general */
-typedef volatile int lock_t;
 
 #define UNLOCKED			1
 #define DEFINE_LOCK(name)		lock_t name = UNLOCKED
@@ -35,15 +34,13 @@ typedef volatile int lock_t;
 	irq_restore(flag); \
 } while (0)
 
-#include <types.h>
-
 /* semaphore */
 struct semaphore {
 	lock_t count;
 	/* can't use `waitqueue_head_t` because of circular dependency.
 	 * move lock_t typedef into types.h? */
 	lock_t wait_lock;
-	struct list_t wait_list;
+	struct list wait_list;
 };
 
 #define DEFINE_SEMAPHORE(name, v) \
@@ -78,14 +75,14 @@ struct semaphore {
 }
 
 #define semaphore_up(s) do { \
-	struct task_t *task; \
+	struct task *task; \
 	unsigned irqflag; \
 	while (atomic_set((int *)&s.count, s.count+1)) ; \
 	if (!is_locked(s.count)) { \
 		spin_lock_irqsave(s.wait_lock, irqflag); \
 		if (s.wait_list.next != &s.wait_list) { \
 			task = get_container_of(s.wait_list.next, \
-					struct waitqueue_t, link)->task; \
+					struct waitqueue, link)->task; \
 			set_task_state(task, TASK_RUNNING); \
 			runqueue_add(task); \
 			list_del(s.wait_list.next); \
@@ -98,6 +95,7 @@ struct semaphore {
 typedef struct semaphore mutex_t;
 
 #define DEFINE_MUTEX(name)		DEFINE_SEMAPHORE(name, 1)
+#define INIT_MUTEX(name)		INIT_SEMAPHORE(name, 1)
 #define mutex_lock(count)		semaphore_down(count)
 #define mutex_unlock(count)		semaphore_up(count)
 

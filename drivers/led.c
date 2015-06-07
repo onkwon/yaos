@@ -4,9 +4,7 @@
 
 #define GPIO_PIN_INDEX		50
 
-int led_id;
-
-static size_t led_read(unsigned int id, void *buf, size_t len)
+static size_t led_read(struct file *file, void *buf, size_t len)
 {
 	unsigned int *p = (unsigned int *)buf;
 
@@ -15,7 +13,7 @@ static size_t led_read(unsigned int id, void *buf, size_t len)
 	return 1;
 }
 
-static size_t led_write(unsigned int id, void *buf, size_t len)
+static size_t led_write(struct file *file, void *buf, size_t len)
 {
 	unsigned int *p = (unsigned int *)buf;
 
@@ -24,24 +22,21 @@ static size_t led_write(unsigned int id, void *buf, size_t len)
 	return 1;
 }
 
-static struct dev_interface_t ops = {
+static struct file_operations ops = {
 	.open  = NULL,
 	.read  = led_read,
 	.write = led_write,
 	.close = NULL,
+	.seek  = NULL,
 };
 
 #include <kernel/init.h>
 
-static int __init led_init()
+static void __init led_init()
 {
-	led_id = mkdev();
+	struct device *dev;
 
-	if (register_dev(led_id, &ops, "led"))
-		return -ERR_RANGE;
-
-	gpio_init(GPIO_PIN_INDEX, GPIO_MODE_OUTPUT);
-
-	return 0;
+	if ((dev = mkdev(0, 0, &ops, "led")))
+		gpio_init(GPIO_PIN_INDEX, GPIO_MODE_OUTPUT);
 }
 MODULE_INIT(led_init);

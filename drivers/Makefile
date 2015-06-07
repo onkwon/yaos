@@ -2,11 +2,11 @@ include $(BASEDIR)/CONFIGURE
 
 SRCS_ASM = $(wildcard *.S)
 SRCS     = led.c
-ifdef MODULE_CONSOLE
-	SRCS += console.c
+ifdef MODULE_USART
+	SRCS += usart.c
 endif
-ifdef MODULE_IRC
-	SRCS += irc.c
+ifdef MODULE_IR
+	SRCS += ir.c
 endif
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 

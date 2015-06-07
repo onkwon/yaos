@@ -2,19 +2,19 @@
 
 /* fifo */
 
-void fifo_init(struct fifo_t *q, void *queue, size_t size)
+void fifo_init(struct fifo *q, void *queue, size_t size)
 {
 	q->size  = size;
 	q->buf   = queue;
 	q->front = q->rear = 0;
 }
 
-void fifo_flush(struct fifo_t *q)
+void fifo_flush(struct fifo *q)
 {
 	q->front = q->rear = 0;
 }
 
-int fifo_get(struct fifo_t *q, int type_size)
+int fifo_get(struct fifo *q, int type_size)
 {
 	unsigned int sentinel = q->size / type_size;
 	char *p = q->buf;
@@ -31,7 +31,7 @@ int fifo_get(struct fifo_t *q, int type_size)
 	return v;
 }
 
-int fifo_put(struct fifo_t *q, int value, int type_size)
+int fifo_put(struct fifo *q, int value, int type_size)
 {
 	unsigned int sentinel = q->size / type_size;
 	char *p = q->buf;

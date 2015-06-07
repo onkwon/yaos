@@ -41,7 +41,7 @@
 #define FLASH_WRITE_WORD(addr, data)	{ \
 		*(volatile unsigned short int *)addr = (unsigned short int)data; \
 		while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
-		*(volatile unsigned short int *)(addr+2) = (unsigned short int)(data >> 16); \
+		*(volatile unsigned short int *)((unsigned int)addr+2) = (unsigned short int)(data >> 16); \
 		while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
 	}
 #define FLASH_LOCK()	(FLASH_CR |= 0x80)

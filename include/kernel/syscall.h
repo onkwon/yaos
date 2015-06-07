@@ -3,7 +3,6 @@
 
 #include <types.h>
 
-#ifdef CONFIG_SYSCALL
 #define SYSCALL_RESERVED		0
 #define SYSCALL_SCHEDULE		1
 #define SYSCALL_TEST			2
@@ -13,51 +12,50 @@
 #define SYSCALL_CLOSE			6
 #define SYSCALL_BRK			7
 #define SYSCALL_YIELD			8
-#define SYSCALL_CREATE			9
-#define SYSCALL_MKDIR			10
-#define SYSCALL_MKNOD			11
-#define SYSCALL_NR			12
+#define SYSCALL_MKNOD			9
+#define SYSCALL_SEEK			10
+#define SYSCALL_CREATE			11
+#define SYSCALL_MKDIR			12
+#define SYSCALL_NR			13
 
+int sys_open(char *filename, int mode);
+int sys_read(int fd, void *buf, size_t size);
+int sys_write(int fd, void *buf, size_t size);
+int sys_close(int fd);
+
+#ifdef CONFIG_SYSCALL
 #ifdef MACHINE
 #include <asm/syscall.h>
 #endif
-
-static inline void yield()
+static inline int open(char *filename, int mode)
 {
-	syscall(SYSCALL_YIELD);
+	return syscall(SYSCALL_OPEN, filename, mode);
 }
 
-static inline int open(unsigned int id, int mode)
+static inline int read(int fd, void *buf, size_t size)
 {
-	return syscall(SYSCALL_OPEN, id, mode);
+	return syscall(SYSCALL_READ, fd, buf, size);
 }
 
-static inline int read(unsigned int id, void *buf, size_t size)
+static inline int write(int fd, void *buf, size_t size)
 {
-	return syscall(SYSCALL_READ, id, buf, size);
+	return syscall(SYSCALL_WRITE, fd, buf, size);
 }
 
-static inline int write(unsigned int id, void *buf, size_t size)
+static inline int close(int fd)
 {
-	return syscall(SYSCALL_WRITE, id, buf, size);
+	return syscall(SYSCALL_CLOSE, fd);
 }
 
-static inline int close(unsigned int id)
+static inline int seek(int fd, unsigned int offset, int whence)
 {
-	return syscall(SYSCALL_CLOSE, id);
+	return syscall(SYSCALL_SEEK, fd, offset, whence);
 }
 #else
-#include <kernel/task.h>
-static inline void yield()
-{
-	set_task_state(current, TASK_SLEEPING);
-	sys_schedule();
-}
-
-static inline int open(unsigned int id, int mode) { return 0; }
-static inline int read(unsigned int id, void *buf, size_t size) { return 0; }
-static inline int write(unsigned int id, void *buf, size_t size) { return 0; }
-static inline int close(unsigned int id) { return 0; }
+#define open(filename, mode)	sys_open(filename, mode)
+#define read(fd, buf, size)	sys_read(fd, buf, size)
+#define write(fd, buf, size)	sys_write(fd, buf, size)
+#define close(fd)		sys_close(fd)
 #endif /* CONFIG_SYSCALL */
 
 #endif /* __SYSCALL_H__ */

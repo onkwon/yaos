@@ -1,11 +1,11 @@
 #include <string.h>
 
-char *itoa(int v, char *buf, unsigned int base, size_t maxlen)
+char *itoa(int v, char *buf, unsigned int base, size_t n)
 {
 	char *s;
 	int neg = 0;
 
-	s = &buf[maxlen-1];
+	s = &buf[n-1];
 	*s = '\0';
 
 	if ((v < 0) && (base == 10)) {
@@ -13,46 +13,16 @@ char *itoa(int v, char *buf, unsigned int base, size_t maxlen)
 		v = -v;
 	}
 
-	while (v && maxlen) {
+	while (v && n) {
 		*--s = "0123456789abcdef"[v % base];
 		v /= base;
-		maxlen--;
+		n--;
 	}
 
 	if (neg)
 		*--s = '-';
 
 	return s;
-/*
-	char *s = buf;
-
-	if ((v < 0) && (base == 10)) {
-		*s++ = '-';
-		v *= -1;
-	}
-
-	while (v) {
-		*s++ = "0123456789abcdef"[v % base];
-		v /= base;
-	}
-	*s = '\0';
-
-	unsigned int len, i = 0;
-	char t;
-
-	if (buf[0] == '-')
-		i = 1;
-
-	len = s - buf + i;
-
-	for (s = buf; i < (len/2); i++) {
-		t = s[i];
-		s[i] = s[len-i-1];
-		s[len-i-1] = t;
-	}
-
-	return buf;
-	*/
 }
 
 int atoi(const char *s)
@@ -75,8 +45,13 @@ int atoi(const char *s)
 
 int strncmp(const char *s1, const char *s2, size_t n)
 {
-	for (; n > 0; s1++, s2++, n--)
-		if (*s1 != *s2) return *s1 - *s2;
+	for (; n > 0; s1++, s2++, n--) {
+		if (*s1 != *s2)
+			return *(const unsigned char *)s1 -
+				*(const unsigned char *)s2;
+		else if (!*s1)
+			return 0;
+	}
 
 	return 0;
 }
@@ -93,10 +68,19 @@ char *strncpy(char *d, const char *s, size_t n)
 {
 	char *p;
 
-	for (p = d; n && *s; n--) *p++ = *s++;
+	for (p = d; *s && n; n--) *p++ = *s++;
 	for (; n--; *p++ = '\0');
 
 	return d;
+}
+
+size_t strnlen(const char *s, size_t n)
+{
+	register const char *p;
+
+	for (p = s; *p && n; p++, n--);
+
+	return p - s;
 }
 
 size_t strlen(const char *s)
@@ -116,7 +100,8 @@ char *strtok(char *line, const char *const token)
 
 	if (line) saveline = line;
 
-	if (!saveline || !(*saveline)) return NULL;
+	if (!saveline || !*saveline)
+		return NULL;
 
 	for (i = 0; saveline[i]; i++) {
 		for (j = 0; token[j] && (saveline[i] != token[j]); j++) ;
@@ -126,7 +111,8 @@ char *strtok(char *line, const char *const token)
 	p = saveline;
 	saveline += i;
 
-	if (*saveline) *saveline++ = '\0';
+	if (*saveline)
+		*saveline++ = '\0';
 
 	return p;
 }

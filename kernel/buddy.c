@@ -1,24 +1,24 @@
 #include <kernel/page.h>
 #include <stdlib.h>
 
-struct buddy_t buddypool;
+struct buddy buddypool;
 
-extern struct page_t *mem_map;
+extern struct page *mem_map;
 
 #define BITMAP_POS(bitmap, pfn, order) \
-	/* (bitmap + ((pfn >> order) / (sizeof(int)*8) / 2)) */ \
+	/* (bitmap + ((pfn >> order) / (WORD_SIZE*8) / 2)) */ \
 	(bitmap + (pfn >> (order + 5 + 1)))
 #define BITMAP_OFFSET(pfn, order) \
-	(1 << ((pfn >> (order+1)) & (sizeof(int)*8-1)))
+	(1 << ((pfn >> (order+1)) & (WORD_SIZE*8-1)))
 #define BITMAP_TOGGLE(bitmap, pfn, order) \
 	(*BITMAP_POS(bitmap, pfn, order) ^= BITMAP_OFFSET(pfn, order))
 #define BITMAP_MASK(bitmap, pfn, order) \
 	(*BITMAP_POS(bitmap, pfn, order) & BITMAP_OFFSET(pfn, order))
 
-void free_pages(struct buddy_t *pool, struct page_t *page)
+void free_pages(struct buddy *pool, struct page *page)
 {
-	struct page_t *buddy;
-	struct buddy_freelist_t *freelist;
+	struct page *buddy;
+	struct buddy_freelist *freelist;
 	unsigned int order, index;
 
 	order    = GET_PAGE_ORDER(page);
@@ -52,11 +52,11 @@ void free_pages(struct buddy_t *pool, struct page_t *page)
 	RESET_PAGE_FLAG(page, PAGE_BUDDY);
 }
 
-struct page_t *alloc_pages(struct buddy_t *pool, unsigned int order)
+struct page *alloc_pages(struct buddy *pool, unsigned int order)
 {
-	struct buddy_freelist_t *freelist = &pool->free[order];
-	struct list_t *head, *curr;
-	struct page_t *page;
+	struct buddy_freelist *freelist = &pool->free[order];
+	struct list *head, *curr;
+	struct page *page;
 	unsigned int i;
 
 	for (i = order; i < BUDDY_MAX_ORDER; i++, freelist++) {
@@ -64,7 +64,7 @@ struct page_t *alloc_pages(struct buddy_t *pool, unsigned int order)
 		curr = head->next;
 
 		if (curr != head) {
-			page = get_container_of(curr, struct page_t, link); 
+			page = get_container_of(curr, struct page, link);
 
 			list_del(curr);
 			BITMAP_TOGGLE(freelist->bitmap,
@@ -97,8 +97,8 @@ struct page_t *alloc_pages(struct buddy_t *pool, unsigned int order)
 
 #include <kernel/task.h>
 
-static void buddy_freelist_init(struct buddy_t *pool,
-		unsigned int nr_pages, struct page_t *array)
+static void buddy_freelist_init(struct buddy *pool,
+		unsigned int nr_pages, struct page *array)
 {
 	size_t size;
 	unsigned int offset;
@@ -109,8 +109,8 @@ static void buddy_freelist_init(struct buddy_t *pool,
 	size   = ALIGN_WORD(nr_pages) >> 4; /* nr_pages / 8-bit / 2 */
 	size   = ALIGN_WORD(size);
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		if (size < sizeof(int))
-			size = sizeof(int);
+		if (size < WORD_SIZE)
+			size = WORD_SIZE;
 
 		pool->free[i].bitmap = (unsigned int *)
 				(((char *)&array[nr_pages]) + offset);
@@ -125,7 +125,7 @@ static void buddy_freelist_init(struct buddy_t *pool,
 	offset = ALIGN_PAGE(((char *)&array[nr_pages]) + offset);
 
 	/* buddy list initialization */
-	struct buddy_freelist_t *freelist;
+	struct buddy_freelist *freelist;
 	unsigned int order, index, next;
 
 	/* preserve initial kernel stack to be free later */
@@ -165,8 +165,7 @@ out:
 	return;
 }
 
-void buddy_init(struct buddy_t *pool, unsigned int nr_pages,
-		struct page_t *array)
+void buddy_init(struct buddy *pool, unsigned int nr_pages, struct page *array)
 {
 	buddy_freelist_init(pool, nr_pages, array);
 	INIT_LOCK(pool->lock);
@@ -177,39 +176,39 @@ void buddy_init(struct buddy_t *pool, unsigned int nr_pages,
 
 void show_buddy(void *zone)
 {
-	struct page_t *page;
-	struct list_t *p;
+	struct page *page;
+	struct list *p;
 	size_t size;
 	int i, j;
 
-	struct buddy_t *pool = (struct buddy_t *)zone;
+	struct buddy *pool = (struct buddy *)zone;
 
 	if (!pool) pool = &buddypool;
 
-	printk("available pages %d\nfree pages %d\n",
+	printf("available pages %d\nfree pages %d\n",
 			pool->nr_pages, pool->nr_free);
 
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		printk("============= order %02d =============\n", i);
+		printf("============= order %02d =============\n", i);
 		p = pool->free[i].list.next;
 		while (p != &pool->free[i].list) {
-			page = get_container_of(p, struct page_t, link); 
-			printk("--> 0x%08x(0x%08x) ", page->addr, page);
+			page = get_container_of(p, struct page, link);
+			printf("--> 0x%08x(0x%08x) ", page->addr, page);
 			p = p->next;
 		}
 
-		printk("\n------ bitmap 0x%08x ------\n",
+		printf("\n------ bitmap 0x%08x ------\n",
 				pool->free[i].bitmap);
 		size = ALIGN_WORD(pool->nr_pages) >> (4 + i);
 		size = ALIGN_WORD(size);
-		size = size? size : sizeof(int);
-		size /= sizeof(int);
+		size = size? size : WORD_SIZE;
+		size /= WORD_SIZE;
 		for (j = size; j; j--) {
-			printk("%08x ", *(pool->free[i].bitmap + j - 1));
+			printf("%08x ", *(pool->free[i].bitmap + j - 1));
 			if (!((size-j+1) % 8))
-				printk("\n");
+				printf("\n");
 		}
-		printk("\n");
+		printf("\n");
 	}
 }
 #endif

@@ -37,7 +37,7 @@ static void test_ir()
 
 	unsigned int *kstack = (unsigned int *)kmalloc(KERNEL_STACK_SIZE);
 	current->mm.kernel = &kstack[KERNEL_STACK_SIZE / sizeof(int) - 1];
-	printk("kernel stack 0x%08x - 0x%08x\n",
+	printf("kernel stack 0x%08x - 0x%08x\n",
 			kstack, (unsigned int)&current->mm.kernel[1] - 1);
 
 	set_task_state(current, TASK_USER);

@@ -3,13 +3,13 @@
 
 #include <types.h>
 
-struct ff_freelist_t {
+struct ff_freelist {
 	void *addr;
 	size_t size;
-	struct list_t list;
+	struct list list;
 };
 
-struct ff_freelist_t *ff_freelist_init(void *start, void *end);
+struct ff_freelist *ff_freelist_init(void *start, void *end);
 
 void *ff_alloc(void *freelist, size_t size);
 void ff_free(void *freelist, void *addr);

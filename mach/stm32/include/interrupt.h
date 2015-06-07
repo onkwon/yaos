@@ -14,11 +14,12 @@
 	__asm__ __volatile__("msr primask, %0" :: "r"(flag) : "memory")
 
 #define ISR_REGISTER(vector_nr, func)	({ \
-		extern unsigned _mem_start; \
-		*((unsigned *)&_mem_start + vector_nr) = (unsigned)func; \
+		extern unsigned _ram_start; \
+		*((unsigned *)&_ram_start + vector_nr) = (unsigned)func; \
 		dmb(); \
 	})
 #define __register_isr(nirq, func)	ISR_REGISTER(nirq, func)
+#define __get_active_irq()		(GET_PSR() & 0x1ff)
 
 #define __SET_IRQ(on, irq_nr) ( \
 		*(volatile unsigned *)(NVIC_BASE + ((irq_nr) / 32 * 4)) = \

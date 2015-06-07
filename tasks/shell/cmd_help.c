@@ -1,5 +1,5 @@
 #include <foundation.h>
-#include <shell.h>
+#include "shell.h"
 
 static int help(int argc, char **argv)
 {

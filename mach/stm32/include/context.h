@@ -4,7 +4,7 @@
 #define NR_CONTEXT_SOFT		8
 #define NR_CONTEXT_HARD		8
 #define NR_CONTEXT		(NR_CONTEXT_HARD + NR_CONTEXT_SOFT)
-#define CONTEXT_SIZE		(NR_CONTEXT * sizeof(int))
+#define CONTEXT_SIZE		(NR_CONTEXT * WORD_SIZE)
 /* depending on SCB_CCR[STKALIGN] */
 
 #define INIT_IRQFLAG(flag)	((flag) = 0)
@@ -57,8 +57,8 @@ void sys_schedule();
 
 #include <kernel/task.h>
 
-extern inline void set_task_context(struct task_t *p);
-extern inline void set_task_context_soft(struct task_t *p);
-extern inline void set_task_context_hard(struct task_t *p);
+extern inline void set_task_context(struct task *p);
+extern inline void set_task_context_soft(struct task *p);
+extern inline void set_task_context_hard(struct task *p);
 
 #endif /* __CONTEXT_H__ */

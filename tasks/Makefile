@@ -27,8 +27,7 @@ depend dep:
 
 clean:
 	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
-	@rm -f $(OBJS) .depend
-	@rm -f $(SUBDIRS).o
+	@rm -f $(wildcard *.o) .depend
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

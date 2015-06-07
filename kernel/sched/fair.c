@@ -1,26 +1,26 @@
-#include <kernel/cfs.h>
 #include <kernel/task.h>
+#include "fair.h"
 
 /* runqueue's head can be init task. thnik about it */
 DEFINE_LIST_HEAD(cfs_rq);
 
-struct task_t *cfs_pick_next(struct sched_t *cfs)
+struct task *cfs_pick_next(struct scheduler *cfs)
 {
-	struct list_t *rq_head = cfs->rq;
+	struct list *rq_head = cfs->rq;
 
 	if (rq_head->next == rq_head) /* empty */
 		return NULL;
 
-	return get_container_of(rq_head->next, struct task_t, rq);
+	return get_container_of(rq_head->next, struct task, rq);
 }
 
-void cfs_rq_add(struct sched_t *cfs, struct task_t *new)
+void cfs_rq_add(struct scheduler *cfs, struct task *new)
 {
 	if (!new || get_task_state(new))
 		return;
 
-	struct list_t *p, *rq_head;
-	struct task_t *task;
+	struct list *p, *rq_head;
+	struct task *task;
 
 	rq_head = cfs->rq;
 	p       = rq_head->next;
@@ -33,7 +33,7 @@ void cfs_rq_add(struct sched_t *cfs, struct task_t *new)
 	}
 
 	do {
-		task = get_container_of(p, struct task_t, rq);
+		task = get_container_of(p, struct task, rq);
 
 		if (task->se.vruntime > new->se.vruntime) {
 			list_add(&new->rq, p->prev);
@@ -47,7 +47,7 @@ void cfs_rq_add(struct sched_t *cfs, struct task_t *new)
 		list_add(&new->rq, rq_head->prev);
 }
 
-void cfs_rq_del(struct sched_t *cfs, struct task_t *p)
+void cfs_rq_del(struct scheduler *cfs, struct task *p)
 {
 	cfs->nr_running--;
 

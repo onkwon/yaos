@@ -1,7 +1,7 @@
-#include <foundation.h>
+#include <io.h>
 #include <string.h>
 
-#define BUF_SIZE		(WORD_SIZE * 8 + 1) /* max length of binary */
+#define BUFSIZE			(WORD_SIZE * 8 + 1) /* max length of binary */
 
 #define FORWARD(addr)		((int *)(addr)++)
 #define BACKWARD(addr)		((int *)(addr)--)
@@ -9,31 +9,6 @@
 
 #define PAD_RIGHT		1
 #define PAD_ZERO		2
-
-void __putchar(int c)
-{
-	write(stdout, &c, 1);
-
-	if (c == '\n')
-		__putchar('\r');
-}
-
-void (*putchar)(int c) = __putchar;
-
-void puts(const char *s)
-{
-	while (*s) putchar(*s++);
-}
-
-int getc()
-{
-	int c;
-
-	if (!read(stdin, &c, 1))
-		c = -1;
-
-	return c;
-}
 
 static void printc(char **s, int c)
 {
@@ -72,9 +47,9 @@ static size_t prints(char **out, const char *s, size_t width, int pad,
 static size_t printi(char **out, int v, unsigned int base, size_t width,
 		int pad, size_t maxlen)
 {
-	char buf[BUF_SIZE], *s;
+	char buf[BUFSIZE], *s;
 
-	s = itoa(v, buf, base, BUF_SIZE);
+	s = itoa(v, buf, base, BUFSIZE);
 
 	if (*s == '-') {
 		if ((pad & PAD_ZERO) && !(pad & PAD_RIGHT)) {
@@ -85,7 +60,7 @@ static size_t printi(char **out, int v, unsigned int base, size_t width,
 		}
 	}
 
-	if (strlen(s) == 0) {
+	if (strnlen(s, BUFSIZE) == 0) {
 		*s = '0';
 		s[1] = '\0';
 	}
@@ -109,7 +84,7 @@ static size_t printi(char **out, int v, unsigned int base, size_t width,
 static size_t printr(char **out, double v, unsigned int base, size_t width,
 		int pad, size_t maxlen)
 {
-	unsigned int integer, decimal, i;
+	unsigned int integer, fraction, i;
 	int exp;
 	union {
 		float f;
@@ -121,8 +96,8 @@ static size_t printr(char **out, double v, unsigned int base, size_t width,
 	} r;
 
 	r.f = v;
-	integer = 0;
-	decimal = 0;
+	integer  = 0;
+	fraction = 0;
 
 	if ((exp = GETEXP(r)) >= 0) {
 		integer = (1 << exp) | (r.i.m >> (MANTISSA_SIZE - exp));
@@ -133,20 +108,20 @@ static size_t printr(char **out, double v, unsigned int base, size_t width,
 
 	for (i = 0; i < (MANTISSA_SIZE - exp); i++) {
 		if (r.i.m & (1 << i))
-			decimal +=(RESOLUTION / (1 << ((MANTISSA_SIZE - exp) - i)));
+			fraction +=(RESOLUTION / (1 << ((MANTISSA_SIZE - exp) - i)));
 	}
 
-	char buf[BUF_SIZE], *s;
+	char buf[BUFSIZE], *s;
 
 	s = buf;
 	if (v < 0)
 		*s++ = '-';
 
-	itoa(integer, s, 10);
-	i = strlen(s);
+	itoa(integer, s, 10, BUFSIZE-1);
+	i = strnlen(s, BUFSIZE);
 	s[i] = '.';
-	itoa(decimal, &s[i+1], 10);
-	if (strlen(buf) == 1)
+	itoa(fraction, &s[i+1], 10, BUFSIZE-i-1);
+	if (strnlen(buf, BUFSIZE) == 1)
 		buf[0] = '0';
 
 	return prints(out, buf, width, pad, maxlen);
@@ -227,7 +202,6 @@ static size_t print(char **out, size_t limit, int *args)
 
 size_t printf(const char *format, ...)
 {
-	putchar = __putchar;
 	return print(0, -1, (int *)&format);
 }
 
@@ -239,14 +213,4 @@ size_t sprintf(char *out, const char *format, ...)
 size_t snprintf(char *out, size_t maxlen, const char *format, ...)
 {
 	return print(&out, maxlen, (int *)&format);
-}
-
-#include <driver/console.h>
-
-size_t printk(const char *format, ...)
-{
-#ifdef CONFIG_SYSCALL
-	putchar = console_putc;
-#endif
-	return print(0, -1, (int *)&format);
 }

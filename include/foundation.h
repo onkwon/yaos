@@ -3,6 +3,8 @@
 
 #define HZ			50
 
+#define CONSOLE			"usart1"
+
 #include <types.h>
 #include <error.h>
 

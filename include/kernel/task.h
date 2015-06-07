@@ -8,7 +8,9 @@
 #define STACK_SEPARATE		1
 #define STACK_SHARE		2
 
-struct mm_t {
+#define STACK_SENTINEL		0xdeafc0de
+
+struct mm {
 	unsigned int *base;
 	unsigned int *sp;
 	unsigned int *heap;
@@ -56,7 +58,7 @@ struct mm_t {
 #include <types.h>
 #include <kernel/sched.h>
 
-struct task_t {
+struct task {
 	/* `state` must be the first element in the structure as it is used
 	 * for sanity check in initialization */
 	unsigned int state;
@@ -65,19 +67,19 @@ struct task_t {
 	void *addr;
 	unsigned int irqflag;
 
-	struct mm_t mm;
+	struct mm mm;
 
-	struct task_t *parent;
-	struct list_t children;
-	struct list_t sibling;
+	struct task *parent;
+	struct list children;
+	struct list sibling;
 
-	struct list_t rq;
+	struct list rq;
 
 	struct sched_entity se;
 } __attribute__((packed));
 
 #define REGISTER_TASK(f, t, p) \
-	static struct task_t task_##func \
+	static struct task task_##func \
 	__attribute__((section(".user_task_list"), used)) = { \
 		.state = TASK_REGISTERED, \
 		.flags = t, \
@@ -85,14 +87,14 @@ struct task_t {
 		.addr  = f, \
 	}
 
-extern struct task_t *current;
-extern struct task_t init;
+extern struct task *current;
+extern struct task init;
 
-struct task_t *make(unsigned int flags, void (*func)(), void *ref, int option);
-void kill(struct task_t *task);
-void set_task_dressed(struct task_t *task, unsigned int flags, void *addr);
-int alloc_mm(struct task_t *p, void *ref, int option);
+struct task *make(unsigned int flags, void (*func)(), void *ref, int option);
+void kill(struct task *task);
+void set_task_dressed(struct task *task, unsigned int flags, void *addr);
+int alloc_mm(struct task *p, void *ref, int option);
 
-struct task_t *find_task(unsigned int id, struct task_t *head);
+struct task *find_task(unsigned int addr, struct task *head);
 
 #endif /* __TASK_H__ */

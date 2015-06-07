@@ -1,46 +1,82 @@
 #include <kernel/syscall.h>
-#include <kernel/module.h>
-#include <asm/context.h>
+#include <kernel/device.h>
+#include <kernel/page.h>
 #include <error.h>
 
-int sys_open(unsigned int id, int mode)
+int sys_open(char *filename, int mode)
 {
-	struct dev_t *dev = getdev(id);
+	struct superblock *sb;
+	struct inode *inode;
+	struct file file;
 
-	if (!dev || !dev->ops->open)
-		return -ERR_UNDEF;
+	if ((sb = search_super(filename)) == NULL)
+		return -ERR_PATH;
 
-	return dev->ops->open(id, mode);
+	if ((inode = kmalloc(sizeof(struct inode))) == NULL)
+		return -ERR_ALLOC;
+
+	inode->addr = sb->root_inode;
+	inode->sb = sb;
+	sb->op->read_inode(inode);
+
+	if (inode->iop->lookup(inode, filename + sb->pathname_len))
+		return -ERR_PATH;
+
+	file.flags = mode;
+	inode->fop->open(inode, &file);
+
+	if (GET_FILE_TYPE(inode->mode) == FT_DEV) {
+		file.op = getdev(inode->dev)->op;
+		if (file.op->open)
+			file.op->open(inode, &file);
+	}
+
+	return mkfile(&file);
 }
 
-int sys_read(unsigned int id, void *buf, size_t size)
+int sys_read(int fd, void *buf, size_t size)
 {
-	struct dev_t *dev = getdev(id);
+	struct file *file = getfile(fd);
 
-	if (!dev || !dev->ops->read)
+	if (!file || !file->op->read)
 		return -ERR_UNDEF;
 
-	return dev->ops->read(id, buf, size);
+	return file->op->read(file, buf, size);
 }
 
-int sys_write(unsigned int id, void *buf, size_t size)
+int sys_write(int fd, void *buf, size_t size)
 {
-	struct dev_t *dev = getdev(id);
+	struct file *file = getfile(fd);
 
-	if (!dev || !dev->ops->write)
+	if (!file || !file->op->write)
 		return -ERR_UNDEF;
 
-	return dev->ops->write(id, buf, size);
+	return file->op->write(file, buf, size);
 }
 
-int sys_close(unsigned int id)
+int sys_close(int fd)
 {
-	struct dev_t *dev = getdev(id);
+	struct file *file = getfile(fd);
 
-	if (!dev || !dev->ops->write)
+	if (!file)
 		return -ERR_UNDEF;
 
-	return dev->ops->close(id);
+	if (file->op->close)
+		file->op->close(file);
+
+	remove_file(file);
+
+	return 0;
+}
+
+int sys_seek(int fd, unsigned int offset, int whence)
+{
+	struct file *file = getfile(fd);
+
+	if (!file || !file->op->seek)
+		return -ERR_UNDEF;
+
+	return file->op->seek(file, offset, whence);
 }
 
 int sys_reserved()
@@ -53,20 +89,7 @@ int sys_test(int a, int b, int c)
 	return a + b + c;
 }
 
-#include <kernel/page.h>
-
-void *sys_brk(size_t size)
-{
-	return kmalloc(size);
-}
-
-void sys_yield()
-{
-	set_task_state(current, TASK_SLEEPING);
-	sys_schedule();
-}
-
-#include <kernel/fs.h>
+#include <kernel/sched.h>
 
 void *syscall_table[] = {
 	sys_reserved,		/* 0 */
@@ -78,7 +101,8 @@ void *syscall_table[] = {
 	sys_close,
 	sys_brk,
 	sys_yield,
-	sys_create,
-	sys_mkdir,		/* 10 */
 	sys_mknod,
+	sys_seek,		/* 10 */
+	//sys_create,
+	//sys_mkdir,
 };

@@ -1,10 +1,11 @@
 # Uncomment a line to enable its functionality
 #CONFIG_DEBUG=y
+#CONFIG_SMP=y
 CONFIG_REALTIME=y
 CONFIG_PAGING=y
 CONFIG_SYSCALL=y
 CONFIG_FS=y
 
 # Uncomment a line to add the module
-MODULE_CONSOLE=y
-MODULE_IRC=y
+MODULE_USART=y
+MODULE_IR=y

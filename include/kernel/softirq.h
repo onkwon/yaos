@@ -4,9 +4,9 @@
 #include <kernel/lock.h>
 #include <kernel/task.h>
 
-#define SOFTIRQ_MAX		(sizeof(int) * 8)
+#define SOFTIRQ_MAX		(WORD_SIZE * 8)
 
-struct softirq_t {
+struct softirq {
 	unsigned int pending;
 	unsigned int bitmap;
 	lock_t wlock;
@@ -14,7 +14,7 @@ struct softirq_t {
 	void (*action[SOFTIRQ_MAX])();
 };
 
-struct softirq_t softirq;
+struct softirq softirq;
 
 static inline void raise_softirq(unsigned int nr)
 {
@@ -24,7 +24,7 @@ static inline void raise_softirq(unsigned int nr)
 	spin_unlock_irqrestore(softirq.wlock, irqflag);
 }
 
-struct task_t *softirqd;
+struct task *softirqd;
 
 unsigned int request_softirq(void (*func)());
 int softirq_init();

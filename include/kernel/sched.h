@@ -11,17 +11,13 @@ struct sched_entity {
 
 #define INIT_SCHED_ENTITY(name)	((name) = (struct sched_entity){ 0, 0, 0 })
 
-struct sched_t {
+struct scheduler {
 	int nr_running;
 	int pri;
 	uint64_t vruntime_base;
 	
 	void *rq;
 };
-
-void scheduler_init();
-
-extern inline void update_curr();
 
 #define schedule_prepare() { \
 	irq_save(current->irqflag); \
@@ -34,26 +30,31 @@ extern inline void update_curr();
 }
 
 void schedule_core();
+void scheduler_init();
+extern inline void update_curr();
+struct task;
+extern inline void runqueue_add(struct task *new);
 
-struct task_t;
-extern inline void runqueue_add(struct task_t *new);
+void sys_yield();
+
+#include <asm/context.h>
+#include <kernel/syscall.h>
 
 #ifdef CONFIG_SYSCALL
-#include <kernel/syscall.h>
 #define schedule()	syscall(SYSCALL_SCHEDULE)
+
+static inline void yield()
+{
+	syscall(SYSCALL_YIELD);
+}
 #else
-#include <asm/context.h>
 #define schedule()	sys_schedule()
+#define yield()		sys_yield()
 #endif
 
 #include <asm/clock.h>
 
 #define schedule_on()	systick_on()
 #define schedule_off()	systick_off()
-
-#include <kernel/cfs.h>
-#ifdef CONFIG_REALTIME
-#include <kernel/rts.h>
-#endif
 
 #endif /* __SCHED_H__ */

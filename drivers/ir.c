@@ -3,17 +3,16 @@
 #include <kernel/softirq.h>
 #include <foundation.h>
 
-#define QUEUE_SIZE	(128 * sizeof(int)) /* 128 entries of WORD_SIZE */
+#define QUEUE_SIZE	(128 * WORD_SIZE) /* 128 entries of WORD_SIZE */
 #define MHZ		1000000
 
 #define GPIO_PIN_INDEX	7
 
-static struct fifo_t irc_queue;
+static struct fifo ir_queue;
 static unsigned int nr_softirq;
 static int siglevel;
-static DEFINE_SPINLOCK(irc_lock);
 
-static void isr_irc()
+static void isr_ir()
 {
 	static unsigned int elapsed = 0;
 	unsigned int stamp, ir_count_max;
@@ -29,9 +28,7 @@ static void isr_irc()
 	/* make it micro second time base */
 	elapsed /= (ir_count_max * HZ) / MHZ;
 
-	spin_lock(irc_lock);
-	fifo_put(&irc_queue, elapsed, sizeof(elapsed));
-	spin_unlock(irc_lock);
+	fifo_put(&ir_queue, elapsed, sizeof(elapsed));
 
 	elapsed = stamp;
 	siglevel ^= HIGH;
@@ -41,28 +38,26 @@ static void isr_irc()
 	ret_from_gpio_int(GPIO_PIN_INDEX);
 }
 
-static size_t irc_read(unsigned int id, void *buf, size_t len)
+static size_t ir_read(struct file *file, void *buf, size_t len)
 {
 	int i, *data;
-	unsigned int irqflag;
 
-	spin_lock_irqsave(irc_lock, irqflag);
 	for (i = 0, data = (int *)buf; i < len; i++) {
-		data[i] = fifo_get(&irc_queue, sizeof(int));
+		data[i] = fifo_get(&ir_queue, sizeof(int));
 
 		if (data[i] == -1)
 			break;
 	}
-	spin_unlock_irqrestore(irc_lock, irqflag);
 
 	return i;
 }
 
-static struct dev_interface_t ops = {
+static struct file_operations ops = {
 	.open  = NULL,
-	.read  = irc_read,
+	.read  = ir_read,
 	.write = NULL,
 	.close = NULL,
+	.seek  = NULL,
 };
 
 static DEFINE_WAIT_HEAD(wq);
@@ -71,7 +66,7 @@ static void daemon()
 {
 	unsigned int data, len, i = 0;
 	while (1) {
-		len = irc_read(0, &data, 1);
+		len = ir_read(0, &data, 1);
 		if (len != 1) break;
 		printf("[%02d] %d\n", i, data);
 		i++;
@@ -82,24 +77,27 @@ static void daemon()
 
 #include <kernel/init.h>
 
-static int __init irc_init()
+static int __init ir_init()
 {
+	struct device *dev;
 	void *buf;
-	int vector_nr, result;
+	int vector_nr;
 
 	if ((buf = kmalloc(QUEUE_SIZE)) == NULL)
 		return -ERR_ALLOC;
-	fifo_init(&irc_queue, buf, QUEUE_SIZE);
+
+	fifo_init(&ir_queue, buf, QUEUE_SIZE);
 
 	vector_nr = gpio_init(GPIO_PIN_INDEX, GPIO_MODE_INPUT | GPIO_CONF_PULL |
 			GPIO_INT_FALLING | GPIO_INT_RISING);
 
-	register_isr(vector_nr, isr_irc);
+	register_isr(vector_nr, isr_ir);
 
-	if (!(result = register_dev(mkdev(), &ops, "irc"))) {
+	if ((dev = mkdev(0, 0, &ops, "ir"))) {
 		if ((nr_softirq = request_softirq(daemon)) >= SOFTIRQ_MAX) {
 			kfree(buf);
 			gpio_close(GPIO_PIN_INDEX);
+			remove_device(dev);
 
 			return -ERR_RANGE;
 		}
@@ -110,6 +108,6 @@ static int __init irc_init()
 	else
 		siglevel = LOW;
 
-	return result;
+	return 0;
 }
-MODULE_INIT(irc_init);
+MODULE_INIT(ir_init);

@@ -1,8 +1,9 @@
 #include <kernel/waitqueue.h>
+#include <kernel/lock.h>
 #include <kernel/sched.h>
 #include <kernel/task.h>
 
-void wq_wait(struct waitqueue_head_t *q, struct waitqueue_t *wait)
+void wq_wait(struct waitqueue_head *q, struct waitqueue *wait)
 {
 	unsigned irqflag;
 
@@ -16,15 +17,15 @@ void wq_wait(struct waitqueue_head_t *q, struct waitqueue_t *wait)
 	schedule();
 }
 
-void wq_wake(struct waitqueue_head_t *head, int nr_task)
+void wq_wake(struct waitqueue_head *head, int nr_task)
 {
-	struct list_t *p = head->list.next;
-	struct task_t *task;
+	struct list *p = head->list.next;
+	struct task *task;
 	unsigned irqflag;
 
 	spin_lock_irqsave(head->lock, irqflag);
 	while (p != &head->list && nr_task) {
-		task = get_container_of(p, struct waitqueue_t, link)->task;
+		task = get_container_of(p, struct waitqueue, link)->task;
 		set_task_state(task, TASK_RUNNING);
 		runqueue_add(task);
 		list_del(p);

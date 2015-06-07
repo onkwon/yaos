@@ -4,41 +4,43 @@
 #include <lib/firstfit.h>
 #include <error.h>
 
-struct task_t init;
-struct task_t *current = &init;
+struct task init;
+struct task *current = &init;
 
-int alloc_mm(struct task_t *p, void *ref, int option)
+int alloc_mm(struct task *new, void *ref, int option)
 {
-	if ((p->mm.base = (unsigned int *)kmalloc(STACK_SIZE)) == NULL)
+	if ((new->mm.base = kmalloc(STACK_SIZE)) == NULL)
 		return -ERR_ALLOC;
 
 	/* make its stack pointer to point out the highest memory address */
-	p->mm.sp = p->mm.base + (STACK_SIZE / sizeof(int) - 1);
+	new->mm.sp = new->mm.base + (STACK_SIZE / WORD_SIZE - 1);
 
 	/* initialize heap for malloc() */
-	p->mm.heap = (unsigned int *)ff_freelist_init(p->mm.base,
-			&p->mm.base[HEAP_SIZE / sizeof(int)]);
+	new->mm.heap = (unsigned int *)ff_freelist_init(new->mm.base,
+			&new->mm.base[HEAP_SIZE / WORD_SIZE]);
+
+	new->mm.base[HEAP_SIZE / WORD_SIZE] = STACK_SENTINEL;
 
 	switch (option) {
 	case STACK_SEPARATE:
-		if ((p->mm.kernel = (unsigned int *)kmalloc(KERNEL_STACK_SIZE)))
-			p->mm.kernel = &p->mm.kernel[KERNEL_STACK_SIZE /
-				sizeof(int) - 1];
+		if ((new->mm.kernel = kmalloc(KERNEL_STACK_SIZE)))
+			new->mm.kernel = &new->mm.kernel[KERNEL_STACK_SIZE /
+				WORD_SIZE - 1];
 		break;
 	case STACK_SHARE:
-		p->mm.kernel = ref;
+		new->mm.kernel = ref;
 		break;
 	}
 
-	if (p->mm.kernel == NULL) {
-		kfree(p->mm.base);
+	if (new->mm.kernel == NULL) {
+		kfree(new->mm.base);
 		return -ERR_ALLOC;
 	}
 
 	return 0;
 }
 
-void set_task_dressed(struct task_t *task, unsigned int flags, void *addr)
+void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 {
 	if (flags & TASK_KERNEL)
 		set_task_type(task, TASK_KERNEL);
@@ -57,11 +59,11 @@ void set_task_dressed(struct task_t *task, unsigned int flags, void *addr)
 	INIT_SCHED_ENTITY(task->se);
 }
 
-struct task_t *make(unsigned int flags, void (*func)(), void *ref, int option)
+struct task *make(unsigned int flags, void (*func)(), void *ref, int option)
 {
-	struct task_t *new;
+	struct task *new;
 
-	if ((new = (struct task_t *)kmalloc(sizeof(struct task_t)))) {
+	if ((new = kmalloc(sizeof(struct task)))) {
 		if (alloc_mm(new, ref, option)) {
 			kfree(new);
 			new = NULL;
@@ -74,31 +76,31 @@ struct task_t *make(unsigned int flags, void (*func)(), void *ref, int option)
 	return new;
 }
 
-void kill(struct task_t *task)
+void kill(struct task *task)
 {
 }
 
-struct task_t *find_task(unsigned int id, struct task_t *head)
+struct task *find_task(unsigned int addr, struct task *head)
 {
-	struct task_t *next, *p;
+	struct task *next, *p;
 
-	if ((unsigned int)head->addr == id)
+	if ((unsigned int)head->addr == addr)
 		return head;
 
 	if (list_empty(&head->children))
 		return NULL;
 
-	next = get_container_of(head->children.next, struct task_t, sibling);
+	next = get_container_of(head->children.next, struct task, sibling);
 
-	if ((p = find_task(id, next)))
+	if ((p = find_task(addr, next)))
 		return p;
 
 	head = next;
 
 	while (head->sibling.next != &head->parent->children) {
 		next = get_container_of(
-				head->sibling.next, struct task_t, sibling);
-		if ((p = find_task(id, next)))
+				head->sibling.next, struct task, sibling);
+		if ((p = find_task(addr, next)))
 			return p;
 		head = next;
 	}

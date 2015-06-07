@@ -133,4 +133,4 @@ static void __init clock_init()
 
 	//BITBAND(&RCC_CR, CSSON, ON);
 }
-REGISTER_INIT_FUNC(clock_init, 0);
+REGISTER_INIT(clock_init, 0);

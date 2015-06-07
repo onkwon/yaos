@@ -3,9 +3,9 @@
 
 #define __init			__attribute__((section(".text.init"), used))
 
-#define REGISTER_INIT_FUNC(func, order) \
+#define REGISTER_INIT(func, order) \
 	static void *init_##func \
-	__attribute__((section(".text.init_list."#order \
+	__attribute__((section(".text.init."#order \
 					",\"ax\",\%progbits @"), used)) = func
 
 extern int main();

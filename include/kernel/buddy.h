@@ -2,17 +2,16 @@
 #define __BUDDY_H__
 
 #include <types.h>
-#include <kernel/lock.h>
 
 #define BUDDY_MAX_ORDER		10
 
-struct buddy_freelist_t {
-	struct list_t list;
+struct buddy_freelist {
+	struct list list;
 	unsigned int *bitmap;
 };
 
-struct buddy_t {
-	struct buddy_freelist_t free[BUDDY_MAX_ORDER];
+struct buddy {
+	struct buddy_freelist free[BUDDY_MAX_ORDER];
 
 	unsigned int nr_free;
 	unsigned int nr_pages;
@@ -22,10 +21,10 @@ struct buddy_t {
 
 #include <kernel/page.h>
 
-struct page_t *alloc_pages(struct buddy_t *pool, unsigned int order);
-void free_pages(struct buddy_t *pool, struct page_t *page);
-void buddy_init(struct buddy_t *pool, unsigned int nr_pages,
-		struct page_t *array);
+struct page *alloc_pages(struct buddy *pool, unsigned int order);
+void free_pages(struct buddy *pool, struct page *page);
+void buddy_init(struct buddy *pool, unsigned int nr_pages,
+		struct page *array);
 
 static inline unsigned int log2(unsigned int v)
 {
