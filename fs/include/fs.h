@@ -6,7 +6,7 @@
 
 #define GET_FILE_TYPE(mode)		(mode)
 
-#define DEVDIR		"/dev/"
+#define DEVFS_ROOT			"/dev/"
 
 #include <types.h>
 #include <kernel/lock.h>

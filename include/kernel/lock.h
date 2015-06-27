@@ -12,18 +12,23 @@
 #define INIT_LOCK(name)			(name = UNLOCKED)
 #define is_locked(count)		(count <= 0)
 
+#define up(count)			atomic_set((int *)&count, count + 1)
+#define down(count)			atomic_set((int *)&count, count - 1)
+
 /* spinlock */
+#ifdef CONFIG_SMP
 #define DEFINE_SPINLOCK(name)		DEFINE_LOCK(name)
-#define spin_lock(count) do { \
+#define spin_lock(count)		do { \
 	while (is_locked(count)) ; \
-} while (atomic_set((int *)&count, count-1))
+} while (down(count))
+#define spin_unlock(count)		while (up(count))
+#else
+#define DEFINE_SPINLOCK(name)
+#define spin_lock(count)
+#define spin_unlock(count)
+#endif /* CONFIG_SMP */
 
-#define spin_unlock(count) \
-	while (atomic_set((int *)&count, count+1))
-
-#include <io.h>
-
-#define spin_lock_irqsave(lock, flag) do { \
+#define spin_lock_irqsave(lock, flag)	do { \
 	irq_save(flag); \
 	local_irq_disable(); \
 	spin_lock(lock); \
@@ -100,10 +105,14 @@ typedef struct semaphore mutex_t;
 #define mutex_unlock(count)		semaphore_up(count)
 
 /* reader-writer spin lock */
-#define DEFINE_RWLOCK(name)		DEFINE_SPINLOCK(name)
-#define read_lock(count)		do { if (!is_locked(count)) {
-#define read_unlock(count)		} } while (is_locked(count))
-#define write_lock(count)		spin_lock(count)
-#define write_unlock(count)		spin_unlock(count)
+#define DEFINE_RWLOCK(name)		DEFINE_LOCK(name)
+#define read_lock(count)		do { \
+	while (is_locked(count)) ; \
+} while (up(count))
+#define read_unlock(count)		while (down(count))
+#define write_lock(count)		do { \
+	while (count != UNLOCKED) ; \
+} while (down(count))
+#define write_unlock(count)		up(count)
 
 #endif /* __LOCK_H__ */

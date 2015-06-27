@@ -13,8 +13,8 @@ extern inline void udelay(unsigned us);
 #define mdelay(ms)		udelay((ms)  * 1000)
 #define sdelay(sec)		mdelay((sec) * 1000)
 
-#include <io.h>
 #include <kernel/lock.h>
+#include <io.h>
 #include <time.h>
 
 #endif /* __FOUNDATION_H__ */

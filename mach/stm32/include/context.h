@@ -13,9 +13,7 @@
 #define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
 #define EXC_RETURN_PSPT	0xfffffffd	/* return to THREAD  mode using PSP */
 
-/* We ignore CONTROL register that controls which stack to use
- * and the privilege level. Suppose we work only in privileged mode.
- *  __________
+/*  __________
  * | psr      |  |
  * | pc       |  | stack
  * | lr       |  |
@@ -28,7 +26,7 @@
  * | r4 - r11 |
  *  ----------
  */
-#define context_save(task)				\
+#define __context_save(task)				\
 	__asm__ __volatile__(				\
 			"mrs	r12, psp	\n\t"	\
 			"stmdb	r12!, {r4-r11}	\n\t"	\
@@ -36,7 +34,7 @@
 			: "=&r"(task->mm.sp)		\
 			:: "memory")
 
-#define context_restore(task)				\
+#define __context_restore(task)				\
 	__asm__ __volatile__(				\
 			"ldmia	%0!, {r4-r11}	\n\t"	\
 			"msr	psp, %0		\n\t"	\
@@ -48,17 +46,42 @@
 			"msr	control, r3	\n\t"	\
 			"msr	msp, %3		\n\t"	\
 			:: "r"(task->mm.sp),		\
-			   "r"(get_task_type(task)),	\
-			   "I"(TASK_KERNEL),		\
-			   "r"(task->mm.kernel)		\
+			   "r"(get_task_flags(task)),	\
+			   "I"(TASK_PRIVILEGED),	\
+			   "r"(task->mm.kernel.sp)	\
 			: "memory")
+
+#define INDEX_PSR	15
+#define INDEX_PC	14
+#define INDEX_R0	8
+#define INDEX_R4	0
+#define INIT_PSR	0x01000000
+
+#define __save_curr_context(regs) do {					\
+	unsigned int __pc  = __getpc();					\
+	__nop(); /* align to word */					\
+	regs[INDEX_PC]  = __pc;						\
+	regs[INDEX_PSR] = INIT_PSR;					\
+	__asm__ __volatile__("mov	%0, r4"				\
+			: "=&r"(regs[0]) :: "memory");			\
+	__asm__ __volatile__(						\
+			"mov	r4, %0			\n\t"		\
+			"stmia	r4!, {r5-r11}		\n\t"		\
+			"stmia	r4!, {r0-r3}		\n\t"		\
+			"stmia	r4!, {r12,lr}		\n\t"		\
+			:: "r"(regs + 1) : "memory");					\
+} while (0)
+
+#define __set_retval(task, value)					\
+	__asm__ __volatile__("str %0, [%1]" :				\
+			: "r"(value), "r"(task->mm.sp + INDEX_R0))
 
 void sys_schedule();
 
 #include <kernel/task.h>
 
-extern inline void set_task_context(struct task *p);
+extern inline void set_task_context(struct task *p, void *addr);
 extern inline void set_task_context_soft(struct task *p);
-extern inline void set_task_context_hard(struct task *p);
+extern inline void set_task_context_hard(struct task *p, void *addr);
 
 #endif /* __CONTEXT_H__ */

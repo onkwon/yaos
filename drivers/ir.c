@@ -41,9 +41,12 @@ static void isr_ir()
 static size_t ir_read(struct file *file, void *buf, size_t len)
 {
 	int i, *data;
+	struct device *dev = getdev(file->inode->dev);
 
 	for (i = 0, data = (int *)buf; i < len; i++) {
+		spin_lock(dev->lock.count);
 		data[i] = fifo_get(&ir_queue, sizeof(int));
+		spin_unlock(dev->lock.count);
 
 		if (data[i] == -1)
 			break;

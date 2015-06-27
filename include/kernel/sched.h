@@ -22,10 +22,10 @@ struct scheduler {
 #define schedule_prepare() { \
 	irq_save(current->irqflag); \
 	local_irq_disable(); \
-	context_save(current); \
+	__context_save(current); \
 }
 #define schedule_finish() { \
-	context_restore(current); \
+	__context_restore(current); \
 	irq_restore(current->irqflag); \
 }
 

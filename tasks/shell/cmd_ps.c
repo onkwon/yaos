@@ -22,7 +22,7 @@ static void visit(struct task *p)
 	printf("|   /sp 0x%08x /base 0x%08x /heap 0x%08x /size %d\n",
 			p->mm.sp, p->mm.base, p->mm.heap, STACK_SIZE);
 	print_tab();
-	printf("|   /kernel stack 0x%08x\n", p->mm.kernel);
+	printf("|   /kernel stack 0x%08x base 0x%08x\n", p->mm.kernel.sp, p->mm.kernel.base);
 	print_tab();
 	printf("|\n");
 
@@ -43,6 +43,9 @@ static void visit(struct task *p)
 	}
 
 	tab--;
+
+	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
+			GET_CON(), GET_SP(), GET_KSP(), GET_USP());
 }
 
 #ifdef CONFIG_PAGING

@@ -112,15 +112,16 @@ __attribute__((section(".vector"), aligned(4))) = {
 
 static void __init mem_init()
 {
-	unsigned i;
+	unsigned int i;
 
 	/* copy interrupt vector table to sram */
 	extern char _ram_start;
 	for (i = 0; (int)isr_vectors[i] != EOF; i++)
-		*((unsigned *)&_ram_start + i) = (unsigned)isr_vectors[i];
+		*((unsigned int *)&_ram_start + i) =
+			(unsigned int)isr_vectors[i];
 
 	/* activate vector table in sram */
-	SCB_VTOR = (unsigned)&_ram_start;
+	SCB_VTOR = (unsigned int)&_ram_start;
 
 	/* copy .data section from flash to sram */
 	extern char _etext, _data, _edata;
@@ -143,12 +144,12 @@ REGISTER_INIT(mem_init, 1);
 #include <kernel/task.h>
 #include <context.h>
 
-void set_task_context_hard(struct task *p)
+void set_task_context_hard(struct task *p, void *addr)
 {
 	int i;
 
-	*p->mm.sp     = 0x01000000;		/* psr */
-	*(--p->mm.sp) = (unsigned)p->addr;	/* pc */
+	*(--p->mm.sp) = INIT_PSR;		/* psr */
+	*(--p->mm.sp) = (unsigned int)addr;	/* pc */
 	for (i = 2; i < NR_CONTEXT_HARD; i++)
 		*(--p->mm.sp) = 0;
 }
@@ -161,8 +162,8 @@ void set_task_context_soft(struct task *p)
 		*(--p->mm.sp) = 0;
 }
 
-void set_task_context(struct task *p)
+void set_task_context(struct task *p, void *addr)
 {
-	set_task_context_hard(p);
+	set_task_context_hard(p, addr);
 	set_task_context_soft(p);
 }

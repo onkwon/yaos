@@ -25,7 +25,7 @@ void free_pages(struct buddy *pool, struct page *page)
 	freelist = &pool->free[order];
 	index    = PAGE_INDEX(page->addr);
 
-	pool->nr_free += 1 << order;
+	pool->nr_free += 1U << order;
 
 	while (order < BUDDY_MAX_ORDER) {
 		BITMAP_TOGGLE(freelist->bitmap, index, order);
@@ -37,14 +37,14 @@ void free_pages(struct buddy *pool, struct page *page)
 			break;
 
 		/* find buddy and detach it from current order to merge */
-		buddy = &mem_map[index ^ (1<<order)];
+		buddy = &mem_map[index ^ (1U << order)];
 		list_del(&buddy->link);
+
+		/* grab the first address of merging buddies */
+		index &= ~(1U << order);
 
 		order++;
 		freelist++;
-
-		/* grab the first address of merging buddies */
-		index &= ~0 << order;
 	}
 
 	list_add(&mem_map[index].link, &freelist->list);
@@ -70,7 +70,7 @@ struct page *alloc_pages(struct buddy *pool, unsigned int order)
 			BITMAP_TOGGLE(freelist->bitmap,
 					PAGE_INDEX(page->addr), i);
 
-			/* if allocating from higher order, split in two to add
+			/* if allocating from higher order, split in half to add
 			 * one of them to current order. */
 			while (i > order) {
 				freelist--;

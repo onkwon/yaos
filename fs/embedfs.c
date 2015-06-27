@@ -478,7 +478,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	/* skip '/' at the start of path if exist */
 	for (i = 0; pathname[i] == '/'; i++) ;
 
-	curr.addr = 0; /* search from root */
+	curr.addr = 0; /* start searching from root */
 	if (read_inode(&curr, dev)) {
 		/* wrong inode */
 	}
@@ -500,7 +500,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 			read_data_block(&curr, offset + dir_size, name,
 					dir.name_len+1, dev);
 
-			if (!strncmp(dir.name, pwd, len)) {
+			if (!strncmp(name, pwd, len)) {
 				kfree(name);
 				break;
 			}
@@ -540,14 +540,14 @@ static int create_file(char *filename, mode_t mode, struct embed_inode *parent,
 		return -ERR_RANGE;
 
 	dir.inode = inode_new;
-	dir.name_len = strlen(filename);
+	dir.name_len = strlen(filename) + 1;
 	dir.rec_len = sizeof(struct embed_dir) + dir.name_len - sizeof(char *);
 	dir.type = GET_FILE_TYPE(mode);
 	dir.name = filename;
 
 	write_data_block(parent, &dir,
 			sizeof(struct embed_dir) - sizeof(char *), dev);
-	write_data_block(parent, filename, dir.name_len+1, dev);
+	write_data_block(parent, filename, dir.name_len, dev);
 
 	return 0;
 }

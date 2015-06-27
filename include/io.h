@@ -21,7 +21,7 @@
 #include <asm/io.h>
 #endif
 
-unsigned int stdin, stdout, stderr;
+int stdin, stdout, stderr;
 
 #include <types.h>
 

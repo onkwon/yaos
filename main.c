@@ -13,16 +13,17 @@ static void cleanup()
 static void idle()
 {
 	cleanup();
-	yield();
+
+	struct task *task;
 
 	while (1) {
-		printf("init()\n");
-		printf("type %08x, state %08x, pri %08x\n",
-				get_task_type(current),
-				get_task_state(current),
-				get_task_pri(current));
-		printf("control %08x, sp %08x, msp %08x, psp %08x\n",
-				GET_CON(), GET_SP(), GET_KSP(), GET_USP());
+		while (zombie) {
+			task = (struct task *)zombie;
+			zombie = task->addr;
+			destroy(task);
+		}
+
+		yield();
 	}
 }
 
@@ -42,18 +43,18 @@ static void __init load_user_task()
 	unsigned int pri;
 
 	for (p = (struct task *)&_user_task_list;
-			get_task_state(p) == TASK_REGISTERED; p++) {
+			get_task_flags(p) & TASK_STATIC; p++) {
 		if (p->addr == NULL)
 			continue;
 
 		/* share one kernel stack with all tasks to save memory */
-		if (alloc_mm(p, init.mm.kernel, STACK_SHARE))
+		if (alloc_mm(p, &init, STACK_SHARED))
 			continue;
 
 		pri = get_task_pri(p);
-		set_task_dressed(p, 0, p->addr);
+		set_task_dressed(p, TASK_STATIC | STACK_SHARED, p->addr);
 		set_task_pri(p, pri);
-		set_task_context(p);
+		set_task_context(p, wrapper);
 
 		/* make it runnable, and add into runqueue */
 		set_task_state(p, TASK_RUNNING);
@@ -67,11 +68,11 @@ static int __init make_init_task()
 	 * properly `current` must be set to `init`. */
 	current = &init;
 
-	if (alloc_mm(&init, NULL, STACK_SEPARATE))
+	if (alloc_mm(&init, NULL, 0))
 		return -ERR_ALLOC;
 
-	set_task_dressed(&init, TASK_KERNEL, idle);
-	set_task_context_hard(&init);
+	set_task_dressed(&init, TASK_STATIC | TASK_KERNEL, idle);
+	set_task_context_hard(&init, wrapper);
 	set_task_pri(&init, LEAST_PRIORITY);
 	set_task_state(&init, TASK_RUNNING);
 
@@ -89,7 +90,7 @@ static int __init console_init()
 {
 	int fd;
 
-	fd = sys_open(DEVDIR CONSOLE, O_RDWR | O_NONBLOCK);
+	fd = sys_open(DEVFS_ROOT CONSOLE, O_RDWR | O_NONBLOCK);
 	stdin = stdout = stderr = fd;
 
 	return 0;
@@ -117,11 +118,11 @@ int __init main()
 	console_init();
 
 	/* a banner */
-	debug(("YAOS %s %s\n", VERSION, MACHINE));
+	printk("YAOS %s %s\n", VERSION, MACHINE);
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);
-	set_kernel_sp(init.mm.kernel);
+	set_kernel_sp(init.mm.kernel.sp);
 
 	/* everything ready now */
 	sei();

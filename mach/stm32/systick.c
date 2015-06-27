@@ -6,8 +6,7 @@
 static void isr_systick()
 {
 	update_tick(1);
-
-	SCB_ICSR |= 1 << 28; /* raising pendsv for scheduling */
+	sys_schedule();
 }
 
 unsigned int get_systick_hz()

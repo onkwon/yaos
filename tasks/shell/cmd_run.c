@@ -21,7 +21,7 @@ static int run(int argc, char **argv)
 	}
 
 	set_task_state(p, TASK_RUNNING);
-	runqueue_add(p);
+	runqueue_add(p); /* make a system call for this */
 	schedule();
 
 	return 0;

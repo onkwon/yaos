@@ -41,7 +41,36 @@ int sys_read(int fd, void *buf, size_t size)
 	if (!file || !file->op->read)
 		return -ERR_UNDEF;
 
-	return file->op->read(file, buf, size);
+	struct task *parent;
+	size_t len;
+	int tid;
+
+	parent = current;
+
+	//tid = clone(TASK_SYSCALL, NULL);
+	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+
+	if (tid > 0) { /* child turning to kernel task,
+			  nomore in handler mode */
+		len = file->op->read(file, buf, size);
+		__set_retval(parent, len);
+
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+
+		sys_kill((unsigned int)current);
+
+		freeze(); /* never reaches here */
+	} else if (tid == 0) { /* parent */
+		sys_yield(); /* it goes sleep exiting from system call
+				to wait for its child's job done
+				that returns the result. */
+	} else { /* error */
+		len = 0;
+		/* use errno */
+	}
+
+	return len;
 }
 
 int sys_write(int fd, void *buf, size_t size)
@@ -103,6 +132,8 @@ void *syscall_table[] = {
 	sys_yield,
 	sys_mknod,
 	sys_seek,		/* 10 */
+	sys_kill,
+	sys_fork,
 	//sys_create,
 	//sys_mkdir,
 };

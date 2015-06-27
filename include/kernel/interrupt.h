@@ -11,8 +11,8 @@
 #define local_irq_enable()		sei()
 #define get_active_irq()		__get_active_irq()
 
-#define preempt_disable()
-#define preempt_enable()
+#define preempt_disable()		cli()
+#define preempt_enable()		sei()
 #define preempt_count()
 
 #define dmb()				__dmb()

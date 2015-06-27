@@ -26,14 +26,6 @@
 	printf("\n"); \
 	putchar = temp; \
 } while (0)
-#else
-#define debug(fmt) do { \
-	extern void __putc_debug(int c); \
-	void (*temp)(int) = putchar; \
-	putchar = __putc_debug; \
-	printf fmt; \
-	putchar = temp; \
-} while (0)
 #endif
 
 #endif /* __ERROR_H__ */

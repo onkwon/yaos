@@ -35,10 +35,11 @@ static void test_ir()
 	set_task_state(current, TASK_RUNNING);
 	schedule();
 
-	unsigned int *kstack = (unsigned int *)kmalloc(KERNEL_STACK_SIZE);
-	current->mm.kernel = &kstack[KERNEL_STACK_SIZE / sizeof(int) - 1];
+	unsigned int *kstack = (unsigned int *)kmalloc(STACK_SIZE);
+	current->mm.kernel.base = kstack;
+	current->mm.kernel.sp = &kstack[STACK_SIZE / sizeof(int) - 1];
 	printf("kernel stack 0x%08x - 0x%08x\n",
-			kstack, (unsigned int)&current->mm.kernel[1] - 1);
+			kstack, (unsigned int)&current->mm.kernel.sp[1] - 1);
 
 	set_task_state(current, TASK_USER);
 	schedule();

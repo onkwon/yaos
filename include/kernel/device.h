@@ -20,7 +20,7 @@ struct device {
 
 	mutex_t lock; /* to synchronize calls to its driver */
 
-	struct file_operations *op; /* remove this!!*/
+	struct file_operations *op; /* remove this!! */
 
 	struct list link; /* for device hash list */
 

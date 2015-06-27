@@ -4,8 +4,8 @@
 static void test_task()
 {
 	unsigned long long t;
-	unsigned th, bh;
-	unsigned v;
+	unsigned int th, bh;
+	unsigned int v;
 
 	printf("test()\n");
 	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
@@ -22,8 +22,6 @@ static void test_task()
 		printf("%08x", th);
 		printf("%08x %d (%d sec)\n", bh, v, v/HZ);
 
-		//reset_task_state(current, TASK_RUNNING);
-		//schedule();
 		sleep(1);
 	}
 }

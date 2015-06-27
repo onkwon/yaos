@@ -58,9 +58,10 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 		if (nr_device >= MAJOR_MAX)
 			goto err;
 
-		spin_lock(nr_lock);
+		unsigned int irqflag;
+		spin_lock_irqsave(nr_lock, irqflag);
 		nr_device += 1;
-		spin_unlock(nr_lock);
+		spin_unlock_irqrestore(nr_lock, irqflag);
 
 		major = nr_device;
 	}

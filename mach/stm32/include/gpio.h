@@ -9,12 +9,16 @@
 
 static inline void ret_from_gpio_int(unsigned int n)
 {
+#ifdef CONFIG_SMP
 	extern lock_t gpio_irq_lock;
+#endif
+	unsigned int irqflag;
+
 	unsigned int pin = n % PINS_PER_PORT;
 
-	spin_lock(gpio_irq_lock);
+	spin_lock_irqsave(gpio_irq_lock, irqflag);
 	EXTI_PR |= 1 << pin;
-	spin_unlock(gpio_irq_lock);
+	spin_unlock_irqrestore(gpio_irq_lock, irqflag);
 }
 
 #endif /* __STM32_GPIO_H__ */

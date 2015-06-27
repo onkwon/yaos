@@ -3,20 +3,20 @@
 volatile unsigned int __attribute__((section(".data"))) jiffies;
 uint64_t __attribute__((section(".data"))) jiffies_64;
 
-static DEFINE_RWLOCK(lock_jiffies_64);
-
-uint64_t get_jiffies_64_core()
-{
-	return jiffies_64;
-}
+static DEFINE_SPINLOCK(lock_jiffies_64);
 
 uint64_t get_jiffies_64()
 {
 	uint64_t stamp = 0;
 
-	read_lock(lock_jiffies_64);
-	stamp = get_jiffies_64_core();
-	read_unlock(lock_jiffies_64);
+#ifdef CONFIG_SMP
+	do {
+		if (!is_locked(lock_jiffies_64))
+#endif
+			stamp = jiffies_64;
+#ifdef CONFIG_SMP
+	} while (is_locked(lock_jiffies_64));
+#endif
 
 	return stamp;
 }

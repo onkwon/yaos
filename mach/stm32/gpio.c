@@ -30,13 +30,16 @@ void gpio_put(unsigned int index, int v)
 
 int gpio_init(unsigned int index, unsigned int flags)
 {
-	unsigned int port, pin, mode = 0;
-	int vector = -1;
+	unsigned int port, pin, mode;
+	int vector;
+	unsigned int irqflag;
 
+	vector = -1;
+	mode = 0;
 	port = calc_port(index);
 	pin  = calc_pin(index);
 
-	spin_lock(gpio_init_lock);
+	spin_lock_irqsave(gpio_init_lock, irqflag);
 
 	SET_CLOCK_APB2(ENABLE, port + 2);
 
@@ -96,7 +99,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		}
 	}
 
-	spin_unlock(gpio_init_lock);
+	spin_unlock_irqrestore(gpio_init_lock, irqflag);
 
 	return vector;
 }

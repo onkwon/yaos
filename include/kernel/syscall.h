@@ -14,9 +14,11 @@
 #define SYSCALL_YIELD			8
 #define SYSCALL_MKNOD			9
 #define SYSCALL_SEEK			10
-#define SYSCALL_CREATE			11
-#define SYSCALL_MKDIR			12
-#define SYSCALL_NR			13
+#define SYSCALL_KILL			11
+#define SYSCALL_FORK			12
+#define SYSCALL_CREATE			13
+#define SYSCALL_MKDIR			14
+#define SYSCALL_NR			15
 
 int sys_open(char *filename, int mode);
 int sys_read(int fd, void *buf, size_t size);
@@ -31,25 +33,29 @@ static inline int open(char *filename, int mode)
 {
 	return syscall(SYSCALL_OPEN, filename, mode);
 }
-
 static inline int read(int fd, void *buf, size_t size)
 {
 	return syscall(SYSCALL_READ, fd, buf, size);
 }
-
 static inline int write(int fd, void *buf, size_t size)
 {
 	return syscall(SYSCALL_WRITE, fd, buf, size);
 }
-
 static inline int close(int fd)
 {
 	return syscall(SYSCALL_CLOSE, fd);
 }
-
 static inline int seek(int fd, unsigned int offset, int whence)
 {
 	return syscall(SYSCALL_SEEK, fd, offset, whence);
+}
+static inline int kill(unsigned int tid)
+{
+	return syscall(SYSCALL_KILL, tid);
+}
+static inline int fork()
+{
+	return syscall(SYSCALL_FORK);
 }
 #else
 #define open(filename, mode)	sys_open(filename, mode)

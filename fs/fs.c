@@ -78,7 +78,6 @@ static DEFINE_LIST_HEAD(sblist);
 
 int mount(const struct device *dev, const char *mnt_point, const char *fs_type)
 {
-	/* delete the last `/` */
 	/* check if the same mount point exists */
 
 	struct superblock *sb;
@@ -96,13 +95,18 @@ int mount(const struct device *dev, const char *mnt_point, const char *fs_type)
 	}
 
 	sb->pathname_len = strlen(mnt_point);
+	/* skip the last `/` */
+	while ((sb->pathname_len > 1) && (mnt_point[sb->pathname_len-1] == '/'))
+		sb->pathname_len--;
 
 	if ((sb->pathname = kmalloc(sb->pathname_len+1)) == NULL) {
 		kfree(sb);
 		return -ERR_ALLOC;
 	}
 
-	strncpy(sb->pathname, mnt_point, sb->pathname_len+1);
+	strncpy(sb->pathname, mnt_point, sb->pathname_len);
+	sb->pathname[sb->pathname_len] = '\0';
+
 	INIT_LOCK(sb->lock);
 	sb->dev = dev;
 
@@ -145,5 +149,5 @@ void __init fs_init()
 
 	/* it is nessesary to mount devfs first to populate device nodes in */
 	devfs = ramfs_build(1024, NULL);
-	mount(devfs, "/dev", "ramfs");
+	mount(devfs, DEVFS_ROOT, "ramfs");
 }

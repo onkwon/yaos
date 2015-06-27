@@ -2,7 +2,7 @@
 #include <kernel/task.h>
 #include <kernel/init.h>
 
-extern char _ram_start, _ram_end, _ebss;
+extern char _ram_start, _ram_size, _ebss;
 
 #ifdef CONFIG_PAGING
 struct page *mem_map;
@@ -94,18 +94,22 @@ void kfree(void *addr)
 void __init free_bootmem()
 {
 	struct ff_freelist *p;
+	unsigned int ram_end;
 
-	p = (void *)ALIGN_WORD((unsigned int)&_ram_end -
+	ram_end = (unsigned int)&_ram_start + (unsigned int)&_ram_size - 1;
+
+	p = (void *)ALIGN_WORD(ram_end -
 			(STACK_SIZE + sizeof(struct ff_freelist)));
 
 	kfree(p->addr);
 }
-#endif /* CONFIG_PAGING */
+#endif
 
 void __init mm_init()
 {
 	unsigned int start = ALIGN_WORD(&_ram_start);
-	unsigned int end   = (unsigned int)&_ram_end;
+	unsigned int end   =
+		(unsigned int)&_ram_start + (unsigned int)&_ram_size - 1;
 #ifdef CONFIG_PAGING
 	unsigned int nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
 

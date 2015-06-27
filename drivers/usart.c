@@ -118,55 +118,59 @@ static void isr_usart()
 static int usart_open(struct inode *inode, struct file *file)
 {
 	struct device *dev = getdev(file->inode->dev);
+	int err = 0;
 
 	if (dev == NULL)
 		return -ERR_UNDEF;
+
+	spin_lock(dev->lock.count);
 
 	if (dev->count == 0) {
 		void *buf;
 		int nr_irq;
 
-		if (CHANNEL(dev->id) >= CHANNEL_MAX)
-			return -ERR_RANGE;
-
-		if ((nr_irq = __usart_open(CHANNEL(dev->id), 115200)) <= 0)
-			return -ERR_UNDEF;
-
-		if (file->flags & O_RDONLY) {
-			if ((buf = kmalloc(BUF_SIZE)) == NULL) {
-				__usart_close(CHANNEL(dev->id));
-				return -ERR_ALLOC;
-			}
-
-			fifo_init(&rxq[CHANNEL(dev->id)], buf, BUF_SIZE);
-			INIT_LOCK(rx_lock[CHANNEL(dev->id)]);
+		if (CHANNEL(dev->id) >= CHANNEL_MAX) {
+			err = -ERR_RANGE;
+			goto out;
 		}
 
-		if (file->flags & O_WRONLY) {
-			if (!(file->flags & O_NONBLOCK)) {
-				if ((buf = kmalloc(BUF_SIZE)) == NULL) {
-					__usart_close(CHANNEL(dev->id));
-					return -ERR_ALLOC;
-				}
-
-				fifo_init(&txq[CHANNEL(dev->id)], buf, BUF_SIZE);
-			}
-
-			INIT_LOCK(tx_lock[CHANNEL(dev->id)]);
+		if ((nr_irq = __usart_open(CHANNEL(dev->id), 115200)) <= 0) {
+			err = -ERR_UNDEF;
+			goto out;
 		}
 
-		dev->op->close = usart_close;
-		dev->op->read = usart_read;
-		dev->op->write = usart_write_int;
-		if (file->flags & O_NONBLOCK)
-			dev->op->write = usart_write_polling;
+		/* read */
+		if ((buf = kmalloc(BUF_SIZE)) == NULL) {
+			__usart_close(CHANNEL(dev->id));
+			err = -ERR_ALLOC;
+			goto out;
+		}
+		fifo_init(&rxq[CHANNEL(dev->id)], buf, BUF_SIZE);
+		INIT_LOCK(rx_lock[CHANNEL(dev->id)]);
+
+		/* write */
+		if ((buf = kmalloc(BUF_SIZE)) == NULL) {
+			__usart_close(CHANNEL(dev->id));
+			err = -ERR_ALLOC;
+			goto out;
+		}
+		fifo_init(&txq[CHANNEL(dev->id)], buf, BUF_SIZE);
+		INIT_LOCK(tx_lock[CHANNEL(dev->id)]);
 
 		register_isr(nr_irq, isr_usart);
 	}
 
+	dev->op->close = usart_close;
+	dev->op->read = usart_read;
+	dev->op->write = usart_write_int;
+	if (file->flags & O_NONBLOCK)
+		dev->op->write = usart_write_polling;
+
 	dev->count++;
 
-	return 0;
+	spin_unlock(dev->lock.count);
+out:
+	return err;
 }
 
 static struct file_operations ops = {

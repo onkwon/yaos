@@ -16,7 +16,8 @@ static inline void runqueue_add_core(struct task *new)
 {
 #ifdef CONFIG_DEBUG
 	/* stack overflow */
-	if (new->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL)
+	if ((new->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
+			(new->mm.kernel.base[0] != STACK_SENTINEL))
 	{
 		printk("stack overflow\n");
 		return;
@@ -64,7 +65,7 @@ rts_next:
 		}
 
 		/* If not runnable when nr_running is 1,
-		 * it means no real task to run */
+		 * there is no real task to run */
 		if (!get_task_state(current))
 			goto adjust_vruntime;
 		else if (rts.nr_running > 1)
@@ -84,7 +85,7 @@ rts_next:
 		goto adjust_vruntime;
 	}
 
-	/* add `current` back into runqueue after picking next */
+	/* add `current` back into runqueue after picking the next */
 	cfs_rq_add(&cfs, current);
 
 	current = next;
@@ -95,7 +96,7 @@ rts_next:
 adjust_vruntime:
 	/* Update newly selected task's start time because it is stale
 	 * as much as the one has been waiting for. */
-	current->se.exec_start = get_jiffies_64_core();
+	current->se.exec_start = get_jiffies_64();
 }
 
 /* Calling update_curr() as soon as the system timer interrupt occurs would be
@@ -103,7 +104,7 @@ adjust_vruntime:
  * count only its running time, as long as jiffies gets updated asynchronous. */
 void inline update_curr()
 {
-	uint64_t clock = get_jiffies_64_core();
+	uint64_t clock = get_jiffies_64();
 	unsigned delta_exec;
 
 	delta_exec = clock - current->se.exec_start;
@@ -130,7 +131,11 @@ void inline update_curr()
 
 void inline runqueue_add(struct task *new)
 {
+	unsigned int irqflag;
+	irq_save(irqflag);
+	local_irq_disable();
 	runqueue_add_core(new);
+	irq_restore(irqflag);
 }
 
 #include <kernel/init.h>

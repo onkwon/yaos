@@ -16,6 +16,11 @@ static int ls(int argc, char **argv)
 
 	fd = open(argv[1], 0);
 
+	if (fd <= 0) {
+		printf("no such directory or file\n");
+		return 0;
+	}
+
 	while ((len = read(fd, buf, 16))) {
 		for (i = 0; i < len; i++)
 			printf("%02x ", buf[i]);
@@ -48,6 +53,7 @@ static int ls(int argc, char **argv)
 	}
 	*/
 
+	close(fd);
 	return 0;
 }
 REGISTER_CMD(ls, ls, "list directory contents");
