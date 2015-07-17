@@ -4,7 +4,7 @@
 extern inline void sleep(unsigned int sec);
 extern inline void msleep(unsigned int ms);
 
-extern inline unsigned int set_timeout(unsigned int ms);
+void set_timeout(unsigned int *tv, unsigned int ms);
 extern inline int is_timeout(unsigned int goal);
 
 #include <kernel/jiffies.h>

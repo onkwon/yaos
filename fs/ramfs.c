@@ -350,8 +350,11 @@ static struct inode_operations iops = {
 };
 
 static struct file_operations fops = {
-	.open = ramfs_open,
-	.read = ramfs_read,
+	.open  = ramfs_open,
+	.read  = ramfs_read,
+	.write = NULL,
+	.close = NULL,
+	.seek  = NULL,
 };
 
 static void ramfs_read_inode(struct inode *inode)

@@ -125,7 +125,7 @@ static int usart_open(struct inode *inode, struct file *file)
 
 	spin_lock(dev->lock.count);
 
-	if (dev->count == 0) {
+	if (dev->count++ == 0) {
 		void *buf;
 		int nr_irq;
 
@@ -160,24 +160,19 @@ static int usart_open(struct inode *inode, struct file *file)
 		register_isr(nr_irq, isr_usart);
 	}
 
-	dev->op->close = usart_close;
-	dev->op->read = usart_read;
-	dev->op->write = usart_write_int;
 	if (file->flags & O_NONBLOCK)
-		dev->op->write = usart_write_polling;
+		file->op->write = usart_write_polling;
 
-	dev->count++;
-
-	spin_unlock(dev->lock.count);
 out:
+	spin_unlock(dev->lock.count);
 	return err;
 }
 
 static struct file_operations ops = {
 	.open  = usart_open,
-	.read  = NULL,
-	.write = NULL,
-	.close = NULL,
+	.read  = usart_read,
+	.write = usart_write_int,
+	.close = usart_close,
 	.seek  = NULL,
 };
 

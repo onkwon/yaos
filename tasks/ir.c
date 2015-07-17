@@ -30,24 +30,11 @@ unsigned int ir_get_nec(const unsigned int *buf)
 
 static void test_ir()
 {
-	/* alloc kernel stack for test */
-	set_task_type(current, TASK_KERNEL);
-	set_task_state(current, TASK_RUNNING);
-	schedule();
-
-	unsigned int *kstack = (unsigned int *)kmalloc(STACK_SIZE);
-	current->mm.kernel.base = kstack;
-	current->mm.kernel.sp = &kstack[STACK_SIZE / sizeof(int) - 1];
-	printf("kernel stack 0x%08x - 0x%08x\n",
-			kstack, (unsigned int)&current->mm.kernel.sp[1] - 1);
-
-	set_task_state(current, TASK_USER);
-	schedule();
-
-	/* Make a way of killing a task, releasing all the resource used */
-
 	unsigned int buf[80], i = 0;
-	unsigned int timeout = set_timeout(1000);
+	unsigned int timeout;
+
+	set_timeout(&timeout, 1000);
+
 	while (1) {
 		//buf[i] = fifo_get(&ir_buf, sizeof(int));
 		if (buf[i] != -1) {
@@ -61,7 +48,7 @@ static void test_ir()
 				i = 0;
 			}
 
-			timeout = set_timeout(1000);
+			set_timeout(&timeout, 1000);
 		}
 
 		if (i && is_timeout(timeout)) /* if timeout, flush */

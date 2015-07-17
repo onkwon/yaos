@@ -12,6 +12,7 @@
 #define ERR_ATTR		8
 #define ERR_WRITE		9
 #define ERR_UNKNOWN		10
+#define ERR_CREATE		11
 
 #define freeze()		while (1)
 #define panic()			while (1)

@@ -19,9 +19,9 @@ void msleep(unsigned int ms)
 	}
 }
 
-unsigned int set_timeout(unsigned int ms)
+void set_timeout(unsigned int *tv, unsigned int ms)
 {
-	return jiffies + msec_to_jiffies(ms);
+	*tv = jiffies + msec_to_jiffies(ms);
 }
 
 int is_timeout(unsigned int goal)

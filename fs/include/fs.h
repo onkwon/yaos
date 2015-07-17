@@ -33,6 +33,7 @@ struct superblock {
 	struct super_operations *op;
 
 	const struct device *dev; /* associated block device */
+	const struct file_system_type *type;
 
 	struct list list; /* list of all superblocks */
 };
@@ -64,10 +65,12 @@ struct inode {
 }__attribute__((packed));
 
 struct inode_operations {
-	//mknod
-	//mkdir
-	//create
 	int (*lookup)(struct inode *inode, const char *pathname);
+	int (*create)(struct inode *inode, const char *pathname, mode_t mode);
+	//mkdir
+	//rmdir
+	//rename
+	//delete
 };
 
 enum file_type {

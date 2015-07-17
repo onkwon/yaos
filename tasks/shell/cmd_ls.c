@@ -5,54 +5,91 @@
 #include <string.h>
 #include <stdlib.h>
 
+struct ramfs_dir {
+	void *inode;
+	unsigned char type;
+	char *name;
+} __attribute__((packed));
+
+struct embed_dir {
+	unsigned short int inode;
+	unsigned short int rec_len;
+	unsigned char type;
+	unsigned char name_len;
+	char *name;
+} __attribute__((packed));
+
+#define FS_TYPE_RAMFS		1
+#define FS_TYPE_EMBED		2
+
 static int ls(int argc, char **argv)
 {
+	struct file *file;
 	int fd;
-	char buf[16];
-	size_t i, len;
 
 	if (argc == 1)
 		argv[1] = "/";
 
-	fd = open(argv[1], 0);
-
-	if (fd <= 0) {
-		printf("no such directory or file\n");
-		return 0;
-	}
-
-	while ((len = read(fd, buf, 16))) {
-		for (i = 0; i < len; i++)
-			printf("%02x ", buf[i]);
-		printf("\n");
-	}
-	/*
-	struct ramfs_inode *inode;
-	struct ramfs_dir dir;
-	unsigned int offset;
-
-	if (argc == 1)
-		argv[1] = "/";
-
-	inode = get_inode(argv[1]);
-
-	if (inode == NULL) {
+	if ((fd = open(argv[1], O_RDONLY)) <= 0) {
 		printf("%s: no such file or directory\n", argv[1]);
 		return 0;
 	}
 
-	if (!(inode->mode & FT_DIR)) {
-		printf("\t%02x %d %08x\n", inode->mode, inode->size, inode->data[0]);
-		return 0;
+	if ((file = getfile(fd)) == NULL)
+		goto out;
+
+	if (!(file->inode->mode & FT_DIR)) {
+		printf("%02x %d %d\n",
+				file->inode->mode, file->inode->size,
+				file->inode->count);
+		goto out;
 	}
 
-	for (offset = 0; offset < inode->size; offset += sizeof(struct ramfs_dir)) {
-		readblk(inode, offset, &dir, sizeof(struct ramfs_dir));
+	union {
+		struct ramfs_dir ramfs;
+		struct embed_dir embed;
+	} fs;
 
-		printf("%s %02x (%08x)\n", dir.name, dir.type, dir.inode);
+	unsigned char fs_type;
+	size_t size;
+
+	if (!strcmp(file->inode->sb->type->name, "ramfs")) {
+		fs_type = FS_TYPE_RAMFS;
+		size = sizeof(struct ramfs_dir);
+	} else if (!strcmp(file->inode->sb->type->name, "embedfs")) {
+		fs_type = FS_TYPE_EMBED;
+		size = sizeof(struct embed_dir) - sizeof(int);
+	} else {
+		goto out;
 	}
-	*/
 
+	unsigned int inode;
+	unsigned char type;
+	char *name;
+
+	while (read(fd, &fs, size)) {
+		switch (fs_type) {
+		case FS_TYPE_RAMFS:
+			inode = fs.ramfs.inode;
+			type  = fs.ramfs.type;
+			name  = fs.ramfs.name;
+			break;
+		case FS_TYPE_EMBED:
+			if ((name = malloc(fs.embed.name_len)) == NULL)
+				goto out;
+			read(fd, name, fs.embed.name_len);
+			inode = fs.embed.inode;
+			type  = fs.embed.type;
+			break;
+		}
+
+		printf("0x%08x 0x%02x %s\n", inode, type, name);
+
+		if (fs_type == FS_TYPE_EMBED)
+			free(name);
+	}
+
+out:
 	close(fd);
 	return 0;
 }

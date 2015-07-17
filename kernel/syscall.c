@@ -19,8 +19,14 @@ int sys_open(char *filename, int mode)
 	inode->sb = sb;
 	sb->op->read_inode(inode);
 
-	if (inode->iop->lookup(inode, filename + sb->pathname_len))
-		return -ERR_PATH;
+	if (inode->iop->lookup(inode, filename + sb->pathname_len)) {
+		if (!(mode & O_CREATE))
+			return -ERR_PATH;
+
+		if (!inode->iop->create || inode->iop->create(inode,
+					filename + sb->pathname_len, FT_FILE))
+			return -ERR_CREATE;
+	}
 
 	file.flags = mode;
 	inode->fop->open(inode, &file);
@@ -40,6 +46,8 @@ int sys_read(int fd, void *buf, size_t size)
 
 	if (!file || !file->op->read)
 		return -ERR_UNDEF;
+	if (!(file->flags & O_RDONLY))
+		return -ERR_PERM;
 
 	struct task *parent;
 	size_t len;
@@ -47,7 +55,6 @@ int sys_read(int fd, void *buf, size_t size)
 
 	parent = current;
 
-	//tid = clone(TASK_SYSCALL, NULL);
 	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
 
 	if (tid > 0) { /* child turning to kernel task,
@@ -79,6 +86,8 @@ int sys_write(int fd, void *buf, size_t size)
 
 	if (!file || !file->op->write)
 		return -ERR_UNDEF;
+	if (!(file->flags & O_WRONLY))
+		return -ERR_PERM;
 
 	return file->op->write(file, buf, size);
 }

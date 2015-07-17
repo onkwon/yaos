@@ -325,8 +325,8 @@ static inline unsigned int get_data_block(struct embed_inode *inode,
 	return nblock;
 }
 
-static int write_data_block(struct embed_inode *inode, void *data, size_t len,
-		const struct device *dev)
+static int write_data_block(struct embed_inode *inode, const void *data,
+		size_t len, const struct device *dev)
 {
 	unsigned int nblk, prev, offset;
 	char *buf, *src;
@@ -334,7 +334,7 @@ static int write_data_block(struct embed_inode *inode, void *data, size_t len,
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		return -ERR_ALLOC;
 
-	src = data;
+	src = (char *)data;
 	offset = 0;
 	prev = 0;
 	nblk = 0;
@@ -371,7 +371,7 @@ static int write_data_block(struct embed_inode *inode, void *data, size_t len,
 
 	kfree(buf);
 
-	return nblk;
+	return offset;
 }
 
 static int read_data_block(struct embed_inode *inode, unsigned int offset,
@@ -530,11 +530,13 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	return pathname + i;
 }
 
-static int create_file(char *filename, mode_t mode, struct embed_inode *parent,
-		const struct device *dev)
+static int create_file(const char *filename, mode_t mode,
+		struct embed_inode *parent, const struct device *dev)
 {
 	struct embed_dir dir;
 	unsigned int inode_new;
+
+	/* check if the same filename exists */
 
 	if (!(inode_new = make_node(mode, dev)))
 		return -ERR_RANGE;
@@ -543,7 +545,7 @@ static int create_file(char *filename, mode_t mode, struct embed_inode *parent,
 	dir.name_len = strlen(filename) + 1;
 	dir.rec_len = sizeof(struct embed_dir) + dir.name_len - sizeof(char *);
 	dir.type = GET_FILE_TYPE(mode);
-	dir.name = filename;
+	dir.name = (char *)filename;
 
 	write_data_block(parent, &dir,
 			sizeof(struct embed_dir) - sizeof(char *), dev);
@@ -554,29 +556,76 @@ static int create_file(char *filename, mode_t mode, struct embed_inode *parent,
 
 static size_t embed_read(struct file *file, void *buf, size_t len)
 {
-	size_t count;
+	int retval;
 	struct embed_inode inode;
 
 	inode.addr = file->inode->addr;
 	if (read_inode(&inode, file->inode->sb->dev))
 		return 0;
 
-	count = read_data_block(&inode, file->offset, buf, len,
+	retval = read_data_block(&inode, file->offset, buf, len,
 			file->inode->sb->dev);
 
-	file->offset += count;
+	if (retval > 0)
+		file->offset += retval;
 
-	return count;
+	return retval;
+}
+
+static size_t embed_write(struct file *file, void *buf, size_t len)
+{
+	int retval;
+	size_t size;
+	struct embed_inode inode;
+
+	inode.addr = file->inode->addr;
+	if (read_inode(&inode, file->inode->sb->dev))
+		return 0;
+
+	size = inode.size;
+	inode.size = file->offset;
+	retval = write_data_block(&inode, buf, len, file->inode->sb->dev);
+	inode.size = size;
+
+	if (retval > 0)
+		file->offset += retval;
+
+	if (file->offset > inode.size)
+		inode.size = file->offset;
+
+	return retval;
 }
 
 static int embed_open(struct inode *inode, struct file *file)
 {
 	file->offset = 0;
-	file->flags = inode->mode;
 	file->count = 1;
 	file->op = inode->fop;
 	INIT_LOCK(file->lock);
 	file->inode = inode;
+
+	return 0;
+}
+
+static int embed_seek(struct file *file, unsigned int offset, int whence)
+{
+	switch (whence) {
+	case SEEK_SET:
+		file->offset = offset;
+		break;
+	case SEEK_CUR:
+		if (file->offset + offset < file->offset)
+			return -ERR_RANGE;
+
+		file->offset += offset;
+		break;
+	case SEEK_END:
+		if ((file->inode->size - offset) < 0)
+			return -ERR_RANGE;
+
+		file->offset = file->inode->size - offset;
+		break;
+	}
 
 	return 0;
 }
@@ -598,25 +647,33 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 	return 0;
 }
 
-/*
-static size_t embed_write(struct file *file, void *buf, size_t len)
+static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 {
-}
+	struct embed_inode embed_inode;
+	const char *s;
 
-static int embed_close(struct file *file)
-static int embed_seek(struct file *file, unsigned int offset, int whence)
-*/
+	s = lookup(&embed_inode, pathname, inode->sb->dev);
+
+	if (!*s || toknum(s, "/"))
+		return -ERR_DUP;
+
+	if (create_file(s, mode, &embed_inode, inode->sb->dev))
+		return -ERR_CREATE;
+
+	return embed_lookup(inode, pathname);
+}
 
 static struct inode_operations iops = {
 	.lookup = embed_lookup,
+	.create = embed_create,
 };
 
 static struct file_operations fops = {
-	.open = embed_open,
-	.read = embed_read,
-	//.write = embed_write,
-	//.close = embed_close,
-	//.seek = embed_seek,
+	.open  = embed_open,
+	.read  = embed_read,
+	.write = embed_write,
+	.close = NULL,
+	.seek  = embed_seek,
 };
 
 static void embed_read_inode(struct inode *inode)
@@ -716,12 +773,10 @@ static int build_file_system(const struct device *dev)
 		return -ERR_UNKNOWN;
 	}
 
-	struct embed_inode test_inode;
-	test_inode.addr = 0;
-	read_inode(&test_inode, dev);
-
-	/* check if the same filename exists */
-	create_file("dev", FT_DIR, &test_inode, dev);
+	struct embed_inode root_inode;
+	root_inode.addr = 0;
+	read_inode(&root_inode, dev);
+	create_file("dev", FT_DIR, &root_inode, dev);
 
 	printk("built embed file system:\n"
 			"block_size %d\n"

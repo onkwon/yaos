@@ -80,6 +80,10 @@ static void unlink_task(struct task *task)
 {
 	set_task_state(task, TASK_ZOMBIE);
 
+	unsigned int irqflag;
+	irq_save(irqflag);
+	local_irq_disable();
+
 	/* Clean its relationship. Hand children to grand parents
 	 * if it has its own children */
 	list_del(&task->children);
@@ -88,6 +92,8 @@ static void unlink_task(struct task *task)
 	/* add it to zombie list */
 	task->addr = zombie;
 	zombie = (unsigned int *)task;
+
+	irq_restore(irqflag);
 
 	/* wake init() up to do the rest of job destroying a task */
 	if (get_task_state(&init) != TASK_RUNNING) {

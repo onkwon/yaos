@@ -101,6 +101,7 @@ static int __init console_init()
 int __init main()
 {
 	/* keep the calling order below because of dependencies. */
+	stdin = stdout = stderr = 0;
 
 	sys_init();
 	mm_init();

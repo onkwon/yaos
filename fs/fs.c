@@ -108,7 +108,8 @@ int mount(const struct device *dev, const char *mnt_point, const char *fs_type)
 	sb->pathname[sb->pathname_len] = '\0';
 
 	INIT_LOCK(sb->lock);
-	sb->dev = dev;
+	sb->dev  = dev;
+	sb->type = fs;
 
 	list_add(&sb->list, &sblist);
 

@@ -6,7 +6,7 @@ static void test_led()
 	unsigned int v = 0;
 	int fd;
 
-	fd = open("/dev/led", 0);
+	fd = open("/dev/led", O_RDWR);
 
 	while (1) {
 		write(fd, &v, 1);

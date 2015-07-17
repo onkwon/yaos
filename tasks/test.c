@@ -7,6 +7,14 @@ static void test_task()
 	unsigned int th, bh;
 	unsigned int v;
 
+	printf("start write test\n");
+	int fd;
+	char *buf = "abcdefABCDEF";
+	fd = open("/test_write", O_CREATE | O_RDWR);
+	write(fd, buf, 12);
+	close(fd);
+	printf("end write test\n");
+
 	printf("test()\n");
 	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
 
