@@ -58,18 +58,20 @@
 #define INIT_PSR	0x01000000
 
 #define __save_curr_context(regs) do {					\
-	unsigned int __pc  = __getpc();					\
-	__nop(); /* align to word */					\
-	regs[INDEX_PC]  = __pc;						\
-	regs[INDEX_PSR] = INIT_PSR;					\
-	__asm__ __volatile__("mov	%0, r4"				\
-			: "=&r"(regs[0]) :: "memory");			\
 	__asm__ __volatile__(						\
-			"mov	r4, %0			\n\t"		\
+			"str	r4, [%0]		\n\t"		\
+			"ldr	r4, =1f			\n\t"		\
+			"str	r4, [%1]		\n\t"		\
+			"mov	r4, #0x01000000		\n\t"		\
+			"str	r4, [%2]		\n\t"		\
+			"mov	r4, %3			\n\t"		\
 			"stmia	r4!, {r5-r11}		\n\t"		\
 			"stmia	r4!, {r0-r3}		\n\t"		\
 			"stmia	r4!, {r12,lr}		\n\t"		\
-			:: "r"(regs + 1) : "memory");					\
+			"1:				\n\t"		\
+			:: "r"(regs+0), "r"(regs+INDEX_PC)		\
+			, "r"(regs+INDEX_PSR), "r"(regs+1)		\
+			: "memory", "r4");				\
 } while (0)
 
 #define __set_retval(task, value)					\

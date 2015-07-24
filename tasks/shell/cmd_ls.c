@@ -70,7 +70,7 @@ static int ls(int argc, char **argv)
 	while (read(fd, &fs, size)) {
 		switch (fs_type) {
 		case FS_TYPE_RAMFS:
-			inode = fs.ramfs.inode;
+			inode = (unsigned int)fs.ramfs.inode;
 			type  = fs.ramfs.type;
 			name  = fs.ramfs.name;
 			break;

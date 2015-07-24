@@ -24,10 +24,10 @@
 
 /* GPIO */
 #define SET_PORT_PIN(port, pin, mode) ( \
-		*(volatile unsigned *)(port + (pin / 8 * 4)) = \
-		MASK_RESET(*(volatile unsigned *)(port + (pin / 8 * 4)), \
-			0xf << ((pin % 8) * 4)) \
-		| ((mode) << ((pin % 8) * 4)) \
+		*(volatile unsigned *)((port) + ((pin) / 8 * 4)) = \
+		MASK_RESET(*(volatile unsigned *)((port) + ((pin) / 8 * 4)), \
+			0xf << (((pin) % 8) * 4)) \
+		| ((mode) << (((pin) % 8) * 4)) \
 	)
 #define SET_PORT_CLOCK(on, port)	SET_CLOCK_APB2(on, (port >> 10) & 0xf)
 #define GET_PORT(port)			(*(volatile unsigned *)((port) + 8))
@@ -39,9 +39,9 @@
 #define FLASH_WRITE_START()	(FLASH_CR |=   1 << PG)
 #define FLASH_WRITE_END()	(FLASH_CR &= ~(1 << PG))
 #define FLASH_WRITE_WORD(addr, data)	{ \
-		*(volatile unsigned short int *)addr = (unsigned short int)data; \
+		*(volatile unsigned short int *)(addr) = (unsigned short int)(data); \
 		while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
-		*(volatile unsigned short int *)((unsigned int)addr+2) = (unsigned short int)(data >> 16); \
+		*(volatile unsigned short int *)((unsigned int)(addr)+2) = (unsigned short int)((data) >> 16); \
 		while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
 	}
 #define FLASH_LOCK()	(FLASH_CR |= 0x80)
@@ -154,6 +154,7 @@
 #define SCB_ICSR		(*(volatile unsigned *)(SCB_BASE + 4))
 #define SCB_VTOR		(*(volatile unsigned *)(SCB_BASE + 8))
 #define SCB_AIRCR		(*(volatile unsigned *)(SCB_BASE + 0xc))
+#define SCB_SCR 		(*(volatile unsigned *)(SCB_BASE + 0x10))
 #define SCB_CCR 		(*(volatile unsigned *)(SCB_BASE + 0x14))
 #define SCB_SHPR1		(*(volatile unsigned *)(SCB_BASE + 0x18))
 #define SCB_SHPR2		(*(volatile unsigned *)(SCB_BASE + 0x1c))
@@ -224,5 +225,10 @@
 #define DAC_BASE		(0x40007400)
 #define DAC_CR			(*(volatile unsigned *)DAC_BASE)
 #define DAC_DHR8R2		(*(volatile unsigned *)(DAC_BASE + 0x1c))
+
+/* POWER */
+#define PWR_BASE		(0x40007000)
+#define PWR_CR			(*(volatile unsigned *)PWR_BASE)
+#define PWR_CSR			(*(volatile unsigned *)(PWR_BASE + 0x04))
 
 #endif /* __STM32_IO_H__ */

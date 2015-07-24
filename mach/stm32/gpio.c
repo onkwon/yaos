@@ -97,6 +97,8 @@ int gpio_init(unsigned int index, unsigned int flags)
 		default:
 			break;
 		}
+
+		LINK_EXTI2NVIC(port, pin);
 	}
 
 	spin_unlock_irqrestore(gpio_init_lock, irqflag);

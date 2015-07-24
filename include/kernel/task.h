@@ -88,7 +88,7 @@ struct task {
 } __attribute__((packed));
 
 #define REGISTER_TASK(f, t, p) \
-	static struct task task_##func \
+	static struct task task_##f \
 	__attribute__((section(".user_task_list"), used)) = { \
 		.state = TASK_ZOMBIE, \
 		.flags = TASK_STATIC | t, \

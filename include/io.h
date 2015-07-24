@@ -27,8 +27,10 @@ int stdin, stdout, stderr;
 
 extern size_t printk(const char *format, ...);
 extern size_t printf(const char *format, ...);
+extern void putc(int c);
 extern void (*putchar)(int c);
 extern int getc();
+extern int (*getchar)();
 extern void puts(const char *s);
 
 #include <kernel/interrupt.h>

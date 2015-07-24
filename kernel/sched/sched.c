@@ -77,11 +77,9 @@ rts_next:
 #endif
 
 	if (!(next = cfs_pick_next(&cfs))) {
-		if (get_task_state(current)) {
-			/* no task to schedule. wake the init task up */
-			set_task_state(&init, TASK_RUNNING);
-			current = &init;
-		}
+		if (get_task_state(current)) /* no task to schedule */
+			current = &init; /* turn to init task */
+
 		goto adjust_vruntime;
 	}
 

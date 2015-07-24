@@ -190,44 +190,42 @@ int clone(unsigned int flags, void *ref)
 	sp   = __getusp();
 	base = (unsigned int)&current->mm.base[HEAP_SIZE / WORD_SIZE];
 	top  = base + USER_STACK_SIZE;
-	size = USER_STACK_SIZE - (sp - base);
-	src  = (unsigned int *)sp;
-	dst  = (unsigned int *)((unsigned int)child->mm.sp - size);
-	p    = regs;
-
-	child->mm.sp = dst; /* update stack pointer */
 
 	if ((flags & TASK_SYSCALL) == TASK_SYSCALL) { /* if handler mode */
 		sp   = __getsp();
 		base = (unsigned int)current->mm.kernel.base;
 		top  = base + STACK_SIZE;
-		size = STACK_SIZE - (sp - base);
-		src  = (unsigned int *)sp;
-		dst  = (unsigned int *)((unsigned int)child->mm.sp - size);
+	}
 
-		child->mm.sp = dst; /* update stack pointer */
+	size = top - sp;
+	src  = (unsigned int *)sp;
+	dst  = (unsigned int *)((unsigned int)child->mm.sp - size);
+	memcpy(dst, src, size);
+
+	child->mm.sp = dst; /* update stack pointer */
+
+	if ((flags & TASK_SYSCALL) == TASK_SYSCALL) {
+		p = regs;
 		set_task_context_hard(child, NULL);
 		memcpy(child->mm.sp, p + NR_CONTEXT_SOFT,
 				NR_CONTEXT_HARD * WORD_SIZE);
+		size += NR_CONTEXT_HARD * WORD_SIZE;
 	}
 
 	set_task_context_soft(child);
 	memcpy(child->mm.sp, regs, NR_CONTEXT_SOFT * WORD_SIZE);
-	memcpy(dst, src, size);
+	size += NR_CONTEXT_SOFT * WORD_SIZE;
 
 	/* without MMU virtualization needs to manipulate stack to rearrange
 	 * the addresses to point out the right ones, not addressing
 	 * the original(its parent) address space. this way doesn't seem
 	 * charming and probably leads problems or bugs in the future. */
 	unsigned int i;
-	for (i = 0; (i < size / WORD_SIZE + NR_CONTEXT) &&
-			((unsigned int)(child->mm.sp+i) < top); i++) {
-		if ((child->mm.sp[i] > base) &&
-				(child->mm.sp[i] < base + STACK_SIZE)) {
-			child->mm.sp[i] =
-				((unsigned int)child->mm.base + USER_SPACE_SIZE)
-				- (top - child->mm.sp[i]) - WORD_SIZE;
-		}
+	unsigned int limit = (unsigned int)child->mm.base + USER_SPACE_SIZE;
+	for (i = 0; (i < size / WORD_SIZE) &&
+			((unsigned int)(child->mm.sp+i) < limit); i++) {
+		if ((child->mm.sp[i] > base) && (child->mm.sp[i] < top))
+			child->mm.sp[i] = limit - (top - child->mm.sp[i]);
 	}
 
 	if ((flags & TASK_SYSCALL) != TASK_SYSCALL)

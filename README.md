@@ -1,6 +1,6 @@
 # YAOS
 
-YAOS is Yet Another Operating System for Internet of Things(IoT) devices, specifically for a single-core SoC without MMU virtualization. It is designed for energy efficiency and hardware independant development.
+YAOS is Yet Another Operating System for Internet of Things(IoT) devices, specifically for a single-core SoC without MMU virtualization. It is designed for energy efficiency and hardware independent development.
 
 ## Contents
 
@@ -47,7 +47,7 @@ YAOS is Yet Another Operating System for Internet of Things(IoT) devices, specif
 * synchronization
 * memory management
 
-System resource is accessed by the system call interface entering privilged mode as a user task runs in user(unpriviliged) mode. Two types of task are handled, normal priority and real time priority tasks. Simplified fair scheduler for normal priority tasks while FIFO scheduler for real time priority tasks. It implements the concept of virtual file system(VFS). The embeded flash rom in SoC is mounted as the root file system(embedfs) while a ramfs is mounted as a devfs for a device node. Page is unit of memory management but alternative memory manager can be used in such a system of memory shortage. Notification can be implemented checking an event on the device node.
+System resource is accessed by the system call interface entering privileged mode as a user task runs in user(unpriviliged) mode. Two types of task are handled, normal priority and real time priority tasks. Simplified fair scheduler for normal priority tasks while FIFO scheduler for real time priority tasks. And the concept of virtual file system(VFS) is implemented. The embedded flash rom in SoC is mounted as the root file system(embedfs) while a ramfs is mounted as a devfs for a device node. Page is unit of memory management but alternative memory manager can be used in such a system of memory shortage. Notification can be implemented checking an event on the device node.
 
 I'm planning to implement network stack, frame buffer and SSL module after some adjustment for stability. And to support as much MCU as possible is a priority. Let me know if any of you are interested in porting to new mcu so that I can give you a hand.
 

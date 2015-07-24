@@ -104,7 +104,7 @@ unsigned int get_stkclk(unsigned int hclk)
 
 #include <kernel/init.h>
 
-static void __init clock_init()
+void clock_init()
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */

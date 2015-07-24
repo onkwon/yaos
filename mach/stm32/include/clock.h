@@ -13,6 +13,8 @@ unsigned int get_pclk2 (unsigned int hclk);
 unsigned int get_adclk (unsigned int pclk2);
 unsigned int get_stkclk(unsigned int hclk);
 
+void clock_init();
+
 /* Systick */
 #define SYSTIMER(on)	/* ON or OFF [| SYSTIMER_INT] */ \
 		STK_CTRL = (STK_CTRL & ~3) | (on)

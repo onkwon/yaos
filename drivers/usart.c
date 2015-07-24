@@ -203,5 +203,7 @@ static void fflush()
 	spin_lock_irqsave(rx_lock, irqflag);
 	fifo_flush(&rxq);
 	spin_unlock_irqrestore(rx_lock, irqflag);
+
+	__usart_fflush();
 }
 */

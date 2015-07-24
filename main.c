@@ -2,31 +2,6 @@
 #include <kernel/page.h>
 #include <kernel/init.h>
 
-static void cleanup()
-{
-	/* Clean up redundant code and data used during initialization */
-	free_bootmem();
-}
-
-/* when no task in runqueue, this one takes place.
- * do some power saving */
-static void idle()
-{
-	cleanup();
-
-	struct task *task;
-
-	while (1) {
-		while (zombie) {
-			task = (struct task *)zombie;
-			zombie = task->addr;
-			destroy(task);
-		}
-
-		yield();
-	}
-}
-
 static void __init sys_init()
 {
 	extern char _init_func_list;
@@ -42,8 +17,7 @@ static void __init load_user_task()
 	struct task *p;
 	unsigned int pri;
 
-	for (p = (struct task *)&_user_task_list;
-			get_task_flags(p) & TASK_STATIC; p++) {
+	for (p = (struct task *)&_user_task_list; *(unsigned int *)p; p++) {
 		if (p->addr == NULL)
 			continue;
 
@@ -64,6 +38,8 @@ static void __init load_user_task()
 
 static int __init make_init_task()
 {
+	extern void idle(); /* becomes init task */
+
 	/* stack must be allocated firstly. and to build root relationship
 	 * properly `current` must be set to `init`. */
 	current = &init;
@@ -100,9 +76,9 @@ static int __init console_init()
 
 int __init main()
 {
-	/* keep the calling order below because of dependencies. */
 	stdin = stdout = stderr = 0;
 
+	/* keep the calling order below because of dependencies. */
 	sys_init();
 	mm_init();
 #ifdef CONFIG_FS
@@ -111,12 +87,12 @@ int __init main()
 	device_init();
 	systick_init();
 	scheduler_init();
+	console_init();
 
 	make_init_task();
 	load_user_task(); /* that are registered statically */
 
 	softirq_init();
-	console_init();
 
 	/* a banner */
 	printk("YAOS %s %s\n", VERSION, MACHINE);

@@ -28,6 +28,11 @@
 	)
 void SET_IRQ(int on, unsigned int irq_nr);
 
+#define LINK_EXTI2NVIC(port, pin)	\
+	(*(volatile unsigned int *)((AFIO_BASE+8) + ((pin)/4*4)) = \
+	 MASK_RESET(*(volatile unsigned int *)((AFIO_BASE+8) + ((pin)/4*4)), \
+		 0xf << ((pin)%4*4)) | (port) << ((pin)%4*4))
+
 #define GET_PC() ({ unsigned int __pc; \
 		__asm__ __volatile__("mov %0, pc" : "=r" (__pc)); \
 		__pc; })

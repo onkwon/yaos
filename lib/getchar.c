@@ -10,3 +10,5 @@ int getc()
 
 	return c;
 }
+
+int (*getchar)() = getc;
