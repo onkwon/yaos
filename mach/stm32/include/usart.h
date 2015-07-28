@@ -36,6 +36,6 @@ int __usart_check_rx(unsigned int channel);
 int __usart_check_tx(unsigned int channel);
 void __usart_tx_irq_raise(unsigned int channel);
 void __usart_tx_irq_reset(unsigned int channel);
-void __usart_fflush(unsigned int channel);
+void __usart_flush(unsigned int channel);
 
 #endif /* __STM32_USART_H__ */

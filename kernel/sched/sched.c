@@ -6,6 +6,9 @@
 #ifdef CONFIG_REALTIME
 #include "rt.h"
 #endif
+#ifdef CONFIG_DEBUG
+#include <foundation.h>
+#endif
 
 static struct scheduler cfs;
 #ifdef CONFIG_REALTIME
@@ -19,11 +22,11 @@ static inline void runqueue_add_core(struct task *new)
 	if ((new->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
 			(new->mm.kernel.base[0] != STACK_SENTINEL))
 	{
-		printk("stack overflow\n");
+		debug(("stack overflow\n"));
 		return;
 	}
 #endif
-	if (is_realtime(new)) {
+	if (is_task_realtime(new)) {
 #ifdef CONFIG_REALTIME
 		rts_rq_add(&rts, new);
 #endif
@@ -51,10 +54,12 @@ void schedule_core()
 		/* rq_add() and rq_del() of real time scheduler must keep
 		 * the highest priority amongst tasks in `pri` variable.
 		 * `pri` has the least priority when no task in runqueue. */
-		if ( !is_realtime(current) ||
+		if ( !is_task_realtime(current) ||
 				(rts.pri <= get_task_pri(current)) ) {
 rts_next:
-			next = rts_pick_next(&rts);
+			if ((next = rts_pick_next(&rts)) == NULL)
+				goto rts_out;
+
 			runqueue_add_core(current);
 			current = next;
 			rts_rq_del(&rts, next);
@@ -71,6 +76,7 @@ rts_next:
 		else if (rts.nr_running > 1)
 			goto rts_next;
 
+rts_out:
 		/* Now it's time for CFS */
 		rts.nr_running = 0;
 	}
@@ -83,13 +89,12 @@ rts_next:
 		goto adjust_vruntime;
 	}
 
-	/* add `current` back into runqueue after picking the next */
+	/* add `current` back to runqueue after picking the next */
+	/* and remove the next task from runqueue */
 	cfs_rq_add(&cfs, current);
+	cfs_rq_del(&cfs, next);
 
 	current = next;
-
-	/* remove the next task from runqueue */
-	cfs_rq_del(&cfs, next);
 
 adjust_vruntime:
 	/* Update newly selected task's start time because it is stale
@@ -110,7 +115,7 @@ void inline update_curr()
 	current->se.sum_exec_runtime += delta_exec;
 	current->se.exec_start = clock;
 
-	if (is_realtime(current))
+	if (is_task_realtime(current))
 		return;
 
 	struct task *task;
@@ -136,28 +141,29 @@ void inline runqueue_add(struct task *new)
 	irq_restore(irqflag);
 }
 
+void inline runqueue_del(struct task *task)
+{
+	unsigned int irqflag;
+	irq_save(irqflag);
+	local_irq_disable();
+
+	if (is_task_realtime(task)) {
+#ifdef CONFIG_REALTIME
+		rts_rq_del(&rts, task);
+#endif
+	} else
+		cfs_rq_del(&cfs, task);
+
+	irq_restore(irqflag);
+}
+
 #include <kernel/init.h>
 
 void __init scheduler_init()
 {
-	extern struct list cfs_rq;
-
-	cfs.vruntime_base = 0;
-	cfs.nr_running    = 0;
-	cfs.rq            = (void *)&cfs_rq;
-
+	cfs_init(&cfs);
 #ifdef CONFIG_REALTIME
-	extern struct list rts_rq[RT_LEAST_PRIORITY+1];
-
-	rts.nr_running = 0;
-	rts.pri        = RT_LEAST_PRIORITY;
-	rts.rq         = (void *)rts_rq;
-
-	int i;
-
-	for (i = 0; i <= RT_LEAST_PRIORITY; i++) {
-		list_link_init(&rts_rq[i]);
-	}
+	rts_init(&rts);
 #endif
 
 	schedule_on();
@@ -182,7 +188,7 @@ void print_rq()
 	while (rq != cfs.rq) {
 		p = get_container_of(rq, struct task, rq);
 
-		printf("[%08x] state = %x, type = %x, pri = %x, vruntime = %d"
+		printf("[%08x] state = %x, type = %x, pri = %x, vruntime = %d "
 				"exec_runtime = %d (%d sec)\n",
 				p->addr, p->state, p->flags, p->pri,
 				(unsigned)p->se.vruntime,

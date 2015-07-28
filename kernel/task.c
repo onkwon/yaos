@@ -54,7 +54,9 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 	list_link_init(&task->children);
 	list_add(&task->sibling, &current->children);
 	list_link_init(&task->rq);
+
 	INIT_SCHED_ENTITY(task->se);
+	task->se.vruntime = current->se.vruntime;
 }
 
 struct task *make(unsigned int flags, void *addr, void *ref)
@@ -78,6 +80,12 @@ unsigned int *zombie = NULL;
 
 static void unlink_task(struct task *task)
 {
+	if (task == &init)
+		return;
+
+	if ((get_task_state(task) == TASK_RUNNING) && (current != task))
+		runqueue_del(task);
+
 	set_task_state(task, TASK_ZOMBIE);
 
 	unsigned int irqflag;
@@ -96,10 +104,15 @@ static void unlink_task(struct task *task)
 	irq_restore(irqflag);
 
 	/* wake init() up to do the rest of job destroying a task */
-	if (get_task_state(&init) != TASK_RUNNING) {
-		set_task_state(&init, TASK_RUNNING);
-		runqueue_add(&init);
-	}
+	if (current == &init)
+		return;
+
+	if (get_task_state(&init) == TASK_RUNNING)
+		runqueue_del(&init);
+
+	/* set_task_pri(&init, get_task_pri(current)); */
+	set_task_state(&init, TASK_RUNNING);
+	runqueue_add(&init);
 
 	sys_schedule();
 }
@@ -167,12 +180,15 @@ int clone(unsigned int flags, void *ref)
 	unsigned int regs[NR_CONTEXT], *p;
 
 	p = regs;
-	__save_curr_context(p); /* child starts to run from here */
+	__save_curr_context(p); /* child starts to run from here unless
+				   it is a user task. A user task starts
+				   from the next instruction of `fork()`
+				   in the user context */
 
-	if (get_task_flags(current) & TASK_CLONED)
+	if (get_task_flags(current) & TASK_CLONED) {
+		set_task_flags(current, get_task_flags(current) & ~TASK_CLONED);
 		return (int)current; /* tid */
-
-	flags |= TASK_CLONED;
+	}
 
 	if ((child = kmalloc(sizeof(struct task))) == NULL)
 		return -ERR_ALLOC;
@@ -187,12 +203,12 @@ int clone(unsigned int flags, void *ref)
 	unsigned int *src, *dst;
 	unsigned int sp;
 
-	sp   = __getusp();
+	sp   = __get_usp();
 	base = (unsigned int)&current->mm.base[HEAP_SIZE / WORD_SIZE];
 	top  = base + USER_STACK_SIZE;
 
 	if ((flags & TASK_SYSCALL) == TASK_SYSCALL) { /* if handler mode */
-		sp   = __getsp();
+		sp   = __get_sp();
 		base = (unsigned int)current->mm.kernel.base;
 		top  = base + STACK_SIZE;
 	}
@@ -228,7 +244,9 @@ int clone(unsigned int flags, void *ref)
 			child->mm.sp[i] = limit - (top - child->mm.sp[i]);
 	}
 
-	if ((flags & TASK_SYSCALL) != TASK_SYSCALL)
+	if ((flags & TASK_SYSCALL) == TASK_SYSCALL)
+		flags |= TASK_CLONED;
+	else
 		__set_retval(child, (int)child);
 
 	set_task_dressed(child, flags, NULL);
@@ -237,6 +255,17 @@ int clone(unsigned int flags, void *ref)
 	runqueue_add(child);
 
 	return 0;
+}
+
+void sum_curr_stat(struct task *to)
+{
+	unsigned int irqflag;
+	irq_save(irqflag);
+	local_irq_disable();
+
+	to->se.sum_exec_runtime += current->se.sum_exec_runtime;
+
+	irq_restore(irqflag);
 }
 
 int sys_fork()

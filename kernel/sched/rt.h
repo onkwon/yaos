@@ -8,4 +8,6 @@ inline void rts_rq_del(struct scheduler *q, struct task *p);
 
 inline struct task *rts_pick_next(struct scheduler *q);
 
+void rts_init(struct scheduler *rts);
+
 #endif /* __RT_H__ */

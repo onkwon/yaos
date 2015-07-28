@@ -1,10 +1,14 @@
 #include "rt.h"
 #include <kernel/task.h>
 
-struct list rts_rq[RT_LEAST_PRIORITY+1];
+static struct list rts_rq[RT_LEAST_PRIORITY+1];
 
 struct task *rts_pick_next(struct scheduler *q)
 {
+	if ((q->pri > RT_LEAST_PRIORITY) ||
+			(&rts_rq[q->pri] == rts_rq[q->pri].next))
+		return NULL;
+
 	return get_container_of(rts_rq[q->pri].next, struct task, rq);
 }
 
@@ -42,4 +46,16 @@ void rts_rq_del(struct scheduler *q, struct task *p)
 	}
 
 	list_del(&p->rq);
+}
+
+void rts_init(struct scheduler *rts)
+{
+	unsigned int i;
+
+	rts->nr_running = 0;
+	rts->pri        = RT_LEAST_PRIORITY;
+	rts->rq         = (void *)rts_rq;
+
+	for (i = 0; i <= RT_LEAST_PRIORITY; i++)
+		list_link_init(&rts_rq[i]);
 }

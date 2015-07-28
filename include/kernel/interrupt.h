@@ -21,7 +21,7 @@
 
 #define register_isr(nirq, func)	__register_isr(nirq, func)
 
-#define set_user_sp(sp)			__setusp(sp)
-#define set_kernel_sp(sp)		__setksp(sp)
+#define set_user_sp(sp)			__set_usp(sp)
+#define set_kernel_sp(sp)		__set_ksp(sp)
 
 #endif /* __INTERRUPT_H__ */

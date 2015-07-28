@@ -2,17 +2,17 @@
 #define __ERROR_H__
 
 /* return error code */
-#define ERR_UNDEF		1
-#define ERR_ALLOC		2
-#define ERR_RANGE		3
-#define ERR_PARAM		4
-#define ERR_PERM		5
-#define ERR_DUP			6
-#define ERR_PATH		7
-#define ERR_ATTR		8
-#define ERR_WRITE		9
-#define ERR_UNKNOWN		10
-#define ERR_CREATE		11
+#define ERR_RETRY		1
+#define ERR_UNDEF		2
+#define ERR_ALLOC		3
+#define ERR_RANGE		4
+#define ERR_PARAM		5
+#define ERR_PERM		6
+#define ERR_DUP			7
+#define ERR_PATH		8
+#define ERR_ATTR		9
+#define ERR_CREATE		10
+#define ERR_UNKNOWN		11
 
 #define freeze()		while (1)
 #define panic()			while (1)
@@ -27,6 +27,8 @@
 	printf("\n"); \
 	putchar = temp; \
 } while (0)
+#else
+#define debug(fmt)
 #endif
 
 #endif /* __ERROR_H__ */

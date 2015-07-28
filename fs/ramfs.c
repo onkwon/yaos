@@ -365,10 +365,8 @@ static void ramfs_read_inode(struct inode *inode)
 
 	inode->mode = ramfs_inode->mode;
 	inode->size = ramfs_inode->size;
-	inode->count = 0;
 	inode->iop = &iops;
 	inode->fop = &fops;
-	INIT_LOCK(inode->lock);
 }
 
 static int ramfs_mount(const struct device *dev)

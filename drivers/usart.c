@@ -10,6 +10,7 @@
 
 static struct fifo rxq[CHANNEL_MAX], txq[CHANNEL_MAX];
 static lock_t rx_lock[CHANNEL_MAX], tx_lock[CHANNEL_MAX];
+static struct waitqueue_head wq[CHANNEL_MAX];
 
 static int usart_close(struct file *file)
 {
@@ -23,16 +24,12 @@ static int usart_close(struct file *file)
 
 		kfree(rxq[CHANNEL(dev->id)].buf);
 		kfree(txq[CHANNEL(dev->id)].buf);
-
-		dev->op->read = NULL;
-		dev->op->write = NULL;
-		dev->op->close = NULL;
 	}
 
 	return 0;
 }
 
-static size_t usart_read(struct file *file, void *buf, size_t len)
+static size_t usart_read_core(struct file *file, void *buf, size_t len)
 {
 	int data;
 	char *c = (char *)buf;
@@ -49,6 +46,51 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		*c = data & 0xff;
 
 	return 1;
+}
+
+static size_t usart_read(struct file *file, void *buf, size_t len)
+{
+	if (file->flags & O_NONBLOCK)
+		return usart_read_core(file, buf, len);
+
+	struct task *parent;
+	size_t retval, slice;
+	int tid;
+
+	parent = current;
+	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+
+	if (tid > 0) { /* child turning to kernel task,
+			  nomore in handler mode */
+		for (retval = 0; retval < len &&
+				file->offset < file->inode->size;) {
+			if ((slice = usart_read_core(file, buf + retval,
+							len - retval)) <= 0) {
+				slice = 0;
+				wq_wait(&wq[CHANNEL(file->inode->dev)]);
+			}
+			retval += slice;
+		}
+		__set_retval(parent, retval);
+
+		sum_curr_stat(parent);
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+
+		sys_kill((unsigned int)current);
+
+		freeze(); /* never reaches here */
+	} else if (tid == 0) { /* parent */
+		sys_yield(); /* it goes sleep exiting from system call
+				to wait for its child's job done
+				that returns the result. */
+		retval = 0;
+	} else { /* error */
+		retval = 0;
+		/* use errno */
+	}
+
+	return retval;
 }
 
 static size_t usart_write_int(struct file *file, void *buf, size_t len)
@@ -69,7 +111,7 @@ static size_t usart_write_int(struct file *file, void *buf, size_t len)
 	return 1;
 }
 
-static size_t usart_write_polling(struct file *file, void *buf, size_t len)
+static size_t usart_write_polling_core(struct file *file, void *buf, size_t len)
 {
 	char c = *(char *)buf;
 	unsigned int irqflag;
@@ -79,6 +121,45 @@ static size_t usart_write_polling(struct file *file, void *buf, size_t len)
 	spin_unlock_irqrestore(tx_lock[CHANNEL(file->inode->dev)], irqflag);
 
 	return 1;
+}
+
+static size_t usart_write_polling(struct file *file, void *buf, size_t len)
+{
+	return usart_write_polling_core(file, buf, len);
+
+	/* FOR TEST */
+	struct task *parent;
+	size_t retval;
+	int tid;
+
+	parent = current;
+	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+
+	if (tid > 0) { /* child turning to kernel task,
+			  nomore in handler mode */
+		retval = usart_write_polling_core(file, buf, len);
+
+		__set_retval(parent, retval);
+		sum_curr_stat(parent);
+
+		if (get_task_state(parent)) {
+			set_task_state(parent, TASK_RUNNING);
+			runqueue_add(parent);
+		}
+
+		sys_kill((unsigned int)current);
+		freeze(); /* never reaches here */
+	} else if (tid == 0) { /* parent */
+		sys_yield(); /* it goes sleep exiting from system call
+				to wait for its child's job done
+				that returns the result. */
+		retval = 0;
+	} else { /* error */
+		retval = 0;
+		/* use errno */
+	}
+
+	return retval;
 }
 
 static void isr_usart()
@@ -99,6 +180,8 @@ static void isr_usart()
 		if (c == -1) {
 			/* overflow */
 		}
+
+		wq_wake(&wq[channel], WQ_ALL);
 	}
 
 	if (__usart_check_tx(channel)) {
@@ -157,11 +240,15 @@ static int usart_open(struct inode *inode, struct file *file)
 		fifo_init(&txq[CHANNEL(dev->id)], buf, BUF_SIZE);
 		INIT_LOCK(tx_lock[CHANNEL(dev->id)]);
 
+		WQ_INIT(wq[CHANNEL(dev->id)]);
+
 		register_isr(nr_irq, isr_usart);
 	}
 
 	if (file->flags & O_NONBLOCK)
 		file->op->write = usart_write_polling;
+	else
+		file->op->write = usart_write_int;
 
 out:
 	spin_unlock(dev->lock.count);
@@ -196,7 +283,7 @@ static int kbhit()
 	return (rxq.front != rxq.rear);
 }
 
-static void fflush()
+static void flush()
 {
 	unsigned int irqflag;
 
@@ -204,6 +291,6 @@ static void fflush()
 	fifo_flush(&rxq);
 	spin_unlock_irqrestore(rx_lock, irqflag);
 
-	__usart_fflush();
+	__usart_flush();
 }
 */

@@ -8,11 +8,11 @@ struct waitqueue_head {
 	struct list list;
 };
 
-#define DEFINE_WAIT_HEAD(name) \
-	struct waitqueue_head name = { \
-		.lock = UNLOCKED, \
-		.list = INIT_LIST_HEAD(name.list), \
-	}
+#define INIT_WAIT_HEAD(name)	{ UNLOCKED, INIT_LIST_HEAD((name).list) }
+#define DEFINE_WAIT_HEAD(name)	\
+	struct waitqueue_head name = INIT_WAIT_HEAD(name)
+#define WQ_INIT(name)		\
+	name = (struct waitqueue_head)INIT_WAIT_HEAD(name)
 
 struct waitqueue {
 	struct task *task;
@@ -28,7 +28,7 @@ struct waitqueue {
 		.link = INIT_LIST_HEAD(name.link), \
 	}
 
-extern inline void wq_wait(struct waitqueue_head *q, struct waitqueue *wait);
-extern inline void wq_wake(struct waitqueue_head *head, int nr_task);
+extern inline void wq_wait(struct waitqueue_head *q);
+extern inline void wq_wake(struct waitqueue_head *q, int nr_task);
 
 #endif /* __WAITQUEUE_H__ */

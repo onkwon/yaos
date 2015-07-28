@@ -36,8 +36,10 @@ void idle()
 			disp_sysinfo();
 #endif
 			/* pre-dos(); */
-			enter_stop_mode(); /* three modes available:
-					      sleep, stop, and standby */
+			/* set a timer here to enter stop mode saving more
+			 * power when sleeping longer
+			 * add_timer(timeout, enter_stop_mode); */
+			enter_sleep_mode();
 			/* post-dos(); */
 		}
 

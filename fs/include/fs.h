@@ -62,6 +62,8 @@ struct inode {
 	struct superblock *sb;
 
 	lock_t lock;
+
+	struct list list;
 }__attribute__((packed));
 
 struct inode_operations {
@@ -110,6 +112,9 @@ struct file_operations {
 unsigned int mkfile(struct file *file);
 void remove_file(struct file *file);
 struct file *getfile(int fd);
+
+struct inode *iget(struct superblock *sb, unsigned int id);
+void iput(struct inode *inode);
 
 int mount(const struct device *dev, const char *mnt_point, const char *fs_type);
 struct superblock *search_super(const char *pathname);

@@ -2,45 +2,81 @@
 #include <kernel/device.h>
 #include <kernel/page.h>
 #include <error.h>
+#include <stdlib.h>
 
 int sys_open(char *filename, int mode)
 {
 	struct superblock *sb;
-	struct inode *inode;
+	struct inode *inode, *new;
 	struct file file;
+	struct file_operations *ops;
+	int err;
 
 	if ((sb = search_super(filename)) == NULL)
 		return -ERR_PATH;
 
-	if ((inode = kmalloc(sizeof(struct inode))) == NULL)
+	if ((new = kmalloc(sizeof(struct inode))) == NULL)
 		return -ERR_ALLOC;
 
-	inode->addr = sb->root_inode;
-	inode->sb = sb;
-	sb->op->read_inode(inode);
+	new->addr = sb->root_inode;
+	new->sb = sb;
+	sb->op->read_inode(new);
 
-	if (inode->iop->lookup(inode, filename + sb->pathname_len)) {
-		if (!(mode & O_CREATE))
-			return -ERR_PATH;
+	if (new->iop == NULL) /* probably due to failuer of memory allocation */
+		return -ERR_RETRY;
 
-		if (!inode->iop->create || inode->iop->create(inode,
-					filename + sb->pathname_len, FT_FILE))
-			return -ERR_CREATE;
+	if ((ops = kmalloc(sizeof(struct file_operations))) == NULL) {
+		err = -ERR_ALLOC;
+		goto outerr;
 	}
 
+	if (new->iop->lookup(new, filename + sb->pathname_len)) {
+		if (!(mode & O_CREATE)) {
+			err = -ERR_PATH;
+			goto outerr;
+		}
+
+		if (!new->iop->create || new->iop->create(new,
+					filename + sb->pathname_len, FT_FILE)) {
+			err = -ERR_CREATE;
+			goto outerr;
+		}
+	}
+
+	if ((inode = iget(new->sb, new->addr)) == NULL) {
+		iput(new);
+		inode = new;
+		inode->count = 0;
+		INIT_LOCK(inode->lock);
+	} else {
+		kfree(new);
+	}
+
+	spin_lock(inode->lock);
+	inode->count++;
+	spin_unlock(inode->lock);
 	file.flags = mode;
 	inode->fop->open(inode, &file);
 
+	memcpy(ops, file.op, sizeof(struct file_operations));
+	file.op = ops;
+
 	if (GET_FILE_TYPE(inode->mode) == FT_DEV) {
-		file.op = getdev(inode->dev)->op;
+		memcpy(file.op, getdev(inode->dev)->op,
+				sizeof(struct file_operations));
+
 		if (file.op->open)
 			file.op->open(inode, &file);
 	}
 
 	return mkfile(&file);
+
+outerr:
+	kfree(new);
+	return err;
 }
 
-int sys_read(int fd, void *buf, size_t size)
+int sys_read(int fd, void *buf, size_t len)
 {
 	struct file *file = getfile(fd);
 
@@ -49,38 +85,10 @@ int sys_read(int fd, void *buf, size_t size)
 	if (!(file->flags & O_RDONLY))
 		return -ERR_PERM;
 
-	struct task *parent;
-	size_t len;
-	int tid;
-
-	parent = current;
-
-	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
-
-	if (tid > 0) { /* child turning to kernel task,
-			  nomore in handler mode */
-		len = file->op->read(file, buf, size);
-		__set_retval(parent, len);
-
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
-
-		sys_kill((unsigned int)current);
-
-		freeze(); /* never reaches here */
-	} else if (tid == 0) { /* parent */
-		sys_yield(); /* it goes sleep exiting from system call
-				to wait for its child's job done
-				that returns the result. */
-	} else { /* error */
-		len = 0;
-		/* use errno */
-	}
-
-	return len;
+	return file->op->read(file, buf, len);
 }
 
-int sys_write(int fd, void *buf, size_t size)
+int sys_write(int fd, void *buf, size_t len)
 {
 	struct file *file = getfile(fd);
 
@@ -89,7 +97,7 @@ int sys_write(int fd, void *buf, size_t size)
 	if (!(file->flags & O_WRONLY))
 		return -ERR_PERM;
 
-	return file->op->write(file, buf, size);
+	return file->op->write(file, buf, len);
 }
 
 int sys_close(int fd)

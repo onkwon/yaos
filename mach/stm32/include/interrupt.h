@@ -57,16 +57,23 @@ void SET_IRQ(int on, unsigned int irq_nr);
 #define GET_CON() ({ unsigned int __control; \
 		__asm__ __volatile__("mrs %0, control" : "=r" (__control)); \
 		__control; })
+#define SET_PC(addr)	{ \
+	__asm__ __volatile("push {%0}	\n\t" \
+			"pop {pc}	\n\t" \
+			:: "r"(addr) : "memory"); \
+}
 #define SET_SP(sp) __asm__ __volatile__("mov sp, %0" :: "r"(sp) : "memory")
 #define SET_KSP(sp) __asm__ __volatile__("msr msp, %0" :: "r"(sp) : "memory")
 #define SET_USP(sp) __asm__ __volatile__("msr psp, %0" :: "r"(sp) : "memory")
-#define __setusp(sp)		SET_USP(sp)
-#define __setksp(sp)		SET_KSP(sp)
+#define __set_usp(sp)		SET_USP(sp)
+#define __set_ksp(sp)		SET_KSP(sp)
 #define __get_ret_addr()	GET_LR()
-#define __getpc()		GET_PC()
-#define __getusp()		GET_USP()
-#define __getsp()		GET_SP()
-#define __setsp(sp)		SET_SP(sp)
+#define __get_pc()		GET_PC()
+#define __get_usp()		GET_USP()
+#define __get_sp()		GET_SP()
+#define __set_sp(sp)		SET_SP(sp)
+#define __get_psr()		GET_PSR()
+#define __set_pc(addr)		SET_PC(addr)
 
 #define __nop()			__asm__ __volatile__("nop" ::: "memory")
 

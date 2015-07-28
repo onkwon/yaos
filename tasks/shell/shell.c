@@ -6,16 +6,19 @@
 #define MAXLEN		128
 #define MAXARG		10
 
-static unsigned int getline(char *buf, int maxlen)
+static unsigned int getline(int fd, char *buf, int maxlen)
 {
 	char c;
 	int i = 0;
 
-	while ((c = getc()) != '\r') {
+	do {
+		read(fd, &c, 1);
+
 		switch (c) {
 		case (char)-1: /* no input */
 		case 0x1b: /* extended ascii code */
 		case '\t':
+		case '\r':
 			break;
 		case '\b':
 			if(i){
@@ -30,7 +33,7 @@ static unsigned int getline(char *buf, int maxlen)
 			}
 			break;
 		}
-	}
+	} while (c != '\r');
 
 	buf[i] = '\0';
 	putchar('\n');
@@ -53,39 +56,42 @@ static int getcmd(char *s, char **argv)
 }
 
 #include <kernel/task.h>
+#include <kernel/device.h>
 
 void shell()
 {
-	int argc;
-	char **argv = (char **)malloc(sizeof(char *) * MAXARG);
+	int argc, fd, retval;
+	char **argv, buf[MAXLEN];
 
-	char buf[MAXLEN];
-	int exit_code = 0;
+	argv   = (char **)malloc(sizeof(char *) * MAXARG);
+	fd     = open(DEVFS_ROOT CONSOLE, O_RDONLY);
+	retval = 0;
 
-	puts("Type `help` for help on commands.\r\n");
+	puts("Type `help` for help on commands.\n");
 
 	do {
 		puts("> ");
-		if (getline(buf, MAXLEN)) {
+		if (getline(fd, buf, MAXLEN)) {
 			/* add history functionality */
 			if (!(argc = getcmd(buf, argv))) continue;
 
 			extern char _shell_cmdlist;
 			struct shell_cmd *cmd = (struct shell_cmd *)&_shell_cmdlist;
 
-			for (exit_code = 0; cmd->name; cmd++) {
+			for (retval = 0; cmd->name; cmd++) {
 				if (!strncmp(cmd->name, argv[0], MAXLEN)) {
-					if ((exit_code = cmd->run(argc, argv))) {
+					if ((retval = cmd->run(argc, argv))) {
 						printf("usage: %s\n", cmd->usage);
 					}
 					break;
 				}
 			}
 
-                        if(!cmd->name) puts("unknown command\r\n");
+                        if(!cmd->name) puts("unknown command\n");
 		}
-	} while(exit_code != SHELL_EXIT);
+	} while(retval != SHELL_EXIT);
 
+	close(fd);
 	free(argv);
 }
 REGISTER_TASK(shell, 0, DEFAULT_PRIORITY);

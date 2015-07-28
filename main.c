@@ -26,7 +26,7 @@ static void __init load_user_task()
 			continue;
 
 		pri = get_task_pri(p);
-		set_task_dressed(p, TASK_STATIC | STACK_SHARED, p->addr);
+		set_task_dressed(p, p->flags | STACK_SHARED, p->addr);
 		set_task_pri(p, pri);
 		set_task_context(p, wrapper);
 

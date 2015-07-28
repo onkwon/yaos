@@ -209,7 +209,7 @@ void __putc_debug(int c)
 		__usart_putc(0, '\r');
 }
 
-void __usart_fflush(unsigned int channel)
+void __usart_flush(unsigned int channel)
 {
 	/* wait until transmission complete */
 	while (!gbi(*(volatile unsigned int *)conv_channel(channel), 6));

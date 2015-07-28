@@ -22,6 +22,8 @@ void *kmalloc(size_t size)
 	if (page)
 		return page->addr;
 
+	printk("Out of memory\n");
+
 	return NULL;
 }
 

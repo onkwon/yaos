@@ -429,7 +429,10 @@ static int read_inode(struct embed_inode *inode, const struct device *dev)
 	struct embed_superblock sb;
 	unsigned int inode_size = sizeof(struct embed_inode);
 
-	read_superblock(&sb, dev);
+	if (read_superblock(&sb, dev)) {
+		kfree(buf);
+		return -ERR_ALLOC;
+	}
 
 	nblock = inode->addr * inode_size / BLOCK_SIZE;
 	nblock += sb.inode_table;
@@ -480,7 +483,8 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 
 	curr.addr = 0; /* start searching from root */
 	if (read_inode(&curr, dev)) {
-		/* wrong inode */
+		debug(("wrong inode\n"));
+		return -ERR_ALLOC;
 	}
 
 	for (pwd = pathname + i; *pwd; pwd = pathname + i) {
@@ -493,9 +497,8 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		for (offset = 0; offset < curr.size; offset += dir.rec_len) {
 			read_data_block(&curr, offset, &dir, dir_size, dev);
 
-			if ((name = kmalloc(dir.name_len+1)) == NULL) {
-				/* out of memory */
-			}
+			if ((name = kmalloc(dir.name_len+1)) == NULL)
+				return -ERR_ALLOC;
 
 			read_data_block(&curr, offset + dir_size, name,
 					dir.name_len+1, dev);
@@ -554,7 +557,7 @@ static int create_file(const char *filename, mode_t mode,
 	return 0;
 }
 
-static size_t embed_read(struct file *file, void *buf, size_t len)
+static size_t embed_read_core(struct file *file, void *buf, size_t len)
 {
 	int retval;
 	struct embed_inode inode;
@@ -572,7 +575,41 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 	return retval;
 }
 
-static size_t embed_write(struct file *file, void *buf, size_t len)
+static size_t embed_read(struct file *file, void *buf, size_t len)
+{
+	struct task *parent;
+	size_t retval;
+	int tid;
+
+	parent = current;
+	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+
+	if (tid > 0) { /* child turning to kernel task,
+			  nomore in handler mode */
+		retval = embed_read_core(file, buf, len);
+		__set_retval(parent, retval);
+
+		sum_curr_stat(parent);
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+
+		sys_kill((unsigned int)current);
+
+		freeze(); /* never reaches here */
+	} else if (tid == 0) { /* parent */
+		sys_yield(); /* it goes sleep exiting from system call
+				to wait for its child's job done
+				that returns the result. */
+		retval = 0;
+	} else { /* error */
+		retval = 0;
+		/* use errno */
+	}
+
+	return retval;
+}
+
+static size_t embed_write_core(struct file *file, void *buf, size_t len)
 {
 	int retval;
 	size_t size;
@@ -585,13 +622,53 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 	size = inode.size;
 	inode.size = file->offset;
 	retval = write_data_block(&inode, buf, len, file->inode->sb->dev);
-	inode.size = size;
 
 	if (retval > 0)
 		file->offset += retval;
 
 	if (file->offset > inode.size)
-		inode.size = file->offset;
+		debug(("file offset points over size\n"));
+
+	if (inode.size > size) {
+		unsigned int irqflag;
+		spin_lock_irqsave(file->inode->lock, irqflag);
+		file->inode->size = inode.size;
+		spin_unlock_irqrestore(file->inode->lock, irqflag);
+	}
+
+	return retval;
+}
+
+static size_t embed_write(struct file *file, void *buf, size_t len)
+{
+	struct task *parent;
+	size_t retval;
+	int tid;
+
+	parent = current;
+	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+
+	if (tid > 0) { /* child turning to kernel task,
+			  nomore in handler mode */
+		retval = embed_write_core(file, buf, len);
+		__set_retval(parent, retval);
+
+		sum_curr_stat(parent);
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+
+		sys_kill((unsigned int)current);
+
+		freeze(); /* never reaches here */
+	} else if (tid == 0) { /* parent */
+		sys_yield(); /* it goes sleep exiting from system call
+				to wait for its child's job done
+				that returns the result. */
+		retval = 0;
+	} else { /* error */
+		retval = 0;
+		/* use errno */
+	}
 
 	return retval;
 }
@@ -635,7 +712,8 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 	struct embed_inode embed_inode;
 	const char *s;
 
-	s = lookup(&embed_inode, pathname, inode->sb->dev);
+	if ((int)(s = lookup(&embed_inode, pathname, inode->sb->dev)) < 0)
+		return (int)s;
 
 	if (*s)
 		return -ERR_PATH;
@@ -652,7 +730,8 @@ static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 	struct embed_inode embed_inode;
 	const char *s;
 
-	s = lookup(&embed_inode, pathname, inode->sb->dev);
+	if ((int)(s = lookup(&embed_inode, pathname, inode->sb->dev)) < 0)
+		return (int)s;
 
 	if (!*s || toknum(s, "/"))
 		return -ERR_DUP;
@@ -691,10 +770,8 @@ static void embed_read_inode(struct inode *inode)
 
 	inode->mode = embed_inode.mode;
 	inode->size = embed_inode.size;
-	inode->count = 0;
 	inode->iop = &iops;
 	inode->fop = &fops;
-	INIT_LOCK(inode->lock);
 }
 
 static int build_file_system(const struct device *dev)

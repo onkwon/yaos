@@ -21,8 +21,8 @@
 #define SYSCALL_NR			15
 
 int sys_open(char *filename, int mode);
-int sys_read(int fd, void *buf, size_t size);
-int sys_write(int fd, void *buf, size_t size);
+int sys_read(int fd, void *buf, size_t len);
+int sys_write(int fd, void *buf, size_t len);
 int sys_close(int fd);
 
 #ifdef CONFIG_SYSCALL
@@ -33,13 +33,13 @@ static inline int open(char *filename, int mode)
 {
 	return syscall(SYSCALL_OPEN, filename, mode);
 }
-static inline int read(int fd, void *buf, size_t size)
+static inline int read(int fd, void *buf, size_t len)
 {
-	return syscall(SYSCALL_READ, fd, buf, size);
+	return syscall(SYSCALL_READ, fd, buf, len);
 }
-static inline int write(int fd, void *buf, size_t size)
+static inline int write(int fd, void *buf, size_t len)
 {
-	return syscall(SYSCALL_WRITE, fd, buf, size);
+	return syscall(SYSCALL_WRITE, fd, buf, len);
 }
 static inline int close(int fd)
 {
@@ -59,8 +59,8 @@ static inline int fork()
 }
 #else
 #define open(filename, mode)	sys_open(filename, mode)
-#define read(fd, buf, size)	sys_read(fd, buf, size)
-#define write(fd, buf, size)	sys_write(fd, buf, size)
+#define read(fd, buf, len)	sys_read(fd, buf, len)
+#define write(fd, buf, len)	sys_write(fd, buf, len)
 #define close(fd)		sys_close(fd)
 #endif /* CONFIG_SYSCALL */
 

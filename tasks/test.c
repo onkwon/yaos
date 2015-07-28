@@ -70,10 +70,11 @@ static void fork_test()
 		} else if (tid > 0) { /* child */
 			printf("fork_test: child\n");
 			return;
-			kill((unsigned int)current);
 		} else { /* error */
 			printf("fork_test: error\n");
 		}
+
+		sleep(1);
 	}
 }
 REGISTER_TASK(fork_test, 0, DEFAULT_PRIORITY);

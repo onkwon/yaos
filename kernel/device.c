@@ -4,8 +4,8 @@
 #include <hash.h>
 #include <error.h>
 
-#define HASH_SHIFT	4
-#define TABLE_SIZE	(1 << HASH_SHIFT)
+#define HASH_SHIFT			4
+#define TABLE_SIZE			(1 << HASH_SHIFT)
 
 static struct list devtab[TABLE_SIZE];
 static int nr_device;

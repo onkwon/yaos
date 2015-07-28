@@ -23,7 +23,15 @@ unsigned int mkfile(struct file *file)
 void remove_file(struct file *file)
 {
 	list_del(&file->list);
-	kfree(file->inode);
+
+	if (--file->inode->count <= 0) {
+		spin_lock(file->inode->lock);
+		list_del(&file->inode->list);
+		spin_unlock(file->inode->lock);
+		kfree(file->inode);
+	}
+
+	kfree(file->op);
 	kfree(file);
 }
 
@@ -33,7 +41,7 @@ struct file *getfile(int fd)
 	struct list *p;
 	unsigned int *addr = (unsigned int *)fd;
 
-	for (p = fdtable.next; p; p = p->next) {
+	for (p = fdtable.next; p != &fdtable; p = p->next) {
 		file = get_container_of(p, struct file, list);
 
 		if ((unsigned int)file == (unsigned int)addr)
@@ -41,6 +49,55 @@ struct file *getfile(int fd)
 	}
 
 	return NULL;
+}
+
+#include <hash.h>
+
+#define HASH_SHIFT			4
+#define TABLE_SIZE			(1 << HASH_SHIFT)
+
+static struct list itab[TABLE_SIZE];
+static DEFINE_RWLOCK(lock_itab);
+
+struct inode *iget(struct superblock *sb, unsigned int id)
+{
+	struct inode *inode;
+	struct list *head, *curr;
+
+	head = &itab[hash(id, HASH_SHIFT)];
+	curr = head;
+
+	do {
+		read_lock(lock_itab);
+		curr = curr->next;
+		read_unlock(lock_itab);
+
+		if (curr == head) {
+			inode = NULL;
+			break;
+		}
+
+		inode = get_container_of(curr, struct inode, list);
+	} while (inode->addr != id || inode->sb != sb);
+
+	return inode;
+}
+
+void iput(struct inode *inode)
+{
+	struct list *head = &itab[hash(inode->addr, HASH_SHIFT)];
+
+	write_lock(lock_itab);
+	list_add(&inode->list, head);
+	write_unlock(lock_itab);
+}
+
+static void itab_init()
+{
+	unsigned int i;
+	for (i = 0; i < TABLE_SIZE; i++) {
+		list_link_init(&itab[i]);
+	}
 }
 
 static unsigned int fslist = 0;
@@ -145,6 +202,8 @@ const struct device *devfs;
 
 void __init fs_init()
 {
+	itab_init();
+
 	ramfs_register();
 	embedfs_register();
 
