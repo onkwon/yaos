@@ -12,6 +12,5 @@
 extern volatile unsigned int __attribute__((section(".data"))) jiffies;
 
 uint64_t get_jiffies_64();
-extern inline void update_tick(unsigned delta);
 
 #endif /* __JIFFIES_H__ */

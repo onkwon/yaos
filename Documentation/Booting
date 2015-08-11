@@ -1,0 +1,33 @@
+# Booting
+
+	/entry() #interrupt disabled
+	|-- main()
+	|   |-- sys_init()
+	|   |-- mm_init()
+	|   |-- fs_init()
+	|   |-- device_init()
+	|   |-- sysclk_init()
+	|   |-- scheduler_init()
+	|   |-- make_init_task()
+	|   |-- load_user_task()
+	|   |-- softirq_init()
+	|   |-- console_init()
+	|   |-- sei() #interrupt enabled
+	|   `-- idle()
+	|       |-- cleanup()
+	|       `-- sleep
+
+* `entry()` - is very first hardware setup code to boot, usually written in
+assembly.
+
+* `sys_init()` - calls functions registered by `REGISTER_INIT()`, architecture
+specific initialization.
+
+`softirq_init()` must be called after setting init task to keep the task
+relationship properly because `softirqd` is also a child of init task. 내부에서
+커널스레드를(init 자식인) 생성하기 때문에 init 태스크가 형성된 후에 호출되어야
+함.
+
+You can not use system call before init task runs, where interrupt gets enabled.
+So there is restriction using such functions like printf(), triggering system
+call.

@@ -157,6 +157,32 @@ void inline runqueue_del(struct task *task)
 	irq_restore(irqflag);
 }
 
+#ifdef CONFIG_DEBUG
+int sched_overhead;
+#endif
+
+/* A register that is not yet saved in stack gets used by compiler optimization.
+ * If I put all the registers that are not yet saved in clobber list,
+ * it changes code ordering that ruins stack, showing weird behavior.
+ * Make it in an assembly file or do some study. */
+void __attribute__((naked, used, optimize("O0"))) __schedule()
+{
+#ifdef CONFIG_DEBUG
+	sched_overhead = get_systick();
+#endif
+	/* schedule_prepare() saves the current context and
+	 * guarantees not to be preempted while schedule_finish()
+	 * does the opposite. */
+	schedule_prepare();
+	update_curr();
+	schedule_core();
+	schedule_finish();
+#ifdef CONFIG_DEBUG
+	sched_overhead -= get_systick();
+#endif
+	__ret();
+}
+
 #include <kernel/init.h>
 
 void __init scheduler_init()
@@ -166,7 +192,7 @@ void __init scheduler_init()
 	rts_init(&rts);
 #endif
 
-	schedule_on();
+	run_scheduler();
 }
 
 void sys_yield()

@@ -12,6 +12,7 @@ unsigned int get_pclk1 (unsigned int hclk);
 unsigned int get_pclk2 (unsigned int hclk);
 unsigned int get_adclk (unsigned int pclk2);
 unsigned int get_stkclk(unsigned int hclk);
+unsigned int get_sysclk_hz();
 
 void clock_init();
 
@@ -27,11 +28,14 @@ void clock_init();
 
 #define get_systick()		GET_SYSTIMER()
 #define get_systick_max()	(STK_LOAD + 1)
-unsigned int get_systick_hz();
+unsigned int get_sysclk_hz();
 
-void systick_init();
+#define reset_sysclk()		RESET_SYSTIMER()
+#define set_sysclk(v)		SET_SYSTIMER(v)
 
-#define systick_off()		SYSTIMER(OFF)
-#define systick_on()		SYSTIMER(ON | SYSTIMER_INT)
+void sysclk_init();
+
+#define stop_sysclk()		SYSTIMER(OFF)
+#define run_sysclk()		SYSTIMER(ON | SYSTIMER_INT)
 
 #endif /* __STM32_CLOCK_H__ */

@@ -1,0 +1,84 @@
+# Porting
+
+	/entry() #interrupt disabled
+	|-- main()
+	|   |-- sys_init()
+	|   |-- mm_init()
+	|   |-- fs_init()
+	|   |-- device_init()
+	|   |-- sysclk_init()
+	|   |-- scheduler_init()
+	|   |-- make_init_task()
+	|   |-- load_user_task()
+	|   |-- softirq_init()
+	|   |-- console_init()
+	|   |-- sei() #interrupt enabled
+	|   `-- idle()
+	|       |-- cleanup()
+	|       `-- sleep
+
+* `entry()` - is very first hardware setup code to boot, usually written in
+assembly.
+
+* `sys_init()` - calls functions registered by `REGISTER_INIT()`, architecture
+specific initialization.
+
+`softirq_init()` must be called after setting init task to keep the task
+relationship properly because `softirqd` is also a child of init task. 내부에서
+커널스레드를(init 자식인) 생성하기 때문에 init 태스크가 형성된 후에 호출되어야
+함.
+
+1. Change "machine dependant" part in `Makefile`.
+2. Uncomment or comment out lines in `CONFIGURE` file to enable or disable its
+functionalities.
+3. Change `HZ` in `include/foundation.h`
+
+You can not use system call before init task runs, where interrupt gets
+enabled. So there is restriction using such functions like printf(), triggering
+system call.
+
+시스템 콜은 OS에 필수적인 요소라 모듈화하지 않고 빌트인 하는 게 좋을 듯 한데,
+여전히 AVR 포팅을 고려중이라 고민이다. AVR에서도 소프트웨어 인터럽트 트릭을
+사용할 수 있을 것 같지만, 8비트 시스템의 낮은 클럭 주파수에서 시스템 콜을
+호출하는 비용이 만만찮을 것이다. 그렇다고 시스템 콜을 때에 따라 빼버릴 수
+있도록 그대로 모듈로 두기엔 구조적 취약성이 거슬리고.
+
+`INIT_IRQFLAG()` - MCU 마다 다른 레지스터 초기값을 설정하기 위한 매크로
+
+	Initial task register set:
+	 __________
+	| psr      |  |
+	| pc       |  | stack
+	| lr       |  |
+	| r12      |  v
+	| r3       |
+	| r2       |
+	| r1       |
+	| r0       |
+	 ----------
+	| r4 - r11 |
+	 ----------
+
+`atomic_set()` in `asm/lock.h`
+
+## System clock
+
+`get_systick()`
+`get_systick_max()`
+
+## Memory Manager
+
+메모리 관리자를 초기화하기 위해서 아키텍처 단에서 `_ebss`, `_ram_start`,
+`_ram_end` 제공해주어야 함(`yaos.lds`). `PAGE_SHIFT` 디폴트 값이 4KiB이므로
+이것도 아키텍처 단에서 지정해줄 것(`include/asm/mm.h`).
+
+## Task Manager
+
+`set_task_context(struct task *p)`
+`set_task_context_soft(struct task *p)`
+`set_task_context_hard(struct task *p)`
+
+`STACK_SEPARATE` 서로 다른 메모리 공간 사용
+`STACK_SHARE`    커널스택만 공유
+
+~~`set_task_type()` 태스크 타입을 변경하면 태스크 상태는 리셋된다~~

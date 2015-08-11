@@ -21,7 +21,7 @@ static void __init load_user_task()
 		if (p->addr == NULL)
 			continue;
 
-		/* share one kernel stack with all tasks to save memory */
+		/* share the init kernel stack to save memory */
 		if (alloc_mm(p, &init, STACK_SHARED))
 			continue;
 
@@ -85,7 +85,7 @@ int __init main()
 	fs_init();
 #endif
 	device_init();
-	systick_init();
+	sysclk_init();
 	scheduler_init();
 	console_init();
 

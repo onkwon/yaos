@@ -1,0 +1,44 @@
+# Compiling
+
+Put a user task under /tasks directory. Code what you want in general way using
+provided API and any other libraries. And simply register the task by
+`REGISTER_TASK(function, type, priority)`.
+
+It generates a periodic interrupt rated by HZ for the heart rate of system.
+Change HZ as you wish in `include/foundation.h`.
+
+To access system resource, use provided API after checking how synchronization
+and wait queue are handled in the right sections below.
+
+Do not disable interrupt directly but use API.
+
+## CONFIGURE
+
+### `CONFIG_DEBUG`
+
+include debugging information
+
+### `CONFIG_REALTIME`
+
+realtime scheduler. if not realtime scheduler included realtime tasks never
+run.
+
+### `CONFIG_PAGING`
+
+manage memory in unit of page
+
+### `CONFIG_SYSCALL`
+
+activate system call functionality
+
+### `CONFIG_FS`
+
+## include/foundation.h
+
+### HZ
+
+system clock
+
+### CONSOLE
+
+default console device: usart1

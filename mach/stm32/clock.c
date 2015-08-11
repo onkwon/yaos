@@ -102,6 +102,11 @@ unsigned int get_stkclk(unsigned int hclk)
 	return clk;
 }
 
+unsigned int get_sysclk_hz()
+{
+	return get_stkclk(get_hclk(get_sysclk()));
+}
+
 #include <kernel/init.h>
 
 void clock_init()

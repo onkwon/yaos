@@ -1,0 +1,52 @@
+# Conventions
+
+~~데이터 타입 사이즈 정의 및 통일. 기본 시스템 데이터 타입을 long으로 썼는데
+int로 수정해야 할까 싶다. 간혹 64비트 시스템에 int형이 32비트인 경우가 있다지만
+64비트는 고려하지 않은데다, avr의 경우 long이 32비트 int가 16비트인지라
+공통으로 사용하기엔 long보다 int가 더 적절할 지 모르겠다. 사용자 지정 데이터
+타입은 코드 가독성을 망쳐서 피하고 싶고, word 타입을 표준화 해주면 좋을텐데.~~
+
+sizeof(int)를 기본 word 타입으로 결정했다. 위키피디아의 다음 문장이
+결정적이었다:
+
+> The type int should be the integer type that the target processor is most
+> efficient working with.
+
+[http://en.wikipedia.org/wiki/C_data_types](http://en.wikipedia.org/wiki/C_data_types)
+[https://gcc.gnu.org/wiki/avr-gcc](https://gcc.gnu.org/wiki/avr-gcc)
+
+가독성을 위해 사용자 지정 데이터 형 사용을 최대한 삼가했다. 기본 데이터 형
+이외에 일관(호환)성을 유지하기 위해 지정한 데이터 타입은 다음과 같다:
+
+	bool         false or true         - enum
+	refcnt_t     reference count       - unsigned short int
+	mode_t       mode(flags)           - unsigned short int
+	lock_t       lock                  - volatile int
+	size_t       size(len)             - unsigned int
+	offset_t     offset                - unsigned int
+	dev_t        device                - unsigned int
+	uint64_t     64 bit unsigned       - unsigned long long
+
+	struct list  doubly linked list
+	struct fifo  first in first out
+
+	buf_t        buffer cache          - struct list
+	mutex_t      mutual exclusive lock - struct semaphore
+
+`list_add` - new 노드는 ref의 다음 노드가 된다. 즉 `list_add_next`. 그 이외의
+함수는 지원하지 않는다. ref 조작으로 추가적인 함수(`list_add_prev`)를 실현할 수
+있기 때문이다.
+
+~~`slist_del_next` - 단일 링크드 리스트 자료구조는 인자로 넘어 온 노드의 다음
+노드를 삭제하는 함수만 지원한다. 자료구조의 특성상 리스트 순회중에 삽입/삭제가
+이루어지기 때문이다.~~
+
+	용량 확보를 위해 단일 링크드 리스트로 변경 고려:
+	struct device
+	struct active_superblock_list
+
+prefix `__` 는 machine dependant 함수나 변수에 사용. prefix `_` 는 링커
+스크립트 변수에 사용. postfix `_core` 는 bare 함수에 사용.
+
+대문자명 함수는 매크로. 인자를 넘길 때 포인터 대신 변수로 넘겨야 함. 더불어
+`func_init()` 규칙과 반대로 `INIT_FUNC()`처럼 init을 먼저 쓴다.

@@ -1,0 +1,32 @@
+# Interrupt
+
+Both of a kernel task and a user task use user stack, let me call it task stack
+rather than user stack, while interrupt handler uses kernel stack. At the point
+of entering an interrput kernel stack always points its top unless it is not
+nested interrupt.
+
+Each task has one kernel stack and one task stack. Each task's kernel stack
+pointer address the same one memory region at the moment actually because
+allocating kernel stack per each task seemed quite waste of memory. But it can
+easily alloc one for each.
+
+인터럽트는 우선순위에 따라 중첩될 수 있으나 동일한 인터럽트가 실행중인 현재
+인터럽트를 선점할 수는 없다. 스케쥴러는 인터럽트 컨텍스트 내에서 실행될 수
+없다. 스케줄러를 포함한 시스템 콜은 최하위 우선순위를 가진다. 시스템 콜은 다른
+시스템 콜 및 스케줄러를 선점하지 못하고 그 반대도 마찬가지다. 하지만 우선순위가
+높은 인터럽트에 의해 선점될 수 있다. 다만, 스케줄러는 스케줄링 단계에서 로컬
+인터럽트를 비활성화 시키므로 선점되지 않는다.
+
+태스크다마 커널 스택과 태스크 스택 하나씩을 갖는다(메모리 절약을 위해 커널
+스택은 공유될 수 있다). 태스크 문맥 내에서 태스크 스택(psp)을 사용하고,
+핸들러(인터럽트) 문맥에서 커널스택(msp)을 사용한다. 시스템 콜과 문맥전환은
+최하위 우선순위로 일반모드에서만 발생할 수 있다. 따라서 유저 태스크의 인터럽트
+진입점인 시스템 콜과 문맥전환에서는 태스크 스택psp만 고려하면 된다. 인터럽트
+진입 후 스택은 커널스택msp가 사용되고 스택 포인터는 인터럽트 중첩이 아니라면
+항상 top을 가리킨다.
+
+NOTE:
+
+자원배분에 대한 공정성은 스케줄러의 역량에 달려있지만 인터럽트 처리의 경우,
+바쁜 인터럽트 때문에 자원이 계속 인터럽트 처리에 매달릴 수 있다. 해당
+인터럽트에 핸디캡 주는 방법을 찾아볼 것.

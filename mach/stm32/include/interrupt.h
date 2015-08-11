@@ -1,12 +1,14 @@
 #ifndef __STM32_INTERRUPT_H__
 #define __STM32_INTERRUPT_H__
 
-#define __sei()		__asm__ __volatile__("cpsie i" ::: "memory")
-#define __cli()		__asm__ __volatile__("cpsid i" ::: "memory")
+#define NV_TICK			15
 
-#define __dmb()		__asm__ __volatile__("dmb" ::: "memory")
-#define __dsb()		__asm__ __volatile__("dsb" ::: "memory")
-#define __isb()		__asm__ __volatile__("isb" ::: "memory")
+#define __sei()			__asm__ __volatile__("cpsie i" ::: "memory")
+#define __cli()			__asm__ __volatile__("cpsid i" ::: "memory")
+
+#define __dmb()			__asm__ __volatile__("dmb" ::: "memory")
+#define __dsb()			__asm__ __volatile__("dsb" ::: "memory")
+#define __isb()			__asm__ __volatile__("isb" ::: "memory")
 
 #define __irq_save(flag) \
 	__asm__ __volatile__("mrs %0, primask" : "=r"(flag) :: "memory")
@@ -76,5 +78,6 @@ void SET_IRQ(int on, unsigned int irq_nr);
 #define __set_pc(addr)		SET_PC(addr)
 
 #define __nop()			__asm__ __volatile__("nop" ::: "memory")
+#define __ret()			__asm__ __volatile__("bx lr" ::: "memory")
 
 #endif /* __STM32_INTERRUPT_H__ */

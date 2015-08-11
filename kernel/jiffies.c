@@ -21,11 +21,28 @@ uint64_t get_jiffies_64()
 	return stamp;
 }
 
-void inline update_tick(unsigned delta)
+static inline void update_tick(unsigned delta)
 {
 	unsigned int irqflag;
 
 	spin_lock_irqsave(lock_jiffies_64, irqflag);
 	jiffies_64 += delta;
 	spin_unlock_irqrestore(lock_jiffies_64, irqflag);
+}
+
+void isr_sysclk()
+{
+	update_tick(1);
+	sys_schedule();
+}
+
+#include <foundation.h>
+#include <kernel/init.h>
+
+void __init sysclk_init()
+{
+	register_isr(NV_TICK, isr_sysclk);
+
+	reset_sysclk();
+	set_sysclk(get_sysclk_hz() / HZ - 1);
 }

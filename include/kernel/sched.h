@@ -9,7 +9,8 @@ struct sched_entity {
 	uint64_t sum_exec_runtime;
 } __attribute__((packed));
 
-#define INIT_SCHED_ENTITY(name)	((name) = (struct sched_entity){ 0, 0, 0 })
+#define INIT_SCHED_ENTITY(name)		\
+	((name) = (struct sched_entity){ 0, 0, 0 })
 
 struct scheduler {
 	int nr_running;
@@ -42,20 +43,20 @@ void sys_yield();
 #include <kernel/syscall.h>
 
 #ifdef CONFIG_SYSCALL
-#define schedule()	syscall(SYSCALL_SCHEDULE)
+#define schedule()			syscall(SYSCALL_SCHEDULE)
 
 static inline void yield()
 {
 	syscall(SYSCALL_YIELD);
 }
 #else
-#define schedule()	sys_schedule()
-#define yield()		sys_yield()
+#define schedule()			sys_schedule()
+#define yield()				sys_yield()
 #endif
 
 #include <asm/clock.h>
 
-#define schedule_on()	systick_on()
-#define schedule_off()	systick_off()
+#define run_scheduler()			run_sysclk()
+#define stop_scheduler()		stop_sysclk()
 
 #endif /* __SCHED_H__ */

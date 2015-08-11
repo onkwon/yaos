@@ -42,14 +42,15 @@ void kfree(void *addr)
 
 	page = &mem_map[PAGE_INDEX(addr)];
 
-	/* if not allocated by buddy allocator there is no way to free.
-	 * Wrong address or where must not be free. */
+	/* If not allocated by buddy allocator there is no way to free. */
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
 
 	spin_lock_irqsave(pool->lock, irqflag);
 	free_pages(pool, page);
 	spin_unlock_irqrestore(pool->lock, irqflag);
+
+	addr = NULL;
 }
 
 void __init free_bootmem()
@@ -88,9 +89,13 @@ void kfree(void *addr)
 {
 	unsigned int irqflag;
 
+	if (!addr) return;
+
 	spin_lock_irqsave(mem_lock, irqflag);
 	ff_free(&mem_map, addr);
 	spin_unlock_irqrestore(mem_lock, irqflag);
+
+	addr = NULL;
 }
 
 void __init free_bootmem()

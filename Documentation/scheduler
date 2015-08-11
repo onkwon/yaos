@@ -1,0 +1,80 @@
+# Scheduler
+
+CF scheduler for normal priority tasks while FIFO scheduler for real time
+priority tasks.
+
+When a real time task takes place, scheduler can go off, `stop_scheduler()`, to
+remove scheduling overhead. In that case, don't forget `run_scheduler()`
+afterward finishing its job.
+
+The initial task takes place when no task in runqueue
+
+실행이 종료되거나 대기상태에 들어가지 않는 한 리얼타임 태스크는 cpu 자원을 놓지
+않도록 리얼타임 스케쥴러를 구현할 생각이었다. 그런데 그런 정도의 time
+critical한 태스크라면 인터럽트 금지 시키는 편이 나을 것이다. 태스크 내에서
+스케쥴링만 금지 `stop_scheduler()` 시키는 방법도 있다. 스케쥴러 단위에서 그런
+행동은 효용이 없어 보인다. 리얼타임 런큐 내 동일 우선순위 태스크에게 정확한
+러닝타임을 확보해주는 것이 그 취지에 보다 알맞은 듯 보인다.
+
+리얼타임 스케쥴러를 위한 새로운 시나리오:
+
+1. 높은 우선순위의 태스크가 종료되기 전까지 그보다 낮은 우선순위의 태스크는
+실행 기회를 얻지 못한다.  2. 동일 우선순위의 태스크는 RR방식으로
+고정된(확정적인) 러닝타임으로 순환한다.
+
+한가지 떠오르는 문제는(사용목적에 따라 다르겠지만), 인터럽트 금지등으로 할당된
+러닝타임을 초과하여 실행된 태스크는 그 다음 턴에 핸디캡을 가져야 할지, 아니면
+무시해야할지.
+
+다음 할 일:
+
+1. 런큐 자료구조 변경 2. 대기큐에 오래 잡혀있던 태스크의 vruntime 차이 때문에
+wake-up 후 자원 독점 가능성. 모든 태스크에 최소 실행 시간이 보장되어야 함.  3.
+CFS 우선순위에 따른 vruntime 계산
+
+~~리얼타임 우선순위가 너무 많음. 현재 0~100까지 있는데 메모리 아끼기 위해 대폭
+줄일 필요성. 그리고 리얼타임 태스크 우선순위가 그렇게 많이 필요하지 않잖아?~~
+
+* `TASK_RUNNING` - current 혹은 런큐내의 모든 태스크. 스케줄링 연산량을 줄이기
+위해 상태 체크를 `0 아니면 그외 모든 값`식으로 하기 때문에 값이 반드시 0 이어야
+함.  * `TASK_STOPPED` - 시그널과 같은 사용자의 임의 중지 * `TASK_WAITING` -
+이벤트 대기. 즉, 어느 하나의 대기큐에 들어가 있는 상태 * `TASK_SLEEPING` - 할일
+없음 또는 타이머에 등록되어 잠든 상태 * `TASK_ZOMBIE` - 해제된 태스크와 관계된
+모든 레퍼런스가 정리된 상태이지만 실제 자원은 아직 free 되지 않은 상태. init
+태스크에 의해 정리됨.
+
+`*_task_*` 패밀리 매크로에서 이루어지는 포인터 캐스팅 연산량도 체크후, 인자를
+포인터가 아니라 일반 변수로 받도록 수정
+
+`schedule()` - 스케줄링. 태스크 상태는 그대로 유지
+
+`yield()` - 스케줄링. 태스크 상태는 `TASK_SLEEPING`로 전환
+
+`update_curr()` - 태스크 정보는 스케줄링시 업데이트. 인터럽트 핸들러의 점유시간
+역시 각 태스크의 사용시간에 포함된다. 섬세하게 구분하기에는 오버헤드가 큰데다,
+시스템 콜 같은 경우에도 사용자 태스크니까. 업데이트를 원래 타임 인터럽트에서
+처리했는데, `yield()`할 경우 한 사이클을 까먹게되어서 수정.
+
+## Context Switch
+
+[문맥전환](https://note.toanyone.net/bbs/board.php?bo_table=note&wr_id=17)
+
+## Task Priority
+
+	 REALTIME |  NORMAL
+	----------|-----------
+	  0 - 10  | 11 - 255
+
+	DEFAULT_PRIORITY = 132
+
+The lower number, the higher priority.
+
+`get_task_pri()`
+
+`is_task_realtime()`
+
+## Runqueue
+
+* 이미 런큐에 등록/삭제된 태스크가 중복 등록/삭제되어서는 안됨. 런큐 링크가
+깨짐.
+* 리얼타임 태스크의 경우 중복 등록/삭제는 `nr_running` 값을 망침.
