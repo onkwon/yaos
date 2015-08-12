@@ -42,10 +42,10 @@ void schedule_core()
 	struct task *next;
 
 	if (softirq.pending) {
-		if (get_task_state(softirqd) && (current != softirqd)) {
-			set_task_pri(softirqd, get_task_pri(current));
+		if (get_task_state(softirqd)) {
 			set_task_state(softirqd, TASK_RUNNING);
-			runqueue_add_core(softirqd);
+			if (current != softirqd)
+				runqueue_add_core(softirqd);
 		}
 	}
 
@@ -54,19 +54,17 @@ void schedule_core()
 		/* rq_add() and rq_del() of real time scheduler must keep
 		 * the highest priority amongst tasks in `pri` variable.
 		 * `pri` has the least priority when no task in runqueue. */
-		if ( !is_task_realtime(current) ||
-				(rts.pri <= get_task_pri(current)) ) {
+		if (rts.pri <= get_task_pri(current)) {
 rts_next:
-			if ((next = rts_pick_next(&rts)) == NULL)
-				goto rts_out;
+			if ((next = rts_pick_next(&rts))) {
+				rts_rq_del(&rts, next);
+				runqueue_add_core(current);
+				current = next;
 
-			runqueue_add_core(current);
-			current = next;
-			rts_rq_del(&rts, next);
-
-			/* count 1 for `current` */
-			if (!rts.nr_running)
-				rts.nr_running = 1;
+				/* count 1 for `current` */
+				if (!rts.nr_running)
+					rts.nr_running = 1;
+			}
 		}
 
 		/* If not runnable when nr_running is 1,
@@ -76,7 +74,6 @@ rts_next:
 		else if (rts.nr_running > 1)
 			goto rts_next;
 
-rts_out:
 		/* Now it's time for CFS */
 		rts.nr_running = 0;
 	}

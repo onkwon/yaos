@@ -98,4 +98,4 @@ static void rt_task1()
 		yield();
 	}
 }
-REGISTER_TASK(rt_task1, TASK_USER, RT_LEAST_PRIORITY);
+REGISTER_TASK(rt_task1, TASK_USER, RT_PRIORITY);

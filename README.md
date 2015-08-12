@@ -4,7 +4,7 @@ YAOS is Yet Another Operating System for Internet of Things(IoT) devices, specif
 
 Refer to `/Documentation` directory for more information such as compiling, porting, APIs, etc.
 
-Any feedback is welcome to kwon@toanyone.net. And let me know if any of you are interested in porting to new mcu so that I can give you a hand.
+Any feedback is welcome to kwon@toanyone.net. And let me know if any of you are interested in porting to new MCU so that I can give you a hand.
 
 ## Features
 
@@ -30,7 +30,7 @@ Buddy allocator and first-fit allocator are implemented.
 
 ### Deferred interrupt servicing (softirq)
 
-Softirqs will preempt any work except the response to a real interrupt as they run at a high priority. In fact softirq is just a kernel task running with interrupts enabled and can sleep but has the most priority amongst running tasks.
+Softirqs will preempt any work except the response to a real interrupt as they run at a high priority. In fact softirq is just a kernel task running with interrupts enabled and can sleep but has the highest priority amongst running tasks.
 
 ### Synchronization
 

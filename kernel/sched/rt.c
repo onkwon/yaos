@@ -1,11 +1,11 @@
 #include "rt.h"
 #include <kernel/task.h>
 
-static struct list rts_rq[RT_LEAST_PRIORITY+1];
+static struct list rts_rq[RT_PRIORITY+1];
 
 struct task *rts_pick_next(struct scheduler *q)
 {
-	if ((q->pri > RT_LEAST_PRIORITY) ||
+	if ((q->pri > RT_PRIORITY) ||
 			(&rts_rq[q->pri] == rts_rq[q->pri].next))
 		return NULL;
 
@@ -35,14 +35,14 @@ void rts_rq_del(struct scheduler *q, struct task *p)
 	int i;
 
 	if (--q->nr_running > 1) {
-		for (i = 0; i <= RT_LEAST_PRIORITY; i++) {
+		for (i = 0; i <= RT_PRIORITY; i++) {
 			if (rts_rq[i].next != &rts_rq[i]) {
 				q->pri = i;
 				break;
 			}
 		}
 	} else {
-		q->pri = RT_LEAST_PRIORITY + 1;
+		q->pri = RT_PRIORITY + 1;
 	}
 
 	list_del(&p->rq);
@@ -53,9 +53,9 @@ void rts_init(struct scheduler *rts)
 	unsigned int i;
 
 	rts->nr_running = 0;
-	rts->pri        = RT_LEAST_PRIORITY;
+	rts->pri        = RT_PRIORITY;
 	rts->rq         = (void *)rts_rq;
 
-	for (i = 0; i <= RT_LEAST_PRIORITY; i++)
+	for (i = 0; i <= RT_PRIORITY; i++)
 		list_link_init(&rts_rq[i]);
 }

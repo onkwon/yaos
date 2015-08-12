@@ -56,13 +56,18 @@ struct mm {
  *   0 ~ 10  | 11 ~ 255
  *                `-----> 132 = default priority
  */
-#define RT_LEAST_PRIORITY		10
-#define LEAST_PRIORITY			(RT_LEAST_PRIORITY + 245)
-#define DEFAULT_PRIORITY		(RT_LEAST_PRIORITY + 122)
+#define RT_PRIORITY			10
+#define LOW_PRIORITY			(RT_PRIORITY + 245)
+#define DEFAULT_PRIORITY		(RT_PRIORITY + 122)
+#ifdef CONFIG_REALTIME
+#define HIGH_PRIORITY			0
+#else
+#define HIGH_PRIORITY			(RT_PRIORITY + 1)
+#endif
 
 #define set_task_pri(p, v)		((p)->pri = v)
 #define get_task_pri(p)			((p)->pri)
-#define is_task_realtime(p)		(get_task_pri(p) <= RT_LEAST_PRIORITY)
+#define is_task_realtime(p)		(get_task_pri(p) <= RT_PRIORITY)
 
 #include <types.h>
 #include <kernel/sched.h>

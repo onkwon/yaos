@@ -61,7 +61,7 @@ static void softirq_handler()
 			action++;
 		}
 
-		yield();
+		sys_yield();
 	}
 }
 
@@ -76,6 +76,8 @@ int __init softirq_init()
 	if ((softirqd = make(TASK_KERNEL | STACK_SHARED, softirq_handler,
 					&init)) == NULL)
 		return -ERR_ALLOC;
+
+	set_task_pri(softirqd, HIGH_PRIORITY);
 
 	return 0;
 }

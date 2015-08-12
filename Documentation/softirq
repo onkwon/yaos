@@ -1,0 +1,48 @@
+# Softirq
+
+Softirqs will preempt any work except the response to a real interrupt as they
+run at a high priority. In fact softirq is just a kernel task running with
+interrupts enabled and can sleep but has the highest priority(`HIGH_PRIORITY`)
+amongst running tasks.
+
+`softirqd` starts to run when raising with `raise_softirq()` in an interrupt
+service routine. The first pending bit(the lowest bit) of softirq gets checked
+first. It thus be better to place high priority task in lower pending bit. But
+bear in mind even if high priority softirq gets raised it doesn't take place
+until the rest lower pending bits get all checked finising the current round.
+
+----
+
+time critical 한 부분은 이미 인터럽트 핸들러에서 처리되었으니 softirq는 current
+태스크와 동일한 우선순위로 스케줄링하면 적절하지 않을까? 우선순위를 current에
+맞추면 리얼타임 태스크/일반 태스크 구분할 필요가 사라진다. 그리고 softirq의
+의도 역시 독점보다 자원을 효율적으로 배분하는 데 있으니까 이 방법이 적당해
+보인다. 32비트 시스템에서 32개, 8비트 시스템에서 8개의 softirq 밖에 운용하지
+못한다는 게 현재 자료구조의 한계지만 현 시스템에서 적절한(효율적인) 제한으로
+보인다.
+
+softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. 등록시 배열 인덱스를
+지정해서 구현하면 간단하겠으나 순차적으로 32개의 루틴을 모두 돈다면 우선순위
+효과를 의심해볼만 하다. 떠오르는 대안은 두가지인데 (1) 최상위 우선순위 pending
+만 실행하고 탈출한다. 그럼 스케줄될 때마다 다음 pending이 순차적으로 실행될
+것이다. 물론 그 사이 더 높은 pending이 발생했다면 높은 pending을 먼저 처리한다.
+한번의 스케줄에 가장 높은 하나의 pending 만을 처리한다는 게 요점인데,
+우선순위가 낮은 pending이 무한정 지연될 가능성이 있다. (2) 스레드 처리한다.
+몽땅 스레드 처리하기는 비용이 커보이고, 높은 우선순위 몇개만 스레드처리하고
+나머지는 순차처리.
+
+----
+
+우선순위별 softirq를 운행할 필요가 있어보인다. 일반 태스크를 모두 선점해버리는
+softirq라면 인터럽트와 다를바가 없고(일반 태스크를 선점하므로써 응답성에 해를
+끼치는), 반면 리얼타임 태스크에서 동작을 하지 않는 softirq라면 리얼타임
+태스크가 필요한 자원을 얻지 못해서 데드락에 걸리는 문제가 발생할 수 있다.
+
+* RT_PRIORITY 라면, softirq 수행이 종료될 때까지 일반 태스크는 실행되지 않는다.
+동일(최하위) 우선순위의 리얼타임 태스크의 경우 함께 스케줄링되는 반면 상위
+리얼타임 태스크가 실행중일 때는 상위 리얼타임 태스크가 종료할 때까지 softirq는
+지연된다.  
+
+* RT_LEAST_PRIORITY+1 인 경우 일반 태스크와 함께 스케쥴링된다(다만 가장 높은
+일반 태스크 우선순위를 갖고 있으므로 프로세서 점유시간이 낮은 우선순위
+태스크보다 길다).

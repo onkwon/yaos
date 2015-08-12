@@ -158,9 +158,10 @@ ms 단위
 
 ### sleep & delay
 
-`sleep(), msleep()`
+`sleep(), msleep()` - absolute time based on system clock
 
-`delay(), mdelay(), udelay(), ndelay()` - sleepless delay functions
+`delay(), mdelay(), udelay(), ndelay()` - relative time based on clock cycle
+that the task is taking, sleepless delay functions
 
 ## System call
 
@@ -274,57 +275,6 @@ flags 설명(gpio.h)
 
 할당받은 softirq 번호가 `SOFTIRQ_MAX` 보다 크거나 같다면 오류. softirq pool이
 이미 꽉 찬 상태. 등록시 반드시 체크필요.
-
-`softirqd` 커널 태스크는 softirq가 raise된 경우에만 실행된다.
-`RT_LEAST_PRIORITY` 우선순위. 우선순위별 softirq 운행할 필요가 있어보임. 일반
-태스크를 모두 선점해버리는 softirq라면 인터럽트와 다를바가 없고, 반면 리얼타임
-태스크에서 동작을 하지 않는 softirq라면 리얼타임 태스크가 필요한 자원을 얻지
-못해서 데드락에 걸리는 문제.
-
-리얼타임 태스크 : softirqd 의 우선순위가 `RT_LEAST_PRIORITY` 이기 때문에 보다
-우선순위가 높은 리얼타임 태스크가 softirq 자원이 필요한 경우에는 태스크의
-우선순위를 일시적으로 낮추어 자원을 확보해야한다. 또는, softirq 핸들러
-우선순위를 일시적으로 높이는 방법?
-
-일반 태스크 : HIGH, NORMAL, LOW 세가지를 고려중.
-
-	LOW = LEAST_PRIORITY
-	NORMAL = DEFAULT_PRIORITY
-	HIGH = 리얼타임 스케줄러 모듈을 빼고 컴파일 했다면 RT_LEAST_PRIORITY +
-	1, 아니면 RT_LEAST_PRIORITY
-
-	       * RT_LEAST_PRIORITY 라면, softirq 수행이 종료될 때까지 일반
-	       태스크는 실행되지 않는다. 동일(최하위) 우선순위의 리얼타임
-	       태스크의 경우 함께 스케줄링되는 반면 상위 리얼타임 태스크가
-	       실행중일 때는 상위 리얼타임 태스크가 종료할 때까지 softirq는
-	       지연된다.
-
-	       * RT_LEAST_PRIORITY+1 인 경우 일반 태스크와 함께 스케쥴링
-	       된다(다만 가장 높은 일반 태스크 우선순위를 갖고 있으므로
-	       프로세서 점유시간이 낮은 우선순위 태스크보다 길다).
-
-----
-
-~~일단, 기본 softirqd 우선순위는 `DEFAULT_PRIORITY`. 우선순위 변경이 필요한
-경우 콜백에서 처리하는 걸로 하고 다음 진행.~~ time critical 한 부분은 이미
-인터럽트 핸들러에서 처리되었으니 softirq는 current 태스크와 동일한 우선순위로
-스케줄링하면 적절하지 않을까? 우선순위를 current에 맞추면 리얼타임 태스크/일반
-태스크 구분할 필요가 사라진다. 그리고 softirq의 의도 역시 독점보다 자원을
-효율적으로 배분하는 데 있으니까 이 방법이 적당해 보인다. 32비트 시스템에서
-32개, 8비트 시스템에서 8개의 softirq 밖에 운용하지 못한다는 게 현재 자료구조의
-한계랄수도 있지만 적절한 제한이 효율적일지도 모를일이다. 어쩌면 내 머리의
-한계일지도 모른다. 그렇게 많은 softirq를 운용해야할 필요성이 딱히 떠오르지
-않는다. 차후 필요성이 생기면 보완하기로.
-
-softirq가 32개라면 그사이에서의 우선순위도 필요해 보인다. 등록시 배열 인덱스를
-지정해서 구현하면 간단하겠으나 순차적으로 32개의 루틴을 모두 돈다면 우선순위
-효과를 의심해볼만 하다. 떠오르는 대안은 두가지인데 (1) 최상위 우선순위 pending
-만 실행하고 탈출한다. 그럼 스케줄될 때마다 다음 pending이 순차적으로 실행될
-것이다. 물론 그 사이 더 높은 pending이 발생했다면 높은 pending을 먼저 처리한다.
-한번의 스케줄에 가장 높은 하나의 pending 만을 처리한다는 게 요점인데,
-우선순위가 낮은 pending이 무한정 지연될 가능성이 있다. (2) 스레드 처리한다.
-몽땅 스레드 처리하기는 비용이 커보이고, 높은 우선순위 몇개만 스레드처리하고
-나머지는 순차처리.
 
 ### miscellaneous
 

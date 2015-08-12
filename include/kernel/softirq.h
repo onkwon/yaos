@@ -4,7 +4,7 @@
 #include <kernel/lock.h>
 #include <kernel/task.h>
 
-#define SOFTIRQ_MAX		(WORD_SIZE * 8)
+#define SOFTIRQ_MAX			(WORD_SIZE * 8)
 
 struct softirq {
 	unsigned int pending;
