@@ -62,7 +62,7 @@ static void ramfs_free(void *addr, const struct device *dev)
 static struct ramfs_inode *ramfs_mknod(mode_t mode, const struct device *dev)
 {
 	struct ramfs_inode *new;
-	int i;
+	unsigned int i;
 
 	if ((new = ramfs_malloc(sizeof(struct ramfs_inode), dev)) == NULL)
 		return NULL;
@@ -318,9 +318,9 @@ static int ramfs_open(struct inode *inode, struct file *file)
 {
 	file->offset = 0;
 	file->count = 1;
-	INIT_LOCK(file->lock);
 	file->inode = inode;
 	file->op = inode->fop;
+	lock_init(&file->lock);
 
 	return 0;
 }

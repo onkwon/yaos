@@ -97,7 +97,7 @@ void __attribute__((naked)) isr_default()
 		current->irqflag, current->addr, current);
 
 	printk("\ncurrent context\n");
-	int i;
+	unsigned int i;
 	for (i = 0; i < NR_CONTEXT*2; i++)
 		printk("[0x%08x] 0x%08x\n", usp + i*4, ((unsigned int *)usp)[i]);
 

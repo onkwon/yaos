@@ -16,9 +16,10 @@
 #define SYSCALL_SEEK			10
 #define SYSCALL_KILL			11
 #define SYSCALL_FORK			12
-#define SYSCALL_CREATE			13
-#define SYSCALL_MKDIR			14
-#define SYSCALL_NR			15
+#define SYSCALL_TIMER_CREATE		13
+#define SYSCALL_CREATE			14
+#define SYSCALL_MKDIR			15
+#define SYSCALL_NR			16
 
 int sys_open(char *filename, int mode);
 int sys_read(int fd, void *buf, size_t len);

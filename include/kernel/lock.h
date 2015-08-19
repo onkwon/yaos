@@ -9,7 +9,7 @@
 
 #define UNLOCKED			1
 #define DEFINE_LOCK(name)		lock_t name = UNLOCKED
-#define INIT_LOCK(name)			(name = UNLOCKED)
+#define lock_init(name)			(*(lock_t *)name = UNLOCKED)
 #define is_locked(count)		(count <= 0)
 
 #define up(count)			atomic_set((int *)&count, count + 1)
@@ -62,7 +62,7 @@ struct semaphore {
 
 #define semaphore_down(s) { \
 	DEFINE_WAIT(wait); \
-	unsigned irqflag; \
+	unsigned int irqflag; \
 	do { \
 		while (is_locked(s.count)) { \
 			spin_lock_irqsave(s.wq.lock, irqflag); \
@@ -77,7 +77,7 @@ struct semaphore {
 
 #define semaphore_up(s) do { \
 	struct task *task; \
-	unsigned irqflag; \
+	unsigned int irqflag; \
 	while (atomic_set((int *)&s.count, s.count+1)) ; \
 	if (!is_locked(s.count)) { \
 		spin_lock_irqsave(s.wq.lock, irqflag); \

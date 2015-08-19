@@ -27,6 +27,7 @@ unsigned int ir_get_nec(const unsigned int *buf)
 }
 
 #include <kernel/task.h>
+#include <kernel/timer.h>
 
 static void test_ir()
 {

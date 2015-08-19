@@ -1,5 +1,29 @@
 #include <foundation.h>
 #include <kernel/task.h>
+#include <kernel/timer.h>
+#include <kernel/ticks.h>
+
+static volatile int flag;
+static void t1()
+{
+	printf("TIMER1\n");
+	flag = 1;
+}
+
+static void test_timer()
+{
+	struct timer ttt;
+	while (1) {
+		flag = 0;
+		ttt.expires = ticks + 50;
+		ttt.event = t1;
+		add_timer(&ttt);
+
+		msleep(900);
+		while (flag == 0);
+	}
+}
+REGISTER_TASK(test_timer, 0, DEFAULT_PRIORITY);
 
 static void test_task()
 {
@@ -19,12 +43,12 @@ static void test_task()
 	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
 
 	while (1) {
-		t = get_jiffies_64();
+		t = get_ticks_64();
 		th = t >> 32;
 		bh = t;
 
 		dmb();
-		v = jiffies;
+		v = ticks;
 
 		printf("%08x ", v);
 		printf("%08x", th);

@@ -115,15 +115,15 @@ int remove_device(struct device *dev)
 void __init device_init()
 {
 	extern char _device_list;
-	int *p = (int *)&_device_list;
+	unsigned int *p = (unsigned int *)&_device_list;
 
 	while (*p)
-		((int (*)())*p++)();
+		((unsigned int (*)())*p++)();
 }
 
 static void devtab_init()
 {
-	int i;
+	unsigned int i;
 	for (i = 0; i < TABLE_SIZE; i++) {
 		list_link_init(&devtab[i]);
 	}
@@ -137,7 +137,7 @@ void display_devtab()
 {
 	struct device *dev;
 	struct list *head, *next;
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < TABLE_SIZE; i++) {
 		head = &devtab[i];

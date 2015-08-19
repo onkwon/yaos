@@ -1,6 +1,6 @@
 #include <kernel/sched.h>
 #include <kernel/task.h>
-#include <kernel/jiffies.h>
+#include <kernel/ticks.h>
 #include <kernel/softirq.h>
 #include "fair.h"
 #ifdef CONFIG_REALTIME
@@ -14,6 +14,36 @@ static struct scheduler cfs;
 #ifdef CONFIG_REALTIME
 static struct scheduler rts;
 #endif
+
+/* Calling update_curr() as soon as the system timer interrupt occurs would be
+ * the best chance other than elsewhere not to count scheduling overhead but to
+ * count only its running time, as long as ticks gets updated asynchronously. */
+static inline void update_curr()
+{
+	uint64_t clock = get_ticks_64();
+	unsigned delta_exec;
+
+	delta_exec = clock - current->se.exec_start;
+	current->se.vruntime += delta_exec;
+	current->se.sum_exec_runtime += delta_exec;
+	current->se.exec_start = clock;
+
+	if (is_task_realtime(current))
+		return;
+
+	struct task *task;
+
+	cfs.vruntime_base = current->se.vruntime;
+
+	/* pick the least vruntime in runqueue for vruntime_base
+	 * to keep order properly. */
+	if (((struct list *)cfs.rq)->next != cfs.rq) { /* if it's not empty */
+		task = get_container_of( ((struct list *)cfs.rq)->next,
+				struct task, rq );
+		if (cfs.vruntime_base > task->se.vruntime)
+			cfs.vruntime_base = task->se.vruntime;
+	}
+}
 
 static inline void runqueue_add_core(struct task *new)
 {
@@ -35,12 +65,12 @@ static inline void runqueue_add_core(struct task *new)
 }
 
 /* As each processor has its own scheduler and it runs in an interrupt context,
- * we are rid of concern about synchronization. */
+ * where interrupts disabled, we are rid of concern about synchronization. */
 
-void schedule_core()
+#include <kernel/timer.h>
+
+static inline void run_softirq()
 {
-	struct task *next;
-
 	if (softirq.pending) {
 		if (get_task_state(softirqd)) {
 			set_task_state(softirqd, TASK_RUNNING);
@@ -48,6 +78,27 @@ void schedule_core()
 				runqueue_add_core(softirqd);
 		}
 	}
+
+#ifdef CONFIG_TIMER
+	extern struct timer_queue timerq;
+	extern struct task *timerd;
+
+	if (timerq.nr && time_after(timerq.next, ticks)) {
+		if (get_task_state(timerd)) {
+			set_task_state(timerd, TASK_RUNNING);
+			if (current != timerd)
+				runqueue_add_core(timerd);
+		}
+	}
+#endif
+}
+
+void schedule_core()
+{
+	update_curr();
+	run_softirq();
+
+	struct task *next;
 
 #ifdef CONFIG_REALTIME
 	if (rts.nr_running) {
@@ -96,40 +147,10 @@ rts_next:
 adjust_vruntime:
 	/* Update newly selected task's start time because it is stale
 	 * as much as the one has been waiting for. */
-	current->se.exec_start = get_jiffies_64();
+	current->se.exec_start = get_ticks_64();
 }
 
-/* Calling update_curr() as soon as the system timer interrupt occurs would be
- * the best chance other than elsewhere not to count scheduling overhead but to
- * count only its running time, as long as jiffies gets updated asynchronous. */
-void inline update_curr()
-{
-	uint64_t clock = get_jiffies_64();
-	unsigned delta_exec;
-
-	delta_exec = clock - current->se.exec_start;
-	current->se.vruntime += delta_exec;
-	current->se.sum_exec_runtime += delta_exec;
-	current->se.exec_start = clock;
-
-	if (is_task_realtime(current))
-		return;
-
-	struct task *task;
-
-	cfs.vruntime_base = current->se.vruntime;
-
-	/* pick the least vruntime in runqueue for vruntime_base
-	 * to keep order properly. */
-	if (((struct list *)cfs.rq)->next != cfs.rq) { /* if it's not empty */
-		task = get_container_of( ((struct list *)cfs.rq)->next,
-				struct task, rq );
-		if (cfs.vruntime_base > task->se.vruntime)
-			cfs.vruntime_base = task->se.vruntime;
-	}
-}
-
-void inline runqueue_add(struct task *new)
+inline void runqueue_add(struct task *new)
 {
 	unsigned int irqflag;
 	irq_save(irqflag);
@@ -138,7 +159,7 @@ void inline runqueue_add(struct task *new)
 	irq_restore(irqflag);
 }
 
-void inline runqueue_del(struct task *task)
+inline void runqueue_del(struct task *task)
 {
 	unsigned int irqflag;
 	irq_save(irqflag);
@@ -171,7 +192,6 @@ void __attribute__((naked, used, optimize("O0"))) __schedule()
 	 * guarantees not to be preempted while schedule_finish()
 	 * does the opposite. */
 	schedule_prepare();
-	update_curr();
 	schedule_core();
 	schedule_finish();
 #ifdef CONFIG_DEBUG

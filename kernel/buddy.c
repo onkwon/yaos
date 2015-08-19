@@ -102,7 +102,7 @@ static void buddy_freelist_init(struct buddy *pool,
 {
 	size_t size;
 	unsigned int offset;
-	int i;
+	unsigned int i;
 
 	/* bitmap initialization */
 	offset = 0;
@@ -168,7 +168,7 @@ out:
 void buddy_init(struct buddy *pool, unsigned int nr_pages, struct page *array)
 {
 	buddy_freelist_init(pool, nr_pages, array);
-	INIT_LOCK(pool->lock);
+	lock_init(&pool->lock);
 }
 
 #ifdef CONFIG_DEBUG
@@ -179,7 +179,7 @@ void show_buddy(void *zone)
 	struct page *page;
 	struct list *p;
 	size_t size;
-	int i, j;
+	unsigned int i, j;
 
 	struct buddy *pool = (struct buddy *)zone;
 

@@ -122,7 +122,7 @@ void show_freelist(void *pool)
 {
 	struct list *head, *curr;
 	struct ff_freelist *p;
-	int i = 0;
+	unsigned int i = 0;
 
 	head = curr = &(((struct ff_freelist *)pool)->list);
 

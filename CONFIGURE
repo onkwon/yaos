@@ -5,6 +5,7 @@ CONFIG_REALTIME=y
 CONFIG_PAGING=y
 CONFIG_SYSCALL=y
 CONFIG_FS=y
+CONFIG_TIMER=y
 
 # Uncomment a line to add the module
 MODULE_USART=y

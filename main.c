@@ -73,6 +73,7 @@ static int __init console_init()
 }
 
 #include <kernel/softirq.h>
+#include <kernel/timer.h>
 
 int __init main()
 {
@@ -93,6 +94,9 @@ int __init main()
 	load_user_task(); /* that are registered statically */
 
 	softirq_init();
+#ifdef CONFIG_TIMER
+	timer_init();
+#endif
 
 	/* a banner */
 	printk("YAOS %s %s\n", VERSION, MACHINE);

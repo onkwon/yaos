@@ -7,7 +7,7 @@ static void visit(struct task *p)
 	struct task *next;
 	static int tab = 0;
 
-	int i;
+	unsigned int i;
 #define print_tab() for (i = 0; i < tab; i++) puts("|\t");
 
 	print_tab();

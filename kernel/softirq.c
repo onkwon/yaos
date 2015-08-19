@@ -71,7 +71,7 @@ int __init softirq_init()
 {
 	softirq.pending = 0;
 	softirq.bitmap = 0;
-	INIT_LOCK(softirq.wlock);
+	lock_init(&softirq.wlock);
 
 	if ((softirqd = make(TASK_KERNEL | STACK_SHARED, softirq_handler,
 					&init)) == NULL)

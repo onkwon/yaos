@@ -15,6 +15,5 @@ extern inline void udelay(unsigned us);
 
 #include <kernel/lock.h>
 #include <io.h>
-#include <time.h>
 
 #endif /* __FOUNDATION_H__ */

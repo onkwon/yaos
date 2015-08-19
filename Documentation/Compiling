@@ -33,6 +33,10 @@ activate system call functionality
 
 ### `CONFIG_FS`
 
+### `CONFIG_TIMER`
+
+activate software timer functionality
+
 ## include/foundation.h
 
 ### HZ

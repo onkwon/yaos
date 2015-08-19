@@ -29,6 +29,9 @@ endif
 ifdef CONFIG_FS
 	CFLAGS += -DCONFIG_FS
 endif
+ifdef CONFIG_TIMER
+	CFLAGS += -DCONFIG_TIMER
+endif
 
 # Common 
 

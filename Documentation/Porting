@@ -11,6 +11,7 @@
 	|   |-- make_init_task()
 	|   |-- load_user_task()
 	|   |-- softirq_init()
+	|   |-- timer_init()
 	|   |-- console_init()
 	|   |-- sei() #interrupt enabled
 	|   `-- idle()

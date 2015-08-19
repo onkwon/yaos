@@ -484,7 +484,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	curr.addr = 0; /* start searching from root */
 	if (read_inode(&curr, dev)) {
 		debug(("wrong inode\n"));
-		return -ERR_ALLOC;
+		return (char *)-ERR_ALLOC;
 	}
 
 	for (pwd = pathname + i; *pwd; pwd = pathname + i) {
@@ -498,7 +498,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 			read_data_block(&curr, offset, &dir, dir_size, dev);
 
 			if ((name = kmalloc(dir.name_len+1)) == NULL)
-				return -ERR_ALLOC;
+				return (char *)-ERR_ALLOC;
 
 			read_data_block(&curr, offset + dir_size, name,
 					dir.name_len+1, dev);
@@ -582,7 +582,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
 	if (tid > 0) { /* child turning to kernel task,
 			  nomore in handler mode */
@@ -646,7 +646,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
 	if (tid > 0) { /* child turning to kernel task,
 			  nomore in handler mode */
@@ -678,8 +678,8 @@ static int embed_open(struct inode *inode, struct file *file)
 	file->offset = 0;
 	file->count = 1;
 	file->op = inode->fop;
-	INIT_LOCK(file->lock);
 	file->inode = inode;
+	lock_init(&file->lock);
 
 	return 0;
 }

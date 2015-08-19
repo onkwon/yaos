@@ -1,7 +1,7 @@
 include $(BASEDIR)/CONFIGURE
 
 SRCS_ASM = $(wildcard *.S)
-SRCS     = task.c mm.c syscall.c device.c jiffies.c time.c waitqueue.c softirq.c buffer.c
+SRCS     = task.c mm.c syscall.c device.c ticks.c waitqueue.c softirq.c buffer.c timer.c
 ifdef CONFIG_PAGING
 	SRCS += buddy.c
 endif

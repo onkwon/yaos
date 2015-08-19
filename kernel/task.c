@@ -206,7 +206,7 @@ int clone(unsigned int flags, void *ref)
 	base = (unsigned int)&current->mm.base[HEAP_SIZE / WORD_SIZE];
 	top  = base + USER_STACK_SIZE;
 
-	if ((flags & TASK_SYSCALL) == TASK_SYSCALL) { /* if handler mode */
+	if (flags & TASK_HANDLER) { /* if handler mode */
 		sp   = __get_sp();
 		base = (unsigned int)current->mm.kernel.base;
 		top  = base + STACK_SIZE;
@@ -219,7 +219,7 @@ int clone(unsigned int flags, void *ref)
 
 	child->mm.sp = dst; /* update stack pointer */
 
-	if ((flags & TASK_SYSCALL) == TASK_SYSCALL) {
+	if (!(flags & TASK_SYSCALL)) { /* if not syscall */
 		p = regs;
 		set_task_context_hard(child, NULL);
 		memcpy(child->mm.sp, p + NR_CONTEXT_SOFT,
@@ -243,7 +243,7 @@ int clone(unsigned int flags, void *ref)
 			child->mm.sp[i] = limit - (top - child->mm.sp[i]);
 	}
 
-	if ((flags & TASK_SYSCALL) == TASK_SYSCALL)
+	if (!(flags & TASK_SYSCALL))
 		flags |= TASK_CLONED;
 	else
 		__set_retval(child, (int)child);
@@ -258,6 +258,8 @@ int clone(unsigned int flags, void *ref)
 
 void sum_curr_stat(struct task *to)
 {
+	/* make sure task `to` is alive not to access wrong address */
+
 	unsigned int irqflag;
 	irq_save(irqflag);
 	local_irq_disable();
@@ -269,8 +271,9 @@ void sum_curr_stat(struct task *to)
 
 int sys_fork()
 {
-	int tid = clone(STACK_SHARED, &init);
-	if (tid > 0) /* the new forked task never gets back here */
+	int tid = clone(TASK_SYSCALL | STACK_SHARED |
+			(get_task_flags(current) & TASK_PRIVILEGED), &init);
+	if (tid > 0) /* the newly forked task never gets back here */
 		sys_kill((unsigned int)current);
 
 	/* schedule to give chance for child to run first */

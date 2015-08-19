@@ -47,7 +47,7 @@ int sys_open(char *filename, int mode)
 		iput(new);
 		inode = new;
 		inode->count = 0;
-		INIT_LOCK(inode->lock);
+		lock_init(&inode->lock);
 	} else {
 		kfree(new);
 	}
@@ -136,6 +136,7 @@ int sys_test(int a, int b, int c)
 }
 
 #include <kernel/sched.h>
+#include <kernel/timer.h> /* sys_timer_create() */
 
 void *syscall_table[] = {
 	sys_reserved,		/* 0 */
@@ -151,6 +152,7 @@ void *syscall_table[] = {
 	sys_seek,		/* 10 */
 	sys_kill,
 	sys_fork,
+	sys_timer_create,
 	//sys_create,
-	//sys_mkdir,
+	//sys_mkdir,		/* 15 */
 };

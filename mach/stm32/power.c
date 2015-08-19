@@ -13,9 +13,7 @@
 void __enter_sleep_mode()
 {
 	PWRCLK_ENABLE();
-	stop_scheduler();
 	__wfi();
-	run_scheduler();
 	PWRCLK_DISABLE();
 }
 
@@ -90,7 +88,8 @@ static void disp_clkinfo()
 		"TIM14", NULL    , NULL    , "WWD"  , NULL   , NULL    , "SPI2"  , "SPI3 ",
 		NULL   , "USART2", "USART3", "UART4", "UART5", "I2C1"  , "I2C2"  , "USB"  ,
 		NULL   , "CAN"   , NULL    , "BKP"  , "PWR"  , "DAC"   , NULL    , NULL   };
-	int i, j;
+
+	unsigned int i, j;
 	char **desc[3] = { clkname_ahb, clkname_apb2, clkname_apb1 };
 	unsigned int regs[3] = { RCC_AHBENR, RCC_APB2ENR, RCC_APB1ENR };
 	unsigned int sysclk, hclk, pclk1, pclk2, adclk;

@@ -14,7 +14,7 @@ PROVIDE(_ram_size    = LENGTH(ram));
 PROVIDE(_ram_end     = ORIGIN(ram) + LENGTH(ram));
 PROVIDE(_vector_size = 0x200); /* The minimum alignment is 128 words. */
 
-jiffies = jiffies_64;
+ticks = ticks_64;
 SECTIONS
 {
 	. = 0x0;

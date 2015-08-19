@@ -9,7 +9,7 @@
 static unsigned int getline(int fd, char *buf, int maxlen)
 {
 	char c;
-	int i = 0;
+	unsigned int i = 0;
 
 	do {
 		read(fd, &c, 1);
@@ -41,9 +41,9 @@ static unsigned int getline(int fd, char *buf, int maxlen)
 	return i;
 }
 
-static int getcmd(char *s, char **argv)
+static unsigned int getcmd(char *s, char **argv)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; s && *s; i++) {
 		while (*s == ' ') s++;

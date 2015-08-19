@@ -132,21 +132,23 @@ count. When the count reaches 0, interrupts get enabled.
 
 ## time
 
-Variable `jiffies` can be accessed directly. `jiffies` is ~~not~~ counted every
+Variable `ticks` can be accessed directly. `ticks` is ~~not~~ counted every
 HZ, ~~but hardware system clock, `get_stkclk()`.~~ To calculate elapsed time in
-second, ~~`jiffies` / `get_stkclk()`~~ `jiffies` / `HZ`.
+second, ~~`ticks` / `get_stkclk()`~~ `ticks` / `HZ`.
 
-`get_jiffies_64()` - to get whole 64-bit counter.
+`get_ticks_64()` - to get whole 64-bit counter.
 
 ### timer
 
-32비트 jiffies 값을 초과하는 시간은 설정할 수 없다. 즉 50HZ 에서 설정할 수 있는
-타이머의 최대 시간은 2년 남짓이다(32bits / 50(초) / 60(분) / 60(시) / 24(일) /
+32비트 ticks 값을 초과하는 시간은 설정할 수 없다. 즉 50HZ 에서 설정할 수 있는
+타이머의 최대 시간은 2년 남짓이다(32bits / 60(초) / 60(분) / 60(시) / 24(일) /
 365(년)).
 
 `add_timer()`
 
 `del_timer()`
+
+`mod_timer()`
 
 ### timeout
 
@@ -158,7 +160,8 @@ ms 단위
 
 ### sleep & delay
 
-`sleep(), msleep()` - absolute time based on system clock
+`sleep(), msleep()` - absolute time based on system clock. It doesn't work in
+stop mode while works in sleep mode.
 
 `delay(), mdelay(), udelay(), ndelay()` - relative time based on clock cycle
 that the task is taking, sleepless delay functions

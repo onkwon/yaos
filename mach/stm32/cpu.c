@@ -183,7 +183,7 @@ REGISTER_INIT(mem_init, 1);
 
 void set_task_context_hard(struct task *p, void *addr)
 {
-	int i;
+	unsigned int i;
 
 	*(--p->mm.sp) = INIT_PSR;		/* psr */
 	*(--p->mm.sp) = (unsigned int)addr;	/* pc */
@@ -193,7 +193,7 @@ void set_task_context_hard(struct task *p, void *addr)
 
 void set_task_context_soft(struct task *p)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < NR_CONTEXT_SOFT; i++)
 		*(--p->mm.sp) = 0;

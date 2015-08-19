@@ -32,20 +32,17 @@ void rts_rq_add(struct scheduler *q, struct task *new)
 
 void rts_rq_del(struct scheduler *q, struct task *p)
 {
-	int i;
-
-	if (--q->nr_running > 1) {
-		for (i = 0; i <= RT_PRIORITY; i++) {
-			if (rts_rq[i].next != &rts_rq[i]) {
-				q->pri = i;
-				break;
-			}
-		}
-	} else {
-		q->pri = RT_PRIORITY + 1;
-	}
-
+	q->nr_running--;
 	list_del(&p->rq);
+
+	unsigned int i;
+	q->pri = RT_PRIORITY + 1;
+	for (i = 0; i <= RT_PRIORITY; i++) {
+		if (rts_rq[i].next != &rts_rq[i]) {
+			q->pri = i;
+			break;
+		}
+	}
 }
 
 void rts_init(struct scheduler *rts)

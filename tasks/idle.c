@@ -29,7 +29,7 @@ void idle()
 		 * when there is no task to schedule. */
 		if (get_task_state(current)) {
 #ifdef CONFIG_DEBUG
-			/* check if there is any peripheral enabled that is
+			/* check if there is any peripherals enabled that is
 			 * actually doing nothing but only consuming power
 			 * during in the power saving mode. Turn it off if so */
 			extern void disp_sysinfo();
@@ -47,5 +47,5 @@ void idle()
 	}
 }
 
-/* Do not register idle task as a user task in the same way of `REGISTER_TASK()`
- * as this one becomes the init task set by boot code during initialization. */
+/* Do not register idle task the same way of `REGISTER_TASK()` like usual
+ * user tasks. This one becomes the init task by boot code. */

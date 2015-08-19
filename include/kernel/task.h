@@ -27,11 +27,12 @@ struct mm {
 /* type & flag */
 #define TASK_USER			0x00
 #define TASK_KERNEL			0x01
-#define TASK_PRIVILEGED			0x01
+#define TASK_PRIVILEGED			TASK_KERNEL
 #define TASK_STATIC			0x02
-#define TASK_SYSCALL			(0x04 | TASK_KERNEL)
+#define TASK_SYSCALL			0x04
 #define TASK_CLONED			0x08
-#define STACK_SHARED			0x10
+#define TASK_HANDLER			0x10
+#define STACK_SHARED			0x80
 
 #define set_task_flags(p, v)		((p)->flags = v)
 #define get_task_flags(p)		((p)->flags)

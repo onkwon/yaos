@@ -58,7 +58,7 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
 	if (tid > 0) { /* child turning to kernel task,
 			  nomore in handler mode */
@@ -133,7 +133,7 @@ static size_t usart_write_polling(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_SYSCALL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
 	if (tid > 0) { /* child turning to kernel task,
 			  nomore in handler mode */
@@ -229,7 +229,7 @@ static int usart_open(struct inode *inode, struct file *file)
 			goto out;
 		}
 		fifo_init(&rxq[CHANNEL(dev->id)], buf, BUF_SIZE);
-		INIT_LOCK(rx_lock[CHANNEL(dev->id)]);
+		lock_init(&rx_lock[CHANNEL(dev->id)]);
 
 		/* write */
 		if ((buf = kmalloc(BUF_SIZE)) == NULL) {
@@ -238,7 +238,7 @@ static int usart_open(struct inode *inode, struct file *file)
 			goto out;
 		}
 		fifo_init(&txq[CHANNEL(dev->id)], buf, BUF_SIZE);
-		INIT_LOCK(tx_lock[CHANNEL(dev->id)]);
+		lock_init(&tx_lock[CHANNEL(dev->id)]);
 
 		WQ_INIT(wq[CHANNEL(dev->id)]);
 

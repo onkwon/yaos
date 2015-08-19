@@ -5,11 +5,11 @@ run at a high priority. In fact softirq is just a kernel task running with
 interrupts enabled and can sleep but has the highest priority(`HIGH_PRIORITY`)
 amongst running tasks.
 
-`softirqd` starts to run when raising with `raise_softirq()` in an interrupt
-service routine. The first pending bit(the lowest bit) of softirq gets checked
-first. It thus be better to place high priority task in lower pending bit. But
-bear in mind even if high priority softirq gets raised it doesn't take place
-until the rest lower pending bits get all checked finising the current round.
+`softirqd` starts to run when raising with `raise_softirq()`. The first pending
+bit(the lowest bit) of softirq gets checked first. It thus be better to place
+high priority task in lower pending bit. But bear in mind even if high priority
+softirq gets raised it doesn't take place until the rest lower pending bits get
+all checked finising the current round.
 
 ----
 
@@ -43,6 +43,6 @@ softirq라면 인터럽트와 다를바가 없고(일반 태스크를 선점하�
 리얼타임 태스크가 실행중일 때는 상위 리얼타임 태스크가 종료할 때까지 softirq는
 지연된다.  
 
-* RT_LEAST_PRIORITY+1 인 경우 일반 태스크와 함께 스케쥴링된다(다만 가장 높은
+* RT_LOW_PRIORITY+1 인 경우 일반 태스크와 함께 스케쥴링된다(다만 가장 높은
 일반 태스크 우선순위를 갖고 있으므로 프로세서 점유시간이 낮은 우선순위
 태스크보다 길다).
