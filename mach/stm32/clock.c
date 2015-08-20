@@ -113,6 +113,8 @@ void clock_init()
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */
+	/* prefetch buffer gets activated from reset. disable to avoid extra
+	 * flash access that consumes 20mA for 128-bit line fetching */
 
 	/* 1. Turn on HSE oscillator. */
 	BITBAND(&RCC_CR, HSEON, ON);

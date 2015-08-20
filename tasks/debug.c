@@ -1,4 +1,4 @@
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUGGER
 #include <foundation.h>
 #include <kernel/task.h>
 

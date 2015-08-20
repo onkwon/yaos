@@ -22,7 +22,7 @@ void rts_rq_add(struct scheduler *q, struct task *new)
 
 	q->nr_running++;
 
-	/* keep the highest priority of tasks residing in runqueue */
+	/* real time run queue always holds the most priority in `pri` */
 	if (pri < q->pri)
 		q->pri = pri;
 

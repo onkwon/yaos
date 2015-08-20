@@ -18,17 +18,17 @@
 #define panic()			while (1)
 
 #ifdef CONFIG_DEBUG
-#define debug(fmt) do { \
+#define debug(fmt...)		do { \
 	extern void __putc_debug(int c); \
 	void (*temp)(int) = putchar; \
 	putchar = __putc_debug; \
 	printf("%s:%s():%d: ", __FILE__, __func__, __LINE__); \
-	printf fmt; \
-	printf("\n"); \
+	printf(fmt); \
+	putchar('\n'); \
 	putchar = temp; \
 } while (0)
 #else
-#define debug(fmt)
+#define debug(fmt...)
 #endif
 
 #endif /* __ERROR_H__ */

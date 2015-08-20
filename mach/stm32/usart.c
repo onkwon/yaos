@@ -71,6 +71,9 @@ static int usart_open(unsigned int channel, struct usart arg)
 	SET_PORT_PIN(port, pin, PIN_OUTPUT_50MHZ | PIN_ALT); /* tx */
 	SET_PORT_PIN(port, pin+1, PIN_INPUT | PIN_FLOATING); /* rx */
 
+	/* FOR TEST to use rx pin as wake-up source */
+	LINK_EXTI2NVIC(port, pin+1);
+
 	SET_IRQ(ON, nvector - 16);
 
 	*(volatile unsigned int *)(channel + 0x08) = arg.brr;

@@ -81,13 +81,14 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 
 		freeze(); /* never reaches here */
 	} else if (tid == 0) { /* parent */
-		sys_yield(); /* it goes sleep exiting from system call
-				to wait for its child's job done
+		sys_yield(); /* it goes sleep as soon as exiting from system
+				call to wait for its child's job to be done
 				that returns the result. */
 		retval = 0;
 	} else { /* error */
-		retval = 0;
 		/* use errno */
+		debug("failed cloning");
+		retval = -ERR_RETRY;
 	}
 
 	return retval;
@@ -150,13 +151,14 @@ static size_t usart_write_polling(struct file *file, void *buf, size_t len)
 		sys_kill((unsigned int)current);
 		freeze(); /* never reaches here */
 	} else if (tid == 0) { /* parent */
-		sys_yield(); /* it goes sleep exiting from system call
-				to wait for its child's job done
+		sys_yield(); /* it goes sleep as soon as exiting from system
+				call to wait for its child's job to be done
 				that returns the result. */
 		retval = 0;
 	} else { /* error */
-		retval = 0;
 		/* use errno */
+		debug("failed cloning");
+		retval = -ERR_RETRY;
 	}
 
 	return retval;

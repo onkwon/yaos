@@ -2,12 +2,10 @@
 #include <kernel/task.h>
 #include <kernel/ticks.h>
 #include <kernel/softirq.h>
+#include <error.h>
 #include "fair.h"
 #ifdef CONFIG_REALTIME
 #include "rt.h"
-#endif
-#ifdef CONFIG_DEBUG
-#include <foundation.h>
 #endif
 
 static struct scheduler cfs;
@@ -52,7 +50,7 @@ static inline void runqueue_add_core(struct task *new)
 	if ((new->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
 			(new->mm.kernel.base[0] != STACK_SENTINEL))
 	{
-		debug(("stack overflow\n"));
+		debug("stack overflow");
 		return;
 	}
 #endif
@@ -102,9 +100,9 @@ void schedule_core()
 
 #ifdef CONFIG_REALTIME
 	if (rts.nr_running) {
-		/* rq_add() and rq_del() of real time scheduler must keep
-		 * the highest priority amongst tasks in `pri` variable.
-		 * `pri` has the least priority when no task in runqueue. */
+		/* real time run queue always holds the most priority in `pri`
+		 * variable. when no task in run queue it goes down to
+		 * `RT_PRIORITY + 1`, the normal priority level. */
 		if (rts.pri <= get_task_pri(current)) {
 rts_next:
 			if ((next = rts_pick_next(&rts))) {

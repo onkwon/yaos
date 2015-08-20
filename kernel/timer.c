@@ -90,6 +90,11 @@ infinite:
 	goto infinite;
 }
 
+unsigned int get_timer_nr()
+{
+	return timerq.nr;
+}
+
 #include <kernel/init.h>
 
 int __init timer_init()

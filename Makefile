@@ -48,7 +48,7 @@ ifdef CONFIG_DEBUG
 endif
 LDFLAGS = -nostartfiles -Tmach/$(MACH)/$(TARGET).lds
 OCFLAGS = -O binary
-ODFLAGS = -Dsx
+ODFLAGS = -DsxS
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
 
 SRCS_ASM = $(wildcard *.S)

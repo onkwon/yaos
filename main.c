@@ -40,7 +40,7 @@ static int __init make_init_task()
 {
 	extern void idle(); /* becomes init task */
 
-	/* stack must be allocated firstly. and to build root relationship
+	/* stack must be allocated first. and to build root relationship
 	 * properly `current` must be set to `init`. */
 	current = &init;
 

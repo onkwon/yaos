@@ -26,6 +26,7 @@ struct timer_queue {
 
 int add_timer(struct timer *new);
 int timer_init();
+unsigned int get_timer_nr();
 
 int sys_timer_create(struct timer *new);
 
