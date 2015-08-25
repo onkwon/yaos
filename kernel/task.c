@@ -186,7 +186,7 @@ int clone(unsigned int flags, void *ref)
 
 	if (get_task_flags(current) & TASK_CLONED) {
 		set_task_flags(current, get_task_flags(current) & ~TASK_CLONED);
-		return (int)current; /* tid */
+		return get_task_tid(current);
 	}
 
 	if ((child = kmalloc(sizeof(struct task))) == NULL)
@@ -254,19 +254,6 @@ int clone(unsigned int flags, void *ref)
 	runqueue_add(child);
 
 	return 0;
-}
-
-void sum_curr_stat(struct task *to)
-{
-	/* make sure task `to` is alive not to access wrong address */
-
-	unsigned int irqflag;
-	irq_save(irqflag);
-	local_irq_disable();
-
-	to->se.sum_exec_runtime += current->se.sum_exec_runtime;
-
-	irq_restore(irqflag);
 }
 
 int sys_fork()

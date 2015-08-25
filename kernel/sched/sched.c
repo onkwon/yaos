@@ -148,7 +148,7 @@ adjust_vruntime:
 	current->se.exec_start = get_ticks_64();
 }
 
-inline void runqueue_add(struct task *new)
+void runqueue_add(struct task *new)
 {
 	unsigned int irqflag;
 	irq_save(irqflag);
@@ -157,7 +157,7 @@ inline void runqueue_add(struct task *new)
 	irq_restore(irqflag);
 }
 
-inline void runqueue_del(struct task *task)
+void runqueue_del(struct task *task)
 {
 	unsigned int irqflag;
 	irq_save(irqflag);
@@ -169,6 +169,20 @@ inline void runqueue_del(struct task *task)
 #endif
 	} else
 		cfs_rq_del(&cfs, task);
+
+	irq_restore(irqflag);
+}
+
+void sum_curr_stat(struct task *to)
+{
+	/* make sure task `to` is alive not to access wrong address */
+
+	unsigned int irqflag;
+	irq_save(irqflag);
+	local_irq_disable();
+
+	update_curr();
+	to->se.sum_exec_runtime += current->se.sum_exec_runtime;
 
 	irq_restore(irqflag);
 }

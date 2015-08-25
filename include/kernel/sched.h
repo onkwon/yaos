@@ -35,6 +35,7 @@ void scheduler_init();
 struct task;
 extern inline void runqueue_add(struct task *new);
 extern inline void runqueue_del(struct task *task);
+extern inline void sum_curr_stat(struct task *to);
 
 void sys_yield();
 

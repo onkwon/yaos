@@ -578,36 +578,33 @@ static size_t embed_read_core(struct file *file, void *buf, size_t len)
 static size_t embed_read(struct file *file, void *buf, size_t len)
 {
 	struct task *parent;
-	size_t retval;
 	int tid;
 
 	parent = current;
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
-	if (tid > 0) { /* child turning to kernel task,
-			  nomore in handler mode */
-		retval = embed_read_core(file, buf, len);
-		__set_retval(parent, retval);
-
-		sum_curr_stat(parent);
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
-
-		sys_kill((unsigned int)current);
-
-		freeze(); /* never reaches here */
-	} else if (tid == 0) { /* parent */
-		sys_yield(); /* it goes sleep as soon as exiting from system
-				call to wait for its child's job to be done
-				that returns the result. */
-		retval = 0;
-	} else { /* error */
-		/* use errno */
+	if (tid == 0) { /* parent */
+		set_task_state(current, TASK_WAITING);
+		sys_schedule();
+		return 0;
+	} else if (tid < 0) { /* error */
 		debug("failed cloning");
-		retval = -ERR_RETRY;
+		return -ERR_RETRY;
 	}
 
-	return retval;
+	__set_retval(parent, embed_read_core(file, buf, len));
+
+	sum_curr_stat(parent);
+
+	if (get_task_state(parent)) {
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+	}
+
+	sys_kill((unsigned int)current);
+	freeze(); /* never reaches here */
+
+	return -ERR_UNDEF;
 }
 
 static size_t embed_write_core(struct file *file, void *buf, size_t len)
@@ -643,36 +640,33 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 static size_t embed_write(struct file *file, void *buf, size_t len)
 {
 	struct task *parent;
-	size_t retval;
 	int tid;
 
 	parent = current;
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
-	if (tid > 0) { /* child turning to kernel task,
-			  nomore in handler mode */
-		retval = embed_write_core(file, buf, len);
-		__set_retval(parent, retval);
-
-		sum_curr_stat(parent);
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
-
-		sys_kill((unsigned int)current);
-
-		freeze(); /* never reaches here */
-	} else if (tid == 0) { /* parent */
-		sys_yield(); /* it goes sleep as soon as exiting from system
-				call to wait for its child's job to be done
-				that returns the result. */
-		retval = 0;
-	} else { /* error */
-		/* use errno */
+	if (tid == 0) {
+		set_task_state(current, TASK_WAITING);
+		sys_schedule();
+		return 0;
+	} else if (tid < 0) {
 		debug("failed cloning");
-		retval = -ERR_RETRY;
+		return -ERR_RETRY;
 	}
 
-	return retval;
+	__set_retval(parent, embed_write_core(file, buf, len));
+
+	sum_curr_stat(parent);
+
+	if (get_task_state(parent)) {
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+	}
+
+	sys_kill((unsigned int)current);
+	freeze(); /* never reaches here */
+
+	return -ERR_UNDEF;
 }
 
 static int embed_open(struct inode *inode, struct file *file)
@@ -849,7 +843,7 @@ static int build_file_system(const struct device *dev)
 	/* make the root node. root inode is always 0. */
 	if (make_node(FT_ROOT, dev) != 0) {
 		printk("wrong root inode\n");
-		return -ERR_UNKNOWN;
+		return -ERR_UNDEF;
 	}
 
 	struct embed_inode root_inode;
@@ -902,7 +896,7 @@ int embedfs_mount(const struct device *dev)
 	return 0;
 err:
 	printk("can't build root file system\n");
-	return -ERR_UNKNOWN;
+	return -ERR_UNDEF;
 }
 
 static struct super_operations super_ops = {

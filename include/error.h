@@ -12,7 +12,6 @@
 #define ERR_PATH		8
 #define ERR_ATTR		9
 #define ERR_CREATE		10
-#define ERR_UNKNOWN		11
 
 #define freeze()		while (1)
 #define panic()			while (1)

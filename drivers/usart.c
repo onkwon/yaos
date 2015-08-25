@@ -54,44 +54,48 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		return usart_read_core(file, buf, len);
 
 	struct task *parent;
-	size_t retval, slice;
+	size_t retval, cnt;
 	int tid;
 
 	parent = current;
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
-	if (tid > 0) { /* child turning to kernel task,
-			  nomore in handler mode */
-		for (retval = 0; retval < len &&
-				file->offset < file->inode->size;) {
-			if ((slice = usart_read_core(file, buf + retval,
-							len - retval)) <= 0) {
-				slice = 0;
-				wq_wait(&wq[CHANNEL(file->inode->dev)]);
-			}
-			retval += slice;
-		}
-		__set_retval(parent, retval);
-
-		sum_curr_stat(parent);
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
-
-		sys_kill((unsigned int)current);
-
-		freeze(); /* never reaches here */
-	} else if (tid == 0) { /* parent */
-		sys_yield(); /* it goes sleep as soon as exiting from system
-				call to wait for its child's job to be done
-				that returns the result. */
-		retval = 0;
-	} else { /* error */
+	if (tid == 0) { /* parent */
+		/* it goes TASK_WAITING state as soon as exiting from system
+		 * call to wait for its child's job to be done that returns the
+		 * result. */
+		set_task_state(current, TASK_WAITING);
+		sys_schedule();
+		return 0;
+	} else if (tid < 0) { /* error */
 		/* use errno */
 		debug("failed cloning");
-		retval = -ERR_RETRY;
+		return -ERR_RETRY;
 	}
 
-	return retval;
+	/* child takes place from here turning to kernel task,
+	 * nomore in handler mode */
+	for (retval = 0; retval < len && file->offset < file->inode->size;) {
+		if ((cnt = usart_read_core(file, buf + retval, len - retval))
+				<= 0) {
+			cnt = 0;
+			wq_wait(&wq[CHANNEL(file->inode->dev)]);
+		}
+		retval += cnt;
+	}
+
+	__set_retval(parent, retval);
+	sum_curr_stat(parent);
+
+	if (get_task_state(parent)) {
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+	}
+
+	sys_kill((unsigned int)current);
+	freeze(); /* never reaches here */
+
+	return -ERR_UNDEF;
 }
 
 static size_t usart_write_int(struct file *file, void *buf, size_t len)

@@ -64,9 +64,11 @@ static int __init make_init_task()
 
 static int __init console_init()
 {
+	extern int sys_open_core(char *filename, int mode);
+
 	int fd;
 
-	fd = sys_open(DEVFS_ROOT CONSOLE, O_RDWR | O_NONBLOCK);
+	fd = sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR | O_NONBLOCK);
 	stdin = stdout = stderr = fd;
 
 	return 0;

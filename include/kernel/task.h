@@ -112,11 +112,16 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr);
 int alloc_mm(struct task *new, void *ref, unsigned int flags);
 void wrapper();
 void destroy(struct task *task);
-void sum_curr_stat(struct task *to);
 
 struct task *find_task(unsigned int addr, struct task *head);
 
 int sys_kill(unsigned int tid);
 int sys_fork();
+
+/* It used to return `(int)(p)`, task address, but it could probably lead
+ * problem when the address is higher than 0x80000000 resulting in negative
+ * value. We don't really make use of tid at the moment which is just task
+ * address. So return just 1. */
+#define get_task_tid(p)			1
 
 #endif /* __TASK_H__ */

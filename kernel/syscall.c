@@ -4,7 +4,7 @@
 #include <error.h>
 #include <stdlib.h>
 
-int sys_open(char *filename, int mode)
+int sys_open_core(char *filename, int mode)
 {
 	struct superblock *sb;
 	struct inode *inode, *new;
@@ -74,6 +74,44 @@ int sys_open(char *filename, int mode)
 errout:
 	kfree(new);
 	return err;
+}
+
+int sys_open(char *filename, int mode)
+{
+	struct task *parent;
+	int tid;
+
+	parent = current;
+	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+
+	if (tid == 0) { /* parent */
+		/* it goes TASK_WAITING state as soon as exiting from system
+		 * call to wait for its child's job to be done that returns the
+		 * result. */
+		set_task_state(current, TASK_WAITING);
+		sys_schedule();
+		return 0;
+	} else if (tid < 0) { /* error */
+		/* use errno */
+		debug("failed cloning");
+		return -ERR_RETRY;
+	}
+
+	/* child takes place from here turning to kernel task,
+	 * nomore in handler mode */
+	__set_retval(parent, sys_open_core(filename, mode));
+
+	sum_curr_stat(parent);
+
+	if (get_task_state(parent)) {
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+	}
+
+	sys_kill((unsigned int)current);
+	freeze(); /* never reaches here */
+
+	return -ERR_UNDEF;
 }
 
 int sys_read(int fd, void *buf, size_t len)
