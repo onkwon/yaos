@@ -13,6 +13,7 @@
 void __enter_sleep_mode()
 {
 	PWRCLK_ENABLE();
+	dsb();
 	__wfi();
 	PWRCLK_DISABLE();
 }
@@ -35,6 +36,7 @@ void __enter_stop_mode()
 	PWR_CR |= 1; /* configure LPDS bit in PWR_CR */
 
 	stop_scheduler();
+	dsb();
 	__wfi();
 	clock_init();
 	run_scheduler();

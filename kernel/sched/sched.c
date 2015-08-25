@@ -192,6 +192,7 @@ void __attribute__((naked, used, optimize("O0"))) __schedule()
 	schedule_prepare();
 	schedule_core();
 	schedule_finish();
+	dsb();
 #ifdef CONFIG_DEBUG
 	sched_overhead -= get_systick();
 #endif

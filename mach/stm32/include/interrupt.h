@@ -18,7 +18,7 @@
 #define ISR_REGISTER(vector_nr, func)	({ \
 		extern unsigned int _ram_start; \
 		*((unsigned int *)&_ram_start + vector_nr) = (unsigned int)func; \
-		dmb(); \
+		dsb(); \
 	})
 #define __register_isr(nirq, func)	ISR_REGISTER(nirq, func)
 #define __get_active_irq()		(GET_PSR() & 0x1ff)

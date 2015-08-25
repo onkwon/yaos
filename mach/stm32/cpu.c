@@ -44,8 +44,9 @@ static void __init __attribute__((naked, used)) entry()
 	SCB_SHPR2 |= 0xf0000000; /* SVCall : the lowest priority, 15 */
 	SCB_SHCSR |= 0x00070000; /* enable faults */
 
-	port_init();
+	dsb();
 
+	port_init();
 	main();
 }
 
@@ -159,6 +160,9 @@ static void __init mem_init()
 
 	/* activate vector table in sram */
 	SCB_VTOR = (unsigned int)&_ram_start;
+
+	dsb();
+	isb();
 
 	/* copy .data section from flash to sram */
 	extern char _etext, _data, _edata;
