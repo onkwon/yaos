@@ -1,9 +1,9 @@
 include $(BASEDIR)/CONFIGURE
 
 SRCS_ASM = $(wildcard *.S)
-SRCS     = fs.c
+SRCS     = fs.c ramfs.c
 ifdef CONFIG_FS
-	SRCS += ramfs.c embedfs.c
+	SRCS += embedfs.c
 endif
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 

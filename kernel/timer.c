@@ -90,9 +90,18 @@ infinite:
 	goto infinite;
 }
 
-unsigned int get_timer_nr()
+static void sleep_callback(unsigned int data)
 {
-	return timerq.nr;
+	struct task *task = (struct task *)data;
+
+	/* A trick to enter privileged mode */
+	set_task_flags(current, get_task_flags(current) | TASK_PRIVILEGED);
+	schedule();
+
+	if (get_task_state(task) == TASK_SLEEPING) {
+		set_task_state(task, TASK_RUNNING);
+		runqueue_add(task);
+	}
 }
 
 #include <kernel/init.h>
@@ -111,14 +120,16 @@ int __init timer_init()
 
 	return 0;
 }
+#else
+unsigned int timer_nr = 0;
 #endif /* CONFIG_TIMER */
 
-int sys_timer_create(struct timer *new)
+unsigned int get_timer_nr()
 {
 #ifdef CONFIG_TIMER
-	return __add_timer(new);
+	return timerq.nr;
 #else
-	return -ERR_UNDEF;
+	return timer_nr;
 #endif
 }
 
@@ -129,22 +140,9 @@ int add_timer(struct timer *new)
 
 #include <foundation.h>
 
-static void sleep_callback(unsigned int data)
-{
-	struct task *task = (struct task *)data;
-
-	/* A trick to enter privileged mode */
-	set_task_flags(current, get_task_flags(current) | TASK_PRIVILEGED);
-	schedule();
-
-	if (get_task_state(task) == TASK_SLEEPING) {
-		set_task_state(task, TASK_RUNNING);
-		runqueue_add(task);
-	}
-}
-
 void sleep(unsigned int sec)
 {
+#ifdef CONFIG_TIMER
 	struct timer tm;
 
 	tm.expires = ticks + sec_to_ticks(sec);
@@ -152,15 +150,17 @@ void sleep(unsigned int sec)
 	tm.data = (unsigned int)current;
 	add_timer(&tm);
 	yield();
-
-	/*
+#else
 	unsigned int timeout = ticks + sec_to_ticks(sec);
+	timer_nr++;
 	while (time_before(timeout, ticks));
-	*/
+	timer_nr--;
+#endif
 }
 
 void msleep(unsigned int ms)
 {
+#ifdef CONFIG_TIMER
 	struct timer tm;
 
 	tm.expires = ticks + msec_to_ticks(ms);
@@ -168,6 +168,12 @@ void msleep(unsigned int ms)
 	tm.data = (unsigned int)current;
 	add_timer(&tm);
 	yield();
+#else
+	unsigned int timeout = ticks + msec_to_ticks(ms);
+	timer_nr++;
+	while (time_before(timeout, ticks));
+	timer_nr--;
+#endif
 }
 
 void set_timeout(unsigned int *tv, unsigned int ms)
@@ -181,4 +187,13 @@ int is_timeout(unsigned int goal)
 		return 1;
 
 	return 0;
+}
+
+int sys_timer_create(struct timer *new)
+{
+#ifdef CONFIG_TIMER
+	return __add_timer(new);
+#else
+	return -ERR_UNDEF;
+#endif
 }

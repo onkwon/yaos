@@ -84,9 +84,7 @@ int __init main()
 	/* keep the calling order below because of dependencies. */
 	sys_init();
 	mm_init();
-#ifdef CONFIG_FS
 	fs_init();
-#endif
 	device_init();
 	sysclk_init();
 	scheduler_init();

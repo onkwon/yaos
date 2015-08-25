@@ -152,7 +152,7 @@ int mount(const struct device *dev, const char *mnt_point, const char *fs_type)
 	}
 
 	sb->pathname_len = strlen(mnt_point);
-	/* skip the last `/` */
+	/* skip the last `/`s */
 	while ((sb->pathname_len > 1) && (mnt_point[sb->pathname_len-1] == '/'))
 		sb->pathname_len--;
 
@@ -177,15 +177,22 @@ int mount(const struct device *dev, const char *mnt_point, const char *fs_type)
 
 struct superblock *search_super(const char *pathname)
 {
-	struct list *i, *head;
+	struct list *curr, *head;
 	struct superblock *p, *bestfit;
 
 	bestfit = NULL;
 	head = &sblist;
-	for (i = head->next; i != head; i = i->next) {
-		p = get_container_of(i, struct superblock, list);
+	for (curr = head->next; curr != head; curr = curr->next) {
+		p = get_container_of(curr, struct superblock, list);
 
-		if (!strncmp(p->pathname, pathname, p->pathname_len)) {
+		if (!bestfit && p->pathname_len == 1) /* root */
+			bestfit = p;
+
+		if (pathname[p->pathname_len] &&
+				pathname[p->pathname_len] != '/')
+			continue;
+
+		if (!strncmp(pathname, p->pathname, p->pathname_len)) {
 			if (!bestfit || bestfit->pathname_len < p->pathname_len)
 				bestfit = p;
 		}
@@ -205,7 +212,11 @@ void __init fs_init()
 	itab_init();
 
 	ramfs_register();
+#ifdef CONFIG_FS
 	embedfs_register();
+#else
+	mount(ramfs_build(1024, NULL), "/", "ramfs"); /* root file system */
+#endif
 
 	/* it is nessesary to mount devfs first to populate device nodes in */
 	devfs = ramfs_build(1024, NULL);

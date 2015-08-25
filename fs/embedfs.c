@@ -453,7 +453,7 @@ static int read_inode(struct embed_inode *inode, const struct device *dev)
 	return 0;
 }
 
-static size_t toklen(const char *s, const char token)
+static size_t tok_strlen(const char *s, const char token)
 {
 	const char *p;
 
@@ -488,7 +488,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	}
 
 	for (pwd = pathname + i; *pwd; pwd = pathname + i) {
-		len = toklen(pwd, '/');
+		len = tok_strlen(pwd, '/');
 
 		/* if not a directory, it must be at the end of path. */
 		if (!(curr.mode & FT_DIR))

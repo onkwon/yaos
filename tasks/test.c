@@ -37,6 +37,8 @@ static void test_task()
 	fd = open("/test_write", O_CREATE | O_RDWR);
 	write(fd, buf, 12);
 	close(fd);
+	fd = open("/dev_overlap", O_CREATE);
+	close(fd);
 	printf("end write test\n");
 
 	printf("test()\n");

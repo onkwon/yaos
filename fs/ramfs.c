@@ -203,7 +203,7 @@ static size_t read_block(struct ramfs_inode *inode, unsigned int offset,
 	return (int)((unsigned int)d - (unsigned int)buf);
 }
 
-static size_t toklen(const char *s, const char token)
+static size_t tok_strlen(const char *s, const char token)
 {
 	const char *p;
 
@@ -233,7 +233,7 @@ static const char *lookup(struct ramfs_inode **inode, const char *pathname,
 	curr = (struct ramfs_inode *)sb.root_inode;
 
 	for (pwd = pathname + i; *pwd; pwd = pathname + i) {
-		len = toklen(pwd, '/');
+		len = tok_strlen(pwd, '/');
 
 		/* if not a directory, it must be at the end of path. */
 		if (!(curr->mode & FT_DIR))
@@ -267,7 +267,7 @@ static const char *lookup(struct ramfs_inode **inode, const char *pathname,
 	return pathname + i;
 }
 
-static int ramfs_create(const char *pathname, mode_t mode,
+static int create_file(const char *pathname, mode_t mode,
 		const struct device *dev)
 {
 	struct ramfs_inode *new, *parent;
@@ -300,6 +300,11 @@ static int ramfs_create(const char *pathname, mode_t mode,
 	write_block(parent, &dir, sizeof(struct ramfs_dir), dev);
 
 	return 0;
+}
+
+static int ramfs_create(struct inode *inode, const char *pathname, mode_t mode)
+{
+	return create_file(pathname, mode, inode->sb->dev);
 }
 
 static size_t ramfs_read(struct file *file, void *buf, size_t len)
@@ -347,6 +352,7 @@ static int ramfs_lookup(struct inode *inode, const char *pathname)
 
 static struct inode_operations iops = {
 	.lookup = ramfs_lookup,
+	.create = ramfs_create,
 };
 
 static struct file_operations fops = {
@@ -452,7 +458,7 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 		return -ERR_ALLOC;
 
 	snprintf(buf, len, "%s%s", name, suffix);
-	err = ramfs_create(buf, mode, devfs);
+	err = create_file(buf, mode, devfs);
 
 	if (err)
 		return err;
