@@ -1,11 +1,11 @@
-SRCS_ASM = $(wildcard $(MACH)/*.S)
-SRCS     = $(wildcard $(MACH)/*.c)
+SRCS_ASM = $(wildcard $(TARGET)/*.S)
+SRCS     = $(wildcard $(TARGET)/*.c)
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
 all:
-	@$(MAKE) --print-directory -C $(MACH)
-	$(LD) -o $(MACH).o -r $(OBJS)
+	@$(MAKE) --print-directory -C $(TARGET)
+	$(LD) -o $(TARGET).o -r $(OBJS)
 
 clean:
-	@$(MAKE) clean -C $(MACH)
-	@rm -f $(MACH).o
+	@$(MAKE) clean -C $(TARGET)
+	@rm -f $(TARGET).o

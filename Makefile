@@ -1,15 +1,9 @@
 # Machine dependant
 
-MACH    = stm32
-ARCH    = cortex-m3
-export MACH
-
-CC      = arm-none-eabi-gcc
-LD      = arm-none-eabi-ld
-OC      = arm-none-eabi-objcopy
-OD      = arm-none-eabi-objdump
-
-CFLAGS  = -mcpu=$(ARCH) -mthumb
+CC = arm-none-eabi-gcc
+LD = arm-none-eabi-ld
+OC = arm-none-eabi-objcopy
+OD = arm-none-eabi-objdump
 
 # Configuration
 
@@ -35,18 +29,22 @@ endif
 
 # Common 
 
-TARGET  = yaos
+PROJECT = yaos
+
+-include .config
+export TARGET
 
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
 BASEDIR = $(shell pwd)
 export BASEDIR
 
+CFLAGS += -mcpu=$(ARCH)
 CFLAGS += -Wall -O2 -fno-builtin
-CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(MACH)\"
+CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(TARGET)\"
 ifdef CONFIG_DEBUG
 	CFLAGS += -g -DCONFIG_DEBUG -O0
 endif
-LDFLAGS = -nostartfiles -Tmach/$(MACH)/$(TARGET).lds
+LDFLAGS = -nostartfiles -Tmach/$(TARGET)/$(PROJECT).lds
 OCFLAGS = -O binary
 ODFLAGS = -DsxS
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
@@ -61,14 +59,14 @@ export INC LIBS
 
 SUBDIRS = lib mach kernel fs drivers tasks
 
-all: include $(TARGET)
+all: include common
 	@echo "Section Size(in bytes):"
-	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(TARGET).map
+	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(PROJECT).map
 
-$(TARGET): $(OBJS) subdirs
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $@.map
-	$(OC) $(OCFLAGS) $@ $@.bin
-	$(OD) $(ODFLAGS) $@ > $@.dump
+common: $(OBJS) subdirs
+	$(LD) $(LDFLAGS) -o $(PROJECT).elf $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $(PROJECT).map
+	$(OC) $(OCFLAGS) $(PROJECT).elf $(PROJECT).bin
+	$(OD) $(ODFLAGS) $(PROJECT).elf > $(PROJECT).dump
 
 .PHONY: subdirs $(SUBDIRS)
 subdirs: $(SUBDIRS)
@@ -78,7 +76,7 @@ $(SUBDIRS):
 
 .PHONY: include
 include:
-	-cp -R mach/$(MACH)/include include/asm
+	-cp -R mach/$(TARGET)/include include/asm
 	-cp -R drivers/include include/driver
 	-cp -R lib/include include/lib
 	-cp -R fs/include include/fs
@@ -91,15 +89,16 @@ include:
 
 .PHONY: depend dep
 depend dep:
-	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
+	$(CC) $(CFLAGS) -MM $(SRCS) > .depend
 
 .PHONY: clean
 clean:
 	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
-	@rm -f $(OBJS) $(TARGET_OBJS) $(TARGET) .depend
-	@rm -f $(TARGET:%=%.map)
-	@rm -f $(TARGET:%=%.bin)
-	@rm -f $(TARGET:%=%.dump)
+	@rm -f $(OBJS) $(PROJECT:%=%.elf) .depend
+	@rm -f $(PROJECT:%=%.map)
+	@rm -f $(PROJECT:%=%.bin)
+	@rm -f $(PROJECT:%=%.dump)
+	@rm -f .config
 	@rm -rf include/asm
 	@rm -rf include/driver
 	@rm -rf include/lib
@@ -115,9 +114,12 @@ endif
 endif
 endif
 
+stm32:
+	@echo "TARGET = stm32\nARCH = cortex-m3\nCFLAGS += -mthumb" > .config
+
 .PHONY: burn
 burn:
-	tools/stm32flash/stm32flash -w $(TARGET:%=%.bin) -v -g 0x0 /dev/ttyUSB0
+	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -g 0x0 /dev/ttyUSB0
 .PHONY: dev
 dev:
 	tools/stm32flash/stm32flash /dev/ttyUSB0
