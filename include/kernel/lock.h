@@ -28,6 +28,8 @@
 #define spin_unlock(count)
 #endif /* CONFIG_SMP */
 
+#include <kernel/interrupt.h>
+
 #define spin_lock_irqsave(lock, flag)	do { \
 	irq_save(flag); \
 	local_irq_disable(); \
@@ -70,7 +72,7 @@ struct semaphore {
 				list_add(&wait.link, s.wq.list.prev); \
 			set_task_state(current, TASK_WAITING); \
 			spin_unlock_irqrestore(s.wq.lock, irqflag); \
-			sys_schedule(); \
+			schedule(); \
 		} \
 	} while (atomic_set((int *)&s.count, s.count-1)); \
 }

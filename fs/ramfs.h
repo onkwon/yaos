@@ -17,8 +17,8 @@ struct ramfs_superblock {
 struct ramfs_inode {
 	mode_t mode;
 	size_t size;
-	void *data[NR_DATA_BLOCK];
-} __attribute__((packed));
+	unsigned int *data[NR_DATA_BLOCK];
+};
 
 struct ramfs_dir {
 	void *inode;

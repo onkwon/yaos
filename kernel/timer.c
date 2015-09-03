@@ -1,6 +1,7 @@
 #include <kernel/timer.h>
-#include <kernel/ticks.h>
+#include <kernel/systick.h>
 #include <kernel/task.h>
+#include <kernel/lock.h>
 #include <error.h>
 
 #ifdef CONFIG_TIMER
@@ -10,7 +11,7 @@ struct task *timerd;
 static inline int __add_timer(struct timer *new)
 {
 	struct list *curr;
-	int stamp = (int)ticks;
+	int stamp = (int)systick;
 
 	new->expires -= 1; /* as it uses time_after() not time_equal */
 
@@ -19,7 +20,8 @@ static inline int __add_timer(struct timer *new)
 
 	new->task = current;
 
-	spin_lock(timerq.lock);
+	unsigned int irqflag;
+	spin_lock_irqsave(timerq.lock, irqflag);
 
 	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
 		if (((int)new->expires - stamp) <
@@ -33,7 +35,7 @@ static inline int __add_timer(struct timer *new)
 	list_add(&new->list, curr->prev);
 	timerq.nr++;
 
-	spin_unlock(timerq.lock);
+	spin_unlock_irqrestore(timerq.lock, irqflag);
 
 	return 0;
 }
@@ -48,7 +50,7 @@ infinite:
 	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
 		timer = (struct timer *)curr;
 
-		if (time_before(timer->expires, ticks)) {
+		if (time_before(timer->expires, systick)) {
 			timerq.next = timer->expires;
 			break;
 		}
@@ -86,7 +88,7 @@ infinite:
 		spin_unlock_irqrestore(timerq, irqflag);
 	}
 
-	sys_yield();
+	yield();
 	goto infinite;
 }
 
@@ -145,15 +147,15 @@ void sleep(unsigned int sec)
 #ifdef CONFIG_TIMER
 	struct timer tm;
 
-	tm.expires = ticks + sec_to_ticks(sec);
+	tm.expires = systick + sec_to_ticks(sec);
 	tm.event = sleep_callback;
 	tm.data = (unsigned int)current;
 	add_timer(&tm);
 	yield();
 #else
-	unsigned int timeout = ticks + sec_to_ticks(sec);
+	unsigned int timeout = systick + sec_to_ticks(sec);
 	timer_nr++;
-	while (time_before(timeout, ticks));
+	while (time_before(timeout, systick));
 	timer_nr--;
 #endif
 }
@@ -163,27 +165,27 @@ void msleep(unsigned int ms)
 #ifdef CONFIG_TIMER
 	struct timer tm;
 
-	tm.expires = ticks + msec_to_ticks(ms);
+	tm.expires = systick + msec_to_ticks(ms);
 	tm.event = sleep_callback;
 	tm.data = (unsigned int)current;
 	add_timer(&tm);
 	yield();
 #else
-	unsigned int timeout = ticks + msec_to_ticks(ms);
+	unsigned int timeout = systick + msec_to_ticks(ms);
 	timer_nr++;
-	while (time_before(timeout, ticks));
+	while (time_before(timeout, systick));
 	timer_nr--;
 #endif
 }
 
 void set_timeout(unsigned int *tv, unsigned int ms)
 {
-	*tv = ticks + msec_to_ticks(ms);
+	*tv = systick + msec_to_ticks(ms);
 }
 
 int is_timeout(unsigned int goal)
 {
-	if (time_after(goal, ticks))
+	if (time_after(goal, systick))
 		return 1;
 
 	return 0;

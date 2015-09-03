@@ -1,7 +1,23 @@
 #include <foundation.h>
 #include <kernel/task.h>
 #include <kernel/timer.h>
-#include <kernel/ticks.h>
+#include <kernel/systick.h>
+
+static void test_usart2()
+{
+	int fd;
+
+	if ((fd = open("/dev/usart2", O_RDWR | O_NONBLOCK)) <= 0)
+		printf("usart2: open error %x\n", fd);
+
+	int buf, ret;
+
+	while (1) {
+		if ((ret = read(fd, &buf, 1)))
+			putchar(buf);
+	}
+}
+REGISTER_TASK(test_usart2, 0, DEFAULT_PRIORITY);
 
 static volatile int flag;
 static void t1()
@@ -15,7 +31,7 @@ static void test_timer()
 	struct timer ttt;
 	while (1) {
 		flag = 0;
-		ttt.expires = ticks + 50;
+		ttt.expires = systick + 50;
 		ttt.event = t1;
 		add_timer(&ttt);
 
@@ -45,12 +61,12 @@ static void test_task()
 	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
 
 	while (1) {
-		t = get_ticks_64();
+		t = get_systick64();
 		th = t >> 32;
 		bh = t;
 
 		dmb();
-		v = ticks;
+		v = systick;
 
 		printf("%08x ", v);
 		printf("%08x", th);

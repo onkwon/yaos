@@ -55,7 +55,7 @@ void __attribute__((naked)) svc_handler()
 }
 #endif /* CONFIG_SYSCALL */
 
-void __attribute__((naked)) isr_default()
+void __attribute__((naked)) isr_fault()
 {
 	unsigned int sp, lr, psr, usp;
 

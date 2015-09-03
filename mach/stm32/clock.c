@@ -16,7 +16,7 @@
 #define SWS			2
 #define SW			0
 
-unsigned int get_sysclk()
+unsigned int getclk()
 {
 	unsigned int clk, pllmul;
 
@@ -46,7 +46,7 @@ unsigned int get_sysclk()
 	return clk;
 }
 
-unsigned int get_hclk(unsigned int sysclk)
+static unsigned int get_hclk(unsigned int sysclk)
 {
 	unsigned int clk, pre;
 
@@ -57,7 +57,7 @@ unsigned int get_hclk(unsigned int sysclk)
 	return clk;
 }
 
-unsigned int get_pclk1(unsigned int hclk)
+static unsigned int get_pclk1(unsigned int hclk)
 {
 	unsigned int clk, pre;
 
@@ -68,7 +68,7 @@ unsigned int get_pclk1(unsigned int hclk)
 	return clk;
 }
 
-unsigned int get_pclk2(unsigned int hclk)
+static unsigned int get_pclk2(unsigned int hclk)
 {
 	unsigned int clk, pre;
 
@@ -79,7 +79,7 @@ unsigned int get_pclk2(unsigned int hclk)
 	return clk;
 }
 
-unsigned int get_adclk(unsigned int pclk2)
+static unsigned int get_adclk(unsigned int pclk2)
 {
 	unsigned int clk, pre;
 
@@ -90,7 +90,7 @@ unsigned int get_adclk(unsigned int pclk2)
 	return clk;
 }
 
-unsigned int get_stkclk(unsigned int hclk)
+static unsigned int get_stkclk(unsigned int hclk)
 {
 	unsigned int clk;
 
@@ -102,14 +102,22 @@ unsigned int get_stkclk(unsigned int hclk)
 	return clk;
 }
 
-unsigned int get_sysclk_hz()
+unsigned int get_sysclk_freq()
 {
-	return get_stkclk(get_hclk(get_sysclk()));
+	return get_stkclk(get_hclk(getclk()));
+}
+
+int sysclk_init()
+{
+	reset_sysclk();
+	set_sysclk(get_sysclk_freq() / HZ - 1);
+
+	return IRQ_SYSTICK;
 }
 
 #include <kernel/init.h>
 
-void clock_init()
+void __init clock_init()
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */

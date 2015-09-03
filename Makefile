@@ -38,15 +38,15 @@ VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --a
 BASEDIR = $(shell pwd)
 export BASEDIR
 
-CFLAGS += -mcpu=$(ARCH)
-CFLAGS += -Wall -O2 -fno-builtin
+CFLAGS += -march=$(ARCH)
+CFLAGS += -Wall -O2 -fno-builtin -nostdlib -lgcc
 CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(TARGET)\"
 ifdef CONFIG_DEBUG
 	CFLAGS += -g -DCONFIG_DEBUG -O0
 endif
-LDFLAGS = -nostartfiles -Tmach/$(TARGET)/$(PROJECT).lds
+LDFLAGS = -nostartfiles -Tmach/$(TARGET)/ld.script
 OCFLAGS = -O binary
-ODFLAGS = -DsxS
+ODFLAGS = -DxS
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
 
 SRCS_ASM = $(wildcard *.S)
@@ -82,7 +82,7 @@ include:
 	-cp -R fs/include include/fs
 
 .c.o:
-	$(CC) -c $< $(CFLAGS) $(INC) $(LIBS)
+	$(CC) $(CFLAGS) -c $< $(INC) $(LIBS)
 
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o
@@ -98,7 +98,6 @@ clean:
 	@rm -f $(PROJECT:%=%.map)
 	@rm -f $(PROJECT:%=%.bin)
 	@rm -f $(PROJECT:%=%.dump)
-	@rm -f .config
 	@rm -rf include/asm
 	@rm -rf include/driver
 	@rm -rf include/lib
@@ -115,7 +114,11 @@ endif
 endif
 
 stm32:
-	@echo "TARGET = stm32\nARCH = cortex-m3\nCFLAGS += -mthumb" > .config
+	@echo "TARGET = stm32\nARCH = armv7-m\nCFLAGS += -mtune=cortex-m3 -mthumb" > .config
+rpi:
+	@echo "TARGET = rpi\nARCH = armv6zk\nCFLAGS += -mfpu=vfp -mfloat-abi=hard -mtune=arm1176jzf-s" > .config
+rpi2:
+	@echo "TARGET = rpi2\nARCH = armv7-a\nCFLAGS += -mfpu=neon-vfpv4 -mfloat-abi=hard -mtune=cortex-a7" > .config
 
 .PHONY: burn
 burn:

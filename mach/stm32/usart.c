@@ -140,7 +140,7 @@ static inline unsigned int conv_channel(unsigned int channel)
 int __usart_open(unsigned int channel, unsigned int baudrate)
 {
 	return usart_open(conv_channel(channel), (struct usart) {
-		.brr  = brr2reg(baudrate, get_sysclk()),
+		.brr  = brr2reg(baudrate, getclk()),
 		.gtpr = 0,
 		.cr3  = 0,
 		.cr2  = 0,

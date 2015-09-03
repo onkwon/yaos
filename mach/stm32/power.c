@@ -108,7 +108,8 @@ static void disp_clkinfo()
 
 	unsigned int sysclk, hclk, pclk1, pclk2, adclk;
 
-	sysclk = get_sysclk();
+	/*
+	sysclk = getclk();
 	hclk   = get_hclk  (sysclk);
 	pclk1  = get_pclk1 (hclk);
 	pclk2  = get_pclk2 (hclk);
@@ -117,6 +118,7 @@ static void disp_clkinfo()
 	printf("System clock frequency\t %d\n"
 		"(hclk   %d, pclk1  %d, pclk2  %d, adclk  %d)\n\n",
 		sysclk, hclk, pclk1, pclk2, adclk);
+	*/
 	printf("Enabled peripheral clock:\n");
 	printf("AHB  %08x\n", RCC_AHBENR);
 	printf("APB2 %08x\n", RCC_APB2ENR);

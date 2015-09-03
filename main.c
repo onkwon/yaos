@@ -1,15 +1,7 @@
 #include <foundation.h>
-#include <kernel/page.h>
 #include <kernel/init.h>
-
-static void __init sys_init()
-{
-	extern char _init_func_list;
-	unsigned int *p = (unsigned int *)&_init_func_list;
-
-	while (*p)
-		((void (*)())*p++)();
-}
+#include <kernel/task.h>
+#include <kernel/sched.h>
 
 static void __init load_user_task()
 {
@@ -74,8 +66,19 @@ static int __init console_init()
 	return 0;
 }
 
+static void __init sys_init()
+{
+	extern char _init_func_list;
+	unsigned int *p = (unsigned int *)&_init_func_list;
+
+	while (*p)
+		((void (*)())*p++)();
+}
+
+#include <kernel/page.h>
 #include <kernel/softirq.h>
 #include <kernel/timer.h>
+#include <kernel/systick.h>
 
 int __init main()
 {
@@ -86,7 +89,7 @@ int __init main()
 	mm_init();
 	fs_init();
 	device_init();
-	sysclk_init();
+	systick_init();
 	scheduler_init();
 	console_init();
 
@@ -107,10 +110,12 @@ int __init main()
 
 	/* everything ready now */
 	sei();
-	sys_schedule();
+	resched();
 
 	/* it doesn't really reach up to this point. init task becomes idle
 	 * magically by scheduler as its context already set to idle */
+	__context_restore(current);
+	__ret_from_exc(0);
 	freeze();
 
 	return 0;

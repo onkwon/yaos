@@ -17,14 +17,15 @@
 #define panic()			while (1)
 
 #ifdef CONFIG_DEBUG
-#define debug(fmt...)		do { \
-	extern void __putc_debug(int c); \
-	void (*temp)(int) = putchar; \
-	putchar = __putc_debug; \
-	printf("%s:%s():%d: ", __FILE__, __func__, __LINE__); \
-	printf(fmt); \
-	putchar('\n'); \
-	putchar = temp; \
+#include <io.h>
+#define debug(fmt...)		do {				\
+	extern void __putc_debug(int c);			\
+	void (*temp)(int) = putchar;				\
+	putchar = __putc_debug;					\
+	printk("%s:%s():%d: ", __FILE__, __func__, __LINE__);	\
+	printk(fmt);						\
+	printk("\n");						\
+	putchar = temp;						\
 } while (0)
 #else
 #define debug(fmt...)

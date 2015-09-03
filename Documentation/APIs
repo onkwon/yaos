@@ -132,15 +132,15 @@ count. When the count reaches 0, interrupts get enabled.
 
 ## time
 
-Variable `ticks` can be accessed directly. `ticks` is ~~not~~ counted every
-HZ, ~~but hardware system clock, `get_stkclk()`.~~ To calculate elapsed time in
-second, ~~`ticks` / `get_stkclk()`~~ `ticks` / `HZ`.
+Variable `systick` can be accessed directly. `systick` is ~~not~~ counted every
+HZ, ~~but hardware system clock, `get_sysclk_freq()`.~~ To calculate elapsed
+time in second, ~~`systick` / `get_sysclk_freq()`~~ `systick` / `HZ`.
 
-`get_ticks_64()` - to get whole 64-bit counter.
+`get_systick64()` - to get whole 64-bit counter.
 
 ### timer
 
-32비트 ticks 값을 초과하는 시간은 설정할 수 없다. 즉 50HZ 에서 설정할 수 있는
+32비트 systick 값을 초과하는 시간은 설정할 수 없다. 즉 50HZ 에서 설정할 수 있는
 타이머의 최대 시간은 2년 남짓이다(32bits / 60(초) / 60(분) / 60(시) / 24(일) /
 365(년)).
 
@@ -279,7 +279,7 @@ flags 설명(gpio.h)
 할당받은 softirq 번호가 `SOFTIRQ_MAX` 보다 크거나 같다면 오류. softirq pool이
 이미 꽉 찬 상태. 등록시 반드시 체크필요.
 
-### miscellaneous
+## miscellaneous
 
 `itoa()` 함수원형: `char *itoa(int v, char *buf, unsigned int base, size_t
 maxlen)`. 오버플로어를 방지하기 위해 마지막 maxlen 인자가 추가됨. 변환된
@@ -297,3 +297,8 @@ MMU 가상화 장치의 혜택을 받지 못하므로 새로 생성된 태스크
 원본의 주소공간(원본 스택주소내의 주소일 경우)을 가리키는 경우 해당 주소를
 재조정해야 한다. 하나의 태스크 주소공간에 다른 태스크의 주소공간이 어드레싱될
 경우는 생길 수 없다. 따라서 세련된 방식은 아닐지라도 유효한 방법이 될 수 있다.
+
+## scheduler
+
+`schedule()` - general use in user context, either a user task or a kernel task
+`resched()` - is used when scheduling needed in handler context, raising interrupt pending bit or setting `resched` flag

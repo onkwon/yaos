@@ -1,6 +1,6 @@
 #include <kernel/sched.h>
 #include <kernel/task.h>
-#include <kernel/ticks.h>
+#include <kernel/systick.h>
 #include <kernel/softirq.h>
 #include <error.h>
 #include "fair.h"
@@ -14,11 +14,12 @@ static struct scheduler rts;
 #endif
 
 /* Calling update_curr() as soon as the system timer interrupt occurs would be
- * the best chance other than elsewhere not to count scheduling overhead but to
- * count only its running time, as long as ticks gets updated asynchronously. */
+ * the best chance other than in elsewhere not to count scheduling overhead but
+ * to count only its running time, as long as ticks gets updated
+ * asynchronously. */
 static inline void update_curr()
 {
-	uint64_t clock = get_ticks_64();
+	uint64_t clock = get_systick64();
 	unsigned delta_exec;
 
 	delta_exec = clock - current->se.exec_start;
@@ -45,15 +46,6 @@ static inline void update_curr()
 
 static inline void runqueue_add_core(struct task *new)
 {
-#ifdef CONFIG_DEBUG
-	/* stack overflow */
-	if ((new->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
-			(new->mm.kernel.base[0] != STACK_SENTINEL))
-	{
-		debug("stack overflow");
-		return;
-	}
-#endif
 	if (is_task_realtime(new)) {
 #ifdef CONFIG_REALTIME
 		rts_rq_add(&rts, new);
@@ -81,7 +73,7 @@ static inline void run_softirq()
 	extern struct timer_queue timerq;
 	extern struct task *timerd;
 
-	if (timerq.nr && time_after(timerq.next, ticks)) {
+	if (timerq.nr && time_after(timerq.next, systick)) {
 		if (get_task_state(timerd)) {
 			set_task_state(timerd, TASK_RUNNING);
 			if (current != timerd)
@@ -93,6 +85,18 @@ static inline void run_softirq()
 
 void schedule_core()
 {
+#ifdef CONFIG_DEBUG
+	/* stack overflow */
+	if ((current->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
+			(current->mm.kernel.base[0] != STACK_SENTINEL))
+	{
+		debug("stack overflow %x(%x)", current, current->addr);
+		unsigned int i;
+		for (i = 0; i < NR_CONTEXT; i++)
+			debug("%08x", current->mm.sp[i]);
+		return;
+	}
+#endif
 	update_curr();
 	run_softirq();
 
@@ -100,8 +104,8 @@ void schedule_core()
 
 #ifdef CONFIG_REALTIME
 	if (rts.nr_running) {
-		/* real time run queue always holds the most priority in `pri`
-		 * variable. when no task in run queue it goes down to
+		/* The realtime runqueue always holds the most priority in
+		 * `pri` variable. when no task in run queue it goes down to
 		 * `RT_PRIORITY + 1`, the normal priority level. */
 		if (rts.pri <= get_task_pri(current)) {
 rts_next:
@@ -145,7 +149,7 @@ rts_next:
 adjust_vruntime:
 	/* Update newly selected task's start time because it is stale
 	 * as much as the one has been waiting for. */
-	current->se.exec_start = get_ticks_64();
+	current->se.exec_start = get_systick64();
 }
 
 void runqueue_add(struct task *new)
@@ -175,7 +179,7 @@ void runqueue_del(struct task *task)
 
 void sum_curr_stat(struct task *to)
 {
-	/* make sure task `to` is alive not to access wrong address */
+	/* make sure task `to` is still alive not to access stale address */
 
 	unsigned int irqflag;
 	irq_save(irqflag);
@@ -191,14 +195,11 @@ void sum_curr_stat(struct task *to)
 int sched_overhead;
 #endif
 
-/* A register that is not yet saved in stack gets used by compiler optimization.
- * If I put all the registers that are not yet saved in clobber list,
- * it changes code ordering that ruins stack, showing weird behavior.
- * Make it in an assembly file or do some study. */
-void __attribute__((naked, used, optimize("O0"))) __schedule()
+void __attribute__((naked, used)) __schedule()
 {
 #ifdef CONFIG_DEBUG
-	sched_overhead = get_systick();
+	/* make sure that registers used here must be the ones saved already */
+	sched_overhead = get_sysclk();
 #endif
 	/* schedule_prepare() saves the current context and
 	 * guarantees not to be preempted while schedule_finish()
@@ -206,9 +207,8 @@ void __attribute__((naked, used, optimize("O0"))) __schedule()
 	schedule_prepare();
 	schedule_core();
 	schedule_finish();
-	dsb();
 #ifdef CONFIG_DEBUG
-	sched_overhead -= get_systick();
+	sched_overhead -= get_sysclk();
 #endif
 	__ret();
 }
@@ -228,7 +228,7 @@ void __init scheduler_init()
 void sys_yield()
 {
 	set_task_state(current, TASK_SLEEPING);
-	sys_schedule();
+	resched();
 }
 
 #ifdef CONFIG_DEBUG

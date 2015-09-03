@@ -1,6 +1,8 @@
 #include <kernel/page.h>
 #include <kernel/task.h>
 #include <kernel/init.h>
+#include <kernel/lock.h>
+#include <error.h>
 
 extern char _ram_start, _ram_size, _ebss;
 
@@ -19,10 +21,12 @@ void *kmalloc(size_t size)
 			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
 	spin_unlock_irqrestore(buddypool.lock, irqflag);
 
+	debug("kmalloc : %x %x", page, page->addr);
+
 	if (page)
 		return page->addr;
 
-	printk("Out of memory\n");
+	debug("Out of memory");
 
 	return NULL;
 }
@@ -45,6 +49,8 @@ void kfree(void *addr)
 	/* If not allocated by buddy allocator there is no way to free. */
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
+
+	debug("kfree : %x", addr);
 
 	spin_lock_irqsave(pool->lock, irqflag);
 	free_pages(pool, page);
@@ -125,6 +131,12 @@ void __init mm_init()
 
 	struct page *page = (struct page *)ALIGN_PAGE(&_ebss);
 
+	debug("Memory initiailization");
+	debug("page size %d bytes", PAGE_SIZE);
+	debug("page struct size %d bytes", sizeof(struct page));
+	debug("ram range 0x%08x - 0x%08x", start, end);
+	debug("total %d pages", nr_pages);
+
 	mem_map = page;
 
 	while (start < end) {
@@ -135,6 +147,12 @@ void __init mm_init()
 		start += PAGE_SIZE;
 		page++;
 	}
+
+	debug("0x%08x - mem_map first entry, page[%d]", mem_map,
+			PAGE_INDEX(mem_map));
+	debug("0x%08x - mem_map last entry, page[%d]", page - 1,
+			PAGE_INDEX((page-1)->addr));
+	debug("mem_map size : %d bytes", page - mem_map);
 
 	buddypool.nr_pages = nr_pages;
 	buddypool.nr_free  = 0;

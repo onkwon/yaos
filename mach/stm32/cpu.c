@@ -53,11 +53,12 @@ static void __init __attribute__((naked, used)) entry()
 extern char _ram_end;
 
 extern void sys_init();
-extern void isr_default();
+extern void isr_fault();
 extern void __schedule();
 #ifdef CONFIG_SYSCALL
 extern void svc_handler();
 #endif
+void isr_null() { debug("ISR is not registered yet"); }
 
 static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4))) = {
@@ -65,11 +66,11 @@ __attribute__((section(".vector"), aligned(4))) = {
 			/* -------------------- */
 	&_ram_end,	/* 00     :       - Stack pointer */
 	entry,		/* 01     : 0x04  - Reset */
-	isr_default,	/* 02     : 0x08  - NMI */
-	isr_default,	/* 03     : 0x0c  - HardFault */
-	isr_default,	/* 04     : 0x10  - MemManage */
-	isr_default,	/* 05     : 0x14  - BusFault */
-	isr_default,	/* 06     : 0x18  - UsageFault */
+	isr_fault,	/* 02     : 0x08  - NMI */
+	isr_fault,	/* 03     : 0x0c  - HardFault */
+	isr_fault,	/* 04     : 0x10  - MemManage */
+	isr_fault,	/* 05     : 0x14  - BusFault */
+	isr_fault,	/* 06     : 0x18  - UsageFault */
 	NULL,		/* 07     : 0x1c  - Reserved */
 	NULL,		/* 08     : 0x20  - Reserved */
 	NULL,		/* 09     : 0x24  - Reserved */
@@ -77,72 +78,72 @@ __attribute__((section(".vector"), aligned(4))) = {
 #ifdef CONFIG_SYSCALL
 	svc_handler,	/* 11     : 0x2c  - SVCall */
 #else
-	isr_default,	/* 11     : 0x2c  - SVCall */
+	isr_null,	/* 11     : 0x2c  - SVCall */
 #endif
-	isr_default,	/* 12     : 0x30  - Debug Monitor */
+	isr_null,	/* 12     : 0x30  - Debug Monitor */
 	NULL,		/* 13     : 0x34  - Reserved */
 	__schedule,	/* 14     : 0x38  - PendSV */
-	isr_default,	/* 15     : 0x3c  - SysTick */
-	isr_default,	/* 16(00) : 0x40  - WWDG */
-	isr_default,	/* 17(01) : 0x44  - PVD */
-	isr_default,	/* 18(02) : 0x48  - TAMPER */
-	isr_default,	/* 19(03) : 0x4c  - RTC */
-	isr_default,	/* 20(04) : 0x50  - FLASH */
-	isr_default,	/* 21(05) : 0x54  - RCC */
-	isr_default,	/* 22(06) : 0x58  - EXTI0 */
-	isr_default,	/* 23(07) : 0x5c  - EXTI1 */
-	isr_default,	/* 24(08) : 0x60  - EXTI2 */
-	isr_default,	/* 25(09) : 0x64  - EXTI3 */
-	isr_default,	/* 26(10) : 0x68  - EXTI4 */
-	isr_default,	/* 27(11) : 0x6c  - DMA1_Channel1 */
-	isr_default,	/* 28(12) : 0x70  - DMA1_Channel2 */
-	isr_default,	/* 29(13) : 0x74  - DMA1_Channel3 */
-	isr_default,	/* 30(14) : 0x78  - DMA1_Channel4 */
-	isr_default,	/* 31(15) : 0x7c  - DMA1_Channel5 */
-	isr_default,	/* 32(16) : 0x80  - DMA1_Channel6 */
-	isr_default,	/* 33(17) : 0x84  - DMA1_Channel7 */
-	isr_default,	/* 34(18) : 0x88  - ADC1 | ADC2 */
-	isr_default,	/* 35(19) : 0x8c  - USB High Priority | CAN TX */
-	isr_default,	/* 36(20) : 0x90  - USB Low Priority | CAN RX0 */
-	isr_default,	/* 37(21) : 0x94  - CAN RX1 */
-	isr_default,	/* 38(22) : 0x98  - CAN SCE */
-	isr_default,	/* 39(23) : 0x9c  - EXTI[9:5] */
-	isr_default,	/* 40(24) : 0xa0  - TIM1 Break */
-	isr_default,	/* 41(25) : 0xa4  - TIM1 Update */
-	isr_default,	/* 42(26) : 0xa8  - TIM1 Trigger | Communication */
-	isr_default,	/* 43(27) : 0xac  - TIM1 Capture Compare */
-	isr_default,	/* 44(28) : 0xb0  - TIM2 */
-	isr_default,	/* 45(29) : 0xb4  - TIM3 */
-	isr_default,	/* 46(30) : 0xb8  - TIM4 */
-	isr_default,	/* 47(31) : 0xbc  - I2C1 Event */
-	isr_default,	/* 48(32) : 0xc0  - I2C1 Error */
-	isr_default,	/* 49(33) : 0xc4  - I2C2 Event */
-	isr_default,	/* 50(34) : 0xc8  - I2C2 Error */
-	isr_default,	/* 51(35) : 0xcc  - SPI1 */
-	isr_default,	/* 52(36) : 0xd0  - SPI2 */
-	isr_default,	/* 53(37) : 0xd4  - USART1 */
-	isr_default,	/* 54(38) : 0xd8  - USART2 */
-	isr_default,	/* 55(39) : 0xdc  - USART3 */
-	isr_default,	/* 56(40) : 0xe0  - EXTI[15:10] */
-	isr_default,	/* 57(41) : 0xe4  - RTC Alarm */
-	isr_default,	/* 58(42) : 0xe8  - USB Wakeup */
-	isr_default,	/* 59(43) : 0xec  - TIM8 Break */
-	isr_default,	/* 60(44) : 0xf0  - TIM8 Update */
-	isr_default,	/* 61(45) : 0xf4  - TIM8 Trigger | Communication */
-	isr_default,	/* 62(46) : 0xf8  - TIM8 Capture Compare */
-	isr_default,	/* 63(47) : 0xfc  - ADC3 */
-	isr_default,	/* 64(48) : 0x100 - FSMC */
-	isr_default,	/* 65(49) : 0x104 - SDIO */
-	isr_default,	/* 66(50) : 0x108 - TIM5 */
-	isr_default,	/* 67(51) : 0x10c - SPI3 */
-	isr_default,	/* 68(52) : 0x110 - UART4 */
-	isr_default,	/* 69(53) : 0x114 - UART5 */
-	isr_default,	/* 70(54) : 0x118 - TIM6 */
-	isr_default,	/* 71(55) : 0x11c - TIM7 */
-	isr_default,	/* 72(56) : 0x120 - DMA2_Channel1 */
-	isr_default,	/* 73(57) : 0x124 - DMA2_Channel2 */
-	isr_default,	/* 74(58) : 0x128 - DMA2_Channel3 */
-	isr_default,	/* 75(59) : 0x12c - DMA2_Channel4,5 */
+	isr_null,	/* 15     : 0x3c  - SysTick */
+	isr_null,	/* 16(00) : 0x40  - WWDG */
+	isr_null,	/* 17(01) : 0x44  - PVD */
+	isr_null,	/* 18(02) : 0x48  - TAMPER */
+	isr_null,	/* 19(03) : 0x4c  - RTC */
+	isr_null,	/* 20(04) : 0x50  - FLASH */
+	isr_null,	/* 21(05) : 0x54  - RCC */
+	isr_null,	/* 22(06) : 0x58  - EXTI0 */
+	isr_null,	/* 23(07) : 0x5c  - EXTI1 */
+	isr_null,	/* 24(08) : 0x60  - EXTI2 */
+	isr_null,	/* 25(09) : 0x64  - EXTI3 */
+	isr_null,	/* 26(10) : 0x68  - EXTI4 */
+	isr_null,	/* 27(11) : 0x6c  - DMA1_Channel1 */
+	isr_null,	/* 28(12) : 0x70  - DMA1_Channel2 */
+	isr_null,	/* 29(13) : 0x74  - DMA1_Channel3 */
+	isr_null,	/* 30(14) : 0x78  - DMA1_Channel4 */
+	isr_null,	/* 31(15) : 0x7c  - DMA1_Channel5 */
+	isr_null,	/* 32(16) : 0x80  - DMA1_Channel6 */
+	isr_null,	/* 33(17) : 0x84  - DMA1_Channel7 */
+	isr_null,	/* 34(18) : 0x88  - ADC1 | ADC2 */
+	isr_null,	/* 35(19) : 0x8c  - USB High Priority | CAN TX */
+	isr_null,	/* 36(20) : 0x90  - USB Low Priority | CAN RX0 */
+	isr_null,	/* 37(21) : 0x94  - CAN RX1 */
+	isr_null,	/* 38(22) : 0x98  - CAN SCE */
+	isr_null,	/* 39(23) : 0x9c  - EXTI[9:5] */
+	isr_null,	/* 40(24) : 0xa0  - TIM1 Break */
+	isr_null,	/* 41(25) : 0xa4  - TIM1 Update */
+	isr_null,	/* 42(26) : 0xa8  - TIM1 Trigger | Communication */
+	isr_null,	/* 43(27) : 0xac  - TIM1 Capture Compare */
+	isr_null,	/* 44(28) : 0xb0  - TIM2 */
+	isr_null,	/* 45(29) : 0xb4  - TIM3 */
+	isr_null,	/* 46(30) : 0xb8  - TIM4 */
+	isr_null,	/* 47(31) : 0xbc  - I2C1 Event */
+	isr_null,	/* 48(32) : 0xc0  - I2C1 Error */
+	isr_null,	/* 49(33) : 0xc4  - I2C2 Event */
+	isr_null,	/* 50(34) : 0xc8  - I2C2 Error */
+	isr_null,	/* 51(35) : 0xcc  - SPI1 */
+	isr_null,	/* 52(36) : 0xd0  - SPI2 */
+	isr_null,	/* 53(37) : 0xd4  - USART1 */
+	isr_null,	/* 54(38) : 0xd8  - USART2 */
+	isr_null,	/* 55(39) : 0xdc  - USART3 */
+	isr_null,	/* 56(40) : 0xe0  - EXTI[15:10] */
+	isr_null,	/* 57(41) : 0xe4  - RTC Alarm */
+	isr_null,	/* 58(42) : 0xe8  - USB Wakeup */
+	isr_null,	/* 59(43) : 0xec  - TIM8 Break */
+	isr_null,	/* 60(44) : 0xf0  - TIM8 Update */
+	isr_null,	/* 61(45) : 0xf4  - TIM8 Trigger | Communication */
+	isr_null,	/* 62(46) : 0xf8  - TIM8 Capture Compare */
+	isr_null,	/* 63(47) : 0xfc  - ADC3 */
+	isr_null,	/* 64(48) : 0x100 - FSMC */
+	isr_null,	/* 65(49) : 0x104 - SDIO */
+	isr_null,	/* 66(50) : 0x108 - TIM5 */
+	isr_null,	/* 67(51) : 0x10c - SPI3 */
+	isr_null,	/* 68(52) : 0x110 - UART4 */
+	isr_null,	/* 69(53) : 0x114 - UART5 */
+	isr_null,	/* 70(54) : 0x118 - TIM6 */
+	isr_null,	/* 71(55) : 0x11c - TIM7 */
+	isr_null,	/* 72(56) : 0x120 - DMA2_Channel1 */
+	isr_null,	/* 73(57) : 0x124 - DMA2_Channel2 */
+	isr_null,	/* 74(58) : 0x128 - DMA2_Channel3 */
+	isr_null,	/* 75(59) : 0x12c - DMA2_Channel4,5 */
 	NULL
 };
 

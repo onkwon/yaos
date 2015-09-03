@@ -76,6 +76,8 @@ struct task *make(unsigned int flags, void *addr, void *ref)
 	return new;
 }
 
+#include <kernel/interrupt.h>
+
 unsigned int *zombie = NULL;
 
 static void unlink_task(struct task *task)
@@ -113,7 +115,7 @@ static void unlink_task(struct task *task)
 	set_task_state(&init, TASK_RUNNING);
 	runqueue_add(&init);
 
-	sys_schedule();
+	resched();
 }
 
 void destroy(struct task *task)
@@ -212,6 +214,10 @@ int clone(unsigned int flags, void *ref)
 		top  = base + STACK_SIZE;
 	}
 
+#ifdef CORTEXA
+	if (!(flags & TASK_HANDLER))
+		sp  -= NR_CONTEXT * WORD_SIZE;
+#endif
 	size = top - sp;
 	src  = (unsigned int *)sp;
 	dst  = (unsigned int *)((unsigned int)child->mm.sp - size);
@@ -220,8 +226,18 @@ int clone(unsigned int flags, void *ref)
 	child->mm.sp = dst; /* update stack pointer */
 
 	if (!(flags & TASK_SYSCALL)) { /* if not syscall */
+#ifdef CORTEXA
+		if (!(flags & TASK_HANDLER)) {
+			child->mm.sp += NR_CONTEXT;
+			size         -= NR_CONTEXT * WORD_SIZE;
+		}
+#endif
 		p = regs;
+		set_task_flags(child, flags);
 		set_task_context_hard(child, NULL);
+#ifdef CORTEXA
+		regs[INDEX_PSR] = child->mm.sp[INDEX_PSR];
+#endif
 		memcpy(child->mm.sp, p + NR_CONTEXT_SOFT,
 				NR_CONTEXT_HARD * WORD_SIZE);
 		size += NR_CONTEXT_HARD * WORD_SIZE;
@@ -264,7 +280,7 @@ int sys_fork()
 		sys_kill((unsigned int)current);
 
 	/* schedule to give chance for child to run first */
-	sys_schedule();
+	resched();
 
 	return tid;
 }

@@ -214,8 +214,6 @@ void __init fs_init()
 	ramfs_register();
 #ifdef CONFIG_FS
 	embedfs_register();
-#else
-	mount(ramfs_build(1024, NULL), "/", "ramfs"); /* root file system */
 #endif
 
 	/* it is nessesary to mount devfs first to populate device nodes in */

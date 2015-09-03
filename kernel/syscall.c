@@ -3,6 +3,7 @@
 #include <kernel/page.h>
 #include <error.h>
 #include <stdlib.h>
+#include <io.h>
 
 int sys_open_core(char *filename, int mode)
 {
@@ -89,7 +90,7 @@ int sys_open(char *filename, int mode)
 		 * call to wait for its child's job to be done that returns the
 		 * result. */
 		set_task_state(current, TASK_WAITING);
-		sys_schedule();
+		resched();
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */

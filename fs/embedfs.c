@@ -478,7 +478,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 
 	dir_size = sizeof(struct embed_dir) - sizeof(char *);
 
-	/* skip '/' at the start of path if exist */
+	/* skip '/'s if exist */
 	for (i = 0; pathname[i] == '/'; i++) ;
 
 	curr.addr = 0; /* start searching from root */
@@ -585,7 +585,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 
 	if (tid == 0) { /* parent */
 		set_task_state(current, TASK_WAITING);
-		sys_schedule();
+		resched();
 		return 0;
 	} else if (tid < 0) { /* error */
 		debug("failed cloning");
@@ -647,7 +647,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 
 	if (tid == 0) {
 		set_task_state(current, TASK_WAITING);
-		sys_schedule();
+		resched();
 		return 0;
 	} else if (tid < 0) {
 		debug("failed cloning");
@@ -777,7 +777,7 @@ static int build_file_system(const struct device *dev)
 	disk_size = dev->block_size * dev->nr_blocks;
 	nr_inodes = disk_size / INODE_TABLE_SIZE(sizeof(struct embed_inode));
 
-	printk("disk size %d\n", disk_size);
+	debug("disk size %d", disk_size);
 
 	unsigned int nr_blocks, nr_data_bitmap;
 	unsigned int inode_table;
@@ -835,14 +835,14 @@ static int build_file_system(const struct device *dev)
 		write_block(D_BMAP_BLK + i, data_bitmap + (i * BLOCK_SIZE),
 				nr_data_bitmap % BLOCK_SIZE, dev);
 
-	printk("nr_data_bitmap %d\n", nr_data_bitmap);
+	debug("nr_data_bitmap %d", nr_data_bitmap);
 
 	kfree(buf);
 	kfree(data_bitmap);
 
 	/* make the root node. root inode is always 0. */
 	if (make_node(FT_ROOT, dev) != 0) {
-		printk("wrong root inode\n");
+		debug("wrong root inode");
 		return -ERR_UNDEF;
 	}
 
@@ -851,7 +851,7 @@ static int build_file_system(const struct device *dev)
 	read_inode(&root_inode, dev);
 	create_file("dev", FT_DIR, &root_inode, dev);
 
-	printk("built embed file system:\n"
+	debug("built embed file system:\n"
 			"block_size %d\n"
 			"blocks_count %d\n"
 			"free_inodes_count %d\n"
@@ -875,7 +875,7 @@ int embedfs_mount(const struct device *dev)
 {
 	unsigned int end;
 	end = dev->block_size * dev->nr_blocks + dev->base_addr - 1;
-	printk("embedfs addr %08x - %08x\n", dev->base_addr, end);
+	debug("embedfs addr %08x - %08x", dev->base_addr, end);
 
 	struct embed_superblock sb;
 
@@ -895,7 +895,7 @@ int embedfs_mount(const struct device *dev)
 
 	return 0;
 err:
-	printk("can't build root file system\n");
+	debug("can't build root file system");
 	return -ERR_UNDEF;
 }
 

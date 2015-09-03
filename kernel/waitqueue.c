@@ -15,7 +15,7 @@ void wq_wait(struct waitqueue_head *q)
 	set_task_state(current, TASK_WAITING);
 	spin_unlock_irqrestore(q->lock, irqflag);
 
-	sys_schedule();
+	schedule();
 }
 
 void wq_wake(struct waitqueue_head *q, int nr_task)

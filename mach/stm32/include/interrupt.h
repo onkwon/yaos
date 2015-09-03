@@ -1,7 +1,7 @@
 #ifndef __STM32_INTERRUPT_H__
 #define __STM32_INTERRUPT_H__
 
-#define NV_TICK			15
+#define IRQ_SYSTICK		15
 
 #define __sei()			__asm__ __volatile__("cpsie i" ::: "memory")
 #define __cli()			__asm__ __volatile__("cpsid i" ::: "memory")
@@ -36,28 +36,28 @@ void SET_IRQ(int on, unsigned int irq_nr);
 		 0xf << ((pin)%4*4)) | (port) << ((pin)%4*4))
 
 #define GET_PC() ({ unsigned int __pc; \
-		__asm__ __volatile__("mov %0, pc" : "=r" (__pc)); \
+		__asm__ __volatile__("mov %0, pc" : "=r"(__pc)); \
 		__pc; })
 #define GET_SP() ({ unsigned int __sp; \
-		__asm__ __volatile__("mov %0, sp" : "=r" (__sp)); \
+		__asm__ __volatile__("mov %0, sp" : "=r"(__sp)); \
 		__sp; })
 #define GET_KSP() ({ unsigned int __ksp; \
-		__asm__ __volatile__("mrs %0, msp" : "=r" (__ksp)); \
+		__asm__ __volatile__("mrs %0, msp" : "=r"(__ksp)); \
 		__ksp; })
 #define GET_USP() ({ unsigned int __usp; \
-		__asm__ __volatile__("mrs %0, psp" : "=r" (__usp)); \
+		__asm__ __volatile__("mrs %0, psp" : "=r"(__usp)); \
 		__usp; })
 #define GET_PSR() ({ unsigned int __psr; \
-		__asm__ __volatile__("mrs %0, psr" : "=r" (__psr)); \
+		__asm__ __volatile__("mrs %0, psr" : "=r"(__psr)); \
 		__psr; })
 #define GET_LR() ({ unsigned int __lr; \
-		__asm__ __volatile__("mov %0, lr" : "=r" (__lr)); \
+		__asm__ __volatile__("mov %0, lr" : "=r"(__lr)); \
 		__lr; })
 #define GET_INT() ({ unsigned int __primask; \
-		__asm__ __volatile__("mrs %0, primask" : "=r" (__primask)); \
+		__asm__ __volatile__("mrs %0, primask" : "=r"(__primask)); \
 		__primask; })
 #define GET_CON() ({ unsigned int __control; \
-		__asm__ __volatile__("mrs %0, control" : "=r" (__control)); \
+		__asm__ __volatile__("mrs %0, control" : "=r"(__control)); \
 		__control; })
 #define SET_PC(addr)	{ \
 	__asm__ __volatile("push {%0}	\n\t" \
@@ -79,5 +79,6 @@ void SET_IRQ(int on, unsigned int irq_nr);
 
 #define __nop()			__asm__ __volatile__("nop" ::: "memory")
 #define __ret()			__asm__ __volatile__("bx lr" ::: "memory")
+#define __ret_from_exc(offset)
 
 #endif /* __STM32_INTERRUPT_H__ */

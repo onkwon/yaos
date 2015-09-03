@@ -226,7 +226,7 @@ static const char *lookup(struct ramfs_inode **inode, const char *pathname,
 	unsigned int offset, len, i;
 	const char *pwd;
 
-	/* skip '/' at the start of path if exist */
+	/* skip '/'s if exist */
 	for (i = 0; pathname[i] == '/'; i++) ;
 
 	read_superblock(&sb, dev);
@@ -443,10 +443,10 @@ void ramfs_register()
 
 #define SUFFIX_MAXLEN	10
 
-extern struct device *devfs;
-
 int sys_mknod(const char *name, unsigned int mode, dev_t id)
 {
+	extern struct device *devfs;
+
 	char *buf, *suffix, str[SUFFIX_MAXLEN] = { 0, };
 	unsigned int len;
 	int err;

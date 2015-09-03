@@ -6,7 +6,7 @@
 	|   |-- mm_init()
 	|   |-- fs_init()
 	|   |-- device_init()
-	|   |-- sysclk_init()
+	|   |-- systick_init()
 	|   |-- scheduler_init()
 	|   |-- make_init_task()
 	|   |-- load_user_task()
@@ -83,3 +83,20 @@ system call.
 `STACK_SHARE`    커널스택만 공유
 
 ~~`set_task_type()` 태스크 타입을 변경하면 태스크 상태는 리셋된다~~
+
+## Tick
+
+`__tick_init()` must be implemented
+
+## root file system
+
+Either of ramfs or embedfs can be used as root file system. The following example is using ramfs:
+
+	#include <kernel/module.h>
+	#include "../../fs/ramfs.h"
+
+	static void rootfs_init()
+	{
+		mount(ramfs_build(1024, NULL), "/", "ramfs"); /* root file system */
+	}
+	MODULE_INIT(rootfs_init);

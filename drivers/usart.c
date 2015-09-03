@@ -3,14 +3,17 @@
 #include <asm/usart.h>
 #include <error.h>
 
-#define BUF_SIZE	PAGE_SIZE
-#define CHANNEL_MAX	3
+#define BUF_SIZE		PAGE_SIZE
 
-#define CHANNEL(n)	(MINOR(n) - 1)
+#ifndef USART_CHANNEL_MAX
+#define USART_CHANNEL_MAX	1
+#endif
 
-static struct fifo rxq[CHANNEL_MAX], txq[CHANNEL_MAX];
-static lock_t rx_lock[CHANNEL_MAX], tx_lock[CHANNEL_MAX];
-static struct waitqueue_head wq[CHANNEL_MAX];
+#define CHANNEL(n)		(MINOR(n) - 1)
+
+static struct fifo rxq[USART_CHANNEL_MAX], txq[USART_CHANNEL_MAX];
+static lock_t rx_lock[USART_CHANNEL_MAX], tx_lock[USART_CHANNEL_MAX];
+static struct waitqueue_head wq[USART_CHANNEL_MAX];
 
 static int usart_close(struct file *file)
 {
@@ -65,7 +68,7 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		 * call to wait for its child's job to be done that returns the
 		 * result. */
 		set_task_state(current, TASK_WAITING);
-		sys_schedule();
+		resched();
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */
@@ -173,7 +176,7 @@ static void isr_usart()
 	int c;
 	unsigned int channel;
 
-	if ((channel = __get_usart_active_irq()) >= CHANNEL_MAX)
+	if ((channel = __get_usart_active_irq()) >= USART_CHANNEL_MAX)
 		return;
 
 	if (__usart_check_rx(channel)) {
@@ -218,7 +221,7 @@ static int usart_open(struct inode *inode, struct file *file)
 		void *buf;
 		int nr_irq;
 
-		if (CHANNEL(dev->id) >= CHANNEL_MAX) {
+		if (CHANNEL(dev->id) >= USART_CHANNEL_MAX) {
 			err = -ERR_RANGE;
 			goto out;
 		}
@@ -276,7 +279,7 @@ static void __init usart_init()
 	struct device *dev;
 	unsigned int major, i;
 
-	for (major = i = 0; i < CHANNEL_MAX; i++) {
+	for (major = i = 0; i < USART_CHANNEL_MAX; i++) {
 		if ((dev = mkdev(major, i+1, &ops, "usart")))
 			major = MAJOR(dev->id);
 	}

@@ -75,7 +75,7 @@ struct mm {
 
 struct task {
 	/* `state` must be the first element in the structure as it is used
-	 * for sanity check in initialization */
+	 * for sanity check at the initialization */
 	unsigned int state;
 	unsigned int flags;
 	unsigned int pri;
@@ -91,7 +91,7 @@ struct task {
 	struct list rq;
 
 	struct sched_entity se;
-} __attribute__((packed));
+};
 
 #define REGISTER_TASK(f, t, p) \
 	static struct task task_##f \

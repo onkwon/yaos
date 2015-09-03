@@ -17,8 +17,8 @@ static void isr_ir()
 	static unsigned int elapsed = 0;
 	unsigned int stamp, ir_count_max;
 
-	ir_count_max = get_systick_max();
-	stamp = get_systick();
+	ir_count_max = get_sysclk_max();
+	stamp = get_sysclk();
 
 	if (stamp > elapsed)
 		elapsed += ir_count_max - stamp;

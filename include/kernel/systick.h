@@ -1,5 +1,5 @@
-#ifndef __TICKS_H__
-#define __TICKS_H__
+#ifndef __SYSTICK_H__
+#define __SYSTICK_H__
 
 #include <types.h>
 
@@ -9,8 +9,10 @@
 #define sec_to_ticks(sec)		((sec) * HZ)
 #define msec_to_ticks(sec)		(sec_to_ticks(sec) / 1000)
 
-extern volatile unsigned int __attribute__((section(".data"))) ticks;
+extern volatile unsigned int __attribute__((section(".data"))) systick;
 
-uint64_t get_ticks_64();
+uint64_t get_systick64();
 
-#endif /* __TICKS_H__ */
+void systick_init();
+
+#endif /* __SYSTICK_H__ */

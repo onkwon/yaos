@@ -1,13 +1,13 @@
 #ifndef __CONTEXT_H__
 #define __CONTEXT_H__
 
-#define NR_CONTEXT_SOFT		8
-#define NR_CONTEXT_HARD		8
-#define NR_CONTEXT		(NR_CONTEXT_HARD + NR_CONTEXT_SOFT)
-#define CONTEXT_SIZE		(NR_CONTEXT * WORD_SIZE)
+#define NR_CONTEXT_SOFT			8
+#define NR_CONTEXT_HARD			8
+#define NR_CONTEXT			(NR_CONTEXT_HARD + NR_CONTEXT_SOFT)
+#define CONTEXT_SIZE			(NR_CONTEXT * WORD_SIZE)
 /* depending on SCB_CCR[STKALIGN] */
 
-#define INIT_IRQFLAG(flag)	((flag) = 0)
+#define INIT_IRQFLAG(flag)		((flag) = 0)
 
 #define EXC_RETURN_MSPH	0xfffffff1	/* return to HANDLER mode using MSP */
 #define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
@@ -26,39 +26,51 @@
  * | r4 - r11 |
  *  ----------
  */
-#define __context_save(task)				\
-	__asm__ __volatile__(				\
-			"mrs	r12, psp	\n\t"	\
-			"stmdb	r12!, {r4-r11}	\n\t"	\
-			"mov	%0, r12		\n\t"	\
-			: "=&r"(task->mm.sp)		\
-			:: "memory")
+#define __context_save(task)	do {					\
+	__asm__ __volatile__(						\
+			"mrs	r12, psp		\n\t"		\
+			"stmdb	r12!, {r4-r11}		\n\t"		\
+			::: "memory");					\
+	__asm__ __volatile__(						\
+			"mov	%0, r12			\n\t"		\
+			: "=&r"(task->mm.sp)				\
+			:: "memory");					\
+	dsb();								\
+} while (0)
 
 /* When writing to the CONTROL register, an ISB instruction should be used to
  * ensure the new configuration is used in subsequent instructions’ operations.
  * AN321 - ARM Cortex-M Programming Guide to Memory Barrier Instructions */
-#define __context_restore(task)				\
-	__asm__ __volatile__(				\
-			"ldmia	%0!, {r4-r11}	\n\t"	\
-			"msr	psp, %0		\n\t"	\
-			"ldr	lr, =0xfffffffd	\n\t"	\
-			"mov	r3, #3		\n\t"	\
-			"tst	%1, %2		\n\t"	\
-			"it	ne		\n\t"	\
-			"movne	r3, #2		\n\t"	\
-			"msr	control, r3	\n\t"	\
-			"msr	msp, %3		\n\t"	\
-			:: "r"(task->mm.sp),		\
-			   "r"(get_task_flags(task)),	\
-			   "I"(TASK_PRIVILEGED),	\
-			   "r"(task->mm.kernel.sp)	\
-			: "memory")
+#define __context_restore(task)	do {					\
+	__asm__ __volatile__(						\
+			"msr	msp, %0			\n\t"		\
+			"mov	r12, #3			\n\t"		\
+			"tst	%1, %2			\n\t"		\
+			"it	ne			\n\t"		\
+			"movne	r12, #2			\n\t"		\
+			:: "r"(task->mm.kernel.sp)			\
+			, "r"(get_task_flags(task))			\
+			, "I"(TASK_PRIVILEGED)				\
+			: "memory");					\
+	__asm__ __volatile__(						\
+			"ldmia	%0!, {r4-r11}		\n\t"		\
+			"msr	psp, %0			\n\t"		\
+			"ldr	lr, =0xfffffffd		\n\t"		\
+			"msr	control, r12		\n\t"		\
+			:: "r"(task->mm.sp)				\
+			: "r12", "memory");				\
+	dsb();								\
+	isb();								\
+} while (0)
 
-#define INDEX_PSR	15
-#define INDEX_PC	14
-#define INDEX_R0	8
-#define INDEX_R4	0
-#define INIT_PSR	0x01000000
+#define __context_prepare()				cli()
+#define __context_finish()				sei()
+
+#define INDEX_PSR					15
+#define INDEX_PC					14
+#define INDEX_R0					8
+#define INDEX_R4					0
+#define INIT_PSR					0x01000000
 
 #define __save_curr_context(regs) do {					\
 	__asm__ __volatile__(						\
@@ -80,13 +92,5 @@
 #define __set_retval(task, value)					\
 	__asm__ __volatile__("str %0, [%1]" :				\
 			: "r"(value), "r"(task->mm.sp + INDEX_R0))
-
-void sys_schedule();
-
-#include <kernel/task.h>
-
-extern inline void set_task_context(struct task *p, void *addr);
-extern inline void set_task_context_soft(struct task *p);
-extern inline void set_task_context_hard(struct task *p, void *addr);
 
 #endif /* __CONTEXT_H__ */
