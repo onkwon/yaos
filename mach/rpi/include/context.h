@@ -30,7 +30,7 @@
  * | cpsr     |
  *  ----------
  */
-#define __context_save(task)						\
+#define __context_save(task)	do {					\
 	__asm__ __volatile__(						\
 			"push	{r0}			\n\t"		\
 			"stmdb	sp!, {sp}^		\n\t"		\
@@ -44,14 +44,24 @@
 			"stmdb	r0!, {r1}		\n\t"		\
 			"mrs	r1, spsr		\n\t" /* cpsr */\
 			"stmdb	r0!, {r1}		\n\t"		\
+			::: "memory");					\
+	__asm__ __volatile__(						\
 			"mov	%0, r0			\n\t"		\
 			: "=&r"(task->mm.sp)				\
-			:: "memory")
+			:: "memory");					\
+} while (0)
 
-#define __context_restore(task)						\
+#define __context_restore(task)	do {					\
 	__asm__ __volatile__(						\
 			"mov	r12, %0			\n\t"		\
 			"ldmia	r12!, {r0}		\n\t"		\
+			"tst	%1, %2			\n\t"		\
+			"orrne	r0, #0x1f		\n\t"		\
+			:: "r"(task->mm.sp)				\
+			, "r"(get_task_flags(task))			\
+			, "I"(TASK_PRIVILEGED)				\
+			: "memory");					\
+	__asm__ __volatile__(						\
 			"msr	spsr, r0		\n\t"		\
 			"ldmia	r12!, {r0}		\n\t"		\
 			"ldmia	r12!, {sp}^		\n\t"		\
@@ -59,8 +69,8 @@
 			/* return to user mode */			\
 			"ldr	lr, [r12, #8]		\n\t"		\
 			"ldmia	r12, {r12, lr}^		\n\t"		\
-			:: "r"(task->mm.sp)				\
-			: "memory")
+			::: "memory");					\
+} while (0)
 
 #define __context_prepare()
 #define __context_finish()

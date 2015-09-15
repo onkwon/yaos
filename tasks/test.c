@@ -7,8 +7,10 @@ static void test_usart2()
 {
 	int fd;
 
-	if ((fd = open("/dev/usart2", O_RDWR | O_NONBLOCK)) <= 0)
+	if ((fd = open("/dev/usart2", O_RDWR | O_NONBLOCK)) <= 0) {
 		printf("usart2: open error %x\n", fd);
+		return;
+	}
 
 	int buf, ret;
 
@@ -31,7 +33,7 @@ static void test_timer()
 	struct timer ttt;
 	while (1) {
 		flag = 0;
-		ttt.expires = systick + 50;
+		ttt.expires = systick + msec_to_ticks(500);
 		ttt.event = t1;
 		add_timer(&ttt);
 
@@ -82,7 +84,10 @@ static void test_led()
 	unsigned int v = 0;
 	int fd;
 
-	fd = open("/dev/led", O_RDWR);
+	if ((fd = open("/dev/led", O_RDWR)) <= 0) {
+		printf("led open error %x\n", fd);
+		return;
+	}
 
 	while (1) {
 		write(fd, &v, 1);
@@ -116,7 +121,7 @@ static void fork_test()
 			printf("fork_test: error\n");
 		}
 
-		sleep(1);
+		sleep(2);
 	}
 }
 REGISTER_TASK(fork_test, 0, DEFAULT_PRIORITY);

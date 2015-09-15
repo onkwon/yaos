@@ -12,7 +12,7 @@
  * 6	- Illegal access type 1     |
  * 7	- Illegal access type 0     -
  * ...
- * 29	- Aux int
+ * 29	- Aux int(mini uart)
  * ...
  * 43	- i2c_spi_slv_int
  * ...
@@ -32,6 +32,9 @@
  */
 
 #define IRQ_TIMER			0
+#define IRQ_PEND1			8
+#define IRQ_PEND2			9
+#define IRQ_AUX				29
 #define IRQ_GPIO0			49
 #define IRQ_GPIO1			50
 #define IRQ_GPIO2			51
@@ -42,16 +45,18 @@
 extern inline void __sei();
 extern inline void __cli();
 
-#define __dmb()				__asm__ __volatile__("" ::: "memory")
-#define __dsb()				__asm__ __volatile__("" ::: "memory")
-#define __isb()				__asm__ __volatile__("" ::: "memory")
+#define __dmb()				\
+	__asm__ __volatile__("mcr p15, 0, r0, c7, c10, 5" ::: "memory")
+#define __dsb()				\
+	__asm__ __volatile__("mcr p15, 0, r0, c7, c10, 4" ::: "memory")
+#define __isb()				\
+	__asm__ __volatile__("mcr p15, 0, r0, c7, c5, 4" ::: "memory")
 
 #define __irq_save(flag)		\
 	__asm__ __volatile__("mrs %0, cpsr" : "=r"(flag) :: "memory")
 #define __irq_restore(flag)		\
 	__asm__ __volatile__("msr cpsr_c, %0" :: "r"(flag) : "memory")
 
-int __register_isr(unsigned int nirq, void (*func)());
 #define __get_active_irq()
 
 #define GET_CON() ({ unsigned int __cpsr; \
@@ -75,6 +80,7 @@ int __register_isr(unsigned int nirq, void (*func)());
 #define GET_LR() ({ unsigned int __lr; \
 		__asm__ __volatile__("mov %0, lr" : "=r"(__lr)); \
 		__lr; })
+#define SET_LR(reg)	__asm__ __volatile("mov lr, %0" :: "r"(reg))
 #define SET_PC(addr)	{ \
 	__asm__ __volatile("push {%0}	\n\t" \
 			"pop {pc}	\n\t" \

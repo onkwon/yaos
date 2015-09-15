@@ -15,14 +15,8 @@ void idle()
 {
 	cleanup();
 
-	struct task *task;
-
 	while (1) {
-		while (zombie) {
-			task = (struct task *)zombie;
-			zombie = task->addr;
-			destroy(task);
-		}
+		kill_zombie();
 
 		/* if not TASK_RUNNING it is the best chance to enter power
 		 * saving mode since the init task gets its turn from scheduler

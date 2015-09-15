@@ -77,8 +77,10 @@ struct task *make(unsigned int flags, void *addr, void *ref)
 }
 
 #include <kernel/interrupt.h>
+#include <kernel/lock.h>
 
-unsigned int *zombie = NULL;
+static unsigned int *zombie = NULL;
+static DEFINE_SPINLOCK(zombie_lock);
 
 static void unlink_task(struct task *task)
 {
@@ -100,8 +102,10 @@ static void unlink_task(struct task *task)
 	list_del(&task->sibling);
 
 	/* add it to zombie list */
+	spin_lock(zombie_lock);
 	task->addr = zombie;
 	zombie = (unsigned int *)task;
+	spin_unlock(zombie_lock);
 
 	irq_restore(irqflag);
 
@@ -118,8 +122,25 @@ static void unlink_task(struct task *task)
 	resched();
 }
 
+void kill_zombie()
+{
+	struct task *task;
+	unsigned int irqflag;
+
+	while (zombie) {
+		spin_lock_irqsave(zombie_lock, irqflag);
+		task = (struct task *)zombie;
+		zombie = task->addr;
+		spin_unlock_irqrestore(zombie_lock, irqflag);
+		destroy(task);
+	}
+}
+
 void destroy(struct task *task)
 {
+	if (task == &init)
+		return;
+
 	kfree(task->mm.base);
 	if (!(get_task_flags(task) & STACK_SHARED))
 		kfree(task->mm.kernel.base);
@@ -157,15 +178,14 @@ struct task *find_task(unsigned int addr, struct task *head)
 
 void wrapper()
 {
-#ifdef CONFIG_DEBUG
-	printf("addr %x\n", current->addr);
-	printf("type %08x, state %08x, pri %08x\n",
+	debug("addr %x", current->addr);
+	debug("type %08x, state %08x, pri %08x",
 			get_task_type(current),
 			get_task_state(current),
 			get_task_pri(current));
-	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
+	debug("control %08x, sp %08x, msp %08x, psp %08x",
 			GET_CON(), GET_SP(), GET_KSP(), GET_USP());
-#endif
+
 	((void (*)())current->addr)();
 	kill((unsigned int)current);
 

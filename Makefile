@@ -118,7 +118,7 @@ stm32:
 rpi:
 	@echo "TARGET = rpi\nARCH = armv6zk\nCFLAGS += -mfpu=vfp -mfloat-abi=hard -mtune=arm1176jzf-s" > .config
 rpi2:
-	@echo "TARGET = rpi2\nARCH = armv7-a\nCFLAGS += -mfpu=neon-vfpv4 -mfloat-abi=hard -mtune=cortex-a7" > .config
+	@echo "TARGET = rpi\nARCH = armv7-a\nCFLAGS += -mfpu=neon-vfpv4 -mfloat-abi=hard -mtune=cortex-a7 -DRPI2" > .config
 
 .PHONY: burn
 burn:

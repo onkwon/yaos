@@ -6,6 +6,7 @@
 #include <error.h>
 
 static DEFINE_LIST_HEAD(fdtable);
+static DEFINE_SPINLOCK(fdtable_lock);
 
 unsigned int mkfile(struct file *file)
 {
@@ -15,19 +16,26 @@ unsigned int mkfile(struct file *file)
 		return 0;
 
 	memcpy(new, file, sizeof(struct file));
+
+	unsigned int irqflag;
+	spin_lock_irqsave(fdtable_lock, irqflag);
 	list_add(&new->list, &fdtable);
+	spin_unlock_irqrestore(fdtable_lock, irqflag);
 
 	return (unsigned int)new;
 }
 
 void remove_file(struct file *file)
 {
+	unsigned int irqflag;
+	spin_lock_irqsave(fdtable_lock, irqflag);
 	list_del(&file->list);
+	spin_unlock_irqrestore(fdtable_lock, irqflag);
 
 	if (--file->inode->count <= 0) {
-		spin_lock(file->inode->lock);
+		spin_lock_irqsave(file->inode->lock, irqflag);
 		list_del(&file->inode->list);
-		spin_unlock(file->inode->lock);
+		spin_unlock_irqrestore(file->inode->lock, irqflag);
 		kfree(file->inode);
 	}
 

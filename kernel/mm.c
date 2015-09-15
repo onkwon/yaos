@@ -21,7 +21,7 @@ void *kmalloc(size_t size)
 			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
 	spin_unlock_irqrestore(buddypool.lock, irqflag);
 
-	debug("kmalloc : %x %x", page, page->addr);
+	debug("kmalloc : %x %x %d", page, page->addr, size);
 
 	if (page)
 		return page->addr;
@@ -50,7 +50,7 @@ void kfree(void *addr)
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
 
-	debug("kfree : %x", addr);
+	debug("kfree : %x %x", addr, page->flags);
 
 	spin_lock_irqsave(pool->lock, irqflag);
 	free_pages(pool, page);

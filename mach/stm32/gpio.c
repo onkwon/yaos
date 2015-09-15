@@ -1,8 +1,8 @@
 #include <gpio.h>
 #include <types.h>
 
-DEFINE_SPINLOCK(gpio_irq_lock);
-DEFINE_SPINLOCK(gpio_init_lock);
+static DEFINE_SPINLOCK(gpio_irq_lock);
+static DEFINE_SPINLOCK(gpio_init_lock);
 
 #define calc_port(i)		(i / PINS_PER_PORT)
 #define calc_pin(i)		(i % PINS_PER_PORT)

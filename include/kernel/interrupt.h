@@ -19,7 +19,7 @@
 #define dsb()				__dsb()
 #define isb()				__isb()
 
-#define register_isr(nirq, func)	__register_isr(nirq, func)
+extern int register_isr(unsigned int nirq, void (*func)());
 
 #define set_user_sp(sp)			__set_usp(sp)
 #define set_kernel_sp(sp)		__set_ksp(sp)

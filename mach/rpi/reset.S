@@ -27,6 +27,11 @@ reset:
 	msr	cpsr_c, r0
 	mov	sp, #0x8000
 
+	/* fiq mode: irq,fiq disabled */
+	mov	r0, #0xd1
+	msr	cpsr_c, r0
+	mov	sp, #0x8000
+
 	/* user/system mode: irq,fiq enabled */
 	mov	r0, #0x1f
 	msr	cpsr_c, r0

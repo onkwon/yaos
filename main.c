@@ -58,9 +58,7 @@ static int __init console_init()
 {
 	extern int sys_open_core(char *filename, int mode);
 
-	int fd;
-
-	fd = sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR | O_NONBLOCK);
+	int fd = sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR | O_NONBLOCK);
 	stdin = stdout = stderr = fd;
 
 	return 0;
@@ -84,7 +82,7 @@ int __init main()
 {
 	stdin = stdout = stderr = 0;
 
-	/* keep the calling order below because of dependencies. */
+	/* keep the calling order below because of dependencies */
 	sys_init();
 	mm_init();
 	fs_init();
@@ -109,11 +107,13 @@ int __init main()
 	set_kernel_sp(init.mm.kernel.sp);
 
 	/* everything ready now */
+#ifndef CORTEXA
 	sei();
+#endif
 	resched();
 
-	/* it doesn't really reach up to this point. init task becomes idle
-	 * magically by scheduler as its context already set to idle */
+	/* it doesn't really reach up to this point. init task becomes idle as
+	 * its context is already set to idle */
 	__context_restore(current);
 	__ret_from_exc(0);
 	freeze();

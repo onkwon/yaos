@@ -38,7 +38,7 @@ unsigned int get_sysclk_max()
 {
 	struct general_timer *gtimer = (struct general_timer *)GENTIMER_BASE;
 
-	return gtimer->load;
+	return gtimer->load + 1;
 }
 
 int sysclk_init()
@@ -57,12 +57,3 @@ int sysclk_init()
 
 	return IRQ_TIMER;
 }
-
-/*
-#include <kernel/init.h>
-
-void clock_init()
-{
-}
-REGISTER_INIT(clock_init, 0);
-*/

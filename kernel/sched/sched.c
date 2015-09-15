@@ -195,7 +195,7 @@ void sum_curr_stat(struct task *to)
 int sched_overhead;
 #endif
 
-void __attribute__((naked, used)) __schedule()
+void __attribute__((naked, used, optimize("O0"))) __schedule()
 {
 #ifdef CONFIG_DEBUG
 	/* make sure that registers used here must be the ones saved already */

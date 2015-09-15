@@ -2,7 +2,12 @@
 #include <kernel/gpio.h>
 #include <error.h>
 
-#define GPIO_PIN_INDEX		50
+//#define GPIO_PIN_INDEX		50
+#ifdef RPI2
+#define GPIO_PIN_INDEX		47
+#else
+#define GPIO_PIN_INDEX		16
+#endif
 
 static size_t led_read(struct file *file, void *buf, size_t len)
 {

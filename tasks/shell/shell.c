@@ -63,8 +63,12 @@ void shell()
 	int argc, fd, retval;
 	char **argv, buf[MAXLEN];
 
+	if ((fd = open(DEVFS_ROOT CONSOLE, O_RDONLY)) <= 0) {
+		debug("console: open error %x\n", fd);
+		return;
+	}
+
 	argv   = (char **)malloc(sizeof(char *) * MAXARG);
-	fd     = open(DEVFS_ROOT CONSOLE, O_RDONLY);
 	retval = 0;
 
 	puts("Type `help` for help on commands.\n");

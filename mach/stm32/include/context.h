@@ -35,7 +35,6 @@
 			"mov	%0, r12			\n\t"		\
 			: "=&r"(task->mm.sp)				\
 			:: "memory");					\
-	dsb();								\
 } while (0)
 
 /* When writing to the CONTROL register, an ISB instruction should be used to
@@ -59,8 +58,6 @@
 			"msr	control, r12		\n\t"		\
 			:: "r"(task->mm.sp)				\
 			: "r12", "memory");				\
-	dsb();								\
-	isb();								\
 } while (0)
 
 #define __context_prepare()				cli()

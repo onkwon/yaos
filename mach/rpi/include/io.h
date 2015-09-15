@@ -1,7 +1,11 @@
 #ifndef __RPI_IO_H__
 #define __RPI_IO_H__
 
+#ifdef RPI2
+#define PERI_BASE		0x3f000000
+#else
 #define PERI_BASE		0x20000000
+#endif
 #define GPIO_BASE		(PERI_BASE + 0x00200000)
 #define INTCNTL_BASE		(PERI_BASE + 0x0000b200)
 #define SYSTIMER_BASE		(PERI_BASE + 0x00003000)

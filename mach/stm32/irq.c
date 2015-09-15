@@ -1,6 +1,15 @@
 #include <foundation.h>
 #include <kernel/task.h>
 
+int register_isr(unsigned int nirq, void (*func)())
+{
+	extern unsigned int _ram_start;
+	*((unsigned int *)&_ram_start + nirq) = (unsigned int)func;
+	dsb();
+
+	return 0;
+}
+
 void __attribute__((naked)) sys_schedule()
 {
 	SCB_ICSR |= 1 << 28; /* raising pendsv for scheduling */

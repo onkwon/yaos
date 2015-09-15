@@ -11,28 +11,29 @@ int __usart_open(unsigned int channel, unsigned int baudrate)
 	if (channel)
 		return -ERR_RANGE;
 
+	/* Set GPIO first */
+	SET_GPIO_FS(14, GPIO_ALT5);
+	SET_GPIO_FS(15, GPIO_ALT5);
+	gpio_pull(14, 0);
+	gpio_pull(15, 0);
+
 	struct aux *aux = (struct aux *)AUX_BASE;
 	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
-	struct gpio *gpio = (struct gpio *)GPIO_BASE;
-	unsigned int i;
 
 	aux->enable = 1; /* enable mini-uart */
 	uart->cntl  = 0;
 	uart->lcr   = 3; /* 8-bit data */
 	uart->iir   = 0xc6;
+	uart->ier   = 5; /* enable rx interrupt */
 	uart->baudrate = (SYSTEM_CLOCK / (baudrate * 8)) - 1;
 
-	SET_GPIO_FS(14, GPIO_ALT5);
-	SET_GPIO_FS(15, GPIO_ALT5);
-	gpio->pud = 0; /* 0: off, 1: pull down, 2: pull up */
-	for (i = 0; i < 150; i++) __nop(); /* wait 150 cycles for set-up time */
-	gpio->pudclk0 = 1 << 14 | 1 << 15;
-	for (i = 0; i < 150; i++) __nop(); /* hold time */
-	gpio->pudclk0 = 0; /* clean */
+	uart->cntl = 3; /* enable rx and tx */
 
-	uart->cntl = 2;
+	struct interrupt_controller *intcntl
+		= (struct interrupt_controller *)INTCNTL_BASE;
+	intcntl->irq1_enable = 1 << IRQ_AUX;
 
-	return 1;
+	return IRQ_AUX; /* aux int */
 }
 
 void __usart_close(unsigned int channel)
@@ -49,6 +50,15 @@ void __usart_putc(unsigned int channel, int c)
 
 int __usart_check_rx(unsigned int channel)
 {
+	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
+
+	if (uart->iir & 1)
+		goto out;
+
+	if (uart->iir & 4)
+		return 1;
+
+out:
 	return 0;
 }
 
@@ -59,7 +69,9 @@ int __usart_check_tx(unsigned int channel)
 
 int __usart_getc(unsigned int channel)
 {
-	return 0;
+	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
+
+	return uart->dr;
 }
 
 void __usart_tx_irq_reset(unsigned int channel)

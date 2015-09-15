@@ -15,12 +15,6 @@
 #define __irq_restore(flag) \
 	__asm__ __volatile__("msr primask, %0" :: "r"(flag) : "memory")
 
-#define ISR_REGISTER(vector_nr, func)	({ \
-		extern unsigned int _ram_start; \
-		*((unsigned int *)&_ram_start + vector_nr) = (unsigned int)func; \
-		dsb(); \
-	})
-#define __register_isr(nirq, func)	ISR_REGISTER(nirq, func)
 #define __get_active_irq()		(GET_PSR() & 0x1ff)
 
 #define __SET_IRQ(on, irq_nr) ( \
