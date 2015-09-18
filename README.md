@@ -8,28 +8,32 @@ Any feedback is welcome to *kwon@toanyone.net*. And let me know if any of you ar
 
 ## Getting Started
 
-1. Download YAOS
+### 1. Download YAOS
 
 `git clone git://github.com/onkwon/yaos`
 
-2. Get a Toolchain
+### 2. Get a Toolchain
 
 Please google if you don't know enough about toolchain. Well documented pages are open over the internet. I will not repeat here.
 
-3. Build
+### 3. Build
 
-### STM32
+#### STM32
 
+	make clean
 	make stm32
 	make
 	make burn
 
-> test on STM32F103
+> tested on STM32F103
 
-### Raspberry Pi(2)
+#### Raspberry Pi(2)
 
+	make clean
 	make rpi
+
 or
+
 	make rpi2
 	make
 
