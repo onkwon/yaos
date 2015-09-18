@@ -4,7 +4,56 @@ YAOS is Yet Another Operating System for Internet of Things(IoT) devices, specif
 
 Refer to `/Documentation` directory for more information such as compiling, porting, APIs, etc.
 
-Any feedback is welcome to kwon@toanyone.net. And let me know if any of you are interested in porting to new MCU so that I can give you a hand.
+Any feedback is welcome to *kwon@toanyone.net*. And let me know if any of you are interested in porting to new MCU so that I can give you a hand.
+
+## Getting Started
+
+1. Download YAOS
+
+`git clone git://github.com/onkwon/yaos`
+
+2. Get a Toolchain
+
+Please google if you don't know enough about toolchain. Well documented pages are open over the internet. I will not repeat here.
+
+3. Build
+
+### STM32
+
+	make stm32
+	make
+	make burn
+
+> test on STM32F103
+
+### Raspberry Pi(2)
+
+	make rpi
+or
+	make rpi2
+	make
+
+That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `bootcode.bin` and `start.elf` files reside in. Insert SD card in your RPI, turn it on, and enjoy!
+
+You will see shell prompt `>` after some system log if uart rs232 cable connected.
+
+Character LCD is also opened by default. Pinout:
+
+	          -----
+	+3V3 ----|1   2|--\
+	         |3   4|---- +5V0
+	         |5   6|---- GND
+	 DB7 ----|7   8|---- TXD0
+	         |9  10|---- RXD0
+	 DB6 ----|11 12|
+	 DB5 ----|13 14|
+	 DB4 ----|15 16|
+	         |17 18|
+	  E  ----|19 20|
+	  RW ----|21 22|
+	  RS ----|23 24|
+	         |25 26|
+	          -----
 
 ## Features
 
@@ -39,5 +88,3 @@ Synchronization primitives such as semaphore, spinlock, etc.
 ### Blocking & non-blocking I/O operations
 
 ### Device driver
-
-## Getting Started

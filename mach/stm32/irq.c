@@ -120,9 +120,26 @@ void __attribute__((naked)) isr_fault()
 	/* led for debugging */
 	SET_PORT_CLOCK(ENABLE, PORTD);
 	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
+	unsigned int j;
 	while (1) {
 		PUT_PORT(PORTD, GET_PORT(PORTD) ^ 4);
-		mdelay(100);
+
+		for (i = 100; i; i--) {
+			for (j = 10; j; j--) {
+				__asm__ __volatile__(
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						"nop		\n\t"
+						::: "memory");
+			}
+		}
 	}
 }
 

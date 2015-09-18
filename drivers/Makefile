@@ -8,6 +8,9 @@ endif
 ifdef MODULE_IR
 	SRCS += ir.c
 endif
+ifdef MODULE_CLCD
+	SRCS += clcd.c
+endif
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
 INC     += -I$(BASEDIR)/include

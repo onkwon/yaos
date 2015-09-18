@@ -36,4 +36,6 @@ void msleep(unsigned int ms);
 void set_timeout(unsigned int *tv, unsigned int ms);
 int is_timeout(unsigned int goal);
 
+void udelay(unsigned int us);
+
 #endif /* __TIMER_H__ */

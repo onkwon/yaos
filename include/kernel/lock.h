@@ -99,8 +99,8 @@ typedef struct semaphore mutex_t;
 
 #define DEFINE_MUTEX(name)		DEFINE_SEMAPHORE(name, 1)
 #define INIT_MUTEX(name)		INIT_SEMAPHORE(name, 1)
-#define mutex_lock(count)		semaphore_down(count)
-#define mutex_unlock(count)		semaphore_up(count)
+#define mutex_lock(name)		semaphore_down(name)
+#define mutex_unlock(name)		semaphore_up(name)
 
 /* reader-writer spin lock */
 #define DEFINE_RWLOCK(name)		DEFINE_LOCK(name)

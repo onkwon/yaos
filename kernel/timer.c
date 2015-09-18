@@ -178,6 +178,15 @@ void msleep(unsigned int ms)
 #endif
 }
 
+int sys_timer_create(struct timer *new)
+{
+#ifdef CONFIG_TIMER
+	return __add_timer(new);
+#else
+	return -ERR_UNDEF;
+#endif
+}
+
 void set_timeout(unsigned int *tv, unsigned int ms)
 {
 	*tv = systick + msec_to_ticks(ms);
@@ -191,11 +200,22 @@ int is_timeout(unsigned int goal)
 	return 0;
 }
 
-int sys_timer_create(struct timer *new)
+#define MHZ		1000000
+void udelay(unsigned int us)
 {
-#ifdef CONFIG_TIMER
-	return __add_timer(new);
-#else
-	return -ERR_UNDEF;
-#endif
+	volatile unsigned int counter;
+	unsigned int goal, stamp;
+
+	stamp = get_sysclk();
+	goal  = get_sysclk_freq() / MHZ;
+	goal  = goal * us;
+
+	if (goal > get_sysclk_max())
+		return;
+
+	do {
+		counter = stamp - get_sysclk();
+		if ((int)counter < 0)
+			counter = get_sysclk_max() - ((int)counter * -1);
+	} while (counter < goal);
 }

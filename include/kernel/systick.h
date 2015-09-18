@@ -3,8 +3,8 @@
 
 #include <types.h>
 
-#define time_after(goal, chasing)	((int)goal    - (int)chasing < 0)
-#define time_before(goal, chasing)	((int)chasing - (int)goal    < 0)
+#define time_after(goal, chasing)	((int)(goal)    - (int)(chasing) < 0)
+#define time_before(goal, chasing)	((int)(chasing) - (int)(goal)    < 0)
 
 #define sec_to_ticks(sec)		((sec) * HZ)
 #define msec_to_ticks(sec)		(sec_to_ticks(sec) / 1000)

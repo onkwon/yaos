@@ -142,6 +142,8 @@ static void disp_clkinfo()
 	printf("\n");
 }
 
+#include <kernel/timer.h>
+
 #define TEMP_V25	1775	/* 1.43V */
 #define TEMP_SLOPE	43
 #define TEMP_OFFSET	25
@@ -156,7 +158,7 @@ static int getadc(int ch)
 	if (!(RCC_APB2ENR & (1 << 9))) {
 		SET_CLOCK_APB2(ENABLE, 9);	/* ADC1 clock enable */
 		ADC1_CR2   = 1 | 0x800000;	/* ADC1 and TSVREFE power on */
-		mdelay(1);			/* delay */
+		udelay(1000);			/* delay */
 		ADC1_CR2  |= 4;			/* calibration */
 		while (ADC1_CR2 & 4);		/* wait until calibration done */
 		printf("ADC calibration offset\t\t %d\n", ADC1_DR);
