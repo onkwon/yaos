@@ -12,7 +12,7 @@ struct shell_cmd {
 #define REGISTER_CMD(n, f, u) \
 		static struct shell_cmd shell_cmd_##n \
 		__attribute__((section(".shell_cmdlist"), \
-					aligned(4), used)) = { \
+					aligned(WORD_SIZE), used)) = { \
 			.name  = #n, \
 			.run   = f, \
 			.usage = u }

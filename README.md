@@ -25,19 +25,17 @@ Please google if you don't know enough about toolchain. Well documented pages ar
 	make
 	make burn
 
-> tested on STM32F103
+> Tested on STM32F103
 
-#### Raspberry Pi(2)
+#### Raspberry Pi
 
 	make clean
 	make rpi
-
-or
-
-	make rpi2
 	make
 
 That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `bootcode.bin` and `start.elf` files reside in. Insert SD card in your RPI, turn it on, and enjoy!
+
+> You can get the GPU firmware and bootloaders [here](https://github.com/raspberrypi/firmware).
 
 You will see shell prompt `>` after some system log if uart rs232 cable connected.
 
@@ -56,7 +54,7 @@ Character LCD is also opened by default. Pinout:
 	  E  ----|19 20|
 	  RW ----|21 22|
 	  RS ----|23 24|
-	         |25 26|
+	         |25 26| ---- IR
 	          -----
 
 ## Features

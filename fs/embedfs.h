@@ -36,7 +36,7 @@ struct embed_superblock {
 	unsigned int data_block;
 
 	unsigned int magic;
-};
+} __attribute__((packed));
 
 struct embed_inode {
 	unsigned short int addr;

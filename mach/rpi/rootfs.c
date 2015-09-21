@@ -3,6 +3,6 @@
 
 static void rootfs_init()
 {
-	mount(ramfs_build(1024, NULL), "/", "ramfs"); /* root file system */
+	mount(ramfs_build(1024, "/"), "/", "ramfs"); /* root file system */
 }
 MODULE_INIT(rootfs_init);

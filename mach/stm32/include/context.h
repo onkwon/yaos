@@ -37,9 +37,6 @@
 			:: "memory");					\
 } while (0)
 
-/* When writing to the CONTROL register, an ISB instruction should be used to
- * ensure the new configuration is used in subsequent instructions’ operations.
- * AN321 - ARM Cortex-M Programming Guide to Memory Barrier Instructions */
 #define __context_restore(task)	do {					\
 	__asm__ __volatile__(						\
 			"msr	msp, %0			\n\t"		\

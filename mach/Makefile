@@ -8,4 +8,4 @@ all:
 
 clean:
 	@$(MAKE) clean -C $(TARGET)
-	@rm -f $(TARGET).o
+	@rm -f $(TARGET).o $(wildcard *.o)

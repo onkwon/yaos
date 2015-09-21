@@ -417,6 +417,9 @@ struct device *ramfs_build(size_t size, const char *name)
 	new.root_inode = root_inode;
 	write_superblock(&new, dev);
 
+	if (!strcmp(name, "/")) /* if root file system */
+		create_file("/dev", FT_DIR, dev);
+
 	return dev;
 }
 

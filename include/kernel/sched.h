@@ -7,7 +7,7 @@ struct sched_entity {
 	uint64_t vruntime;
 	uint64_t exec_start;
 	uint64_t sum_exec_runtime;
-} __attribute__((packed));
+};
 
 #define INIT_SCHED_ENTITY(name)		\
 	((name) = (struct sched_entity){ 0, 0, 0 })

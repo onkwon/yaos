@@ -45,7 +45,7 @@ static void visit(struct task *p)
 	tab--;
 
 	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
-			GET_CON(), GET_SP(), GET_KSP(), GET_USP());
+			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
 }
 
 #ifdef CONFIG_PAGING

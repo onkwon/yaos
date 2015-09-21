@@ -95,7 +95,7 @@ struct task {
 
 #define REGISTER_TASK(f, t, p) \
 	static struct task task_##f \
-	__attribute__((section(".user_task_list"), used)) = { \
+	__attribute__((section(".user_task_list"), aligned(8), used)) = { \
 		.state = TASK_ZOMBIE, \
 		.flags = TASK_STATIC | t, \
 		.pri   = p, \

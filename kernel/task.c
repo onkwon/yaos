@@ -184,7 +184,7 @@ void wrapper()
 			get_task_state(current),
 			get_task_pri(current));
 	debug("control %08x, sp %08x, msp %08x, psp %08x",
-			GET_CON(), GET_SP(), GET_KSP(), GET_USP());
+			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
 
 	((void (*)())current->addr)();
 	kill((unsigned int)current);

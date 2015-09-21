@@ -21,25 +21,29 @@ SECTIONS
 	.text :
 	{
 		*(.vector)
+
 		*(.text.init)
+
 		. = (. + 3) & ~ 3;
 		_init_func_list = .;
 		*(.text.init.0)
 		*(.text.init.*)
-		. = (. + 3) & ~ 3;
 		LONG(0); /* null sentinel */
+
 		*(.text)
 		*(.text.*)
+
+		. = ALIGN(4);
 		*(.rodata)
 		*(.rodata.*)
-		. = (. + 3) & ~ 3;
+
+		. = ALIGN(4);
 		_device_list = .;
 		*(.device_list)
-		. = (. + 3) & ~ 3;
 		LONG(0);
+
 		_shell_cmdlist = .;
 		*(.shell_cmdlist)
-		. = (. + 3) & ~ 3;
 		LONG(0);
 		_etext = .;
 	} > rom
@@ -50,10 +54,11 @@ SECTIONS
 		_data = .;
 		*(.data)
 		*(.iap)
-		. = (. + 3) & ~ 3;
+
+		. = ALIGN(8);
 		_user_task_list = .;
 		*(.user_task_list)
-		. = (. + 3) & ~ 3;
+		. = ALIGN(4);
 		LONG(0);
 		_edata = .;
 	} > ram AT > rom

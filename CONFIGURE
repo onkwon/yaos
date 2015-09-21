@@ -10,4 +10,4 @@ CONFIG_TIMER=y
 # Uncomment a line to add the module
 MODULE_USART=y
 MODULE_IR=y
-MODULE_CLCD=y
+#MODULE_CLCD=y

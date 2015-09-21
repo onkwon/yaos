@@ -72,9 +72,9 @@ static int usart_open(unsigned int channel, struct usart arg)
 	SET_PORT_PIN(port, pin+1, PIN_INPUT | PIN_FLOATING); /* rx */
 
 	/* FOR TEST to use rx pin as wake-up source */
-	LINK_EXTI2NVIC(port, pin+1);
+	link_exti_to_nvic(port, pin+1);
 
-	SET_IRQ(ON, nvector - 16);
+	set_nvic(ON, nvector - 16);
 
 	*(volatile unsigned int *)(channel + 0x08) = arg.brr;
 	*(volatile unsigned int *)(channel + 0x0c) = arg.cr1;
@@ -105,7 +105,7 @@ static void usart_close(unsigned int channel)
 	else
 		SET_CLOCK_APB1(DISABLE, (((channel >> 8) & 0x1f) >> 2) + 16); /* USARTn clock disable */
 
-	/* SET_IRQ(OFF, nvector-16); */
+	/* set_nvic(OFF, nvector-16); */
 }
 
 /* to get buf index from register address */

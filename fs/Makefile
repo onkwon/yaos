@@ -22,7 +22,7 @@ depend dep:
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
 clean:
-	@rm -f $(OBJS) .depend
+	@rm -f $(OBJS) .depend $(wildcard *.o)
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

@@ -33,7 +33,7 @@ struct page {
 	unsigned int flags;
 	void *addr;
 	struct list link;
-} __attribute__((packed));
+};
 
 #define GET_PAGE_ORDER(p)	\
 	(((p)->flags & PAGE_ORDER_MASK) >> PAGE_ORDER_BIT)

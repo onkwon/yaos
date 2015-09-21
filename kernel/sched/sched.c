@@ -20,7 +20,7 @@ static struct scheduler rts;
 static inline void update_curr()
 {
 	uint64_t clock = get_systick64();
-	unsigned delta_exec;
+	unsigned int delta_exec;
 
 	delta_exec = clock - current->se.exec_start;
 	current->se.vruntime += delta_exec;
@@ -247,9 +247,9 @@ void print_rq()
 		printf("[%08x] state = %x, type = %x, pri = %x, vruntime = %d "
 				"exec_runtime = %d (%d sec)\n",
 				p->addr, p->state, p->flags, p->pri,
-				(unsigned)p->se.vruntime,
-				(unsigned)p->se.sum_exec_runtime,
-				(unsigned)p->se.sum_exec_runtime / HZ);
+				(unsigned int)p->se.vruntime,
+				(unsigned int)p->se.sum_exec_runtime,
+				(unsigned int)p->se.sum_exec_runtime / HZ);
 
 //		for (i = 0; i < NR_CONTEXT; i++)
 //			printf(("%x : %x", p->sp + i, *(p->sp + i));

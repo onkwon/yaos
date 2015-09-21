@@ -10,57 +10,68 @@
 #define __dsb()			__asm__ __volatile__("dsb" ::: "memory")
 #define __isb()			__asm__ __volatile__("isb" ::: "memory")
 
-#define __irq_save(flag) \
+#define __irq_save(flag)						\
 	__asm__ __volatile__("mrs %0, primask" : "=r"(flag) :: "memory")
-#define __irq_restore(flag) \
+#define __irq_restore(flag)						\
 	__asm__ __volatile__("msr primask, %0" :: "r"(flag) : "memory")
 
-#define __get_active_irq()		(GET_PSR() & 0x1ff)
+#define __get_active_irq()	(GET_PSR() & 0x1ff)
 
-#define __SET_IRQ(on, irq_nr) ( \
-		*(volatile unsigned int *)(NVIC_BASE + ((irq_nr) / 32 * 4)) = \
-		MASK_RESET(*(volatile unsigned int *)(NVIC_BASE + ((irq_nr) / 32 * 4)), 1 << ((irq_nr) % 32)) \
-		| ((on) << ((irq_nr) % 32)) \
-	)
-void SET_IRQ(int on, unsigned int irq_nr);
+void set_nvic(int on, unsigned int irq_nr);
+void link_exti_to_nvic(unsigned int port, unsigned int pin);
 
-#define LINK_EXTI2NVIC(port, pin)	\
-	(*(volatile unsigned int *)((AFIO_BASE+8) + ((pin)/4*4)) = \
-	 MASK_RESET(*(volatile unsigned int *)((AFIO_BASE+8) + ((pin)/4*4)), \
-		 0xf << ((pin)%4*4)) | (port) << ((pin)%4*4))
-
-#define GET_PC() ({ unsigned int __pc; \
-		__asm__ __volatile__("mov %0, pc" : "=r"(__pc)); \
-		__pc; })
-#define GET_SP() ({ unsigned int __sp; \
-		__asm__ __volatile__("mov %0, sp" : "=r"(__sp)); \
-		__sp; })
-#define GET_KSP() ({ unsigned int __ksp; \
-		__asm__ __volatile__("mrs %0, msp" : "=r"(__ksp)); \
-		__ksp; })
-#define GET_USP() ({ unsigned int __usp; \
-		__asm__ __volatile__("mrs %0, psp" : "=r"(__usp)); \
-		__usp; })
-#define GET_PSR() ({ unsigned int __psr; \
-		__asm__ __volatile__("mrs %0, psr" : "=r"(__psr)); \
-		__psr; })
-#define GET_LR() ({ unsigned int __lr; \
-		__asm__ __volatile__("mov %0, lr" : "=r"(__lr)); \
-		__lr; })
-#define GET_INT() ({ unsigned int __primask; \
-		__asm__ __volatile__("mrs %0, primask" : "=r"(__primask)); \
-		__primask; })
-#define GET_CON() ({ unsigned int __control; \
-		__asm__ __volatile__("mrs %0, control" : "=r"(__control)); \
-		__control; })
-#define SET_PC(addr)	{ \
-	__asm__ __volatile("push {%0}	\n\t" \
-			"pop {pc}	\n\t" \
-			:: "r"(addr) : "memory"); \
-}
-#define SET_SP(sp) __asm__ __volatile__("mov sp, %0" :: "r"(sp) : "memory")
-#define SET_KSP(sp) __asm__ __volatile__("msr msp, %0" :: "r"(sp) : "memory")
-#define SET_USP(sp) __asm__ __volatile__("msr psp, %0" :: "r"(sp) : "memory")
+#define GET_PC() ({							\
+	unsigned int __pc;						\
+	__asm__ __volatile__("mov %0, pc" : "=r"(__pc));		\
+	__pc;								\
+})
+#define GET_SP() ({							\
+	unsigned int __sp;						\
+	__asm__ __volatile__("mov %0, sp" : "=r"(__sp));		\
+	__sp;								\
+})
+#define GET_KSP() ({							\
+	unsigned int __ksp;						\
+	__asm__ __volatile__("mrs %0, msp" : "=r"(__ksp));		\
+	__ksp;								\
+})
+#define GET_USP() ({							\
+	unsigned int __usp;						\
+	__asm__ __volatile__("mrs %0, psp" : "=r"(__usp));		\
+	__usp;								\
+})
+#define GET_PSR() ({							\
+	unsigned int __psr;						\
+	__asm__ __volatile__("mrs %0, psr" : "=r"(__psr));		\
+	__psr;								\
+})
+#define GET_LR() ({							\
+	unsigned int __lr;						\
+	__asm__ __volatile__("mov %0, lr" : "=r"(__lr));		\
+	__lr;								\
+})
+#define GET_INT() ({							\
+	unsigned int __primask;						\
+	__asm__ __volatile__("mrs %0, primask" : "=r"(__primask));	\
+	__primask;							\
+})
+#define GET_CNTL() ({							\
+	unsigned int __control;						\
+	__asm__ __volatile__("mrs %0, control" : "=r"(__control));	\
+	__control;							\
+})
+#define SET_PC(addr)	({						\
+	__asm__ __volatile(						\
+		"push {%0}	\n\t"					\
+		"pop {pc}	\n\t"					\
+		:: "r"(addr) : "memory");				\
+})
+#define SET_SP(sp)							\
+	__asm__ __volatile__("mov sp, %0" :: "r"(sp) : "memory")
+#define SET_KSP(sp)							\
+	__asm__ __volatile__("msr msp, %0" :: "r"(sp) : "memory")
+#define SET_USP(sp)							\
+	__asm__ __volatile__("msr psp, %0" :: "r"(sp) : "memory")
 #define __set_usp(sp)		SET_USP(sp)
 #define __set_ksp(sp)		SET_KSP(sp)
 #define __get_ret_addr()	GET_LR()

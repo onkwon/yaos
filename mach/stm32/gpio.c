@@ -83,22 +83,22 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 		switch (pin) {
 		case 0 ... 4:
-			SET_IRQ(ON, pin + 6);
+			set_nvic(ON, pin + 6);
 			vector = pin + 22;
 			break;
 		case 5 ... 9:
-			SET_IRQ(ON, 23);
+			set_nvic(ON, 23);
 			vector = 39;
 			break;
 		case 10 ... 15:
-			SET_IRQ(ON, 40);
+			set_nvic(ON, 40);
 			vector = 56;
 			break;
 		default:
 			break;
 		}
 
-		LINK_EXTI2NVIC(port, pin);
+		link_exti_to_nvic(port, pin);
 	}
 
 	spin_unlock_irqrestore(gpio_init_lock, irqflag);

@@ -45,6 +45,8 @@ void linkdev(dev_t id, struct device *new)
 	write_unlock(lock_devtab);
 }
 
+#include <string.h>
+
 struct device *mkdev(unsigned int major, unsigned int minor,
 		struct file_operations *ops, const char *name)
 {
@@ -95,7 +97,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 
 	linkdev(dev->id, dev);
 
-	if (name)
+	if (name && strcmp(name, "/"))
 		sys_mknod(name, FT_DEV, dev->id);
 
 	return dev;

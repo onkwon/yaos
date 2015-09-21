@@ -64,7 +64,7 @@ struct inode {
 	lock_t lock;
 
 	struct list list;
-}__attribute__((packed));
+};
 
 struct inode_operations {
 	int (*lookup)(struct inode *inode, const char *pathname);
@@ -99,7 +99,7 @@ struct file {
 	lock_t lock;
 
 	struct list list;
-}__attribute__((packed));
+};
 
 struct file_operations {
 	int    (*open) (struct inode *inode, struct file *file);

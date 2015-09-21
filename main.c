@@ -80,8 +80,6 @@ static void __init sys_init()
 
 int __init main()
 {
-	stdin = stdout = stderr = 0;
-
 	/* keep the calling order below because of dependencies */
 	sys_init();
 	mm_init();

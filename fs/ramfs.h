@@ -18,13 +18,13 @@ struct ramfs_inode {
 	mode_t mode;
 	size_t size;
 	unsigned int *data[NR_DATA_BLOCK];
-};
+} __attribute__((aligned(WORD_SIZE)));
 
 struct ramfs_dir {
 	void *inode;
 	unsigned char type;
 	char *name;
-} __attribute__((packed));
+} __attribute__((aligned(WORD_SIZE)));
 
 void ramfs_register();
 struct device *ramfs_build(size_t size, const char *name);

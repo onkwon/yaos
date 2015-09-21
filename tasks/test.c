@@ -4,10 +4,11 @@
 #include <kernel/systick.h>
 
 #include <string.h>
+#include <stdlib.h>
 static void test_clcd()
 {
 	int fd;
-	if ((fd = open("/dev/clcd", O_RDWR | 8)) <= 0) {
+	if ((fd = open("/dev/clcd", O_RDWR)) <= 0) {
 		printf("clcd: open error %x\n", fd);
 		return;
 	}

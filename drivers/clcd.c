@@ -4,7 +4,7 @@
 #include <kernel/page.h>
 #include <error.h>
 
-/* GPIO pins */
+/* GPIO pin map */
 #define DB7		4
 #define DB6		17
 #define DB5		27
@@ -117,11 +117,11 @@ static void clcd_addr_set_cg(unsigned int addr)	{ clcd_cmd(0x40 | addr); }
 
 static void __clcd_open(unsigned int mode)
 {
-	clcd_func_set(mode);
+	clcd_func_set(8); /* 2 lines */
 
 	clcd_clear();
-	clcd_disp_set(4);
-	clcd_mode_set(2);
+	clcd_disp_set(4); /* display on */
+	clcd_mode_set(2); /* increment */
 }
 
 static struct fifo queue;

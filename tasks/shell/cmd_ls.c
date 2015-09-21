@@ -9,7 +9,7 @@ struct ramfs_dir {
 	void *inode;
 	unsigned char type;
 	char *name;
-} __attribute__((packed));
+} __attribute__((aligned(4)));
 
 struct embed_dir {
 	unsigned short int inode;

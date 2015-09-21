@@ -32,43 +32,43 @@
  */
 #define __context_save(task)	do {					\
 	__asm__ __volatile__(						\
-			"push	{r0}			\n\t"		\
-			"stmdb	sp!, {sp}^		\n\t"		\
-			"ldr	r0, [sp]		\n\t"		\
-			"stmdb	r0!, {lr}		\n\t" /* pc */	\
-			"stmdb	r0!, {lr}^		\n\t" /* lr */	\
-			"stmdb	r0!, {r1-r12}		\n\t"		\
-			"pop	{r1}			\n\t" /* sp */	\
-			"stmdb	r0!, {r1}		\n\t"		\
-			"pop	{r1}			\n\t" /* r0 */	\
-			"stmdb	r0!, {r1}		\n\t"		\
-			"mrs	r1, spsr		\n\t" /* cpsr */\
-			"stmdb	r0!, {r1}		\n\t"		\
+			"push	{r0}				\n\t"	\
+			"stmdb	sp!, {sp}^			\n\t"	\
+			"ldr	r0, [sp]			\n\t"	\
+			"stmdb	r0!, {lr}	@ pc		\n\t"	\
+			"stmdb	r0!, {lr}^	@ lr		\n\t"	\
+			"stmdb	r0!, {r1-r12}			\n\t"	\
+			"pop	{r1}		@ sp		\n\t"	\
+			"stmdb	r0!, {r1}			\n\t"	\
+			"pop	{r1}		@ r0		\n\t"	\
+			"stmdb	r0!, {r1}			\n\t"	\
+			"mrs	r1, spsr	@ cpsr		\n\t"	\
+			"stmdb	r0!, {r1}			\n\t"	\
 			::: "memory");					\
 	__asm__ __volatile__(						\
-			"mov	%0, r0			\n\t"		\
+			"mov	%0, r0				\n\t"	\
 			: "=&r"(task->mm.sp)				\
 			:: "memory");					\
 } while (0)
 
 #define __context_restore(task)	do {					\
 	__asm__ __volatile__(						\
-			"mov	r12, %0			\n\t"		\
-			"ldmia	r12!, {r0}		\n\t"		\
-			"tst	%1, %2			\n\t"		\
-			"orrne	r0, #0x1f		\n\t"		\
+			"mov	r12, %0				\n\t"	\
+			"ldmia	r12!, {r0}			\n\t"	\
+			"tst	%1, %2				\n\t"	\
+			"orrne	r0, #0x1f			\n\t"	\
 			:: "r"(task->mm.sp)				\
 			, "r"(get_task_flags(task))			\
 			, "I"(TASK_PRIVILEGED)				\
 			: "memory");					\
 	__asm__ __volatile__(						\
-			"msr	spsr, r0		\n\t"		\
-			"ldmia	r12!, {r0}		\n\t"		\
-			"ldmia	r12!, {sp}^		\n\t"		\
-			"ldmia	r12!, {r1-r11}		\n\t"		\
+			"msr	spsr, r0			\n\t"	\
+			"ldmia	r12!, {r0}			\n\t"	\
+			"ldmia	r12!, {sp}^			\n\t"	\
+			"ldmia	r12!, {r1-r11}			\n\t"	\
 			/* return to user mode */			\
-			"ldr	lr, [r12, #8]		\n\t"		\
-			"ldmia	r12, {r12, lr}^		\n\t"		\
+			"ldr	lr, [r12, #8]			\n\t"	\
+			"ldmia	r12, {r12, lr}^			\n\t"	\
 			::: "memory");					\
 } while (0)
 
@@ -85,16 +85,16 @@
 
 #define __save_curr_context(regs) do {					\
 	__asm__ __volatile__(						\
-			"str	r0, [%0]		\n\t"		\
-			"mov	r0, %4			\n\t"		\
-			"stmia	r0!, {r1-r12, lr}	\n\t"		\
-			"mrs	r0, cpsr		\n\t"		\
-			"str	r0, [%1]		\n\t"		\
-			"ldr	r0, =1f			\n\t"		\
-			"str	r0, [%2]		\n\t"		\
-			"mov	r0, %3			\n\t"		\
-			"stmia	r0, {sp}		\n\t"		\
-		"1:					\n\t"		\
+			"str	r0, [%0]			\n\t"	\
+			"mov	r0, %4				\n\t"	\
+			"stmia	r0!, {r1-r12, lr}		\n\t"	\
+			"mrs	r0, cpsr			\n\t"	\
+			"str	r0, [%1]			\n\t"	\
+			"ldr	r0, =1f				\n\t"	\
+			"str	r0, [%2]			\n\t"	\
+			"mov	r0, %3				\n\t"	\
+			"stmia	r0, {sp}			\n\t"	\
+		"1:						\n\t"	\
 			:: "r"(regs+INDEX_R0)				\
 			, "r"(regs+INDEX_PSR)				\
 			, "r"(regs+INDEX_PC)				\

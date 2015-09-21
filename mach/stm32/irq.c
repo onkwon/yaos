@@ -145,9 +145,28 @@ void __attribute__((naked)) isr_fault()
 
 #include <kernel/lock.h>
 static DEFINE_SPINLOCK(nvic_lock);
-void SET_IRQ(int on, unsigned int irq_nr)
+void set_nvic(int on, unsigned int irq_nr)
 {
+	volatile unsigned int *reg;
+	unsigned int bit, base;
+
+	bit    = irq_nr % 32;
+	irq_nr = irq_nr / 32 * 4;
+	base   = on? NVIC_BASE : NVIC_BASE + 0x80;
+	reg    = (volatile unsigned int *)(base + irq_nr);
+
 	spin_lock(nvic_lock);
-	__SET_IRQ(on&1, irq_nr);
+	*reg |= 1 << bit;
 	spin_unlock(nvic_lock);
+}
+
+void link_exti_to_nvic(unsigned int port, unsigned int pin)
+{
+	volatile unsigned int *reg;
+	unsigned int bit;
+
+	bit = pin % 4 * 4;
+	pin = pin / 4 * 4;
+	reg = (volatile unsigned int *)((AFIO_BASE+8) + pin);
+	*reg = MASK_RESET(*reg, 0xf << bit) | port << bit;
 }
