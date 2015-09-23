@@ -87,7 +87,9 @@ void __attribute__((naked, optimize("O0"))) svc_handler()
 
 	/* branch to interrupt service routine */
 	__asm__ __volatile__(
-			"mov	r4, %1			\n\t"
+			"mov	r4, %0			\n\t"
+			:: "r"(current->mm.sp) : "memory");
+	__asm__ __volatile__(
 			"ldr	r0, [r4, #4]		\n\t"
 			/* if nr >= SYSCALL_NR */
 			"cmp	r0, %0			\n\t"
@@ -103,9 +105,7 @@ void __attribute__((naked, optimize("O0"))) svc_handler()
 			"blx	r12			\n\t"
 			/* r0 now holds the return value */
 			"str	r0, [r4, #4]		\n\t"
-			:: "I"(SYSCALL_NR)
-			, "r"(current->mm.sp)
-			: "memory");
+			:: "I"(SYSCALL_NR) : "memory");
 
 	/* schedule if sched_req is set */
 	__asm__ __volatile__(

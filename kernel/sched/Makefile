@@ -7,10 +7,6 @@ ifdef CONFIG_REALTIME
 endif
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
-INC     += -I$(BASEDIR)/include
-LIBS    += 
-CFLAGS  += $(INC) $(LIBS)
-
 .SUFFIXES: .c.o
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o

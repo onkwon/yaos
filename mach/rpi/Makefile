@@ -6,11 +6,11 @@ INC      = -I$(BASEDIR)/include -I./include
 LIBS    +=
 CFLAGS  += $(INC) $(LIBS)
 
-.SUFFIXES: .c.o
-.SUFFIXES: .s.o
-.SUFFIXES: .S.o
-
 all: $(OBJS)
+
+.s.o:
+.S.o:
+	$(CC) $(CFLAGS) -c $<
 
 depend dep:
 	echo $(CC)

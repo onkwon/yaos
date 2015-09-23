@@ -14,7 +14,7 @@ Any feedback is welcome to *kwon@toanyone.net*. And let me know if any of you ar
 
 ### 2. Get a Toolchain
 
-Please google if you don't know enough about toolchain. Well documented pages are open over the internet. I will not repeat here.
+Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have one installed yet. Or you can build from source putting much more effort compiling. It would be worth to try learning your lesson.
 
 ### 3. Build
 
@@ -27,10 +27,16 @@ Please google if you don't know enough about toolchain. Well documented pages ar
 
 > Tested on STM32F103
 
-#### Raspberry Pi
+#### Raspberry Pi(2)
 
 	make clean
 	make rpi
+	make
+
+or
+
+	make clean
+	make rpi2
 	make
 
 That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `bootcode.bin` and `start.elf` files reside in. Insert SD card in your RPI, turn it on, and enjoy!

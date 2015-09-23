@@ -33,17 +33,19 @@
 #define __context_save(task)	do {					\
 	__asm__ __volatile__(						\
 			"push	{r0}				\n\t"	\
-			"stmdb	sp!, {sp}^			\n\t"	\
+			"stmdb	sp, {sp}^			\n\t"	\
+			"sub	sp, sp, #4			\n\t"	\
 			"ldr	r0, [sp]			\n\t"	\
-			"stmdb	r0!, {lr}	@ pc		\n\t"	\
-			"stmdb	r0!, {lr}^	@ lr		\n\t"	\
+			"str	lr, [r0, #-4]!	@ pc		\n\t"	\
+			"stmdb	r0, {lr}^	@ lr		\n\t"	\
+			"sub	r0, r0, #4			\n\t"	\
 			"stmdb	r0!, {r1-r12}			\n\t"	\
 			"pop	{r1}		@ sp		\n\t"	\
-			"stmdb	r0!, {r1}			\n\t"	\
+			"str	r1, [r0, #-4]!			\n\t"	\
 			"pop	{r1}		@ r0		\n\t"	\
-			"stmdb	r0!, {r1}			\n\t"	\
+			"str	r1, [r0, #-4]!			\n\t"	\
 			"mrs	r1, spsr	@ cpsr		\n\t"	\
-			"stmdb	r0!, {r1}			\n\t"	\
+			"str	r1, [r0, #-4]!			\n\t"	\
 			::: "memory");					\
 	__asm__ __volatile__(						\
 			"mov	%0, r0				\n\t"	\
@@ -54,7 +56,7 @@
 #define __context_restore(task)	do {					\
 	__asm__ __volatile__(						\
 			"mov	r12, %0				\n\t"	\
-			"ldmia	r12!, {r0}			\n\t"	\
+			"ldr	r0, [r12], #4			\n\t"	\
 			"tst	%1, %2				\n\t"	\
 			"orrne	r0, #0x1f			\n\t"	\
 			:: "r"(task->mm.sp)				\
@@ -63,8 +65,9 @@
 			: "memory");					\
 	__asm__ __volatile__(						\
 			"msr	spsr, r0			\n\t"	\
-			"ldmia	r12!, {r0}			\n\t"	\
-			"ldmia	r12!, {sp}^			\n\t"	\
+			"ldr	r0, [r12], #4			\n\t"	\
+			"ldmia	r12, {sp}^			\n\t"	\
+			"add	r12, r12, #4			\n\t"	\
 			"ldmia	r12!, {r1-r11}			\n\t"	\
 			/* return to user mode */			\
 			"ldr	lr, [r12, #8]			\n\t"	\

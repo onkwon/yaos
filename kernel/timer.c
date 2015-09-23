@@ -219,3 +219,9 @@ void udelay(unsigned int us)
 			counter = get_sysclk_max() - ((int)counter * -1);
 	} while (counter < goal);
 }
+
+void mdelay(unsigned int ms)
+{
+	while (ms--)
+		udelay(1000);
+}

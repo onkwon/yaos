@@ -67,4 +67,5 @@ static void alloc_irq_stack()
 			"msr	cpsr_c, r1		\n\t"
 			::: "memory");
 }
-MODULE_INIT(alloc_irq_stack);
+//MODULE_INIT(alloc_irq_stack);
+/* it shares with kernel stack. so 2 stacks, irq == svc and user stack. */

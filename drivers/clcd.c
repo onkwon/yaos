@@ -115,13 +115,32 @@ static void clcd_func_set(unsigned int flags)	{ clcd_cmd(0x20 | flags); }
 static void clcd_addr_set(unsigned int addr) 	{ clcd_cmd(0x80 | addr); }
 static void clcd_addr_set_cg(unsigned int addr)	{ clcd_cmd(0x40 | addr); }
 
+static void clcd_reset()
+{
+	mdelay(100);
+	clcd_put(0x30);
+	mdelay(4);
+	clcd_put(0x30);
+	udelay(100);
+	clcd_put(0x30);
+	udelay(100);
+
+	/* change interface to 4-bit */
+	clcd_put(0x20);
+	udelay(100);
+
+	/* busy flag works now */
+	clcd_func_set(8); /* 2 lines, 5x7 */
+	clcd_disp_set(0); /* display on/off */
+	clcd_clear();
+	clcd_mode_set(2); /* increment */
+}
+
 static void __clcd_open(unsigned int mode)
 {
-	clcd_func_set(8); /* 2 lines */
+	clcd_reset();
 
-	clcd_clear();
 	clcd_disp_set(4); /* display on */
-	clcd_mode_set(2); /* increment */
 }
 
 static struct fifo queue;
