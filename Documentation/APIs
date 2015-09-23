@@ -302,3 +302,11 @@ MMU 가상화 장치의 혜택을 받지 못하므로 새로 생성된 태스크
 
 `schedule()` - general use in user context, either a user task or a kernel task
 `resched()` - is used when scheduling needed in handler context, raising interrupt pending bit or setting `resched` flag
+
+## fifo
+
+`type_size` up to WORD_SIZE possible.
+
+`fifo_get(struct fifo, int type_size)`
+
+`fifo_put(struct fifo, int value, type_size)`

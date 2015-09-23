@@ -14,7 +14,7 @@ Any feedback is welcome to *kwon@toanyone.net*. And let me know if any of you ar
 
 ### 2. Get a Toolchain
 
-Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have one installed yet. Or you can build from source putting much more effort compiling. It would be worth to try learning your lesson.
+Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have one installed yet. Or you can compile it from source code putting more effort, which is not recommended but still worth to try.
 
 ### 3. Build
 

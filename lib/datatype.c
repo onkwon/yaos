@@ -17,17 +17,16 @@ void fifo_flush(struct fifo *q)
 int fifo_get(struct fifo *q, int type_size)
 {
 	unsigned int sentinel = q->size / type_size;
-	char *p = q->buf;
+	unsigned int index    = q->front * type_size;
+	unsigned char *p      = q->buf;
 	int v = 0;
 	register unsigned int i;
 
 	if (q->front == q->rear) /* empty */
 		return -1;
 
-	for (i = 0; i < type_size; i++) {
-		v = (unsigned int)v << 8;
-		v = v | p[q->front * type_size + i];
-	}
+	for (i = 0; i < type_size; i++)
+		v = (unsigned int)v | (p[index + i] << (i << 3));
 
 	q->front += 1;
 	q->front %= sentinel;
@@ -38,15 +37,16 @@ int fifo_get(struct fifo *q, int type_size)
 int fifo_put(struct fifo *q, int value, int type_size)
 {
 	unsigned int sentinel = q->size / type_size;
-	char *p = q->buf;
+	unsigned int index    = q->rear * type_size;
+	unsigned char *p      = q->buf;
 	register unsigned int i;
 
 	if (((q->rear+1) % sentinel) == q->front) /* no more room */
 		return -1;
 
 	for (i = 0; i < type_size; i++) {
-		p[q->rear * type_size + i] = (unsigned char)value;
-		value = (unsigned int)value >> 8;
+		p[index + i] = (unsigned char)value;
+		value        = (unsigned int)value >> 8;
 	}
 
 	q->rear += 1;

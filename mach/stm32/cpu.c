@@ -36,7 +36,7 @@ static void __init port_init()
 	SET_PORT_CLOCK(DISABLE, PORTG);
 }
 
-static void __init __attribute__((naked, used)) entry()
+static void __init __attribute__((naked, used)) reset()
 {
 	cli();
 
@@ -65,7 +65,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 			/* NUM(IRQ): ADDR - DESC */
 			/* -------------------- */
 	&_ram_end,	/* 00     :       - Stack pointer */
-	entry,		/* 01     : 0x04  - Reset */
+	reset,		/* 01     : 0x04  - Reset */
 	isr_fault,	/* 02     : 0x08  - NMI */
 	isr_fault,	/* 03     : 0x0c  - HardFault */
 	isr_fault,	/* 04     : 0x10  - MemManage */

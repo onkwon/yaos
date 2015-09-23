@@ -1,6 +1,6 @@
 # Booting
 
-	/entry() #interrupt disabled
+	/reset() #interrupt disabled
 	|-- main()
 	|   |-- sys_init()
 	|   |-- mm_init()
@@ -17,7 +17,7 @@
 	|       |-- cleanup()
 	|       `-- sleep
 
-* `entry()` - is very first hardware setup code to boot, usually written in
+* `reset()` - is very first hardware setup code to boot, usually written in
 assembly.
 
 * `sys_init()` - calls functions registered by `REGISTER_INIT()`, architecture
