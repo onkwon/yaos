@@ -1,12 +1,11 @@
 #include <kernel/module.h>
 #include <kernel/page.h>
 #include <kernel/softirq.h>
+#include <asm/pinmap.h>
 #include <foundation.h>
 
 #define QUEUE_SIZE	(128 * WORD_SIZE) /* 128 entries of WORD_SIZE */
 #define MHZ		1000000
-
-#define GPIO_PIN_INDEX	7
 
 static struct fifo ir_queue;
 static unsigned int nr_softirq;
@@ -35,7 +34,7 @@ static void isr_ir()
 
 	raise_softirq(nr_softirq);
 
-	ret_from_gpio_int(GPIO_PIN_INDEX);
+	ret_from_gpio_int(PIN_IR);
 }
 
 static size_t ir_read(struct file *file, void *buf, size_t len)
@@ -91,7 +90,7 @@ static int __init ir_init()
 
 	fifo_init(&ir_queue, buf, QUEUE_SIZE);
 
-	vector_nr = gpio_init(GPIO_PIN_INDEX, GPIO_MODE_INPUT | GPIO_CONF_PULL |
+	vector_nr = gpio_init(PIN_IR, GPIO_MODE_INPUT | GPIO_CONF_PULL_UP |
 			GPIO_INT_FALLING | GPIO_INT_RISING);
 
 	register_isr(vector_nr, isr_ir);
@@ -99,14 +98,14 @@ static int __init ir_init()
 	if ((dev = mkdev(0, 0, &ops, "ir"))) {
 		if ((nr_softirq = request_softirq(daemon)) >= SOFTIRQ_MAX) {
 			kfree(buf);
-			gpio_close(GPIO_PIN_INDEX);
+			gpio_close(PIN_IR);
 			remove_device(dev);
 
 			return -ERR_RANGE;
 		}
 	}
 
-	if (gpio_get(GPIO_PIN_INDEX))
+	if (gpio_get(PIN_IR))
 		siglevel = HIGH;
 	else
 		siglevel = LOW;

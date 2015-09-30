@@ -6,20 +6,11 @@ INC      = -I$(BASEDIR)/include -I./include
 LIBS    +=
 CFLAGS  += $(INC) $(LIBS)
 
-SUBDIRS = libgcc
+.SUFFIXES: .c.o
+.SUFFIXES: .s.o
+.SUFFIXES: .S.o
 
-all: $(OBJS) subdirs
-
-.PHONY: subdirs $(SUBDIRS)
-subdirs: $(SUBDIRS)
-
-$(SUBDIRS):
-	@$(MAKE) -C $@
-	$(LD) -o $@.o -r $@/*.o
-
-.s.o:
-.S.o:
-	$(CC) $(CFLAGS) -c $<
+all: $(OBJS)
 
 depend dep:
 	echo $(CC)
@@ -27,8 +18,6 @@ depend dep:
 
 clean:
 	@rm -f $(OBJS) .depend
-	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
-	@rm -f $(wildcard *.o)
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

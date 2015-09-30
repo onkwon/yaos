@@ -67,8 +67,12 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	SET_GPIO_FS(index, mode);
 
-	if (flags & GPIO_CONF_PULL) {
-		gpio_pull(index, 2); /* pull up only */
+	if (flags & GPIO_CONF_PULL_UP) {
+		gpio_pull(index, 2);
+	} else if (flags & GPIO_CONF_PULL_DOWN) {
+		gpio_pull(index, 1);
+	} else {
+		gpio_pull(index, 0);
 	}
 
 	if (flags & GPIO_INT_FALLING) {

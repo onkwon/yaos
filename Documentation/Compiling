@@ -4,6 +4,9 @@ Put a user task under /tasks directory. Code what you want in general way using
 provided API and any other libraries. And simply register the task by
 `REGISTER_TASK(function, type, priority)`.
 
+Change `/mach/your-target/include/pinmap.h` corresponding to your board pin
+assignment.
+
 It generates a periodic interrupt rated by HZ for the heart rate of system.
 Change HZ as you wish in `include/foundation.h`.
 

@@ -45,7 +45,7 @@ That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `boo
 
 You will see shell prompt `>` after some system log if uart rs232 cable connected.
 
-Character LCD is also opened by default. Pinout:
+Character LCD is also opened by default. You can change default pin assignment in `/mach/rpi/include/pinmap.h`. Pinout:
 
 	          -----
 	+3V3 ----|1   2|--\

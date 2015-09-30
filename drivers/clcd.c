@@ -1,24 +1,16 @@
+#include <error.h>
 #include <kernel/module.h>
 #include <kernel/gpio.h>
 #include <kernel/timer.h>
 #include <kernel/page.h>
-#include <error.h>
+#include <asm/pinmap.h>
 
-/* GPIO pin map */
-#define DB7		4
-#define DB6		17
-#define DB5		27
-#define DB4		22
-#define E		10
-#define RW		9
-#define RS		11
-
-#define set_cs()	gpio_put(E, 1)
-#define clr_cs()	gpio_put(E, 0)
-#define set_rs()	gpio_put(RS, 1)
-#define clr_rs()	gpio_put(RS, 0)
-#define set_rw()	gpio_put(RW, 1)
-#define clr_rw()	gpio_put(RW, 0)
+#define set_cs()	gpio_put(PIN_CLCD_E, 1)
+#define clr_cs()	gpio_put(PIN_CLCD_E, 0)
+#define set_rs()	gpio_put(PIN_CLCD_RS, 1)
+#define clr_rs()	gpio_put(PIN_CLCD_RS, 0)
+#define set_rw()	gpio_put(PIN_CLCD_RW, 1)
+#define clr_rw()	gpio_put(PIN_CLCD_RW, 0)
 
 #define OUTPUT		0
 #define INPUT		1
@@ -36,10 +28,10 @@ static inline void raise()
 
 static inline void clcd_put_nibble(unsigned char nibble)
 {
-	gpio_put(DB7, nibble >> 3);
-	gpio_put(DB6, nibble >> 2);
-	gpio_put(DB5, nibble >> 1);
-	gpio_put(DB4, nibble >> 0);
+	gpio_put(PIN_CLCD_DB7, nibble >> 3);
+	gpio_put(PIN_CLCD_DB6, nibble >> 2);
+	gpio_put(PIN_CLCD_DB5, nibble >> 1);
+	gpio_put(PIN_CLCD_DB4, nibble >> 0);
 	raise();
 }
 
@@ -52,15 +44,15 @@ static inline void clcd_put(unsigned char v)
 static inline void clcd_dir(unsigned int dir)
 {
 	if (dir == INPUT)
-		gpio_init(DB7, GPIO_MODE_INPUT);
+		gpio_init(PIN_CLCD_DB7, GPIO_MODE_INPUT | GPIO_CONF_PULL_DOWN);
 	else
-		gpio_init(DB7, GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_DB7, GPIO_MODE_OUTPUT);
 
 }
 
 static inline int get_busy_flag()
 {
-	return gpio_get(DB7);
+	return gpio_get(PIN_CLCD_DB7);
 }
 
 static inline void wait_while_busy()
@@ -240,13 +232,13 @@ static int clcd_open(struct inode *inode, struct file *file)
 		}
 		fifo_init(&queue, buf, QSIZE);
 
-		gpio_init(DB7, GPIO_MODE_OUTPUT);
-		gpio_init(DB6, GPIO_MODE_OUTPUT);
-		gpio_init(DB5, GPIO_MODE_OUTPUT);
-		gpio_init(DB4, GPIO_MODE_OUTPUT);
-		gpio_init(E,   GPIO_MODE_OUTPUT);
-		gpio_init(RW,  GPIO_MODE_OUTPUT);
-		gpio_init(RS,  GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_DB7, GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_DB6, GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_DB5, GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_DB4, GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_E,   GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_RW,  GPIO_MODE_OUTPUT);
+		gpio_init(PIN_CLCD_RS,  GPIO_MODE_OUTPUT);
 
 		__clcd_open(file->flags & 0x1c);
 	}

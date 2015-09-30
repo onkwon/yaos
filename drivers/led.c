@@ -1,19 +1,13 @@
+#include <error.h>
 #include <kernel/module.h>
 #include <kernel/gpio.h>
-#include <error.h>
-
-//#define GPIO_PIN_INDEX		50
-#ifdef RPI2
-#define GPIO_PIN_INDEX		47
-#else
-#define GPIO_PIN_INDEX		16
-#endif
+#include <asm/pinmap.h>
 
 static size_t led_read(struct file *file, void *buf, size_t len)
 {
 	unsigned int *p = (unsigned int *)buf;
 
-	*p = gpio_get(GPIO_PIN_INDEX);
+	*p = gpio_get(PIN_STATUS_LED);
 
 	return 1;
 }
@@ -22,7 +16,7 @@ static size_t led_write(struct file *file, void *buf, size_t len)
 {
 	unsigned int *p = (unsigned int *)buf;
 
-	gpio_put(GPIO_PIN_INDEX, *p);
+	gpio_put(PIN_STATUS_LED, *p);
 
 	return 1;
 }
@@ -42,6 +36,6 @@ static void __init led_init()
 	struct device *dev;
 
 	if ((dev = mkdev(0, 0, &ops, "led")))
-		gpio_init(GPIO_PIN_INDEX, GPIO_MODE_OUTPUT);
+		gpio_init(PIN_STATUS_LED, GPIO_MODE_OUTPUT);
 }
 MODULE_INIT(led_init);

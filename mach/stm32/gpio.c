@@ -64,9 +64,12 @@ int gpio_init(unsigned int index, unsigned int flags)
 			mode |= PIN_ANALOG;
 		} else if (flags & GPIO_CONF_FLOAT) {
 			mode |= PIN_FLOATING;
-		} else if (flags & GPIO_CONF_PULL) {
+		} else if (flags & GPIO_CONF_PULL_UP) {
 			mode |= PIN_PULL;
-			PUT_PORT(port, 1 << pin);
+			PUT_PORT_PIN(port, pin, 1);
+		} else if (flags & GPIO_CONF_PULL_DOWN) {
+			mode |= PIN_PULL;
+			PUT_PORT_PIN(port, pin, 0);
 		}
 	}
 
