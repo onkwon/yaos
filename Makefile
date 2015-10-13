@@ -9,22 +9,22 @@ OD = arm-none-eabi-objdump
 
 include CONFIGURE
 ifdef CONFIG_SMP
-	CFLAGS += -DCONFIG_SMP
+CFLAGS += -DCONFIG_SMP
 endif
 ifdef CONFIG_REALTIME
-	CFLAGS += -DCONFIG_REALTIME
+CFLAGS += -DCONFIG_REALTIME
 endif
 ifdef CONFIG_PAGING
-	CFLAGS += -DCONFIG_PAGING
+CFLAGS += -DCONFIG_PAGING
 endif
 ifdef CONFIG_SYSCALL
-	CFLAGS += -DCONFIG_SYSCALL
+CFLAGS += -DCONFIG_SYSCALL
 endif
 ifdef CONFIG_FS
-	CFLAGS += -DCONFIG_FS
+CFLAGS += -DCONFIG_FS
 endif
 ifdef CONFIG_TIMER
-	CFLAGS += -DCONFIG_TIMER
+CFLAGS += -DCONFIG_TIMER
 endif
 
 # Common 
@@ -32,7 +32,12 @@ endif
 PROJECT = yaos
 
 -include .config
-export TARGET
+ifeq ($(SOC),bcm2835)
+TARGET  = armv7-a
+else
+TARGET  = $(ARCH)
+endif
+export TARGET MACH SOC
 
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
 BASEDIR = $(shell pwd)
@@ -40,11 +45,11 @@ export BASEDIR
 
 CFLAGS += -march=$(ARCH)
 CFLAGS += -Wall -O2 -fno-builtin -nostdlib -lgcc
-CFLAGS += -DVERSION=\"$(VERSION)\" -DMACHINE=\"$(TARGET)\"
+CFLAGS += -DVERSION=$(VERSION) -DMACHINE=$(MACH) -DSOC=$(SOC)
 ifdef CONFIG_DEBUG
-	CFLAGS += -g -DCONFIG_DEBUG -O0
+CFLAGS += -g -DCONFIG_DEBUG -O0
 endif
-LDFLAGS = -nostartfiles -Tmach/$(TARGET)/ld.script
+LDFLAGS = -nostartfiles -Tarch/$(TARGET)/ld.script
 OCFLAGS = -O binary
 ODFLAGS = -DxS
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
@@ -57,7 +62,7 @@ INC  = -I./include
 LIBS = 
 export INC LIBS
 
-SUBDIRS = lib mach kernel fs drivers tasks
+SUBDIRS = lib arch kernel fs drivers tasks
 
 all: include common
 	@echo "Section Size(in bytes):"
@@ -76,7 +81,8 @@ $(SUBDIRS):
 
 .PHONY: include
 include:
-	-cp -R mach/$(TARGET)/include include/asm
+	@$(MAKE) include --print-directory -C arch/$(TARGET)
+	-cp -R arch/$(TARGET)/include include/asm
 	-cp -R drivers/include include/driver
 	-cp -R lib/include include/lib
 	-cp -R fs/include include/fs
@@ -110,16 +116,18 @@ endif
 endif
 endif
 
-stm32:
-	@echo "TARGET = stm32\nARCH = armv7-m\nCFLAGS += -mtune=cortex-m3 -mthumb" > .config
+stm32f4:
+	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f4\nCFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" > .config
+stm32f1:
+	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f1\nCFLAGS += -mtune=cortex-m3 -mthumb" > .config
 rpi:
-	@echo "TARGET = rpi\nARCH = armv6zk\nCFLAGS += -mfpu=vfp -mfloat-abi=hard -mtune=arm1176jzf-s" > .config
+	@echo "ARCH = armv6zk\nMACH = rpi\nSOC = bcm2835\nCFLAGS += -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp" > .config
 rpi2:
-	@echo "TARGET = rpi\nARCH = armv7-a\nCFLAGS += -mfpu=vfpv3-d16 -mfloat-abi=hard -mtune=cortex-a7 -DRPI2" > .config
+	@echo "ARCH = armv7-a\nMACH = rpi\nSOC = bcm2836\nCFLAGS += -mtune=cortex-a7 -mfloat-abi=hard -mfpu=vfpv3-d16" > .config
 
 .PHONY: burn
 burn:
-	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -g 0x0 /dev/ttyUSB0
+	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -g 0x0 -b 115200 /dev/tty.usbserial-A6005h9W
 .PHONY: dev
 dev:
-	tools/stm32flash/stm32flash /dev/ttyUSB0
+	tools/stm32flash/stm32flash -b 115200 /dev/tty.usbserial-A6005h9W

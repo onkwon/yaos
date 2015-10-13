@@ -97,15 +97,19 @@ int __init main()
 	timer_init();
 #endif
 
+#ifndef DEFSTR
+#define DEFMKSTR(x)	#x
+#define DEFSTR(x)	DEFMKSTR(x)
+#endif
 	/* a banner */
-	printk("YAOS %s %s\n", VERSION, MACHINE);
+	printk("YAOS %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);
 	set_kernel_sp(init.mm.kernel.sp);
 
 	/* everything ready now */
-#ifndef CORTEXA
+#ifndef ARMv7A
 	sei();
 #endif
 	resched();

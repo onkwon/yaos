@@ -37,7 +37,7 @@ static void isr_systick()
 }
 
 #include <kernel/init.h>
-#include <asm/clock.h>
+#include <asm/sysclk.h>
 
 void __init systick_init()
 {

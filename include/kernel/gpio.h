@@ -21,6 +21,8 @@ void gpio_close(unsigned int index);
 void gpio_put(unsigned int index, int v);
 unsigned int gpio_get(unsigned int index);
 
-#include <asm/gpio.h>
+#undef  INCPATH
+#define INCPATH			<asm/mach-MACHINE/gpio.h>
+#include INCPATH
 
 #endif /* __GPIO_H__ */

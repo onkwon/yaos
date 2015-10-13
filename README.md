@@ -14,32 +14,26 @@ Any feedback is welcome to *kwon@toanyone.net*. And let me know if any of you ar
 
 ### 2. Get a Toolchain
 
-Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have one installed yet. Or you can compile it from source code putting more effort, which is not recommended but still worth to try.
+Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have one installed yet. Or you can compile it from source code putting more effort, which is not recommended but still worth trying.
 
 ### 3. Build
 
 #### STM32
 
 	make clean
-	make stm32
+	make stm32f1 *(or stm32f4)*
 	make
 	make burn
 
-> Tested on STM32F103
+> Tested on STM32F103 and STM32F407
 
 #### Raspberry Pi(2)
 
 	make clean
-	make rpi
+	make rpi *(or rpi2)*
 	make
 
-or
-
-	make clean
-	make rpi2
-	make
-
-That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `bootcode.bin` and `start.elf` files reside in. Insert SD card in your RPI, turn it on, and enjoy!
+That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `bootcode.bin` and `start.elf` files exist. Insert SD card in your RPI, turn it on, and enjoy!
 
 > You can get the GPU firmware and bootloaders [here](https://github.com/raspberrypi/firmware).
 

@@ -64,7 +64,7 @@ static inline void yield()
 #define yield()				sys_yield()
 #endif
 
-#include <asm/clock.h>
+#include <asm/sysclk.h>
 
 #define run_scheduler()			run_sysclk()
 #define stop_scheduler()		stop_sysclk()

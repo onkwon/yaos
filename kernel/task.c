@@ -234,7 +234,7 @@ int clone(unsigned int flags, void *ref)
 		top  = base + STACK_SIZE;
 	}
 
-#ifdef CORTEXA
+#ifdef ARMv7A
 	if (!(flags & TASK_HANDLER))
 		sp  -= NR_CONTEXT * WORD_SIZE;
 #endif
@@ -246,7 +246,7 @@ int clone(unsigned int flags, void *ref)
 	child->mm.sp = dst; /* update stack pointer */
 
 	if (!(flags & TASK_SYSCALL)) { /* if not syscall */
-#ifdef CORTEXA
+#ifdef ARMv7A
 		if (!(flags & TASK_HANDLER)) {
 			child->mm.sp += NR_CONTEXT;
 			size         -= NR_CONTEXT * WORD_SIZE;
@@ -255,7 +255,7 @@ int clone(unsigned int flags, void *ref)
 		p = regs;
 		set_task_flags(child, flags);
 		set_task_context_hard(child, NULL);
-#ifdef CORTEXA
+#ifdef ARMv7A
 		regs[INDEX_PSR] = child->mm.sp[INDEX_PSR];
 #endif
 		memcpy(child->mm.sp, p + NR_CONTEXT_SOFT,
