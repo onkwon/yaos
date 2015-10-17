@@ -1,7 +1,7 @@
 #ifndef __RPI_SYSTICK_H__
 #define __RPI_SYSTICK_H__
 
-unsigned int getclk();
+unsigned int get_pllclk();
 unsigned int get_sysclk_freq();
 
 void run_sysclk();

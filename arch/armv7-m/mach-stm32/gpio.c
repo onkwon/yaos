@@ -2,6 +2,11 @@
 #include <types.h>
 #include "exti.h"
 
+#ifndef stm32f1
+#define stm32f1	1
+#define stm32f4	2
+#endif
+
 static DEFINE_SPINLOCK(gpio_irq_lock);
 static DEFINE_SPINLOCK(gpio_init_lock);
 
@@ -42,42 +47,76 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	spin_lock_irqsave(gpio_init_lock, irqflag);
 
+#if (SOC == stm32f1)
 	SET_CLOCK_APB2(ENABLE, port + 2);
+#elif (SOC == stm32f4)
+	SET_CLOCK_AHB1(ENABLE, port);
+#endif
 
 	port = calc_port_addr(port);
 
+	/* default */
+#if (SOC == stm32f4)
+	/* no pull-up, pull-down */
+	*(volatile unsigned int *)(port + 0xc) &= ~(3 << (pin * 2));
+	/* very high speed I/O output speed */
+	*(volatile unsigned int *)(port + 8) |= 3 << (pin * 2);
+	/* push-pull output */
+	*(volatile unsigned int *)(port + 4) &= ~(1 << pin);
+#endif
+
 	if (flags & GPIO_MODE_OUTPUT) {
-		mode |= PIN_OUTPUT_50MHZ;
-
-		if (flags & GPIO_CONF_ALT) {
-			SET_CLOCK_APB2(ENABLE, 0);
-			mode |= PIN_ALT;
-			if (flags & GPIO_CONF_OPENDRAIN)
-				mode |= PIN_ALT_OPENDRAIN;
-		} else { /* GPIO_CONF_GENERAL */
-			if (flags & GPIO_CONF_OPENDRAIN)
-				mode |= PIN_OPENDRAIN;
-		}
+		mode = PIN_OUTPUT;
+	} else if (flags & GPIO_MODE_ALT) {
+		mode = PIN_ALT;
+	} else if (flags & GPIO_MODE_ANALOG) {
+		mode = PIN_ANALOG;
 	} else { /* GPIO_MODE_INPUT */
-		mode |= PIN_INPUT;
+		mode = PIN_INPUT;
+#if (SOC == stm32f1)
+		mode |= PIN_FLOATING;
+#endif
+	}
 
-		if (flags & GPIO_CONF_ANALOG) {
-			mode |= PIN_ANALOG;
-		} else if (flags & GPIO_CONF_FLOAT) {
-			mode |= PIN_FLOATING;
-		} else if (flags & GPIO_CONF_PULL_UP) {
-			mode |= PIN_PULL;
-			PUT_PORT_PIN(port, pin, 1);
-		} else if (flags & GPIO_CONF_PULL_DOWN) {
-			mode |= PIN_PULL;
-			PUT_PORT_PIN(port, pin, 0);
-		}
+	if (flags & GPIO_CONF_OPENDRAIN) {
+#if (SOC == stm32f4)
+		*(volatile unsigned int *)(port + 4) |= 1 << pin;
+#elif (SOC == stm32f1)
+		mode &= ~(PIN_FLOATING);
+		if (flags & GPIO_MODE_ALT)
+			mode |= PIN_ALT_OPENDRAIN;
+		else
+			mode |= PIN_OPENDRAIN;
+#endif
+	} else if (flags & GPIO_CONF_PULL_UP) {
+#if (SOC == stm32f4)
+		*(volatile unsigned int *)(port + 0xc) |= 1 << (pin * 2);
+#elif (SOC == stm32f1)
+		mode &= ~(PIN_FLOATING);
+		mode |= PIN_PULL;
+#endif
+		PUT_PORT_PIN(port, pin, 1);
+	} else if (flags & GPIO_CONF_PULL_DOWN) {
+#if (SOC == stm32f4)
+		*(volatile unsigned int *)(port + 0xc) |= 2 << (pin * 2);
+#elif (SOC == stm32f1)
+		mode &= ~(PIN_FLOATING);
+		mode |= PIN_PULL;
+#endif
+		PUT_PORT_PIN(port, pin, 0);
 	}
 
 	SET_PORT_PIN(port, pin, mode);
 
 	if (flags & (GPIO_INT_FALLING | GPIO_INT_RISING)) {
-		EXTI_IMR  |= 1 << pin;
+#if (SOC == stm32f1)
+		/* AFIO deals with Pin Remapping and EXTI */
+		SET_CLOCK_APB2(ENABLE, 0);
+#elif (SOC == stm32f4)
+		/* exti <- syscfg <- apb2 */
+		SET_CLOCK_APB2(ENABLE, 14);
+#endif
+		EXTI_IMR |= 1 << pin;
 
 		if (flags & GPIO_INT_FALLING)
 			EXTI_FTSR |= 1 << pin;
@@ -126,21 +165,40 @@ static void __init port_init()
 	SET_PORT_CLOCK(ENABLE, PORTF);
 	SET_PORT_CLOCK(ENABLE, PORTG);
 
-	/* set pins to AIN to reduce power consumption */
-	*(volatile unsigned int *)PORTA = 0;
-	*(volatile unsigned int *)(PORTA+4) = 0;
-	*(volatile unsigned int *)PORTB = 0;
-	*(volatile unsigned int *)(PORTB+4) = 0;
-	*(volatile unsigned int *)PORTC = 0;
-	*(volatile unsigned int *)(PORTC+4) = 0;
-	*(volatile unsigned int *)PORTD = 0;
-	*(volatile unsigned int *)(PORTD+4) = 0;
-	*(volatile unsigned int *)PORTE = 0;
-	*(volatile unsigned int *)(PORTE+4) = 0;
-	*(volatile unsigned int *)PORTF = 0;
-	*(volatile unsigned int *)(PORTF+4) = 0;
-	*(volatile unsigned int *)PORTG = 0;
-	*(volatile unsigned int *)(PORTG+4) = 0;
+	unsigned int mode   = 0;
+	unsigned int conf   = 0;
+	unsigned int offset = 4;
+#if (SOC == stm32f4)
+	SET_PORT_CLOCK(ENABLE, PORTH);
+	SET_PORT_CLOCK(ENABLE, PORTI);
+
+	mode   = 0xffffffff; /* analog mode */
+	offset = 0xc;
+#endif
+	/* set pins to analog input(AIN) to reduce power consumption */
+	*(volatile unsigned int *)PORTA = mode;
+	*(volatile unsigned int *)(PORTA + offset) = conf;
+	*(volatile unsigned int *)PORTB = mode;
+	*(volatile unsigned int *)(PORTB + offset) = conf;
+	*(volatile unsigned int *)PORTC = mode;
+	*(volatile unsigned int *)(PORTC + offset) = conf;
+	*(volatile unsigned int *)PORTD = mode;
+	*(volatile unsigned int *)(PORTD + offset) = conf;
+	*(volatile unsigned int *)PORTE = mode;
+	*(volatile unsigned int *)(PORTE + offset) = conf;
+	*(volatile unsigned int *)PORTF = mode;
+	*(volatile unsigned int *)(PORTF + offset) = conf;
+	*(volatile unsigned int *)PORTG = mode;
+	*(volatile unsigned int *)(PORTG + offset) = conf;
+#if (SOC == stm32f4)
+	*(volatile unsigned int *)PORTH = mode;
+	*(volatile unsigned int *)(PORTH + offset) = conf;
+	*(volatile unsigned int *)PORTI = mode;
+	*(volatile unsigned int *)(PORTI + offset) = conf;
+
+	SET_PORT_CLOCK(DISABLE, PORTH);
+	SET_PORT_CLOCK(DISABLE, PORTI);
+#endif
 
 	SET_PORT_CLOCK(DISABLE, PORTA);
 	SET_PORT_CLOCK(DISABLE, PORTB);

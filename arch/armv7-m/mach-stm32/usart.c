@@ -3,6 +3,11 @@
 #include <io.h>
 #include "exti.h"
 
+#ifndef stm32f1
+#define stm32f1	1
+#define stm32f4	2
+#endif
+
 #define RXNE		5
 #define TXE		7
 
@@ -10,51 +15,67 @@ static unsigned int brr2reg(unsigned int baudrate, unsigned int clk)
 {
 	unsigned int fraction, mantissa;
 
-	baudrate /= 100;
-	mantissa  = (clk * 10) / (16 * baudrate);
-	fraction  = mantissa % 1000;
-	mantissa /= 1000;
-	fraction  = fraction * 16 / 1000;
-	baudrate  = (mantissa << 4) + fraction;
+	/* 25 * 4 = 100; not to lose the result below the decimal point */
+	fraction = (clk * 25) / (baudrate * 4);
+	mantissa = fraction / 100; /* to get the actual integer part */
+	fraction = fraction - (mantissa * 100); /* to get the fraction part */
+	fraction = ((fraction << 4/* sampling */) + 50/* round up */) / 100;
+	baudrate = (mantissa << 4) | (fraction & 0xf);
 
 	return baudrate;
 }
 
+static int get_usart_vector(unsigned int channel)
+{
+	int nvector = -1;
+
+	switch (channel) {
+	case USART1:
+		nvector = 53; /* IRQ 37 */
+		break;
+	case USART2:
+		nvector = 54; /* IRQ 38 */
+		break;
+	case USART3:
+		nvector = 55; /* IRQ 39 */
+		break;
+	case UART4:
+		nvector = 68; /* IRQ 52 */
+		break;
+	}
+
+	return nvector;
+}
+
 static int usart_open(unsigned int channel, struct usart arg)
 {
-	unsigned int port, pin, nvector, apb_nbit;
+	unsigned int port, pin, apb_nbit;
 
 	/* USART signal can be remapped to some other port pins. */
 	switch (channel) {
 	case USART1:
 		port      = PORTA;
 		pin       = 9;  /* PA9: TX, PA10: RX */
-		nvector   = 53; /* IRQ 37 */
+#if (SOC == stm32f1)
 		apb_nbit  = 14;
+#elif (SOC == stm32f4)
+		apb_nbit  = 4;
+#endif
 		break;
 	case USART2:
 		port      = PORTA;
 		pin       = 2;  /* PA2: TX, PA3: RX */
-		nvector   = 54; /* IRQ 38 */
 		apb_nbit  = 17;
 		break;
 	case USART3:
 		port      = PORTB;
 		pin       = 10; /* PB10: TX, PB11: RX */
-		nvector   = 55; /* IRQ 39 */
 		apb_nbit  = 18;
 		break;
 	case UART4:
 		port      = PORTC;
 		pin       = 10; /* PC10: TX, PC11: RX */
-		nvector   = 68; /* IRQ 52 */
 		apb_nbit  = 19;
-		break;
-	case UART5:
-		port      = PORTC;
-		pin       = 12; /* PC12: TX, PD2: RX */
-		nvector   = 69; /* IRQ 53 */
-		apb_nbit  = 20;
 		break;
 	default:
 		return -1;
@@ -62,20 +83,30 @@ static int usart_open(unsigned int channel, struct usart arg)
 
 	if (channel == USART1) {
 		SET_CLOCK_APB2(ENABLE, apb_nbit); /* USART1 clock enable */
+
+		arg.brr = brr2reg(arg.brr, get_pclk2());
 	} else {
 		SET_CLOCK_APB1(ENABLE, apb_nbit); /* USARTn clock enable */
+
+		arg.brr = brr2reg(arg.brr, get_pclk1());
 	}
 
 	SET_PORT_CLOCK(ENABLE, port);
 
-	/* gpio configuration. in case of remapping or UART5, check pinout. */
-	SET_PORT_PIN(port, pin, PIN_OUTPUT_50MHZ | PIN_ALT); /* tx */
-	SET_PORT_PIN(port, pin+1, PIN_INPUT | PIN_FLOATING); /* rx */
+	/* gpio configuration. in case of remapping, check pinout. */
+#if (SOC == stm32f1)
+	SET_PORT_PIN(port, pin, PIN_ALT | PIN_OUTPUT); /* tx */
+#elif (SOC == stm32f4)
+	SET_PORT_PIN(port, pin, PIN_ALT); /* tx */
+	SET_PORT_ALT(port, pin, 7);
+	SET_PORT_ALT(port, pin+1, 7);
+#endif
+	SET_PORT_PIN(port, pin+1, PIN_ALT); /* rx */
 
 	/* FOR TEST to use rx pin as wake-up source */
 	link_exti_to_nvic(port, pin+1);
 
-	nvic_set(nvector - 16, ON);
+	nvic_set(get_usart_vector(channel) - 16, ON);
 
 	*(volatile unsigned int *)(channel + 0x08) = arg.brr;
 	*(volatile unsigned int *)(channel + 0x0c) = arg.cr1;
@@ -83,7 +114,7 @@ static int usart_open(unsigned int channel, struct usart arg)
 	*(volatile unsigned int *)(channel + 0x14) = arg.cr3;
 	*(volatile unsigned int *)(channel + 0x18) = arg.gtpr;
 
-	return nvector;
+	return get_usart_vector(channel);
 }
 
 static void usart_close(unsigned int channel)
@@ -97,16 +128,22 @@ static void usart_close(unsigned int channel)
 	/* Turn off enable bit of transmitter, receiver, and clock.
 	 * It leaves port clock, pin, irq, and configuration as set */
 	*(volatile unsigned int *)(channel + 0x0c) &= ~(
-			(1 << 13) |	/* UE: USART enable */
-			(1 << 3) |	/* TE: Transmitter enable */
-			(1 << 2));	/* RE: Receiver enable */
+			(1 << 13) 	/* UE: USART enable */
+			| (1 << 5)	/* RXNEIE: RXNE interrupt enable */
+			| (1 << 3) 	/* TE: Transmitter enable */
+			| (1 << 2));	/* RE: Receiver enable */
 
-	if (channel == USART1)
+	if (channel == USART1) {
+#if (SOC == stm32f1)
 		SET_CLOCK_APB2(DISABLE, 14); /* USART1 clock disable */
-	else
+#elif (SOC == stm32f4)
+		SET_CLOCK_APB2(DISABLE, 4); /* USART1 clock disable */
+#endif
+	} else {
 		SET_CLOCK_APB1(DISABLE, (((channel >> 8) & 0x1f) >> 2) + 16); /* USARTn clock disable */
+	}
 
-	/* nvic_set(nvector-16, OFF); */
+	nvic_set(get_usart_vector(channel) - 16, OFF);
 }
 
 /* to get buf index from register address */
@@ -127,8 +164,6 @@ static inline unsigned int conv_channel(unsigned int channel)
 		break;
 	case 3: channel = UART4;
 		break;
-	case 4: channel = UART5;
-		break;
 	case 0: channel = USART1;
 		break;
 	default:channel = -1;
@@ -141,7 +176,7 @@ static inline unsigned int conv_channel(unsigned int channel)
 int __usart_open(unsigned int channel, unsigned int baudrate)
 {
 	return usart_open(conv_channel(channel), (struct usart) {
-		.brr  = brr2reg(baudrate, getclk()),
+		.brr  = baudrate,
 		.gtpr = 0,
 		.cr3  = 0,
 		.cr2  = 0,

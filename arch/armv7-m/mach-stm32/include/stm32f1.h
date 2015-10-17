@@ -40,8 +40,8 @@
 }
 #define FLASH_LOCK()			(FLASH_CR |= 0x80)
 #define FLASH_UNLOCK() { \
-	FLASH_KEYR = KEY1; \
-	FLASH_KEYR = KEY2; \
+	FLASH_KEYR = 0x45670123; /* KEY1 */ \
+	FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
 }
 		
 /* Reset and Clock Control */
@@ -57,12 +57,7 @@
 #define RCC_CSR			(*(volatile unsigned int *)(RCC_BASE + 0x24))
 
 /* Embedded Flash memory */
-#define FLASH_BASEADDR		0x08000000
-#define FLASH_SIZE		0x00080000	/* 512KB */
-#define PAGESIZE		0x800		/*   2KB */
 #define RDPRT			0x00a5
-#define KEY1			0x45670123
-#define KEY2			0xcdef89ab
 #define FLASH_BASE		(0x40022000)
 #define FLASH_ACR		(*(volatile unsigned int *)FLASH_BASE)
 #define FLASH_KEYR		(*(volatile unsigned int *)(FLASH_BASE + 0x4))
@@ -78,6 +73,7 @@
 #define PIN_OUTPUT_10MHZ	0x1
 #define PIN_OUTPUT_2MHZ		0x2
 #define PIN_OUTPUT_50MHZ	0x3
+#define PIN_OUTPUT		PIN_OUTPUT_50MHZ
 #define PIN_ANALOG		0x0 /* input */
 #define PIN_FLOATING		0x4
 #define PIN_PULL		0x8
@@ -109,12 +105,12 @@
 #define PORTF_LCKR		(*(volatile unsigned int *)(PORTF_BASE + 0x18))
 #define PORTG_LCKR		(*(volatile unsigned int *)(PORTG_BASE + 0x18))
 
-/* AFIO */
-#define AFIO_BASE		(0x40010000)
-#define AFIO_EXTICR1		(*(volatile unsigned int *)(AFIO_BASE + 8))
-#define AFIO_EXTICR2		(*(volatile unsigned int *)(AFIO_BASE + 0xc))
-#define AFIO_EXTICR3		(*(volatile unsigned int *)(AFIO_BASE + 0x10))
-#define AFIO_EXTICR4		(*(volatile unsigned int *)(AFIO_BASE + 0x14))
+/* SYSCFG */
+#define SYSCFG_BASE		(0x40010000)
+#define SYSCFG_EXTICR1		(*(volatile unsigned int *)(SYSCFG_BASE + 8))
+#define SYSCFG_EXTICR2		(*(volatile unsigned int *)(SYSCFG_BASE + 0xc))
+#define SYSCFG_EXTICR3		(*(volatile unsigned int *)(SYSCFG_BASE + 0x10))
+#define SYSCFG_EXTICR4		(*(volatile unsigned int *)(SYSCFG_BASE + 0x14))
 
 /* EXTI */
 #define EXTI_BASE		(0x40010400)

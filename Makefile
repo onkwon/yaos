@@ -32,10 +32,9 @@ endif
 PROJECT = yaos
 
 -include .config
+TARGET  = $(ARCH)
 ifeq ($(SOC),bcm2835)
 TARGET  = armv7-a
-else
-TARGET  = $(ARCH)
 endif
 export TARGET MACH SOC
 

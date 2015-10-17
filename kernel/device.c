@@ -132,7 +132,7 @@ static void devtab_init()
 
 	nr_device = 0;
 }
-REGISTER_INIT(devtab_init, 10);
+REGISTER_INIT(devtab_init, 2);
 
 #ifdef CONFIG_DEBUG
 void display_devtab()

@@ -2,6 +2,7 @@
 #define __STM32F4_IO_H__
 
 /* RCC */
+#define SET_CLOCK_AHB1(on, pin)		BITBAND(&RCC_AHB1ENR, pin, on)
 #define SET_CLOCK_APB2(on, pin)		BITBAND(&RCC_APB2ENR, pin, on)
 #define SET_CLOCK_APB1(on, pin)		BITBAND(&RCC_APB1ENR, pin, on)
 #define RESET_CLOCK_APB2(pin) { \
@@ -13,35 +14,44 @@
 	BITBAND(&RCC_APB1RSTR, pin, OFF); \
 }
 
+#include <types.h>
+
 /* GPIO */
 #define SET_PORT_PIN(port, pin, mode) ( \
-	*(volatile unsigned int *)((port) + ((pin) / 8 * 4)) = \
-	MASK_RESET(*(volatile unsigned int *)((port) + ((pin) / 8 * 4)), \
-		0xf << (((pin) % 8) * 4)) \
-	| ((mode) << (((pin) % 8) * 4)) \
+	*(volatile unsigned int *)((port) + ((pin) / 16 * WORD_SIZE)) \
+		= MASK_RESET(*(volatile unsigned int *) \
+			((port) + ((pin) / 16 * WORD_SIZE)), \
+			0x3 << (((pin) % 16) * 2)) \
+		| ((mode) << (((pin) % 16) * 2)) \
 )
-#define SET_PORT_CLOCK(on, port)	SET_CLOCK_APB2(on, (port >> 10) & 0xf)
-#define GET_PORT(port)			(*(volatile unsigned int *)((port) + 8))
+#define SET_PORT_ALT(port, pin, alt) ( \
+	*(volatile unsigned int *)((port) + 0x20 + ((pin) / 8 * WORD_SIZE)) \
+		= MASK_RESET(*(volatile unsigned int *) \
+			((port) + 0x20 + ((pin) / 8 * WORD_SIZE)), \
+			0xf << (((pin) % 8) * 4)) \
+		| ((alt) << (((pin) % 8) * 4)) \
+)
+#define SET_PORT_CLOCK(on, port)	\
+	SET_CLOCK_AHB1(on, (port >> 10) & 0xf)
+#define GET_PORT(port)			\
+	(*(volatile unsigned int *)((port) + 0x10))
 #define PUT_PORT(port, data)		\
-	(*(volatile unsigned int *)((port) + 0xc) = data)
+	(*(volatile unsigned int *)((port) + 0x14) = data)
 #define PUT_PORT_PIN(port, pin, on) \
-	(*(volatile unsigned int *)((port) + 0x10) \
+	(*(volatile unsigned int *)((port) + 0x18) \
 		 = (on)? 1 << (pin) : 1 << ((pin) + 16))
 
 /* Embedded flash */
 #define FLASH_WRITE_START()		(FLASH_CR |=   1 << PG)
 #define FLASH_WRITE_END()		(FLASH_CR &= ~(1 << PG))
 #define FLASH_WRITE_WORD(addr, data)	{ \
-	*(volatile unsigned short int *)(addr) = (unsigned short int)(data); \
-	while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
-	*(volatile unsigned short int *)((unsigned int)(addr)+2) \
-		= (unsigned short int)((data) >> 16); \
-	while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
+	*(volatile unsigned int *)(addr) = (unsigned int)(data); \
+	while (FLASH_SR & (1 << BSY)); /* Check BSY bit, need timeout */ \
 }
-#define FLASH_LOCK()			(FLASH_CR |= 0x80)
+#define FLASH_LOCK()			(FLASH_CR |= 0x80000000)
 #define FLASH_UNLOCK() { \
-	FLASH_KEYR = KEY1; \
-	FLASH_KEYR = KEY2; \
+	FLASH_KEYR = 0x45670123; /* KEY1 */ \
+	FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
 }
 		
 /* Reset and Clock Control */
@@ -71,12 +81,6 @@
 #define RCC_PLLI2SCFGR		(*(volatile unsigned int *)(RCC_BASE + 0x84))
 
 /* Embedded Flash memory */
-#define FLASH_BASEADDR		0x08000000
-#define FLASH_SIZE		0x00080000	/* 512KB */
-#define PAGESIZE		0x800		/*   2KB */
-#define RDPRT			0x00a5
-#define KEY1			0x45670123
-#define KEY2			0xcdef89ab
 #define FLASH_BASE		(0x40023c00)
 #define FLASH_ACR		(*(volatile unsigned int *)FLASH_BASE)
 #define FLASH_KEYR		(*(volatile unsigned int *)(FLASH_BASE + 0x4))
@@ -87,16 +91,9 @@
 
 /* GPIO */
 #define PIN_INPUT		0x0 /* mode */
-#define PIN_OUTPUT_10MHZ	0x1
-#define PIN_OUTPUT_2MHZ		0x2
-#define PIN_OUTPUT_50MHZ	0x3
-#define PIN_ANALOG		0x0 /* input */
-#define PIN_FLOATING		0x4
-#define PIN_PULL		0x8
-#define PIN_GENERAL		0x00 /* output */
-#define PIN_OPENDRAIN		0x4
-#define PIN_ALT			0x8
-#define PIN_ALT_OPENDRAIN	0xc
+#define PIN_OUTPUT		0x1
+#define PIN_ALT			0x2
+#define PIN_ANALOG		0x3
 
 #define PORTA			PORTA_BASE
 #define PORTB			PORTB_BASE
@@ -105,6 +102,8 @@
 #define PORTE			PORTE_BASE
 #define PORTF			PORTF_BASE
 #define PORTG			PORTG_BASE
+#define PORTH			PORTH_BASE
+#define PORTI			PORTI_BASE
 #define PORTA_BASE		(0x40020000)
 #define PORTB_BASE		(0x40020400)
 #define PORTC_BASE		(0x40020800)
@@ -132,6 +131,14 @@
 #define SYSCFG_EXTICR3		(*(volatile unsigned int *)(SYSCFG_BASE + 0x10))
 #define SYSCFG_EXTICR4		(*(volatile unsigned int *)(SYSCFG_BASE + 0x14))
 #define SYSCFG_CMPCR		(*(volatile unsigned int *)(SYSCFG_BASE + 0x20))
+
+/* EXTI */
+#define EXTI_BASE		(0x40013c00)
+#define EXTI_IMR		(*(volatile unsigned int *)(EXTI_BASE + 0))
+#define EXTI_EMR		(*(volatile unsigned int *)(EXTI_BASE + 4))
+#define EXTI_RTSR		(*(volatile unsigned int *)(EXTI_BASE + 8))
+#define EXTI_FTSR		(*(volatile unsigned int *)(EXTI_BASE + 0xc))
+#define EXTI_PR			(*(volatile unsigned int *)(EXTI_BASE + 0x14))
 
 /* USART */
 #define USART1			(0x40011000)

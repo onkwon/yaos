@@ -3,8 +3,8 @@ OUTPUT_ARCH(arm)
 
 MEMORY
 {
-	ram  (rwx)	: ORIGIN = 0x10000000, LENGTH = 64K
-	ram2 (rwx)	: ORIGIN = 0x20000000, LENGTH = 128K
+	ccm  (rwx)	: ORIGIN = 0x10000000, LENGTH = 64K
+	ram  (rwx)	: ORIGIN = 0x20000000, LENGTH = 128K
 	rom  (rx)	: ORIGIN = 0x00000000, LENGTH = 512K
 }
 
@@ -28,6 +28,8 @@ SECTIONS
 		. = (. + 3) & ~ 3;
 		_init_func_list = .;
 		*(.text.init.0)
+		*(.text.init.1)
+		*(.text.init.2)
 		*(.text.init.*)
 		LONG(0); /* null sentinel */
 

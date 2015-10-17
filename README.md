@@ -21,7 +21,7 @@ Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have on
 #### STM32
 
 	make clean
-	make stm32f1 *(or stm32f4)*
+	make stm32f1 (or stm32f4)
 	make
 	make burn
 
@@ -30,7 +30,7 @@ Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have on
 #### Raspberry Pi(2)
 
 	make clean
-	make rpi *(or rpi2)*
+	make rpi (or rpi2)
 	make
 
 That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `bootcode.bin` and `start.elf` files exist. Insert SD card in your RPI, turn it on, and enjoy!

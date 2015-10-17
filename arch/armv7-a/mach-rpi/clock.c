@@ -4,7 +4,7 @@
 
 #define TIMER_FREQ		1000000	/* 1MHz */
 
-unsigned int getclk()
+unsigned int get_pllclk()
 {
 	return 0;
 }

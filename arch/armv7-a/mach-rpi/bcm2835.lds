@@ -23,6 +23,8 @@ SECTIONS
 		. = ALIGN(4);
 		_init_func_list = .;
 		*(.text.init.0)
+		*(.text.init.1)
+		*(.text.init.2)
 		*(.text.init.*)
 		LONG(0); /* null sentinel */
 

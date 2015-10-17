@@ -6,9 +6,9 @@
 #define bcm2836			2
 #endif
 
-#if SOC == bcm2835
+#if (SOC == bcm2835)
 #define PERI_BASE		0x20000000
-#elif SOC == bcm2836
+#elif (SOC == bcm2836)
 #define PERI_BASE		0x3f000000
 #endif
 #define GPIO_BASE		(PERI_BASE + 0x00200000)

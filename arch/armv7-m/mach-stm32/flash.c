@@ -4,12 +4,18 @@
 #include <kernel/module.h>
 #include <error.h>
 
+#ifndef stm32f1
+#define stm32f1	1
+#define stm32f4	2
+#endif
+
 #define PER			1
-#define STRT			6
 #define PG			0
+#if (SOC == stm32f1)
+#define STRT			6
+#define BSY			0
 
 #define BLOCK_SIZE		2048
-#define BLOCK_LEN		(BLOCK_SIZE / WORD_SIZE)
 
 #define WRITE_WORD(addr, data)	{ \
 	FLASH_WRITE_START(); \
@@ -17,15 +23,48 @@
 	FLASH_WRITE_WORD(addr, data); \
 	FLASH_WRITE_END(); \
 }
+#elif (SOC == stm32f4)
+#define STRT			16
+#define SNB			3
+#define PSIZE			8
+#define BSY			16
+
+#define BLOCK_SIZE		16384
+
+#define WRITE_WORD(addr, data)	{ \
+	FLASH_WRITE_START(); \
+	FLASH_SR |= 0xf3; \
+	FLASH_WRITE_WORD(addr, data); \
+	FLASH_WRITE_END(); \
+}
+#endif
+
+#define BLOCK_LEN		(BLOCK_SIZE / WORD_SIZE)
+
+#if (SOC == stm32f4)
+static inline unsigned int get_sector(unsigned int addr)
+{
+	unsigned int sector = ((addr >> 12) & 0xff) >> 2;
+
+	if (sector > 4)
+		sector = (sector >> 3) + 4; /* sector / 8 + 4 */
+
+	return sector;
+}
+#endif
 
 static DEFINE_SPINLOCK(wlock);
 
 static inline int __attribute__((section(".iap"))) flash_erase(void *addr)
 {
 	FLASH_CR |= (1 << PER);
+#if (SOC == stm32f1)
 	FLASH_AR = (unsigned int)addr;
+#elif (SOC == stm32f4)
+	FLASH_CR = ~(FLASH_CR & 0x78) | (get_sector((unsigned int)addr) << SNB);
+#endif
 	FLASH_CR |= (1 << STRT);
-	while (FLASH_SR & 1) ;
+	while (FLASH_SR & (1 << BSY)) ;
 	FLASH_CR &= ~(1 << PER);
 
 	return FLASH_SR;
@@ -117,7 +156,11 @@ __flash_write(void *addr, void *buf, size_t len)
 
 		while (sentinel) {
 			WRITE_WORD(to, temp[index]);
+#if (SOC == stm32f1)
 			if (FLASH_SR & 0x14) goto out;
+#elif (SOC == stm32f4)
+			if (FLASH_SR & 0xf0) goto out;
+#endif
 
 			to++;
 			index++;
@@ -125,7 +168,11 @@ __flash_write(void *addr, void *buf, size_t len)
 		}
 
 		WRITE_WORD(to, *data);
+#if (SOC == stm32f1)
 		if (FLASH_SR & 0x14) goto out;
+#elif (SOC == stm32f4)
+		if (FLASH_SR & 0xf0) goto out;
+#endif
 
 		to++;
 		data++;
@@ -134,7 +181,11 @@ __flash_write(void *addr, void *buf, size_t len)
 
 	while (index < BLOCK_LEN) {
 		WRITE_WORD(to, temp[index]);
+#if (SOC == stm32f1)
 		if (FLASH_SR & 0x14) goto out;
+#elif (SOC == stm32f4)
+		if (FLASH_SR & 0xf0) goto out;
+#endif
 
 		to++;
 		index++;
@@ -150,7 +201,11 @@ out:
 		unsigned int errcode;
 
 		errcode = FLASH_SR;
+#if (SOC == stm32f1)
 		FLASH_SR |= 0x34; /* clear flags */
+#elif (SOC == stm32f4)
+		FLASH_SR |= 0xf2; /* clear flags */
+#endif
 
 		return errcode;
 	}
@@ -181,6 +236,10 @@ static struct file_operations ops = {
 
 static int flash_init()
 {
+#if (SOC == stm32f4)
+	FLASH_CR = ~(FLASH_CR & (3 << PSIZE)) | (2 << PSIZE);
+#endif
+
 	extern char _rom_size, _rom_start, _etext, _data, _ebss;
 	struct device *dev;
 	unsigned int end;

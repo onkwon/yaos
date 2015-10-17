@@ -2,21 +2,27 @@
 #include <asm/sysclk.h>
 #include <io.h>
 
-#define PWRCLK_ENABLE()		{ \
-	SET_CLOCK_APB1(ENABLE, 28); /* PWR */ \
-	SET_CLOCK_APB1(ENABLE, 27); /* BKP */ \
-}
-#define PWRCLK_DISABLE()		{ \
-	SET_CLOCK_APB1(DISABLE, 28); /* PWR */ \
-	SET_CLOCK_APB1(DISABLE, 27); /* BKP */ \
+#ifndef stm32f1
+#define stm32f1	1
+#define stm32f4	2
+#endif
+
+static inline void set_power_clock(unsigned int op)
+{
+	SET_CLOCK_APB1(op, 28); /* PWR */
+#if (SOC == stm32f1)
+	SET_CLOCK_APB1(op, 27); /* BKP */
+#endif
 }
 
 void __enter_sleep_mode()
 {
-	PWRCLK_ENABLE();
+	set_power_clock(ON);
+
 	dsb();
 	__wfi();
-	PWRCLK_DISABLE();
+
+	set_power_clock(OFF);
 }
 
 /* all clocks in the 1.8 V domain are stopped,
@@ -31,7 +37,8 @@ void __enter_stop_mode()
 	irq_save(irqflag);
 	local_irq_disable();
 
-	PWRCLK_ENABLE();
+	set_power_clock(ON);
+
 	SCB_SCR |= 4; /* Set SLEEPDEEP bit */
 	/* Clear PDDS bit in Power Control register (PWR_CR) */
 	PWR_CR |= 1; /* configure LPDS bit in PWR_CR */
@@ -44,7 +51,8 @@ void __enter_stop_mode()
 
 	SCB_SCR &= ~4;
 	PWR_CR &= ~1;
-	PWRCLK_DISABLE();
+
+	set_power_clock(OFF);
 
 	irq_restore(irqflag);
 
@@ -107,21 +115,23 @@ static void disp_clkinfo()
 	unsigned int i, j;
 	*/
 
-	unsigned int sysclk, hclk, pclk1, pclk2, adclk;
-
 	/*
-	sysclk = getclk();
-	hclk   = get_hclk  (sysclk);
-	pclk1  = get_pclk1 (hclk);
-	pclk2  = get_pclk2 (hclk);
-	adclk  = get_adclk (pclk2);
+	unsigned int pllclk, hclk, pclk1, pclk2, adclk;
+
+	pllclk = get_pllclk();
+	hclk   = get_hclk();
+	pclk1  = get_pclk1();
+	pclk2  = get_pclk2();
+	adclk  = get_adclk();
 
 	printf("System clock frequency\t %d\n"
 		"(hclk   %d, pclk1  %d, pclk2  %d, adclk  %d)\n\n",
-		sysclk, hclk, pclk1, pclk2, adclk);
+		pllclk, hclk, pclk1, pclk2, adclk);
 	*/
 	printf("Enabled peripheral clock:\n");
+#if (SOC == stm32f1)
 	printf("AHB  %08x\n", RCC_AHBENR);
+#endif
 	printf("APB2 %08x\n", RCC_APB2ENR);
 	printf("APB1 %08x\n", RCC_APB1ENR);
 	/*

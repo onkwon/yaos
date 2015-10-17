@@ -55,6 +55,7 @@ void __attribute__((naked)) isr_fault()
 		SCB_ICSR, SCB_CFSR, SCB_HFSR, SCB_MMFAR, SCB_BFAR);
 
 	/* led for debugging */
+#ifdef LED_DEBUG
 	SET_PORT_CLOCK(ENABLE, PORTD);
 	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
 	unsigned int j;
@@ -78,4 +79,5 @@ void __attribute__((naked)) isr_fault()
 			}
 		}
 	}
+#endif
 }

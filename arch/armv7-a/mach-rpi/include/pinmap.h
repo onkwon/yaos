@@ -7,9 +7,9 @@
 #endif
 
 /* Status LED */
-#if SOC == bcm2835
+#if (SOC == bcm2835)
 #define PIN_STATUS_LED			16
-#elif SOC == bcm2836
+#elif (SOC == bcm2836)
 #define PIN_STATUS_LED			47
 #endif
 
