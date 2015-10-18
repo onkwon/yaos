@@ -102,7 +102,7 @@ int __init main()
 #define DEFSTR(x)	DEFMKSTR(x)
 #endif
 	/* a banner */
-	printk("YAOS %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
+	printk("yaos %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);

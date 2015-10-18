@@ -1,6 +1,6 @@
-# YAOS
+# yaos
 
-YAOS is Yet Another Operating System for Internet of Things(IoT) devices, specifically for a single-core processor without MMU virtualization. It is designed for energy efficiency and hardware independent development.
+yaos is for Internet of Things(IoT) devices, specifically for a single-core processor without MMU virtualization. It is designed for energy efficiency and hardware independent development.
 
 Refer to `/Documentation` directory for more information such as compiling, porting, APIs, etc.
 
@@ -8,7 +8,7 @@ Any feedback is welcome to *kwon@toanyone.net*. And let me know if any of you ar
 
 ## Getting Started
 
-### 1. Download YAOS
+### 1. Download yaos
 
 `git clone git://github.com/onkwon/yaos`
 

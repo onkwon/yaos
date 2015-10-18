@@ -227,7 +227,7 @@ void clock_init()
 
 #if (SOC == stm32f4)
 	/* 9. Turn off HSI */
-	//RCC_CR &= ~1;
+	RCC_CR &= ~1;
 #endif
 	//BITBAND(&RCC_CR, CSSON, ON);
 }

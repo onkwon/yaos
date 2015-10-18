@@ -225,6 +225,6 @@ void __init fs_init()
 #endif
 
 	/* it is nessesary to mount devfs first to populate device nodes in */
-	devfs = ramfs_build(1024, NULL);
+	devfs = ramfs_build(2048, NULL);
 	mount(devfs, DEVFS_ROOT, "ramfs");
 }
