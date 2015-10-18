@@ -50,32 +50,38 @@ static int get_usart_vector(unsigned int channel)
 static int usart_open(unsigned int channel, struct usart arg)
 {
 	unsigned int port, pin, apb_nbit;
+#if (SOC == stm32f4)
+	unsigned int alt = 7;
+#endif
 
 	/* USART signal can be remapped to some other port pins. */
 	switch (channel) {
 	case USART1:
-		port      = PORTA;
-		pin       = 9;  /* PA9: TX, PA10: RX */
+		port     = PORTA;
+		pin      = 9;  /* PA9: TX, PA10: RX */
 #if (SOC == stm32f1)
-		apb_nbit  = 14;
+		apb_nbit = 14;
 #elif (SOC == stm32f4)
-		apb_nbit  = 4;
+		apb_nbit = 4;
 #endif
 		break;
 	case USART2:
-		port      = PORTA;
-		pin       = 2;  /* PA2: TX, PA3: RX */
-		apb_nbit  = 17;
+		port     = PORTA;
+		pin      = 2;  /* PA2: TX, PA3: RX */
+		apb_nbit = 17;
 		break;
 	case USART3:
-		port      = PORTB;
-		pin       = 10; /* PB10: TX, PB11: RX */
-		apb_nbit  = 18;
+		port     = PORTB;
+		pin      = 10; /* PB10: TX, PB11: RX */
+		apb_nbit = 18;
 		break;
 	case UART4:
-		port      = PORTC;
-		pin       = 10; /* PC10: TX, PC11: RX */
-		apb_nbit  = 19;
+		port     = PORTC;
+		pin      = 10; /* PC10: TX, PC11: RX */
+		apb_nbit = 19;
+#if (SOC == stm32f4)
+		alt      = 8;
+#endif
 		break;
 	default:
 		return -1;
@@ -98,8 +104,8 @@ static int usart_open(unsigned int channel, struct usart arg)
 	SET_PORT_PIN(port, pin, PIN_ALT | PIN_OUTPUT); /* tx */
 #elif (SOC == stm32f4)
 	SET_PORT_PIN(port, pin, PIN_ALT); /* tx */
-	SET_PORT_ALT(port, pin, 7);
-	SET_PORT_ALT(port, pin+1, 7);
+	SET_PORT_ALT(port, pin, alt);
+	SET_PORT_ALT(port, pin+1, alt);
 #endif
 	SET_PORT_PIN(port, pin+1, PIN_ALT); /* rx */
 
