@@ -3,7 +3,7 @@
 
 #include <io.h>
 
-#define USART_CHANNEL_MAX	4
+#define USART_CHANNEL_MAX	3
 
 struct usart {
 	/*unsigned int sr;*/

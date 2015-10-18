@@ -39,9 +39,6 @@ static int get_usart_vector(unsigned int channel)
 	case USART3:
 		nvector = 55; /* IRQ 39 */
 		break;
-	case UART4:
-		nvector = 68; /* IRQ 52 */
-		break;
 	}
 
 	return nvector;
@@ -75,24 +72,22 @@ static int usart_open(unsigned int channel, struct usart arg)
 		pin      = 10; /* PB10: TX, PB11: RX */
 		apb_nbit = 18;
 		break;
-	case UART4:
-		port     = PORTC;
-		pin      = 10; /* PC10: TX, PC11: RX */
-		apb_nbit = 19;
-#if (SOC == stm32f4)
-		alt      = 8;
-#endif
-		break;
 	default:
 		return -1;
 	}
 
 	if (channel == USART1) {
 		SET_CLOCK_APB2(ENABLE, apb_nbit); /* USART1 clock enable */
+		/* reset usart */
+		RCC_APB2RSTR |= (1 << apb_nbit);
+		RCC_APB2RSTR &= ~(1 << apb_nbit);
 
 		arg.brr = brr2reg(arg.brr, get_pclk2());
 	} else {
 		SET_CLOCK_APB1(ENABLE, apb_nbit); /* USARTn clock enable */
+		/* reset usart */
+		RCC_APB1RSTR |= (1 << apb_nbit);
+		RCC_APB1RSTR &= ~(1 << apb_nbit);
 
 		arg.brr = brr2reg(arg.brr, get_pclk1());
 	}
@@ -146,7 +141,8 @@ static void usart_close(unsigned int channel)
 		SET_CLOCK_APB2(DISABLE, 4); /* USART1 clock disable */
 #endif
 	} else {
-		SET_CLOCK_APB1(DISABLE, (((channel >> 8) & 0x1f) >> 2) + 16); /* USARTn clock disable */
+		/* USARTn clock disable */
+		SET_CLOCK_APB1(DISABLE, (((channel >> 8) & 0x1f) >> 2) + 16);
 	}
 
 	nvic_set(get_usart_vector(channel) - 16, OFF);
