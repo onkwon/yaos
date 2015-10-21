@@ -41,7 +41,7 @@ static int __init make_init_task()
 
 	set_task_dressed(&init, TASK_STATIC | TASK_KERNEL, idle);
 	set_task_context_hard(&init, wrapper);
-	set_task_pri(&init, LOW_PRIORITY);
+	set_task_pri(&init, LOWEST_PRIORITY);
 	set_task_state(&init, TASK_RUNNING);
 
 	/* make it the sole */

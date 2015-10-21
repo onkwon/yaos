@@ -25,7 +25,7 @@ void nvic_set(unsigned int nirq, int on)
 	reg  = (volatile unsigned int *)(base + nirq);
 
 	spin_lock(nvic_lock);
-	*reg |= 1 << bit;
+	*reg = 1 << bit;
 	spin_unlock(nvic_lock);
 }
 

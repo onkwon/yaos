@@ -77,7 +77,7 @@ int __init softirq_init()
 					&init)) == NULL)
 		return -ERR_ALLOC;
 
-	set_task_pri(softirqd, HIGH_PRIORITY);
+	set_task_pri(softirqd, HIGHEST_PRIORITY);
 
 	return 0;
 }

@@ -57,9 +57,9 @@ infinite:
 
 		if (clone(STACK_SHARED | (get_task_flags(timer->task) &
 						TASK_PRIVILEGED), &init) > 0) {
-			/* Note that it is running at HIGH_PRIORITY just like
-			 * its parent, run_timer(). Change the priority to its
-			 * own tasks' to do job at the right priority. */
+			/* Note that it is running at HIGHEST_PRIORITY just
+			 * like its parent, run_timer(). Change the priority to
+			 * its own tasks' to do job at the right priority. */
 			set_task_pri(current, get_task_pri(timer->task));
 			schedule();
 
@@ -118,7 +118,7 @@ int __init timer_init()
 			== NULL)
 		return -ERR_ALLOC;
 
-	set_task_pri(timerd, HIGH_PRIORITY);
+	set_task_pri(timerd, HIGHEST_PRIORITY);
 
 	return 0;
 }

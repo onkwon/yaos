@@ -81,10 +81,10 @@ struct fifo {
 	void *buf;
 };
 
-extern inline void fifo_init(struct fifo *q, void *queue, size_t size);
-extern inline int  fifo_get(struct fifo *q, int type_size);
-extern inline int  fifo_put(struct fifo *q, int value, int type_size);
-extern inline void fifo_flush(struct fifo *q);
+extern void fifo_init(struct fifo *q, void *queue, size_t size);
+extern int  fifo_get(struct fifo *q, int type_size);
+extern int  fifo_put(struct fifo *q, int value, int type_size);
+extern void fifo_flush(struct fifo *q);
 
 #define SWAP_WORD(word)	\
 		((word >> 24) | (word << 24) | ((word >> 8) & 0xff00) | \

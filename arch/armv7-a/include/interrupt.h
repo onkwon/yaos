@@ -1,8 +1,8 @@
 #ifndef __ARMv7A_INTERRUPT_H__
 #define __ARMv7A_INTERRUPT_H__
 
-extern inline void __sei();
-extern inline void __cli();
+extern void __sei();
+extern void __cli();
 
 #define __dmb()								\
 	__asm__ __volatile__("mcr p15, 0, r0, c7, c10, 5" ::: "memory")

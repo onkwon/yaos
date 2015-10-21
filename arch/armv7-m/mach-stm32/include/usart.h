@@ -28,7 +28,9 @@ struct usart {
 		| (1 << 2)	/* RE    : Receiver enable */		\
 })
 
-#define __get_usart_active_irq()	(get_active_irq() - 53)
+#define __get_usart_active_irq()					\
+	((get_active_irq() < (53 + 12))? get_active_irq() - 53		\
+		: get_active_irq() - 53 - 12)
 
 int  __usart_open(unsigned int channel, unsigned int baudrate);
 void __usart_close(unsigned int channel);
