@@ -483,7 +483,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 
 	curr.addr = 0; /* start searching from root */
 	if (read_inode(&curr, dev)) {
-		debug("wrong inode");
+		debug(MSG_DEBUG, "wrong inode");
 		return (char *)-ERR_ALLOC;
 	}
 
@@ -518,7 +518,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		/* or move on */
 		curr.addr = dir.inode;
 		if (read_inode(&curr, dev)) {
-			debug("wrong inode");
+			debug(MSG_DEBUG, "wrong inode");
 		}
 
 		i += len;
@@ -588,7 +588,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 		resched();
 		return 0;
 	} else if (tid < 0) { /* error */
-		debug("failed cloning");
+		debug(MSG_DEBUG, "failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -625,7 +625,7 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		file->offset += retval;
 
 	if (file->offset > inode.size)
-		debug("file offset exceeds file size");
+		debug(MSG_DEBUG, "file offset exceeds file size");
 
 	if (inode.size > size) {
 		unsigned int irqflag;
@@ -650,7 +650,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 		resched();
 		return 0;
 	} else if (tid < 0) {
-		debug("failed cloning");
+		debug(MSG_DEBUG, "failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -777,7 +777,7 @@ static int build_file_system(const struct device *dev)
 	disk_size = dev->block_size * dev->nr_blocks;
 	nr_inodes = disk_size / INODE_TABLE_SIZE(sizeof(struct embed_inode));
 
-	debug("disk size %d", disk_size);
+	debug(MSG_SYSTEM, "disk size %d", disk_size);
 
 	unsigned int nr_blocks, nr_data_bitmap;
 	unsigned int inode_table;
@@ -835,14 +835,14 @@ static int build_file_system(const struct device *dev)
 		write_block(D_BMAP_BLK + i, data_bitmap + (i * BLOCK_SIZE),
 				nr_data_bitmap % BLOCK_SIZE, dev);
 
-	debug("nr_data_bitmap %d", nr_data_bitmap);
+	debug(MSG_DEBUG, "nr_data_bitmap %d", nr_data_bitmap);
 
 	kfree(buf);
 	kfree(data_bitmap);
 
 	/* make the root node. root inode is always 0. */
 	if (make_node(FT_ROOT, dev) != 0) {
-		debug("wrong root inode");
+		debug(MSG_DEBUG, "wrong root inode");
 		return -ERR_UNDEF;
 	}
 
@@ -851,7 +851,7 @@ static int build_file_system(const struct device *dev)
 	read_inode(&root_inode, dev);
 	create_file("dev", FT_DIR, &root_inode, dev);
 
-	debug("built embed file system:\n"
+	debug(MSG_SYSTEM, "built embed file system:\n"
 			"block_size %d\n"
 			"blocks_count %d\n"
 			"free_inodes_count %d\n"
@@ -875,7 +875,7 @@ int embedfs_mount(const struct device *dev)
 {
 	unsigned int end;
 	end = dev->block_size * dev->nr_blocks + dev->base_addr - 1;
-	debug("embedfs addr %08x - %08x", dev->base_addr, end);
+	debug(MSG_SYSTEM, "embedfs addr %08x - %08x", dev->base_addr, end);
 
 	struct embed_superblock sb;
 
@@ -895,7 +895,7 @@ int embedfs_mount(const struct device *dev)
 
 	return 0;
 err:
-	debug("can't build root file system");
+	debug(MSG_SYSTEM, "can't build root file system");
 	return -ERR_UNDEF;
 }
 

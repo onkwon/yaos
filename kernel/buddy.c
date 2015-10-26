@@ -106,7 +106,7 @@ static void buddy_freelist_init(struct buddy *pool,
 	unsigned int offset;
 	unsigned int i;
 
-	debug("&mem_map[nr_pages] 0x%08x - bitmap start addr",
+	debug(MSG_DEBUG, "&mem_map[nr_pages] 0x%08x - bitmap start addr",
 			&array[nr_pages]);
 
 	/* bitmap initialization */
@@ -120,9 +120,11 @@ static void buddy_freelist_init(struct buddy *pool,
 		pool->free[i].bitmap = (unsigned int *)
 				(((char *)&array[nr_pages]) + offset);
 		memset(pool->free[i].bitmap, 0, size);
-		debug("[%02d] bitmap 0x%08x size %d bytes, order %d", i,
-				pool->free[i].bitmap, size, 1UL <<
-				(PAGE_SHIFT+i));
+		debug(MSG_DEBUG, "[%02d] bitmap 0x%08x size %d bytes, order %d"
+				, i
+				, pool->free[i].bitmap
+				, size
+				, 1UL << (PAGE_SHIFT+i));
 		list_link_init(&pool->free[i].list);
 
 		offset += size;
@@ -131,7 +133,7 @@ static void buddy_freelist_init(struct buddy *pool,
 
 	/* current offset is the first free page */
 	offset = ALIGN_PAGE(((char *)&array[nr_pages]) + offset);
-	debug("the first free page 0x%08x, page[%d]", offset,
+	debug(MSG_DEBUG, "the first free page 0x%08x, page[%d]", offset,
 			PAGE_INDEX(offset));
 
 	/* buddy list initialization */
@@ -162,14 +164,16 @@ static void buddy_freelist_init(struct buddy *pool,
 			freelist--;
 			size = 1 << order;
 			next = index + size;
-			debug("### order %02d", order);
+			debug(MSG_DEBUG, "### order %02d", order);
 		}
 
 		list_add(&array[index].link, &freelist->list);
-		debug("freelist->bitmap %08x bitmap %08x", freelist->bitmap,
-				BITMAP_POS(freelist->bitmap, index, order));
+		debug(MSG_DEBUG, "freelist->bitmap %08x bitmap %08x"
+				, freelist->bitmap
+				, BITMAP_POS(freelist->bitmap, index, order));
 		BITMAP_TOGGLE(freelist->bitmap, index, order);
-		debug("index %d, size %d(%02d), addr %08x[%08x], bitmap %08x",
+		debug(MSG_DEBUG,
+			"index %d, size %d(%02d), addr %08x[%08x], bitmap %08x",
 				index, size, order, &array[index],
 				array[index].addr,
 				*BITMAP_POS(freelist->bitmap, index, order));

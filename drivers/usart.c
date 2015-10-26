@@ -72,7 +72,7 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */
-		debug("failed cloning");
+		debug(MSG_DEBUG, "failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -164,7 +164,7 @@ static size_t usart_write_polling(struct file *file, void *buf, size_t len)
 		retval = 0;
 	} else { /* error */
 		/* use errno */
-		debug("failed cloning");
+		debug(MSG_DEBUG, "failed cloning");
 		retval = -ERR_RETRY;
 	}
 

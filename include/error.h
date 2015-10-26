@@ -16,19 +16,31 @@
 #define freeze()		while (1)
 #define panic()			while (1)
 
-#ifdef CONFIG_DEBUG
+#define MSG_SYSTEM		0
+#define MSG_DEBUG		1
+
 #include <io.h>
-#define debug(fmt...)		do {				\
-	extern void __putc_debug(int c);			\
-	void (*temp)(int) = putchar;				\
-	putchar = __putc_debug;					\
-	printk("%s:%s():%d: ", __FILE__, __func__, __LINE__);	\
-	printk(fmt);						\
-	printk("\n");						\
-	putchar = temp;						\
+#ifdef CONFIG_DEBUG
+#define debug(lv, fmt...)	do {					\
+	extern void __putc_debug(int c);				\
+	void (*temp)(int) = putchar;					\
+	putchar = __putc_debug;						\
+	printk("%04x %s:%s():%d: ", lv, __FILE__, __func__, __LINE__);	\
+	printk(fmt);							\
+	printk("\n");							\
+	putchar = temp;							\
 } while (0)
 #else
-#define debug(fmt...)
+#define debug(lv, fmt...)	do {					\
+	if (lv <= MSG_SYSTEM) {						\
+		extern void __putc_debug(int c);			\
+		void (*temp)(int) = putchar;				\
+		putchar = __putc_debug;					\
+		printk(fmt);						\
+		printk("\n");						\
+		putchar = temp;						\
+	}								\
+} while (0)
 #endif
 
 #endif /* __ERROR_H__ */

@@ -68,7 +68,7 @@ static inline void wait_while_busy()
 
 	do {
 		if (is_timeout(tout)) {
-			debug("timeout!");
+			debug(MSG_DEBUG, "timeout!");
 			break;
 		}
 
@@ -206,7 +206,7 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 		retval = 0;
 	} else { /* error */
 		/* use errno */
-		debug("failed cloning");
+		debug(MSG_DEBUG, "failed cloning");
 		retval = -ERR_RETRY;
 	}
 

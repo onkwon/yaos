@@ -1,10 +1,10 @@
 #include <io.h>
 #include <kernel/task.h>
 
-int register_isr(unsigned int nirq, void (*func)())
+int register_isr(unsigned int nvector, void (*func)())
 {
 	extern unsigned int _ram_start;
-	*((unsigned int *)&_ram_start + nirq) = (unsigned int)func;
+	*((unsigned int *)&_ram_start + nvector) = (unsigned int)func;
 	dsb();
 
 	return 0;

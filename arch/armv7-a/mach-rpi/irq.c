@@ -123,7 +123,7 @@ void __attribute__((naked, optimize("O0"))) svc_handler()
 
 #include <kernel/init.h>
 
-void isr_null() { debug("ISR is not registered yet"); }
+void isr_null() { debug(MSG_SYSTEM, "ISR is not registered yet"); }
 
 void __init irq_init()
 {

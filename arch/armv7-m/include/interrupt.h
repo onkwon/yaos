@@ -22,6 +22,7 @@
 #define __ret()			__asm__ __volatile__("bx lr" ::: "memory")
 #define __ret_from_exc(offset)
 
+int register_isr(unsigned int nvector, void (*func)());
 void nvic_set(unsigned int nirq, int on);
 
 #define GET_PC() ({							\

@@ -178,12 +178,12 @@ struct task *find_task(unsigned int addr, struct task *head)
 
 void wrapper()
 {
-	debug("addr %x", current->addr);
-	debug("type %08x, state %08x, pri %08x",
+	debug(MSG_DEBUG, "addr %x", current->addr);
+	debug(MSG_DEBUG, "type %08x, state %08x, pri %08x",
 			get_task_type(current),
 			get_task_state(current),
 			get_task_pri(current));
-	debug("control %08x, sp %08x, msp %08x, psp %08x",
+	debug(MSG_DEBUG, "control %08x, sp %08x, msp %08x, psp %08x",
 			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
 
 	((void (*)())current->addr)();

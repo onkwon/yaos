@@ -21,12 +21,12 @@ void *kmalloc(size_t size)
 			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
 	spin_unlock_irqrestore(buddypool.lock, irqflag);
 
-	debug("kmalloc : %x %x %d", page, page->addr, size);
+	debug(MSG_DEBUG, "kmalloc : %x %x %d", page, page->addr, size);
 
 	if (page)
 		return page->addr;
 
-	debug("Out of memory");
+	debug(MSG_SYSTEM, "Out of memory");
 
 	return NULL;
 }
@@ -50,7 +50,7 @@ void kfree(void *addr)
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
 
-	debug("kfree : %x %x", addr, page->flags);
+	debug(MSG_DEBUG, "kfree : %x %x", addr, page->flags);
 
 	spin_lock_irqsave(pool->lock, irqflag);
 	free_pages(pool, page);
@@ -131,11 +131,11 @@ void __init mm_init()
 
 	struct page *page = (struct page *)ALIGN_PAGE(&_ebss);
 
-	debug("Memory initiailization");
-	debug("page size %d bytes", PAGE_SIZE);
-	debug("page struct size %d bytes", sizeof(struct page));
-	debug("ram range 0x%08x - 0x%08x", start, end);
-	debug("total %d pages", nr_pages);
+	debug(MSG_SYSTEM, "Memory initiailization");
+	debug(MSG_SYSTEM, "page size %d bytes", PAGE_SIZE);
+	debug(MSG_SYSTEM, "page struct size %d bytes", sizeof(struct page));
+	debug(MSG_SYSTEM, "ram range 0x%08x - 0x%08x", start, end);
+	debug(MSG_SYSTEM, "total %d pages", nr_pages);
 
 	mem_map = page;
 
@@ -148,11 +148,11 @@ void __init mm_init()
 		page++;
 	}
 
-	debug("0x%08x - mem_map first entry, page[%d]", mem_map,
+	debug(MSG_DEBUG, "0x%08x - mem_map first entry, page[%d]", mem_map,
 			PAGE_INDEX(mem_map));
-	debug("0x%08x - mem_map last entry, page[%d]", page - 1,
+	debug(MSG_DEBUG, "0x%08x - mem_map last entry, page[%d]", page - 1,
 			PAGE_INDEX((page-1)->addr));
-	debug("mem_map size : %d bytes", page - mem_map);
+	debug(MSG_DEBUG, "mem_map size : %d bytes", page - mem_map);
 
 	buddypool.nr_pages = nr_pages;
 	buddypool.nr_free  = 0;
