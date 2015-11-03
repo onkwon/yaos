@@ -24,6 +24,7 @@
 
 int register_isr(unsigned int nvector, void (*func)());
 void nvic_set(unsigned int nirq, int on);
+void nvic_set_pri(unsigned int nirq, unsigned int pri);
 
 #define GET_PC() ({							\
 	unsigned int __pc;						\

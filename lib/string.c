@@ -137,3 +137,28 @@ char *strchr(char *s, const char c)
 
 	return NULL;
 }
+
+char *strstr(const char *string, const char *word)
+{
+	char *s, *s1, *s2;
+
+	if (!*word)
+		return NULL;
+
+	s = (char *)string;
+
+	while (*s) {
+		s1 = s;
+		s2 = (char *)word;
+
+		while (*s1 && *s2 && !(*s1 - *s2))
+			s1++, s2++;
+
+		if (!*s2)
+			return s;
+
+		s++;
+	}
+
+	return NULL;
+}

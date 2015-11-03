@@ -29,6 +29,17 @@ void nvic_set(unsigned int nirq, int on)
 	spin_unlock(nvic_lock);
 }
 
+void nvic_set_pri(unsigned int nirq, unsigned int pri)
+{
+	volatile unsigned int *reg;
+	unsigned int bit;
+
+	bit  = nirq % 4 * 8;
+	reg  = (volatile unsigned int *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
+	*reg &= ~(0xff << bit);
+	*reg |= ((pri & 0xf) << 4) << bit;
+}
+
 void __attribute__((naked)) sys_schedule()
 {
 	SCB_ICSR |= 1 << 28; /* raising pendsv for scheduling */

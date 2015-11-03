@@ -18,6 +18,7 @@ static void __attribute__((naked)) isr_break()
 		"Stacked PC     0x%08x\n"
 		"Stacked LR     0x%08x\n"
 		"Current LR     0x%08x\n"
+		"Current PSR    0x%08x\n"
 		, sp, sp[7], sp[6], sp[5], lr, psr);
 
 	printk("\nUser SP        0x%08x\n"
@@ -35,9 +36,9 @@ static void __attribute__((naked)) isr_break()
 		"current->irqflag    0x%08x\n"
 		"current->addr       0x%08x\n"
 		"current             0x%08x\n"
-		, current->mm.sp, current->mm.base, current->mm.heap,
-		current->mm.kernel.base, current->mm.kernel.sp, current->state,
-		current->irqflag, current->addr, current);
+		, current->mm.sp, current->mm.base, current->mm.heap
+		, current->mm.kernel.base, current->mm.kernel.sp, current->state
+		, current->irqflag, current->addr, current);
 
 	ret_from_gpio_int(GPIO_PIN_INDEX);
 	__set_pc(lr);
@@ -47,8 +48,10 @@ static void inspect()
 {
 	int vector_nr;
 
-	vector_nr = gpio_init(GPIO_PIN_INDEX,
-			GPIO_MODE_INPUT | GPIO_CONF_PULL | GPIO_INT_FALLING);
+	nvic_set_pri(40, 0);
+
+	vector_nr = gpio_init(GPIO_PIN_INDEX
+			, GPIO_MODE_INPUT | GPIO_CONF_PULL | GPIO_INT_FALLING);
 
 	register_isr(vector_nr, isr_break);
 }

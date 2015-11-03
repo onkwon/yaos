@@ -2,6 +2,9 @@
 #include <error.h>
 #include <kernel/init.h>
 
+#define MAX_IRQ				60
+#define NVIC_DEFAULT_PRIORITY		10
+
 static void __init __attribute__((naked, used)) reset()
 {
 	cli();
@@ -9,6 +12,10 @@ static void __init __attribute__((naked, used)) reset()
 	SCB_SHPR3 |= 0x00f00000; /* PendSV : the lowest priority, 15 */
 	SCB_SHPR2 |= 0xf0000000; /* SVCall : the lowest priority, 15 */
 	SCB_SHCSR |= 0x00070000; /* enable faults */
+
+	unsigned int i;
+	for (i = 0; i < MAX_IRQ; i++)
+		nvic_set_pri(i, NVIC_DEFAULT_PRIORITY);
 
 	dsb();
 

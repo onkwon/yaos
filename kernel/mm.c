@@ -16,6 +16,7 @@ void *kmalloc(size_t size)
 	struct page *page;
 	unsigned int irqflag;
 
+try:
 	spin_lock_irqsave(buddypool.lock, irqflag);
 	page = alloc_pages(&buddypool,
 			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
@@ -25,6 +26,11 @@ void *kmalloc(size_t size)
 
 	if (page)
 		return page->addr;
+
+	debug(MSG_SYSTEM, "Low memory");
+
+	if (kill_zombie())
+		goto try;
 
 	debug(MSG_SYSTEM, "Out of memory");
 
@@ -84,9 +90,19 @@ void *kmalloc(size_t size)
 	void *p;
 	unsigned int irqflag;
 
+try:
 	spin_lock_irqsave(mem_lock, irqflag);
 	p = ff_alloc(&mem_map, size);
 	spin_unlock_irqrestore(mem_lock, irqflag);
+
+	if (p == NULL) {
+		debug(MSG_SYSTEM, "Low memory");
+
+		if (kill_zombie())
+			goto try;
+
+		debug(MSG_SYSTEM, "Out of memory");
+	}
 
 	return p;
 }
@@ -100,6 +116,8 @@ void kfree(void *addr)
 	spin_lock_irqsave(mem_lock, irqflag);
 	ff_free(&mem_map, addr);
 	spin_unlock_irqrestore(mem_lock, irqflag);
+
+	debug(MSG_DEBUG, "kfree : %x", addr);
 
 	addr = NULL;
 }

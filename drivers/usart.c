@@ -133,9 +133,6 @@ static size_t usart_write_polling_core(struct file *file, void *buf, size_t len)
 
 static size_t usart_write_polling(struct file *file, void *buf, size_t len)
 {
-	return usart_write_polling_core(file, buf, len);
-
-	/* FOR TEST */
 	struct task *parent;
 	size_t retval;
 	int tid;

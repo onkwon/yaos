@@ -122,18 +122,20 @@ static void unlink_task(struct task *task)
 	resched();
 }
 
-void kill_zombie()
+unsigned int kill_zombie()
 {
 	struct task *task;
-	unsigned int irqflag;
+	unsigned int irqflag, cnt;
 
-	while (zombie) {
+	for (cnt = 0; zombie; cnt++) {
 		spin_lock_irqsave(zombie_lock, irqflag);
 		task = (struct task *)zombie;
 		zombie = task->addr;
 		spin_unlock_irqrestore(zombie_lock, irqflag);
 		destroy(task);
 	}
+
+	return cnt;
 }
 
 void destroy(struct task *task)
@@ -144,6 +146,7 @@ void destroy(struct task *task)
 	kfree(task->mm.base);
 	if (!(get_task_flags(task) & STACK_SHARED))
 		kfree(task->mm.kernel.base);
+
 	if (!(get_task_flags(task) & TASK_STATIC))
 		kfree(task);
 }

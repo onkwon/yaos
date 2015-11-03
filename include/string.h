@@ -16,6 +16,7 @@ size_t strnlen(const char *s, size_t n);
 char *strtok(char *line, const char *const token);
 unsigned int toknum(const char *line, const char *const token);
 char *strchr(char *s, const char c);
+char *strstr(const char *string, const char *word);
 
 extern size_t sprintf(char *out, const char *format, ...);
 extern size_t snprintf(char *out, size_t n, const char *format, ...);
