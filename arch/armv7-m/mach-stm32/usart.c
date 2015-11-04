@@ -39,6 +39,12 @@ static int get_usart_vector(unsigned int channel)
 	case USART3:
 		nvector = 55; /* IRQ 39 */
 		break;
+	case UART4:
+		nvector = 68; /* IRQ 52 */
+		break;
+	case UART5:
+		nvector = 69; /* IRQ 53 */
+		break;
 	}
 
 	return nvector;
@@ -72,6 +78,16 @@ static int usart_open(unsigned int channel, struct usart arg)
 		pin      = 10; /* PB10: TX, PB11: RX */
 		apb_nbit = 18;
 		break;
+	case UART4:
+		port     = PORTC;
+		pin      = 10; /* PC10: TX, PC11: RX */
+		apb_nbit = 19;
+		break;
+	case UART5:
+		port     = PORTC;
+		pin      = 12; /* PC12: TX, PD2: RX */
+		apb_nbit = 20;
+		break;
 	default:
 		return -1;
 	}
@@ -102,7 +118,10 @@ static int usart_open(unsigned int channel, struct usart arg)
 	SET_PORT_ALT(port, pin, alt);
 	SET_PORT_ALT(port, pin+1, alt);
 #endif
-	SET_PORT_PIN(port, pin+1, PIN_ALT); /* rx */
+	if (channel == UART5)
+		SET_PORT_PIN(PORTD, 2, PIN_ALT); /* rx */
+	else
+		SET_PORT_PIN(port, pin+1, PIN_ALT); /* rx */
 
 	/* FOR TEST to use rx pin as wake-up source */
 	link_exti_to_nvic(port, pin+1);
@@ -165,6 +184,8 @@ static inline unsigned int conv_channel(unsigned int channel)
 	case 2: channel = USART3;
 		break;
 	case 3: channel = UART4;
+		break;
+	case 4: channel = UART5;
 		break;
 	case 0: channel = USART1;
 		break;
