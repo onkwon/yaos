@@ -101,9 +101,9 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 	return -ERR_UNDEF;
 }
 
-static size_t usart_write_int(struct file *file, void *buf, size_t len)
+static size_t usart_write_int(struct file *file, void *data)
 {
-	char c = *(char *)buf;
+	char c = *(char *)data;
 
 	unsigned int irqflag;
 	int err;
@@ -112,16 +112,17 @@ static size_t usart_write_int(struct file *file, void *buf, size_t len)
 	err = fifo_put(&txq[CHANNEL(file->inode->dev)], c, 1);
 	spin_unlock_irqrestore(tx_lock[CHANNEL(file->inode->dev)], irqflag);
 
-	__usart_tx_irq_raise(CHANNEL(file->inode->dev));
-
 	if (err == -1) return 0;
+
+	__usart_tx_irq_raise(CHANNEL(file->inode->dev));
 
 	return 1;
 }
 
-static size_t usart_write_polling_core(struct file *file, void *buf, size_t len)
+static size_t usart_write_polling(struct file *file, void *data)
 {
-	char c = *(char *)buf;
+	char c = *(char *)data;
+
 	unsigned int irqflag;
 
 	spin_lock_irqsave(tx_lock[CHANNEL(file->inode->dev)], irqflag);
@@ -131,7 +132,7 @@ static size_t usart_write_polling_core(struct file *file, void *buf, size_t len)
 	return 1;
 }
 
-static size_t usart_write_polling(struct file *file, void *buf, size_t len)
+static size_t usart_write(struct file *file, void *buf, size_t len)
 {
 	struct task *parent;
 	size_t retval;
@@ -140,32 +141,42 @@ static size_t usart_write_polling(struct file *file, void *buf, size_t len)
 	parent = current;
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
-	if (tid > 0) { /* child turning to kernel task,
-			  nomore in handler mode */
-		retval = usart_write_polling_core(file, buf, len);
-
-		__set_retval(parent, retval);
-		sum_curr_stat(parent);
-
-		if (get_task_state(parent)) {
-			set_task_state(parent, TASK_RUNNING);
-			runqueue_add(parent);
-		}
-
-		sys_kill((unsigned int)current);
-		freeze(); /* never reaches here */
-	} else if (tid == 0) { /* parent */
-		sys_yield(); /* it goes sleep as soon as exiting from system
-				call to wait for its child's job to be done
-				that returns the result. */
-		retval = 0;
-	} else { /* error */
+	if (tid == 0) { /* parent */
+		/* it goes TASK_WAITING state as soon as exiting from system
+		 * call to wait for its child's job to be done that returns the
+		 * result. */
+		set_task_state(current, TASK_WAITING);
+		resched();
+		return 0;
+	} else if (tid < 0) { /* error */
 		/* use errno */
 		debug(MSG_DEBUG, "failed cloning");
-		retval = -ERR_RETRY;
+		return -ERR_RETRY;
 	}
 
-	return retval;
+	size_t (*f)(struct file *file, void *data);
+	if (file->flags & O_NONBLOCK)
+		f = usart_write_polling;
+	else
+		f = usart_write_int;
+
+	/* child takes place from here turning to kernel task,
+	 * nomore in handler mode */
+	for (retval = 0; retval < len && file->offset < file->inode->size;)
+		if (f(file, buf + retval) >= 1) retval++;
+
+	__set_retval(parent, retval);
+	sum_curr_stat(parent);
+
+	if (get_task_state(parent)) {
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+	}
+
+	sys_kill((unsigned int)current);
+	freeze(); /* never reaches here */
+
+	return -ERR_UNDEF;
 }
 
 static void isr_usart()
@@ -217,13 +228,16 @@ static int usart_open(struct inode *inode, struct file *file)
 	if (dev->count++ == 0) {
 		void *buf;
 		int nr_irq;
+		unsigned int baudrate = 115200;
+
+		if (file->flags & O_9600) baudrate = 9600;
 
 		if (CHANNEL(dev->id) >= USART_CHANNEL_MAX) {
 			err = -ERR_RANGE;
 			goto out;
 		}
 
-		if ((nr_irq = __usart_open(CHANNEL(dev->id), 115200)) <= 0) {
+		if ((nr_irq = __usart_open(CHANNEL(dev->id), baudrate)) <= 0) {
 			err = -ERR_UNDEF;
 			goto out;
 		}
@@ -251,11 +265,6 @@ static int usart_open(struct inode *inode, struct file *file)
 		register_isr(nr_irq, isr_usart);
 	}
 
-	if (file->flags & O_NONBLOCK)
-		file->op->write = usart_write_polling;
-	else
-		file->op->write = usart_write_int;
-
 out:
 	spin_unlock(dev->lock.count);
 	return err;
@@ -264,7 +273,7 @@ out:
 static struct file_operations ops = {
 	.open  = usart_open,
 	.read  = usart_read,
-	.write = usart_write_int,
+	.write = usart_write,
 	.close = usart_close,
 	.seek  = NULL,
 };

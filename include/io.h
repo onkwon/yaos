@@ -17,6 +17,8 @@
 #define O_NONBLOCK			0x04
 #define O_CREATE			0x08
 
+#define O_9600				0x80
+
 #ifdef MACHINE
 #include <asm/io.h>
 #endif

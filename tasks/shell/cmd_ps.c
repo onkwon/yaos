@@ -51,6 +51,7 @@ static void visit(struct task *p)
 #ifdef CONFIG_PAGING
 #include <kernel/buddy.h>
 #endif
+#include <kernel/systick.h>
 
 static int ps(int argc, char **argv)
 {
@@ -71,6 +72,12 @@ static int ps(int argc, char **argv)
 	printf("scheduling overhead %dus / %dus (%d)\n",
 			sched_overhead / FREQ, MHZ / HZ, sched_overhead);
 #endif
+
+	unsigned long long uptime = get_systick64();
+	printf("uptime: %d minutes (0x%08x%08x)\n"
+			, systick / HZ / 60
+			, (unsigned int)(uptime >> 32)
+			, (unsigned int)uptime);
 
 	return 0;
 }
