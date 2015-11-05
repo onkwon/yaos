@@ -116,6 +116,7 @@ static void unlink_task(struct task *task)
 	if (get_task_state(&init) == TASK_RUNNING)
 		runqueue_del(&init);
 
+	set_task_pri(&init, get_task_pri(current));
 	set_task_state(&init, TASK_RUNNING);
 	runqueue_add(&init);
 

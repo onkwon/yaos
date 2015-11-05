@@ -27,7 +27,7 @@ try:
 	if (page)
 		return page->addr;
 
-	debug(MSG_SYSTEM, "Low memory");
+	debug(MSG_DEBUG, "Low memory");
 
 	if (kill_zombie())
 		goto try;
@@ -96,7 +96,7 @@ try:
 	spin_unlock_irqrestore(mem_lock, irqflag);
 
 	if (p == NULL) {
-		debug(MSG_SYSTEM, "Low memory");
+		debug(MSG_DEBUG, "Low memory");
 
 		if (kill_zombie())
 			goto try;

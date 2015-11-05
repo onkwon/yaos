@@ -52,6 +52,7 @@ void idle()
 			/* post-dos(); */
 		}
 
+		set_task_pri(current, LOWEST_PRIORITY);
 		yield();
 	}
 }
