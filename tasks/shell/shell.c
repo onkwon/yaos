@@ -63,7 +63,7 @@ void shell()
 	int argc, fd, retval;
 	char **argv, buf[MAXLEN];
 
-	if ((fd = open(DEVFS_ROOT CONSOLE, O_RDONLY)) <= 0) {
+	if ((fd = open(DEVFS_ROOT CONSOLE, O_RDONLY, NULL)) <= 0) {
 		debug(MSG_DEBUG, "console: open error %x\n", fd);
 		return;
 	}

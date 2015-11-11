@@ -231,9 +231,12 @@ static int usart_open(struct inode *inode, struct file *file)
 	if (dev->count++ == 0) {
 		void *buf;
 		int nr_irq;
-		unsigned int baudrate = 115200;
+		unsigned int baudrate;
 
-		if (file->flags & O_9600) baudrate = 9600;
+		if (file->option) baudrate = (unsigned int)file->option;
+		else baudrate = 115200; /* default */
+
+		debug(MSG_DEBUG, "baudrate %d", baudrate);
 
 		if (CHANNEL(dev->id) >= USART_CHANNEL_MAX) {
 			err = -ERR_RANGE;

@@ -21,7 +21,9 @@
 #define SYSCALL_MKDIR			15
 #define SYSCALL_NR			16
 
-int sys_open(char *filename, int mode);
+int open(char *filename, ...);
+
+int sys_open(char *filename, int mode, void *opt);
 int sys_read(int fd, void *buf, size_t len);
 int sys_write(int fd, void *buf, size_t len);
 int sys_close(int fd);
@@ -30,10 +32,6 @@ int sys_close(int fd);
 #ifdef MACHINE
 #include <asm/syscall.h>
 #endif
-static inline int open(char *filename, int mode)
-{
-	return syscall(SYSCALL_OPEN, filename, mode);
-}
 static inline int read(int fd, void *buf, size_t len)
 {
 	return syscall(SYSCALL_READ, fd, buf, len);
@@ -59,7 +57,6 @@ static inline int fork()
 	return syscall(SYSCALL_FORK);
 }
 #else
-#define open(filename, mode)	sys_open(filename, mode)
 #define read(fd, buf, len)	sys_read(fd, buf, len)
 #define write(fd, buf, len)	sys_write(fd, buf, len)
 #define close(fd)		sys_close(fd)

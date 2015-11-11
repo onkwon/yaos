@@ -99,6 +99,8 @@ struct file {
 	lock_t lock;
 
 	struct list list;
+
+	void *option;
 };
 
 struct file_operations {

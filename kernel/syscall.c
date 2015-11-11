@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <io.h>
 
-int sys_open_core(char *filename, int mode)
+int sys_open_core(char *filename, int mode, void *opt)
 {
 	struct superblock *sb;
 	struct inode *inode, *new;
@@ -57,6 +57,7 @@ int sys_open_core(char *filename, int mode)
 	inode->count++;
 	spin_unlock(inode->lock);
 	file.flags = mode;
+	file.option = opt;
 	inode->fop->open(inode, &file);
 
 	memcpy(ops, file.op, sizeof(struct file_operations));
@@ -77,7 +78,7 @@ errout:
 	return err;
 }
 
-int sys_open(char *filename, int mode)
+int sys_open(char *filename, int mode, void *opt)
 {
 	struct task *parent;
 	int tid;
@@ -100,7 +101,7 @@ int sys_open(char *filename, int mode)
 
 	/* child takes place from here turning to kernel task,
 	 * nomore in handler mode */
-	__set_retval(parent, sys_open_core(filename, mode));
+	__set_retval(parent, sys_open_core(filename, mode, opt));
 
 	sum_curr_stat(parent);
 
@@ -195,3 +196,25 @@ void *syscall_table[] = {
 	//sys_create,
 	//sys_mkdir,		/* 15 */
 };
+
+#define FORWARD(addr)		((int *)(addr)++)
+#define BACKWARD(addr)		((int *)(addr)--)
+#define getarg(args, type)	(*(type *)FORWARD(args))
+
+int open(char *filename, ...)
+{
+	void *opt;
+	int *args, mode;
+	char *base;
+
+	args = (int *)&filename;
+	base = getarg(args, char *);
+	mode = getarg(args, int);
+	opt  = getarg(args, void *);
+
+#ifdef CONFIG_SYSCALL
+	return syscall(SYSCALL_OPEN, base, mode, opt);
+#else
+	sys_open(base, mode, opt);
+#endif
+}
