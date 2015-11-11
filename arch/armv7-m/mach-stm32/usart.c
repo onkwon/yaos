@@ -170,10 +170,14 @@ static void usart_close(unsigned int channel)
 /* to get buf index from register address */
 #define GET_USART_NR(from)     (from == USART1? 0 : (((from >> 8) & 0xff) - 0x40) / 4)
 
-static void usart_putc(unsigned int channel, int c)
+static int usart_putc(unsigned int channel, int c)
 {
-	while (!gbi(*(volatile unsigned int *)channel, 7)); /* wait until TXE bit set */
+	if (!gbi(*(volatile unsigned int *)channel, 7))
+		return 0;
+
 	*(volatile unsigned int *)(channel + 0x04) = (unsigned int)c;
+
+	return 1;
 }
 
 static inline unsigned int conv_channel(unsigned int channel)
@@ -215,9 +219,9 @@ void __usart_close(unsigned int channel)
 	usart_close(conv_channel(channel));
 }
 
-void __usart_putc(unsigned int channel, int c)
+int __usart_putc(unsigned int channel, int c)
 {
-	usart_putc(conv_channel(channel), c);
+	return usart_putc(conv_channel(channel), c);
 }
 
 int __usart_check_rx(unsigned int channel)
@@ -265,10 +269,10 @@ void __usart_tx_irq_raise(unsigned int channel)
 
 void __putc_debug(int c)
 {
-	__usart_putc(0, c);
+	while (!__usart_putc(0, c));
 
 	if (c == '\n')
-		__usart_putc(0, '\r');
+		while (!__usart_putc(0, '\r'));
 }
 
 void __usart_flush(unsigned int channel)

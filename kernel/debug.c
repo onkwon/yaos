@@ -51,7 +51,7 @@ static void inspect()
 	nvic_set_pri(40, 0);
 
 	vector_nr = gpio_init(GPIO_PIN_INDEX
-			, GPIO_MODE_INPUT | GPIO_CONF_PULL | GPIO_INT_FALLING);
+			, GPIO_MODE_INPUT | GPIO_CONF_PULL_UP | GPIO_INT_FALLING);
 
 	register_isr(vector_nr, isr_break);
 }

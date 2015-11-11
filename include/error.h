@@ -13,8 +13,8 @@
 #define ERR_ATTR		9
 #define ERR_CREATE		10
 
-#define freeze()		while (1)
-#define panic()			while (1)
+#define freeze()		while (1) debug(MSG_SYSTEM, "freezed")
+#define panic()			while (1) debug(MSG_SYSTEM, "panic")
 
 #define MSG_SYSTEM		0
 #define MSG_DEBUG		1

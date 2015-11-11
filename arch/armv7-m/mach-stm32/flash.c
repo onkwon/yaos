@@ -256,7 +256,7 @@ static int flash_init()
 		return -ERR_RANGE;
 
 	dev->block_size = BLOCK_SIZE;
-	dev->base_addr = (unsigned int)&_rom_start + (unsigned int)&_etext +
+	dev->base_addr = (unsigned int)&_etext +
 		((unsigned int)&_ebss - (unsigned int)&_data);
 	dev->base_addr = ALIGN_BLOCK(dev->base_addr, BLOCK_SIZE);
 

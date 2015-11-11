@@ -90,8 +90,6 @@ static void unlink_task(struct task *task)
 	if ((get_task_state(task) == TASK_RUNNING) && (current != task))
 		runqueue_del(task);
 
-	set_task_state(task, TASK_ZOMBIE);
-
 	unsigned int irqflag;
 	irq_save(irqflag);
 	local_irq_disable();
@@ -106,6 +104,8 @@ static void unlink_task(struct task *task)
 	task->addr = zombie;
 	zombie = (unsigned int *)task;
 	spin_unlock(zombie_lock);
+
+	set_task_state(task, TASK_ZOMBIE);
 
 	irq_restore(irqflag);
 

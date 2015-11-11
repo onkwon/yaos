@@ -128,6 +128,36 @@ static struct buffer_cache *mkbuf(unsigned short int block_size)
 	return buffer_cache;
 }
 
+int __sync(const struct device *dev)
+{
+	/* read all devices */
+
+	unsigned int nblock;
+	struct buffer_cache *p;
+	struct list *curr;
+	buf_t *head = dev->buffer;
+
+	if ((head == NULL) || (head->next == head))
+		return BUFFER_UNDEF;
+
+	for (curr = head->next; curr != head; curr = curr->next) {
+		p = get_container_of(curr, struct buffer_cache, list);
+
+		if (p->dirty && (p->nblock != BUFFER_INITIAL)) {
+			nblock = p->nblock + dev->base_addr;
+
+			mutex_lock(dev->lock);
+			dev->op->write((struct file *)&nblock, p->buf
+					, dev->block_size);
+			mutex_unlock(dev->lock);
+
+			p->dirty = 0;
+		}
+	}
+
+	return 0;
+}
+
 buf_t *request_buffer(unsigned short int n, unsigned short int block_size)
 {
 	struct buffer_cache *p;

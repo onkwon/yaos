@@ -150,8 +150,8 @@ void sleep(unsigned int sec)
 	tm.expires = systick + sec_to_ticks(sec);
 	tm.event = sleep_callback;
 	tm.data = (unsigned int)current;
-	add_timer(&tm);
-	yield();
+	if (!add_timer(&tm))
+		yield();
 #else
 	unsigned int timeout = systick + sec_to_ticks(sec);
 	timer_nr++;
@@ -168,8 +168,8 @@ void msleep(unsigned int ms)
 	tm.expires = systick + msec_to_ticks(ms);
 	tm.event = sleep_callback;
 	tm.data = (unsigned int)current;
-	add_timer(&tm);
-	yield();
+	if (!add_timer(&tm))
+		yield();
 #else
 	unsigned int timeout = systick + msec_to_ticks(ms);
 	timer_nr++;

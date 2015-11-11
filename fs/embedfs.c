@@ -738,6 +738,13 @@ static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 	return embed_lookup(inode, pathname);
 }
 
+static int embed_close(struct file *file)
+{
+	__sync(file->inode->sb->dev);
+
+	return 0;
+}
+
 static struct inode_operations iops = {
 	.lookup = embed_lookup,
 	.create = embed_create,
@@ -747,7 +754,7 @@ static struct file_operations fops = {
 	.open  = embed_open,
 	.read  = embed_read,
 	.write = embed_write,
-	.close = NULL,
+	.close = embed_close,
 	.seek  = embed_seek,
 };
 

@@ -124,12 +124,15 @@ static size_t usart_write_polling(struct file *file, void *data)
 	char c = *(char *)data;
 
 	unsigned int irqflag;
+	int res;
 
-	spin_lock_irqsave(tx_lock[CHANNEL(file->inode->dev)], irqflag);
-	__usart_putc(CHANNEL(file->inode->dev), c);
-	spin_unlock_irqrestore(tx_lock[CHANNEL(file->inode->dev)], irqflag);
+	do {
+		spin_lock_irqsave(tx_lock[CHANNEL(file->inode->dev)], irqflag);
+		res = __usart_putc(CHANNEL(file->inode->dev), c);
+		spin_unlock_irqrestore(tx_lock[CHANNEL(file->inode->dev)], irqflag);
+	} while (!res);
 
-	return 1;
+	return res;
 }
 
 static size_t usart_write(struct file *file, void *buf, size_t len)

@@ -22,4 +22,6 @@ void *getblk(unsigned int nblock, const struct device *dev);
 void putblk_unlock(unsigned int nblock, const struct device *dev);
 void updateblk(unsigned int nblock, const struct device *dev);
 
+int __sync(const struct device *dev);
+
 #endif /* __BUFFER_H__ */
