@@ -11,7 +11,7 @@ static void visit(struct task *p)
 #define print_tab() for (i = 0; i < tab; i++) puts("|\t");
 
 	print_tab();
-	printf("+-- 0x%x 0x%02x 0x%02x %d\n", p->addr,
+	printf("+-- 0x%08x(0x%08x 0x%02x 0x%02x %d\n", p, p->addr,
 			get_task_type(p), get_task_state(p), get_task_pri(p));
 	print_tab();
 	printf("|   /vruntime %d /exec_runtime %d (%d sec)\n",
@@ -55,7 +55,7 @@ static void visit(struct task *p)
 
 static int ps(int argc, char **argv)
 {
-	printf("    ADDR  TYPE STAT PRI\n");
+	printf("    ADDR                    TYPE STAT PRI\n");
 
 	visit(&init);
 

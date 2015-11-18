@@ -8,7 +8,7 @@
 
 int  __usart_open(unsigned int channel, unsigned int baudrate);
 void __usart_close(unsigned int channel);
-void __usart_putc(unsigned int channel, int c);
+int __usart_putc(unsigned int channel, int c);
 int __usart_getc(unsigned int channel);
 int __usart_check_rx(unsigned int channel);
 int __usart_check_tx(unsigned int channel);

@@ -99,4 +99,6 @@ extern void __cli();
 #define __ret_from_exc(offset)						\
 	__asm__ __volatile__("subs pc, lr, %0" :: "I"(offset): "memory")
 
+int register_isr(unsigned int nirq, void (*func)());
+
 #endif /* __ARMv7A_INTERRUPT_H__ */

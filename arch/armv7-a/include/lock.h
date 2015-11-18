@@ -54,21 +54,23 @@ static inline int atomic_set(int *p, int v)
 }
 */
 
+#define __ldrex(addr)				({	\
+	unsigned int __result = 0;			\
+	__asm__ __volatile__("ldrex %0, [%1]"		\
+		: "=r"(__result)			\
+		: "r"(addr)				\
+		: "memory");				\
+	__result;					\
+})
+
 /* return 0 if success */
-static inline int atomic_set(int *p, int v)
-{
-	*p = v;
-	return 0;
-	int result;
-
-	__asm__ __volatile__(
-			"ldrex	%1, [%0]	\n\t"
-			"strex	%1, %2, [%0]	\n\t"
-			: "+r"(p), "=&r"(result)
-			: "r"(v)
-			: "memory");
-
-	return result;
-}
+#define __strex(value, addr)			({	\
+	unsigned int __result = 0;			\
+	__asm__ __volatile__("strex %0, %2, [%1]"	\
+		: "=&r"(__result)			\
+		: "r"(addr), "r"(value)			\
+		: "memory");				\
+	__result;					\
+})
 
 #endif /* __ARMv7A_LOCK_H__ */

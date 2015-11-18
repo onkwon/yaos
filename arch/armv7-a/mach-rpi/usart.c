@@ -41,12 +41,14 @@ void __usart_close(unsigned int channel)
 {
 }
 
-void __usart_putc(unsigned int channel, int c)
+int __usart_putc(unsigned int channel, int c)
 {
 	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
 
 	while (!(uart->lsr & 0x20)) ;
 	uart->dr = c;
+
+	return 1;
 }
 
 int __usart_check_rx(unsigned int channel)
