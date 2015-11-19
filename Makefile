@@ -43,12 +43,12 @@ BASEDIR = $(shell pwd)
 export BASEDIR
 
 CFLAGS += -march=$(ARCH)
-CFLAGS += -Wall -O2 -fno-builtin -nostdlib -lgcc
+CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles
 CFLAGS += -DVERSION=$(VERSION) -DMACHINE=$(MACH) -DSOC=$(SOC)
 ifdef CONFIG_DEBUG
 CFLAGS += -g -DCONFIG_DEBUG -O0
 endif
-LDFLAGS = -nostartfiles -Tarch/$(TARGET)/ld.script
+LDFLAGS = -Tarch/$(TARGET)/ld.script -L$(LD_LIBRARY_PATH) -lgcc
 OCFLAGS = -O binary
 ODFLAGS = -DxS
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
@@ -68,7 +68,7 @@ all: include common
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(PROJECT).map
 
 common: $(OBJS) subdirs
-	$(LD) $(LDFLAGS) -o $(PROJECT).elf $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $(PROJECT).map
+	$(LD) -o $(PROJECT).elf $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $(PROJECT).map $(LDFLAGS)
 	$(OC) $(OCFLAGS) $(PROJECT).elf $(PROJECT).bin
 	$(OD) $(ODFLAGS) $(PROJECT).elf > $(PROJECT).dump
 

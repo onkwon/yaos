@@ -10,11 +10,7 @@ CFLAGS  += $(INC) $(LIBS)
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o
 
-all: $(OBJS) subs
-
-subs:
-	@$(MAKE) -C libgcc
-	$(LD) -o libgcc.o -r libgcc/*.o
+all: $(OBJS)
 
 depend dep:
 	echo $(CC)
@@ -23,7 +19,6 @@ depend dep:
 clean:
 	@rm -f $(OBJS) .depend
 	@rm -f $(wildcard *.o)
-	@$(MAKE) clean -C libgcc
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

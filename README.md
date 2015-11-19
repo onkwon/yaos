@@ -57,6 +57,12 @@ Character LCD is also opened by default. You can change default pin assignment i
 	         |25 26| ---- IR
 	          -----
 
+> In case of getting error messages something like `undefined reference to __aeabi_uidiv`, specify library path when you `make` in the way below:
+
+	LD_LIBRARY_PATH=/usr/local/arm/lib/gcc/arm-none-eabi/4.9.2 make
+
+> The path is dependent on your development environment.
+
 ## Features
 
 ### Task management and scheduling
