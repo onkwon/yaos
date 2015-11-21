@@ -13,11 +13,15 @@
 #define ERR_ATTR		9
 #define ERR_CREATE		10
 
-#define freeze()		while (1) debug(MSG_SYSTEM, "freezed")
-#define panic()			while (1) debug(MSG_SYSTEM, "panic")
-
 #define MSG_SYSTEM		0
 #define MSG_DEBUG		1
+
+#define panic()			while (1) debug(MSG_SYSTEM, "panic")
+#if ((SOC == bcm2835) || (SOC == bcm2836)) /* syscall to raise scheduler */
+#define freeze()		while (1) syscall(SYSCALL_NR)
+#else
+#define freeze()		while (1) debug(MSG_SYSTEM, "freezed")
+#endif
 
 #include <io.h>
 #ifdef CONFIG_DEBUG

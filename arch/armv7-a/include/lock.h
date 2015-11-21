@@ -54,6 +54,9 @@ static inline int atomic_set(int *p, int v)
 }
 */
 
+/* It seems like the below instructions, ldrex and strex, don't work before
+ * some condition matches. Should MMU be turned on to make it work? */
+#if 0
 #define __ldrex(addr)				({	\
 	unsigned int __result = 0;			\
 	__asm__ __volatile__("ldrex %0, [%1]"		\
@@ -72,5 +75,12 @@ static inline int atomic_set(int *p, int v)
 		: "memory");				\
 	__result;					\
 })
+#else
+#define __ldrex(addr)		(*(int *)(addr))
+#define __strex(value, addr)	({ \
+	*(int *)(addr) = value; \
+	0; \
+})
+#endif
 
 #endif /* __ARMv7A_LOCK_H__ */

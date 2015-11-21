@@ -5,7 +5,7 @@
 #include <error.h>
 #include "irq.h"
 
-#define SYSTEM_CLOCK		500000000 /* 500MHz */
+#define SYSTEM_CLOCK		250000000 /* 250MHz */
 
 int __usart_open(unsigned int channel, unsigned int baudrate)
 {
