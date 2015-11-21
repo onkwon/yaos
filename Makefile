@@ -126,7 +126,7 @@ rpi2:
 
 .PHONY: burn
 burn:
-	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -g 0x0 -b 115200 /dev/tty.usbserial-A6005h9W
+	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -b 115200 /dev/tty.usbserial-A6005h9W
 .PHONY: dev
 dev:
 	tools/stm32flash/stm32flash -b 115200 /dev/tty.usbserial-A6005h9W
