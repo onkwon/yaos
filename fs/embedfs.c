@@ -588,7 +588,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 		resched();
 		return 0;
 	} else if (tid < 0) { /* error */
-		debug(MSG_DEBUG, "failed cloning");
+		debug(MSG_SYSTEM, "failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -650,7 +650,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 		resched();
 		return 0;
 	} else if (tid < 0) {
-		debug(MSG_DEBUG, "failed cloning");
+		debug(MSG_SYSTEM, "failed cloning");
 		return -ERR_RETRY;
 	}
 

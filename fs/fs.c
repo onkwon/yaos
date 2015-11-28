@@ -45,18 +45,23 @@ void remove_file(struct file *file)
 
 struct file *getfile(int fd)
 {
-	struct file *file;
-	struct list *p;
+	struct list  *p;
+	struct file  *file = NULL;
 	unsigned int *addr = (unsigned int *)fd;
+
+	unsigned int irqflag;
+	spin_lock_irqsave(fdtable_lock, irqflag);
 
 	for (p = fdtable.next; p != &fdtable; p = p->next) {
 		file = get_container_of(p, struct file, list);
 
 		if ((unsigned int)file == (unsigned int)addr)
-			return file;
+			break;
 	}
 
-	return NULL;
+	spin_unlock_irqrestore(fdtable_lock, irqflag);
+
+	return file;
 }
 
 #include <hash.h>

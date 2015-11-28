@@ -45,6 +45,7 @@ static void run_timer()
 	struct timer *timer;
 	struct list *curr;
 	unsigned int irqflag;
+	int tid;
 
 infinite:
 	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
@@ -55,8 +56,9 @@ infinite:
 			break;
 		}
 
-		if (clone(STACK_SHARED | (get_task_flags(timer->task) &
-						TASK_PRIVILEGED), &init) > 0) {
+		tid = clone(STACK_SHARED | (get_task_flags(timer->task) &
+						TASK_PRIVILEGED), &init);
+		if (tid > 0) {
 			/* Note that it is running at HIGHEST_PRIORITY just
 			 * like its parent, run_timer(). Change the priority to
 			 * its own tasks' to do job at the right priority. */
@@ -77,10 +79,8 @@ infinite:
 
 			kill((unsigned int)current);
 			freeze();
-		}
-
-		/* handle the exception in case of failure cloning
-		 * the timer would never run and be ignored */
+		} else if (tid != 0) /* error if not parent */
+			break;
 
 		spin_lock_irqsave(timerq, irqflag);
 		list_del(curr);

@@ -72,7 +72,7 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */
-		debug(MSG_DEBUG, "failed cloning");
+		debug(MSG_SYSTEM, "failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -103,16 +103,16 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 
 static size_t usart_write_int(struct file *file, void *data)
 {
+	unsigned int irqflag;
 	char c = *(char *)data;
 
-	unsigned int irqflag;
-	int err;
-
 	spin_lock_irqsave(tx_lock[CHANNEL(file->inode->dev)], irqflag);
-	err = fifo_put(&txq[CHANNEL(file->inode->dev)], c, 1);
-	spin_unlock_irqrestore(tx_lock[CHANNEL(file->inode->dev)], irqflag);
 
-	if (err == -1) return 0;
+	/* ring buffer: if full, throw the oldest one for new one */
+	while (fifo_put(&txq[CHANNEL(file->inode->dev)], c, 1) == -1)
+		fifo_get(&txq[CHANNEL(file->inode->dev)], 1);
+
+	spin_unlock_irqrestore(tx_lock[CHANNEL(file->inode->dev)], irqflag);
 
 	__usart_tx_irq_raise(CHANNEL(file->inode->dev));
 
@@ -121,10 +121,10 @@ static size_t usart_write_int(struct file *file, void *data)
 
 static size_t usart_write_polling(struct file *file, void *data)
 {
-	char c = *(char *)data;
-
 	unsigned int irqflag;
 	int res;
+
+	char c = *(char *)data;
 
 	do {
 		spin_lock_irqsave(tx_lock[CHANNEL(file->inode->dev)], irqflag);
@@ -153,7 +153,7 @@ static size_t usart_write(struct file *file, void *buf, size_t len)
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */
-		debug(MSG_DEBUG, "failed cloning");
+		debug(MSG_SYSTEM, "failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -206,13 +206,14 @@ static void isr_usart()
 
 	if (__usart_check_tx(channel)) {
 		spin_lock(tx_lock[channel]);
-		c = fifo_get(&txq[channel], 1);
-		spin_unlock(tx_lock[channel]);
 
-		if (c == -1)
+		c = fifo_get(&txq[channel], 1);
+		if (c == -1) /* end of transmitting */
 			__usart_tx_irq_reset(channel);
-		else
-			__usart_putc(channel, c);
+		else if (!__usart_putc(channel, c)) /* put it back if error */
+			fifo_put(&txq[channel], c, 1);
+
+		spin_unlock(tx_lock[channel]);
 	}
 }
 

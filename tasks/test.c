@@ -146,9 +146,9 @@ static void fork_test()
 		tid = fork();
 
 		if (tid == 0) { /* parent */
-			printf("fork_test: parent\n");
+			write(stdout, "fork_test: parent\r\n", 19);
 		} else if (tid > 0) { /* child */
-			printf("fork_test: child\n");
+			write(stdout, "fork_test: child\r\n", 18);
 			return;
 		} else { /* error */
 			printf("fork_test: error\n");

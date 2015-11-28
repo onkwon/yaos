@@ -71,7 +71,7 @@ void shell()
 	argv   = (char **)malloc(sizeof(char *) * MAXARG);
 	retval = 0;
 
-	puts("Type `help` for help on commands.\n");
+	write(stdout, "Type `help` for help on commands.\r\n", 35);
 
 	do {
 		puts("> ");

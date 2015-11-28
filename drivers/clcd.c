@@ -206,7 +206,7 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 		retval = 0;
 	} else { /* error */
 		/* use errno */
-		debug(MSG_DEBUG, "failed cloning");
+		debug(MSG_SYSTEM, "failed cloning");
 		retval = -ERR_RETRY;
 	}
 
