@@ -124,13 +124,13 @@ rpi:
 rpi2:
 	@echo "ARCH = armv7-a\nMACH = rpi\nSOC = bcm2836\nCFLAGS += -mtune=cortex-a7 -mfloat-abi=hard -mfpu=vfpv3-d16" > .config
 
-TTY = tty.SLAB_USBtoUART
+TTY = /dev/tty.SLAB_USBtoUART
 .PHONY: burn
 burn:
-	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -b 115200 /dev/$(TTY)
+	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -b 115200 $(TTY)
 .PHONY: dev
 dev:
-	tools/stm32flash/stm32flash -b 115200 /dev/$(TTY)
+	tools/stm32flash/stm32flash -b 115200 $(TTY)
 .PHONY: term
 term:
-	minicom -D /dev/$(TTY)
+	minicom -D $(TTY)

@@ -74,6 +74,15 @@ char *strncpy(char *d, const char *s, size_t n)
 	return d;
 }
 
+char *strcpy(char *d, const char *s)
+{
+	char *p;
+
+	for (p = d; *s;) *p++ = *s++;
+
+	return d;
+}
+
 size_t strnlen(const char *s, size_t n)
 {
 	register const char *p;

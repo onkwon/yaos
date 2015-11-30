@@ -11,6 +11,7 @@ int atoi(const char *s);
 int strncmp(const char *s1, const char *s2, size_t n);
 int strcmp(const char *s1, const char *s2);
 char *strncpy(char *d, const char *s, size_t n);
+char *strcpy(char *d, const char *s);
 size_t strlen(const char *s);
 size_t strnlen(const char *s, size_t n);
 char *strtok(char *line, const char *const token);

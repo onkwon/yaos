@@ -16,13 +16,11 @@ void *kmalloc(size_t size)
 	struct page *page;
 	unsigned int irqflag;
 
-try:
+retry:
 	spin_lock_irqsave(buddypool.lock, irqflag);
 	page = alloc_pages(&buddypool,
 			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
 	spin_unlock_irqrestore(buddypool.lock, irqflag);
-
-	debug(MSG_DEBUG, "kmalloc : %x %x %d", page, page->addr, size);
 
 	if (page)
 		return page->addr;
@@ -30,7 +28,7 @@ try:
 	debug(MSG_DEBUG, "Low memory");
 
 	if (kill_zombie())
-		goto try;
+		goto retry;
 
 	debug(MSG_SYSTEM, "Out of memory");
 
@@ -55,8 +53,6 @@ void kfree(void *addr)
 	/* If not allocated by buddy allocator there is no way to free. */
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
-
-	debug(MSG_DEBUG, "kfree : %x %x", addr, page->flags);
 
 	spin_lock_irqsave(pool->lock, irqflag);
 	free_pages(pool, page);
@@ -90,7 +86,7 @@ void *kmalloc(size_t size)
 	void *p;
 	unsigned int irqflag;
 
-try:
+retry:
 	spin_lock_irqsave(mem_lock, irqflag);
 	p = ff_alloc(&mem_map, size);
 	spin_unlock_irqrestore(mem_lock, irqflag);
@@ -99,7 +95,7 @@ try:
 		debug(MSG_DEBUG, "Low memory");
 
 		if (kill_zombie())
-			goto try;
+			goto retry;
 
 		debug(MSG_SYSTEM, "Out of memory");
 	}
@@ -116,8 +112,6 @@ void kfree(void *addr)
 	spin_lock_irqsave(mem_lock, irqflag);
 	ff_free(&mem_map, addr);
 	spin_unlock_irqrestore(mem_lock, irqflag);
-
-	debug(MSG_DEBUG, "kfree : %x", addr);
 
 	addr = NULL;
 }

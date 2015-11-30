@@ -55,8 +55,8 @@ struct file *getfile(int fd)
 	for (p = fdtable.next; p != &fdtable; p = p->next) {
 		file = get_container_of(p, struct file, list);
 
-		if ((unsigned int)file == (unsigned int)addr)
-			break;
+		if ((unsigned int)file == (unsigned int)addr) break;
+		else file = NULL;
 	}
 
 	spin_unlock_irqrestore(fdtable_lock, irqflag);
