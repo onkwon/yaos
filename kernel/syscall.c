@@ -193,8 +193,9 @@ void *syscall_table[] = {
 	sys_kill,
 	sys_fork,
 	sys_timer_create,
-	//sys_create,
-	//sys_mkdir,		/* 15 */
+	sys_reboot,
+	//sys_create,		/* 15 */
+	//sys_mkdir,
 };
 
 #define FORWARD(addr)		((int *)(addr)++)
@@ -216,5 +217,16 @@ int open(char *filename, ...)
 	return syscall(SYSCALL_OPEN, base, mode, opt);
 #else
 	sys_open(base, mode, opt);
+#endif
+}
+
+int reboot()
+{
+#ifdef CONFIG_SYSCALL
+	return syscall(SYSCALL_REBOOT);
+#else
+	sys_reboot();
+
+	return 0;
 #endif
 }

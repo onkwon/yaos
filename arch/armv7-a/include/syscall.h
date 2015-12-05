@@ -14,4 +14,6 @@ static int __attribute__((naked)) syscall(int n, ...)
 	return result;
 }
 
+extern int sys_reboot(); /* sys_reboot.c */
+
 #endif /* __ARMv7A_SYSCALL_H__ */

@@ -135,6 +135,9 @@ REGISTER_TASK(test_led, 0, DEFAULT_PRIORITY);
 static void mayfly()
 {
 	printf("onetime function\n");
+
+	sleep(5);
+	printf("RESET %x\n", reboot());
 }
 REGISTER_TASK(mayfly, 0, DEFAULT_PRIORITY);
 
