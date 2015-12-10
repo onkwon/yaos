@@ -11,6 +11,10 @@ struct page *mem_map;
 
 extern struct buddy buddypool;
 
+#ifdef CONFIG_DEBUG
+unsigned int alloc_fail_count;
+#endif
+
 void *kmalloc(size_t size)
 {
 	struct page *page;
@@ -31,6 +35,9 @@ retry:
 		goto retry;
 
 	debug(MSG_SYSTEM, "Out of memory");
+#ifdef CONFIG_DEBUG
+	alloc_fail_count++;
+#endif
 
 	return NULL;
 }

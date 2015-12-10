@@ -46,7 +46,7 @@ CFLAGS += -march=$(ARCH)
 CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles
 CFLAGS += -DVERSION=$(VERSION) -DMACHINE=$(MACH) -DSOC=$(SOC)
 ifdef CONFIG_DEBUG
-CFLAGS += -g -DCONFIG_DEBUG -O0
+CFLAGS += -g -DCONFIG_DEBUG #-O0
 endif
 LDFLAGS = -Tarch/$(TARGET)/ld.script -L$(LD_LIBRARY_PATH) -lgcc
 OCFLAGS = -O binary

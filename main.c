@@ -105,6 +105,8 @@ int __init main()
 	/* a banner */
 	printk("yaos %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
 	debug(MSG_DEBUG, "&current 0x%08x", &current);
+	debug(MSG_DEBUG, "User stack size : %d, Heap size : %d"
+			, USER_STACK_SIZE, HEAP_SIZE);
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);

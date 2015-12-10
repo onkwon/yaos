@@ -64,6 +64,10 @@ static int ps(int argc, char **argv)
 	printf("%d pages free out of %d pages\n",
 			buddypool.nr_free, buddypool.nr_pages);
 #endif
+#ifdef CONFIG_DEBUG
+	extern unsigned int alloc_fail_count;
+	printf("Memory allocation errors : %d\n", alloc_fail_count);
+#endif
 
 #ifdef CONFIG_DEBUG
 #define MHZ	1000000

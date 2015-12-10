@@ -222,6 +222,7 @@ void udelay(unsigned int us)
 
 void mdelay(unsigned int ms)
 {
-	while (ms--)
-		udelay(1000);
+	unsigned int tout;
+	set_timeout(&tout, ms);
+	while (!is_timeout(tout));
 }
