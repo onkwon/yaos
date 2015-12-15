@@ -91,7 +91,6 @@ enum whence {
 struct file {
 	unsigned int offset; /* keep this first */
 	mode_t flags;
-	refcnt_t count;
 	struct inode *inode;
 
 	struct file_operations *op;

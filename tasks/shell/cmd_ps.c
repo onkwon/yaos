@@ -53,6 +53,8 @@ static void visit(struct task *p)
 #endif
 #include <kernel/systick.h>
 
+#include <kernel/timer.h>
+
 static int ps(int argc, char **argv)
 {
 	printf("    ADDR                   TYPE STAT PRI\n");
@@ -77,11 +79,17 @@ static int ps(int argc, char **argv)
 			sched_overhead / FREQ, MHZ / HZ, sched_overhead);
 #endif
 
+	printf("%d timer(s) activated\n", get_timer_nr());
+
 	unsigned long long uptime = get_systick64();
 	printf("uptime: %d minutes (0x%08x%08x)\n"
 			, systick / HZ / 60
 			, (unsigned int)(uptime >> 32)
 			, (unsigned int)uptime);
+
+	extern void print_rq();
+	printf("\nRun queue list:\n");
+	print_rq();
 
 	return 0;
 }

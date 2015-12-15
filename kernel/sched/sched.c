@@ -91,11 +91,11 @@ void schedule_core()
 	if ((current->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
 			(current->mm.kernel.base[0] != STACK_SENTINEL))
 	{
-		debug(MSG_DEBUG, "stack overflow %x(%x)"
+		debug(MSG_SYSTEM, "stack overflow %x(%x)"
 				, current, current->addr);
 		unsigned int i;
 		for (i = 0; i < NR_CONTEXT; i++)
-			debug(MSG_DEBUG, "%08x", current->mm.sp[i]);
+			debug(MSG_SYSTEM, "%08x", current->mm.sp[i]);
 		return;
 	}
 #endif
@@ -197,7 +197,7 @@ void sum_curr_stat(struct task *to)
 int sched_overhead;
 #endif
 
-void __attribute__((naked, used, optimize("O0"))) __schedule()
+void __attribute__((naked, used)) __schedule()
 {
 #ifdef CONFIG_DEBUG
 	/* make sure that registers used here must be the ones saved already */
@@ -233,9 +233,7 @@ void sys_yield()
 	resched();
 }
 
-#ifdef CONFIG_DEBUG
 #include <foundation.h>
-
 void print_rq()
 {
 	struct list *rq = ((struct list *)cfs.rq)->next;
@@ -243,12 +241,14 @@ void print_rq()
 
 //	int i;
 
+	printf("   ADDR    STATE   TYPE  PRI    PARENT              VTIME EXEC\n");
+
 	while (rq != cfs.rq) {
 		p = get_container_of(rq, struct task, rq);
 
-		printf("[%08x] state = %x, type = %x, pri = %x, vruntime = %d "
-				"exec_runtime = %d (%d sec)\n",
+		printf("0x%08x 0x%-4x 0x%-4x %3d 0x%08x(0x%08x) %d %d(%d sec)\n",
 				p->addr, p->state, p->flags, p->pri,
+				p->parent, p->parent->addr,
 				(unsigned int)p->se.vruntime,
 				(unsigned int)p->se.sum_exec_runtime,
 				(unsigned int)p->se.sum_exec_runtime / HZ);
@@ -259,4 +259,3 @@ void print_rq()
 		rq = rq->next;
 	}
 }
-#endif

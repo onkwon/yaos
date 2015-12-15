@@ -672,7 +672,6 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 static int embed_open(struct inode *inode, struct file *file)
 {
 	file->offset = 0;
-	file->count = 1;
 	file->op = inode->fop;
 	file->inode = inode;
 	lock_init(&file->lock);

@@ -6,14 +6,14 @@
 
 extern char _ram_start, _ram_size, _ebss;
 
+#ifdef CONFIG_DEBUG
+unsigned int alloc_fail_count;
+#endif
+
 #ifdef CONFIG_PAGING
 struct page *mem_map;
 
 extern struct buddy buddypool;
-
-#ifdef CONFIG_DEBUG
-unsigned int alloc_fail_count;
-#endif
 
 void *kmalloc(size_t size)
 {
