@@ -116,7 +116,7 @@ __attribute__((section(".vector"), aligned(4))) = {
 	isr_null,	/* 73(57) : 0x124 - DMA2_Channel2 */
 	isr_null,	/* 74(58) : 0x128 - DMA2_Channel3 */
 	isr_null,	/* 75(59) : 0x12c - DMA2_Channel4,5 */
-	NULL
+	(void *)EOF
 };
 
 static void __init mem_init()
@@ -137,13 +137,14 @@ static void __init mem_init()
 
 	/* copy .data section from flash to sram */
 	extern char _etext, _data, _edata;
-	for (i = 0; (&_data + i) < &_edata; i++)
-		*((char *)&_data + i) = *((char *)&_etext + i);
+	for (i = 0; (((unsigned int *)&_data) + i) < (unsigned int *)&_edata;
+			i++)
+		((unsigned int *)&_data)[i] = ((unsigned int *)&_etext)[i];
 
 	/* clear .bss section */
 	extern char _bss, _ebss;
-	for (i = 0; (&_bss + i) < &_ebss; i++)
-		*((char *)&_bss + i) = 0;
+	for (i = 0; (((unsigned int *)&_bss) + i) < (unsigned int *)&_ebss; i++)
+		((unsigned int *)&_bss)[i] = 0;
 
 	dmb();
 }

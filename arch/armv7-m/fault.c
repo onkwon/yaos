@@ -80,4 +80,6 @@ void __attribute__((naked)) isr_fault()
 		}
 	}
 #endif
+
+	while (1);
 }

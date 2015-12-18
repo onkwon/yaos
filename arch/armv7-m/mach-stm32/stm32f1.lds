@@ -47,13 +47,16 @@ SECTIONS
 		_shell_cmdlist = .;
 		*(.shell_cmdlist)
 		LONG(0);
+
+		. = ALIGN(4);
 		_etext = .;
 	} > rom
 
-	. = _ram_start + _vector_size;
-	.data . :
+	.data _ram_start + _vector_size :
 	{
+		. = ALIGN(4);
 		_data = .;
+
 		*(.data)
 		*(.iap)
 
@@ -62,14 +65,20 @@ SECTIONS
 		*(.user_task_list)
 		. = ALIGN(4);
 		LONG(0);
+
+		. = ALIGN(4);
 		_edata = .;
 	} > ram AT > rom
 
 	.bss :
 	{
+		. = ALIGN(4);
 		_bss = .;
+
 		*(.bss)
 		*(COMMON)
+
+		. = ALIGN(4);
 		_ebss = .;
 	} > ram AT > rom
 }
