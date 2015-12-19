@@ -137,7 +137,7 @@ static void mayfly()
 	printf("onetime function\n");
 
 	sleep(5);
-	printf("RESET %x\n", reboot());
+	printf("REBOOT %x\n", shutdown(2));
 }
 REGISTER_TASK(mayfly, 0, DEFAULT_PRIORITY);
 

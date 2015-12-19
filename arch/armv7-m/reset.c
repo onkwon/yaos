@@ -150,16 +150,13 @@ static void __init mem_init()
 }
 REGISTER_INIT(mem_init, 1);
 
-int sys_reboot()
+void __reboot()
 {
-	if (!(get_task_type(current) & TASK_PRIVILEGED))
-		return -ERR_PERM;
-
 	dsb();
+
 	SCB_AIRCR = (0x5fa << 16) /* VECTKEY */
 		| (SCB_AIRCR & (7 << 8)) /* keep priority group unchanged */
 		| (1 << 2); /* system reset request */
-	freeze();
 
-	return 0;
+	freeze();
 }

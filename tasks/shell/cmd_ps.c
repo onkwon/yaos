@@ -43,9 +43,6 @@ static void visit(struct task *p)
 	}
 
 	tab--;
-
-	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
-			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
 }
 
 #ifdef CONFIG_PAGING
@@ -60,6 +57,9 @@ static int ps(int argc, char **argv)
 	printf("    ADDR                   TYPE STAT PRI\n");
 
 	visit(&init);
+
+	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
+			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
 
 #ifdef CONFIG_PAGING
 	extern struct buddy buddypool;

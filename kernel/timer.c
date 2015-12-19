@@ -97,8 +97,11 @@ static void sleep_callback(unsigned int data)
 	struct task *task = (struct task *)data;
 
 	/* A trick to enter privileged mode */
-	set_task_flags(current, get_task_flags(current) | TASK_PRIVILEGED);
-	schedule();
+	if (!(get_task_flags(current) & TASK_PRIVILEGED)) {
+		set_task_flags(current, get_task_flags(current)
+				| TASK_PRIVILEGED);
+		schedule();
+	}
 
 	if (get_task_state(task) == TASK_SLEEPING) {
 		set_task_state(task, TASK_RUNNING);

@@ -14,4 +14,6 @@ void __enter_stop_mode();
 void __enter_standby_mode();
 void __sleep_on_exit();
 
+void __reboot();
+
 #endif /* __ARMv7M_POWER_H__ */

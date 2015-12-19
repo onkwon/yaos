@@ -1,6 +1,12 @@
 #include <power.h>
 #include <foundation.h>
 
+void __reboot()
+{
+	dsb();
+	freeze();
+}
+
 void __enter_sleep_mode()
 {
 }

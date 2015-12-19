@@ -17,7 +17,7 @@
 #define SYSCALL_KILL			11
 #define SYSCALL_FORK			12
 #define SYSCALL_TIMER_CREATE		13
-#define SYSCALL_REBOOT			14
+#define SYSCALL_SHUTDOWN		14
 #define SYSCALL_CREATE			15
 #define SYSCALL_MKDIR			16
 #define SYSCALL_NR			17
@@ -28,6 +28,7 @@ int sys_open(char *filename, int mode, void *opt);
 int sys_read(int fd, void *buf, size_t len);
 int sys_write(int fd, void *buf, size_t len);
 int sys_close(int fd);
+int sys_shutdown(int option);
 
 #ifdef CONFIG_SYSCALL
 #ifdef MACHINE
@@ -63,6 +64,6 @@ static inline int fork()
 #define close(fd)		sys_close(fd)
 #endif /* CONFIG_SYSCALL */
 
-int reboot();
+int shutdown(int option);
 
 #endif /* __SYSCALL_H__ */

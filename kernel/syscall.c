@@ -165,6 +165,26 @@ int sys_seek(int fd, unsigned int offset, int whence)
 	return file->op->seek(file, offset, whence);
 }
 
+#include <asm/power.h>
+
+int sys_shutdown(int option)
+{
+	if (!(get_task_type(current) & TASK_PRIVILEGED))
+		return -ERR_PERM;
+
+	switch (option) {
+	case 1: /* shutdown */
+		break;
+	case 2: /* reboot */
+		/* sync() */
+		__reboot();
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 int sys_reserved()
 {
 	return -ERR_UNDEF;
@@ -193,7 +213,7 @@ void *syscall_table[] = {
 	sys_kill,
 	sys_fork,
 	sys_timer_create,
-	sys_reboot,
+	sys_shutdown,
 	//sys_create,		/* 15 */
 	//sys_mkdir,
 };
@@ -220,12 +240,12 @@ int open(char *filename, ...)
 #endif
 }
 
-int reboot()
+int shutdown(int option)
 {
 #ifdef CONFIG_SYSCALL
-	return syscall(SYSCALL_REBOOT);
+	return syscall(SYSCALL_SHUTDOWN, option);
 #else
-	sys_reboot();
+	sys_shutdown(option);
 
 	return 0;
 #endif
