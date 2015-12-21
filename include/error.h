@@ -16,6 +16,7 @@
 #define MSG_ERROR		0
 #define MSG_SYSTEM		1
 #define MSG_DEBUG		2
+#define MSG_USER		3
 
 #define panic()			while (1) debug(MSG_SYSTEM, "panic")
 #if ((SOC == bcm2835) || (SOC == bcm2836)) /* syscall to raise scheduler */
@@ -44,6 +45,9 @@
 		printk(fmt);						\
 		printk("\n");						\
 		putchar = temp;						\
+	} else if (lv == MSG_USER) {					\
+		printf("%04x %s:%s():%d: ", lv, __FILE__, __func__, __LINE__); \
+		putchar('\n');						\
 	}								\
 } while (0)
 #endif

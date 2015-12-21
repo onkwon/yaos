@@ -60,6 +60,7 @@ static struct file_operations ops = {
 	.write = NULL,
 	.close = NULL,
 	.seek  = NULL,
+	.ioctl = NULL,
 };
 
 static DEFINE_WAIT_HEAD(wq);

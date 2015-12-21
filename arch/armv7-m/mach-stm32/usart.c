@@ -280,3 +280,23 @@ void __usart_flush(unsigned int channel)
 	/* wait until transmission complete */
 	while (!gbi(*(volatile unsigned int *)conv_channel(channel), 6));
 }
+
+unsigned int __usart_get_baudrate(unsigned int channel)
+{
+	channel = conv_channel(channel);
+	return 0;
+}
+
+int __usart_set_baudrate(unsigned int channel, unsigned int baudrate)
+{
+	channel = conv_channel(channel);
+
+	if (channel == USART1)
+		baudrate = brr2reg(baudrate, get_pclk2());
+	else
+		baudrate = brr2reg(baudrate, get_pclk1());
+
+	*(volatile unsigned int *)(channel + 0x08) = baudrate;
+
+	return 0;
+}

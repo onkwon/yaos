@@ -755,6 +755,7 @@ static struct file_operations fops = {
 	.write = embed_write,
 	.close = embed_close,
 	.seek  = embed_seek,
+	.ioctl = NULL,
 };
 
 static void embed_read_inode(struct inode *inode)

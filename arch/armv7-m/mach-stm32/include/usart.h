@@ -41,5 +41,7 @@ int __usart_check_tx(unsigned int channel);
 void __usart_tx_irq_raise(unsigned int channel);
 void __usart_tx_irq_reset(unsigned int channel);
 void __usart_flush(unsigned int channel);
+unsigned int __usart_get_baudrate(unsigned int channel);
+int __usart_set_baudrate(unsigned int channel, unsigned int baudrate);
 
 #endif /* __STM32_USART_H__ */

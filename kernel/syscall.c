@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <io.h>
 
-int sys_open_core(char *filename, int mode, void *opt)
+int sys_open_core(char *filename, int mode, void *option)
 {
 	struct superblock *sb;
 	struct inode *inode, *new;
@@ -57,7 +57,7 @@ int sys_open_core(char *filename, int mode, void *opt)
 	inode->count++;
 	spin_unlock(inode->lock);
 	file.flags = mode;
-	file.option = opt;
+	file.option = option;
 	inode->fop->open(inode, &file);
 
 	memcpy(ops, file.op, sizeof(struct file_operations));
@@ -78,7 +78,7 @@ errout:
 	return err;
 }
 
-int sys_open(char *filename, int mode, void *opt)
+int sys_open(char *filename, int mode, void *option)
 {
 	struct task *parent;
 	int tid;
@@ -101,7 +101,7 @@ int sys_open(char *filename, int mode, void *opt)
 
 	/* child takes place from here turning to kernel task,
 	 * nomore in handler mode */
-	__set_retval(parent, sys_open_core(filename, mode, opt));
+	__set_retval(parent, sys_open_core(filename, mode, option));
 
 	sum_curr_stat(parent);
 
@@ -165,6 +165,16 @@ int sys_seek(int fd, unsigned int offset, int whence)
 	return file->op->seek(file, offset, whence);
 }
 
+int sys_ioctl(int fd, unsigned int request, void *args)
+{
+	struct file *file = getfile(fd);
+
+	if (!file || !file->op->ioctl)
+		return -ERR_UNDEF;
+
+	return file->op->ioctl(file, request, args);
+}
+
 #include <asm/power.h>
 
 int sys_shutdown(int option)
@@ -214,7 +224,8 @@ void *syscall_table[] = {
 	sys_fork,
 	sys_timer_create,
 	sys_shutdown,
-	//sys_create,		/* 15 */
+	sys_ioctl,		/* 15 */
+	//sys_create,
 	//sys_mkdir,
 };
 
@@ -224,19 +235,46 @@ void *syscall_table[] = {
 
 int open(char *filename, ...)
 {
-	void *opt;
-	int *args, mode;
-	char *base;
+	void *option;
+	int *base, mode;
+	char *fmt;
 
-	args = (int *)&filename;
-	base = getarg(args, char *);
-	mode = getarg(args, int);
-	opt  = getarg(args, void *);
+	base   = (int *)&filename;
+	fmt    = getarg(base, char *);
+	mode   = getarg(base, int);
+	option = getarg(base, void *);
 
 #ifdef CONFIG_SYSCALL
-	return syscall(SYSCALL_OPEN, base, mode, opt);
+	return syscall(SYSCALL_OPEN, fmt, mode, option);
 #else
-	sys_open(base, mode, opt);
+	sys_open(fmt, mode, option);
+#endif
+}
+
+int close(int fd)
+{
+#ifdef CONFIG_SYSCALL
+	return syscall(SYSCALL_CLOSE, fd);
+#else
+	sys_close(fd);
+#endif
+}
+
+int ioctl(int fd, ...)
+{
+	void *args;
+	unsigned int request;
+	int *base;
+
+	base    = (int *)&fd;
+	fd      = getarg(base, int);
+	request = getarg(base, unsigned int);
+	args    = getarg(base, void *);
+
+#ifdef CONFIG_SYSCALL
+	return syscall(SYSCALL_IOCTL, fd, request, args);
+#else
+	sys_ioctl(fd, request, args);
 #endif
 }
 

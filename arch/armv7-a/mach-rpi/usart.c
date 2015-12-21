@@ -96,3 +96,13 @@ void __putc_debug(int c)
 void __usart_flush(unsigned int channel)
 {
 }
+
+unsigned int __usart_get_baudrate(unsigned int channel)
+{
+	return 0;
+}
+
+int __usart_set_baudrate(unsigned int channel, unsigned int baudrate)
+{
+	return 0;
+}

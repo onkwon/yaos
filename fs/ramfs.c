@@ -360,6 +360,7 @@ static struct file_operations fops = {
 	.write = NULL,
 	.close = NULL,
 	.seek  = NULL,
+	.ioctl = NULL,
 };
 
 static void ramfs_read_inode(struct inode *inode)

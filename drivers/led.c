@@ -27,6 +27,7 @@ static struct file_operations ops = {
 	.write = led_write,
 	.close = NULL,
 	.seek  = NULL,
+	.ioctl = NULL,
 };
 
 #include <kernel/init.h>

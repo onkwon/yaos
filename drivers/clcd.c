@@ -273,6 +273,7 @@ static struct file_operations ops = {
 	.write = clcd_write,
 	.close = clcd_close,
 	.seek  = NULL,
+	.ioctl = NULL,
 };
 
 #include <kernel/init.h>

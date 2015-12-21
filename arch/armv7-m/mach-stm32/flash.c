@@ -230,6 +230,7 @@ static struct file_operations ops = {
 	.write = flash_write,
 	.close = NULL,
 	.seek  = flash_seek,
+	.ioctl = NULL,
 };
 
 #include <kernel/buffer.h>

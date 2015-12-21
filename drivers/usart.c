@@ -15,6 +15,45 @@ static struct fifo rxq[USART_CHANNEL_MAX], txq[USART_CHANNEL_MAX];
 static lock_t rx_lock[USART_CHANNEL_MAX], tx_lock[USART_CHANNEL_MAX];
 static struct waitqueue_head wq[USART_CHANNEL_MAX];
 
+static int usart_kbhit(struct file *file)
+{
+	return (rxq[CHANNEL(file->inode->dev)].front
+			!= rxq[CHANNEL(file->inode->dev)].rear);
+}
+
+static void usart_flush(struct file *file)
+{
+	unsigned int irqflag;
+
+	spin_lock_irqsave(rx_lock[CHANNEL(file->inode->dev)], irqflag);
+	fifo_flush(&rxq[CHANNEL(file->inode->dev)]);
+	spin_unlock_irqrestore(rx_lock[CHANNEL(file->inode->dev)], irqflag);
+
+	__usart_flush(CHANNEL(file->inode->dev));
+}
+
+static int usart_ioctl(struct file *file, unsigned int request, void *args)
+{
+	switch (request) {
+	case USART_FLUSH:
+		usart_flush(file);
+		return 0;
+	case USART_KBHIT:
+		return usart_kbhit(file);
+	case USART_GET_BAUDRATE:
+		return __usart_get_baudrate(CHANNEL(file->inode->dev));
+		break;
+	case USART_SET_BAUDRATE:
+		return __usart_set_baudrate(CHANNEL(file->inode->dev),
+				(unsigned int)args);
+		break;
+	default:
+		break;
+	}
+
+	return -ERR_RANGE;
+}
+
 static int usart_close(struct file *file)
 {
 	struct device *dev = getdev(file->inode->dev);
@@ -283,6 +322,7 @@ static struct file_operations ops = {
 	.write = usart_write,
 	.close = usart_close,
 	.seek  = NULL,
+	.ioctl = usart_ioctl,
 };
 
 #include <kernel/init.h>
@@ -298,21 +338,3 @@ static void __init usart_init()
 	}
 }
 MODULE_INIT(usart_init);
-
-/* well, think about how to deliver this kind of functions to user
-static int kbhit()
-{
-	return (rxq.front != rxq.rear);
-}
-
-static void flush()
-{
-	unsigned int irqflag;
-
-	spin_lock_irqsave(rx_lock, irqflag);
-	fifo_flush(&rxq);
-	spin_unlock_irqrestore(rx_lock, irqflag);
-
-	__usart_flush();
-}
-*/

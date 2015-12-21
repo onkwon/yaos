@@ -29,18 +29,20 @@ int atoi(const char *s)
 {
 	int v;
 	int base = 10;
+	int sign = 1;
 
 	if (s[0] == '0') {
 		if (s[1] == 'x' || s[1] == 'X')
 			base = 16, s += 2;
-	}
+	} else if (s[0] == '-')
+		sign = -1, s++;
 
 	for (v = 0; *s; s++) {
 		v *= base;
 		v += c2i(*s);
 	}
 
-	return v;
+	return v * sign;
 }
 
 int strncmp(const char *s1, const char *s2, size_t n)

@@ -108,6 +108,7 @@ struct file_operations {
 	size_t (*write)(struct file *file, void *buf, size_t len);
 	int    (*close)(struct file *file);
 	int    (*seek) (struct file *file, unsigned int offset, int whence);
+	int    (*ioctl)(struct file *file, unsigned int request, void *args);
 };
 
 unsigned int mkfile(struct file *file);
