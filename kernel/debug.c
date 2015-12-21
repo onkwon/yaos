@@ -1,8 +1,7 @@
-#if 0
+#if 1
 #include <foundation.h>
 #include <kernel/task.h>
-
-#define GPIO_PIN_INDEX			10
+#include <asm/pinmap.h>
 
 static void __attribute__((naked)) isr_break()
 {
@@ -40,20 +39,20 @@ static void __attribute__((naked)) isr_break()
 		, current->mm.kernel.base, current->mm.kernel.sp, current->state
 		, current->irqflag, current->addr, current);
 
-	ret_from_gpio_int(GPIO_PIN_INDEX);
+	ret_from_gpio_int(PIN_DEBUG);
 	__set_pc(lr);
 }
 
 static void inspect()
 {
-	int vector_nr;
+	int nvector;
 
-	nvic_set_pri(40, 0);
+	nvic_set_pri(23, 0); /* make it the most priority */
 
-	vector_nr = gpio_init(GPIO_PIN_INDEX
-			, GPIO_MODE_INPUT | GPIO_CONF_PULL_UP | GPIO_INT_FALLING);
+	nvector = gpio_init(PIN_DEBUG,
+			GPIO_MODE_INPUT | GPIO_CONF_PULL_UP | GPIO_INT_FALLING);
 
-	register_isr(vector_nr, isr_break);
+	register_isr(nvector, isr_break);
 }
-REGISTER_TASK(inspect, TASK_PRIVILEGED, DEFAULT_PRIORITY);
+REGISTER_TASK(inspect, TASK_PRIVILEGED, HIGHEST_PRIORITY);
 #endif

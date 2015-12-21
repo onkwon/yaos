@@ -6,11 +6,13 @@
 #define stm32f4	2
 #endif
 
+#define PIN_DEBUG			24 /* PORTB.8 */
+
 /* Status LED */
 #if (SOC == stm32f1)
-#define PIN_STATUS_LED			50
+#define PIN_STATUS_LED			50 /* PORTC.2 */
 #elif (SOC == stm32f4)
-#define PIN_STATUS_LED			20
+#define PIN_STATUS_LED			20 /* PORTB.4 */
 #endif
 
 /* CLCD */

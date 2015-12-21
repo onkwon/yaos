@@ -141,7 +141,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 			break;
 		}
 
-		link_exti_to_nvic(port, pin);
+		link_exti_to_nvic(calc_port(index), pin);
 	}
 
 	spin_unlock_irqrestore(gpio_init_lock, irqflag);

@@ -6,6 +6,8 @@
 #define bcm2836				2
 #endif
 
+#define PIN_DEBUG			24
+
 /* Status LED */
 #if (SOC == bcm2835)
 #define PIN_STATUS_LED			16
