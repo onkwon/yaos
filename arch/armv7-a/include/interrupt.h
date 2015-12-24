@@ -83,6 +83,7 @@ extern void __cli();
 #define __set_usp(sp)			SET_USP(sp)
 #define __set_ksp(sp)			SET_SP(sp)
 
+#define __get_psr()			GET_CNTL()
 #define __get_ret_addr()		GET_LR()
 #define __get_pc()			GET_PC()
 #define __get_usp()			GET_USP()
@@ -100,5 +101,7 @@ extern void __cli();
 	__asm__ __volatile__("subs pc, lr, %0" :: "I"(offset): "memory")
 
 int register_isr(unsigned int nirq, void (*func)());
+
+extern void nvic_set_pri(unsigned int nirq, unsigned int pri);
 
 #endif /* __ARMv7A_INTERRUPT_H__ */

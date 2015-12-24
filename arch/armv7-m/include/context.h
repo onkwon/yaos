@@ -13,6 +13,10 @@
 #define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
 #define EXC_RETURN_PSPT	0xfffffffd	/* return to THREAD  mode using PSP */
 
+#define DEFAULT_PSR			0x01000000
+
+#define INDEX_R0			8
+
 /*  __________
  * | psr      |  |
  * | pc       |  | stack
@@ -26,6 +30,26 @@
  * | r4 - r11 |
  *  ----------
  */
+struct regs {
+	unsigned int r4; /* low address */
+	unsigned int r5;
+	unsigned int r6;
+	unsigned int r7;
+	unsigned int r8;
+	unsigned int r9;
+	unsigned int r10;
+	unsigned int r11;
+	unsigned int r0;
+	unsigned int r1;
+	unsigned int r2;
+	unsigned int r3;
+	unsigned int r12;
+	unsigned int lr;
+	unsigned int pc;
+	unsigned int psr;
+	//unsigned int sp;
+};
+
 #define __context_save(task)	do {					\
 	__asm__ __volatile__(						\
 			"mrs	r12, psp		\n\t"		\
@@ -60,27 +84,20 @@
 #define __context_prepare()				cli()
 #define __context_finish()				sei()
 
-#define INDEX_PSR					15
-#define INDEX_PC					14
-#define INDEX_R0					8
-#define INDEX_R4					0
-#define INIT_PSR					0x01000000
-
 #define __save_curr_context(regs) do {					\
 	__asm__ __volatile__(						\
-			"str	r4, [%0]		\n\t"		\
-			"ldr	r4, =1f			\n\t"		\
-			"str	r4, [%1]		\n\t"		\
-			"mov	r4, #0x01000000		\n\t"		\
-			"str	r4, [%2]		\n\t"		\
-			"mov	r4, %3			\n\t"		\
-			"stmia	r4!, {r5-r11}		\n\t"		\
-			"stmia	r4!, {r0-r3}		\n\t"		\
-			"stmia	r4!, {r12,lr}		\n\t"		\
+			"push	{lr}			\n\t"		\
+			"mov	lr, %0			\n\t"		\
+			"stmia	lr!, {r4-r11}		\n\t"		\
+			"stmia	lr!, {r0-r3,r12}	\n\t"		\
+			"pop	{r4}			\n\t"		\
+			"ldr	r5, =1f			\n\t"		\
+			"mov	r6, %1			\n\t"		\
+			"stmia	lr!, {r4-r6}		\n\t"		\
+			"mov	lr, r4			\n\t"		\
 			"1:				\n\t"		\
-			:: "r"(regs+0), "r"(regs+INDEX_PC)		\
-			, "r"(regs+INDEX_PSR), "r"(regs+1)		\
-			: "memory", "r4");				\
+			:: "r"(regs), "I"(DEFAULT_PSR)			\
+			: "memory", "lr", "r4", "r5", "r6");		\
 } while (0)
 
 #define __set_retval(task, value)					\

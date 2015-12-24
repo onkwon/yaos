@@ -77,8 +77,11 @@ static int ps(int argc, char **argv)
 	extern int sched_overhead;
 	printf("scheduling overhead %dus / %dus (%d)\n",
 			sched_overhead / FREQ, MHZ / HZ, sched_overhead);
-#endif
 
+	extern int clone_overhead;
+	printf("cloning overhead %dus / %dus (%d)\n",
+			clone_overhead / FREQ, MHZ / HZ, clone_overhead);
+#endif
 	printf("%d timer(s) activated\n", get_timer_nr());
 
 	unsigned long long uptime = get_systick64();

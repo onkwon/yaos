@@ -199,21 +199,10 @@ void wrapper()
 
 #include <stdlib.h>
 
-int clone(unsigned int flags, void *ref)
+static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
+		struct regs *regs, unsigned int sp)
 {
 	struct task *child;
-	unsigned int regs[NR_CONTEXT], *p;
-
-	p = regs;
-	__save_curr_context(p); /* child starts to run from here unless
-				   it is a user task. A user task starts
-				   from the next instruction of `fork()`
-				   in the user context */
-
-	if (get_task_flags(current) & TASK_CLONED) {
-		set_task_flags(current, get_task_flags(current) & ~TASK_CLONED);
-		return get_task_tid(current);
-	}
 
 	if ((child = kmalloc(sizeof(struct task))) == NULL)
 		return -ERR_ALLOC;
@@ -226,14 +215,18 @@ int clone(unsigned int flags, void *ref)
 	/* copy stack */
 	unsigned int base, top, size;
 	unsigned int *src, *dst;
-	unsigned int sp;
 
-	sp   = __get_usp();
+	/* A user task starts from the next instruction of `fork()` in the user
+	 * context, not from `clone()` in the handler mode. */
+	if (flags & TASK_SYSCALL)
+		sp = __get_usp();
+	else
+		flags |= TASK_CLONED;
+
 	base = (unsigned int)&current->mm.base[HEAP_SIZE / WORD_SIZE];
 	top  = base + USER_STACK_SIZE;
 
 	if (flags & TASK_HANDLER) { /* if handler mode */
-		sp   = __get_sp();
 		base = (unsigned int)current->mm.kernel.base;
 		top  = base + STACK_SIZE;
 	}
@@ -256,11 +249,12 @@ int clone(unsigned int flags, void *ref)
 			size         -= NR_CONTEXT * WORD_SIZE;
 		}
 #endif
-		p = regs;
+		unsigned int *p = (unsigned int *)regs;
+
 		set_task_flags(child, flags);
 		set_task_context_hard(child, NULL);
 #ifdef ARMv7A
-		regs[INDEX_PSR] = child->mm.sp[INDEX_PSR];
+		p[INDEX_PSR] = child->mm.sp[INDEX_PSR];
 #endif
 		memcpy(child->mm.sp, p + NR_CONTEXT_SOFT,
 				NR_CONTEXT_HARD * WORD_SIZE);
@@ -283,10 +277,7 @@ int clone(unsigned int flags, void *ref)
 			child->mm.sp[i] = limit - (top - child->mm.sp[i]);
 	}
 
-	if (!(flags & TASK_SYSCALL))
-		flags |= TASK_CLONED;
-	else
-		__set_retval(child, (int)child);
+	__set_retval(child, (int)child);
 
 	set_task_dressed(child, flags, NULL);
 	set_task_pri(child, get_task_pri(current));
@@ -294,6 +285,33 @@ int clone(unsigned int flags, void *ref)
 	runqueue_add(child);
 
 	return 0;
+}
+
+#ifdef CONFIG_DEBUG
+int clone_overhead;
+#endif
+
+int clone(unsigned int flags, void *ref)
+{
+	struct regs regs;
+	int result;
+
+	__save_curr_context(&regs);
+
+	if (get_task_flags(current) & TASK_CLONED) {
+		set_task_flags(current, get_task_flags(current) & ~TASK_CLONED);
+		return get_task_tid(current);
+	}
+
+#ifdef CONFIG_DEBUG
+	clone_overhead = get_sysclk();
+#endif
+	result = clone_core(flags, ref, &regs, __get_sp());
+#ifdef CONFIG_DEBUG
+	clone_overhead -= get_sysclk();
+#endif
+
+	return result;
 }
 
 #ifdef ARMv7A

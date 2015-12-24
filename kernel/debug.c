@@ -1,4 +1,5 @@
 #if 1
+#ifdef CONFIG_DEBUG
 #include <foundation.h>
 #include <kernel/task.h>
 #include <asm/pinmap.h>
@@ -55,4 +56,5 @@ static void inspect()
 	register_isr(nvector, isr_break);
 }
 REGISTER_TASK(inspect, TASK_PRIVILEGED, HIGHEST_PRIORITY);
+#endif
 #endif

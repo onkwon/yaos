@@ -133,3 +133,7 @@ void __init irq_init()
 	dsb();
 }
 REGISTER_INIT(irq_init, 1);
+
+void nvic_set_pri(unsigned int nirq, unsigned int pri)
+{
+}

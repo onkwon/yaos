@@ -30,6 +30,26 @@
  * | cpsr     |
  *  ----------
  */
+struct regs {
+	unsigned int cpsr;
+	unsigned int r0;
+	unsigned int sp;
+	unsigned int r1;
+	unsigned int r2;
+	unsigned int r3;
+	unsigned int r4;
+	unsigned int r5;
+	unsigned int r6;
+	unsigned int r7;
+	unsigned int r8;
+	unsigned int r9;
+	unsigned int r10;
+	unsigned int r11;
+	unsigned int r12;
+	unsigned int lr;
+	unsigned int pc;
+};
+
 #define __context_save(task)	do {					\
 	__asm__ __volatile__(						\
 			"push	{r0}				\n\t"	\
@@ -83,8 +103,9 @@
 #define INDEX_R0			1
 #define INDEX_R1			3
 #define INDEX_SP			2
-#define INIT_PSR			0x10
-#define INIT_PSR_SYS			0x1f
+
+#define DEFAULT_PSR			0x10
+#define DEFAULT_PSR_SYS			0x1f
 
 #define __save_curr_context(regs) do {					\
 	__asm__ __volatile__(						\
