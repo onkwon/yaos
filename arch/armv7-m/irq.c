@@ -62,14 +62,15 @@ void __attribute__((naked)) svc_handler()
 			: "r0", "memory");
 #endif
 	__asm__ __volatile__(
-			"mrs	r12, psp		\n\t"
+			"push	{r9, lr}		\n\t"
+			"mrs	r9, psp			\n\t"
 			/* r0 must be the same value to the stacked one
 			 * because of hardware mechanism. The meantime of
 			 * entering into interrupt service routine
 			 * nothing can change the value. But the problem
 			 * is that it sometimes gets corrupted. how? why?
 			 * So here I get r0 from stack. */
-			"ldr	r0, [r12]		\n\t"
+			"ldr	r0, [r9]		\n\t"
 			/* if nr >= SYSCALL_NR */
 			"cmp	r0, %0			\n\t"
 			"it	ge			\n\t"
@@ -79,17 +80,14 @@ void __attribute__((naked)) svc_handler()
 			"ldr	r3, =syscall_table	\n\t"
 			"ldr	r3, [r3, r0, lsl #2]	\n\t"
 			/* arguments in place */
-			"ldr	r2, [r12, #12]		\n\t"
-			"ldr	r1, [r12, #8]		\n\t"
-			"ldr	r0, [r12, #4]		\n\t"
-			"push	{lr}			\n\t"
-			"push	{r12}			\n\t"
+			"ldr	r2, [r9, #12]		\n\t"
+			"ldr	r1, [r9, #8]		\n\t"
+			"ldr	r0, [r9, #4]		\n\t"
 			"blx	r3			\n\t"
-			"pop	{r12}			\n\t"
-			"pop	{lr}			\n\t"
 			/* store return value */
-			"str	r0, [r12]		\n\t"
-			"bx	lr			\n\t"
-			:: "I"(SYSCALL_NR));
+			"str	r0, [r9]		\n\t"
+			"pop	{r9, pc}		\n\t"
+			:: "I"(SYSCALL_NR)
+			: "memory");
 }
 #endif /* CONFIG_SYSCALL */

@@ -199,6 +199,9 @@ void wrapper()
 
 #include <stdlib.h>
 
+/* It must be kept as noinline function because of inline assembler placed in
+ * the wrapper function, clone(). Otherwise `__save_curr_context()` macro will
+ * not make the right register set and the current context will be ruined. */
 static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 		struct regs *regs, unsigned int sp)
 {
@@ -253,9 +256,10 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 
 		set_task_flags(child, flags);
 		set_task_context_hard(child, NULL);
-#ifdef ARMv7A
-		p[INDEX_PSR] = child->mm.sp[INDEX_PSR];
-#endif
+
+		/* set status register to default */
+		p[INDEX_PSR] = child->mm.sp[INDEX_PSR - NR_CONTEXT_SOFT];
+
 		memcpy(child->mm.sp, p + NR_CONTEXT_SOFT,
 				NR_CONTEXT_HARD * WORD_SIZE);
 		size += NR_CONTEXT_HARD * WORD_SIZE;

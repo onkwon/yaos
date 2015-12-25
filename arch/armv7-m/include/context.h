@@ -16,6 +16,7 @@
 #define DEFAULT_PSR			0x01000000
 
 #define INDEX_R0			8
+#define INDEX_PSR			15
 
 /*  __________
  * | psr      |  |
@@ -50,7 +51,7 @@ struct regs {
 	//unsigned int sp;
 };
 
-#define __context_save(task)	do {					\
+#define __context_save(task)				do {		\
 	__asm__ __volatile__(						\
 			"mrs	r12, psp		\n\t"		\
 			"stmdb	r12!, {r4-r11}		\n\t"		\
@@ -61,7 +62,7 @@ struct regs {
 			:: "memory");					\
 } while (0)
 
-#define __context_restore(task)	do {					\
+#define __context_restore(task)				do {		\
 	__asm__ __volatile__(						\
 			"msr	msp, %0			\n\t"		\
 			"mov	r12, #3			\n\t"		\
@@ -78,26 +79,28 @@ struct regs {
 			"ldr	lr, =0xfffffffd		\n\t"		\
 			"msr	control, r12		\n\t"		\
 			:: "r"(task->mm.sp)				\
-			: "r12", "memory");				\
+			: "memory");					\
 } while (0)
 
 #define __context_prepare()				cli()
 #define __context_finish()				sei()
 
-#define __save_curr_context(regs) do {					\
+#define __save_curr_context(regs)			do {		\
 	__asm__ __volatile__(						\
+			"push	{r4-r6}			\n\t"		\
 			"push	{lr}			\n\t"		\
 			"mov	lr, %0			\n\t"		\
 			"stmia	lr!, {r4-r11}		\n\t"		\
 			"stmia	lr!, {r0-r3,r12}	\n\t"		\
 			"pop	{r4}			\n\t"		\
 			"ldr	r5, =1f			\n\t"		\
-			"mov	r6, %1			\n\t"		\
+			"mrs	r6, psr			\n\t"		\
 			"stmia	lr!, {r4-r6}		\n\t"		\
 			"mov	lr, r4			\n\t"		\
+			"pop	{r4-r6}			\n\t"		\
 			"1:				\n\t"		\
-			:: "r"(regs), "I"(DEFAULT_PSR)			\
-			: "memory", "lr", "r4", "r5", "r6");		\
+			:: "r"(regs)					\
+			: "memory");					\
 } while (0)
 
 #define __set_retval(task, value)					\
