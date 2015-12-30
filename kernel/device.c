@@ -134,6 +134,28 @@ static void devtab_init()
 }
 REGISTER_INIT(devtab_init, 2);
 
+#include <kernel/buffer.h>
+
+void device_sync_all()
+{
+	struct device *dev;
+	struct list *head, *next;
+	unsigned int i;
+
+	for (i = 0; i < TABLE_SIZE; i++) {
+		head = &devtab[i];
+		next = head->next;
+
+		while (next != head) {
+			dev = get_container_of(next, struct device, link);
+
+			__sync(dev);
+
+			next = next->next;
+		}
+	}
+}
+
 #ifdef CONFIG_DEBUG
 void display_devtab()
 {

@@ -150,11 +150,17 @@ static void __init mem_init()
 }
 REGISTER_INIT(mem_init, 1);
 
+#include <kernel/device.h>
+
+#define VECTKEY		0x5fa
+
 void __reboot()
 {
+	device_sync_all();
+
 	dsb();
 
-	SCB_AIRCR = (0x5fa << 16) /* VECTKEY */
+	SCB_AIRCR = (VECTKEY << 16)
 		| (SCB_AIRCR & (7 << 8)) /* keep priority group unchanged */
 		| (1 << 2); /* system reset request */
 

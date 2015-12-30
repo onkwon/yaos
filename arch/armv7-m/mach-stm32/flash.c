@@ -273,3 +273,31 @@ static int flash_init()
 	return 0;
 }
 MODULE_INIT(flash_init);
+
+#include <asm/power.h>
+
+void flash_protect()
+{
+	if (FLASH_OPT_RDP != 0x5aa5)
+		return;
+
+	debug(MSG_SYSTEM, "Protect flash memory from externel accesses");
+
+	while (FLASH_SR & 1);
+
+	FLASH_UNLOCK();
+
+	FLASH_UNLOCK_OPTPG();
+
+	FLASH_CR |= 0x20; /* OPTER */
+	FLASH_CR |= 1 << STRT;
+
+	while (FLASH_SR & 1);
+
+	FLASH_CR &= ~0x20; /* OPTER */
+	FLASH_LOCK();
+
+	debug(MSG_SYSTEM, "Rebooting...");
+
+	__reboot();
+}

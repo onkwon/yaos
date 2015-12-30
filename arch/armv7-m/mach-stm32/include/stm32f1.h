@@ -43,6 +43,10 @@
 	FLASH_KEYR = 0x45670123; /* KEY1 */ \
 	FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
 }
+#define FLASH_UNLOCK_OPTPG() { \
+	FLASH_OPTKEYR = 0x45670123; /* KEY1 */ \
+	FLASH_OPTKEYR = 0xcdef89ab; /* KEY2 */ \
+}
 		
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40021000)
@@ -57,7 +61,6 @@
 #define RCC_CSR			(*(volatile unsigned int *)(RCC_BASE + 0x24))
 
 /* Embedded Flash memory */
-#define RDPRT			0x00a5
 #define FLASH_BASE		(0x40022000)
 #define FLASH_ACR		(*(volatile unsigned int *)FLASH_BASE)
 #define FLASH_KEYR		(*(volatile unsigned int *)(FLASH_BASE + 0x4))
@@ -67,6 +70,9 @@
 #define FLASH_AR		(*(volatile unsigned int *)(FLASH_BASE + 0x14))
 #define FLASH_OBR		(*(volatile unsigned int *)(FLASH_BASE + 0x1c))
 #define FLASH_WRPR		(*(volatile unsigned int *)(FLASH_BASE + 0x20))
+
+#define FLASH_OPT_BASE		(0x1ffff800)
+#define FLASH_OPT_RDP		(*(volatile unsigned short int *)FLASH_OPT_BASE)
 
 /* GPIO */
 #define PIN_INPUT		0x0 /* mode */

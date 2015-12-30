@@ -89,6 +89,9 @@
 #define FLASH_CR		(*(volatile unsigned int *)(FLASH_BASE + 0x10))
 #define FLASH_OPTCR		(*(volatile unsigned int *)(FLASH_BASE + 0x14))
 
+#define FLASH_OPT_BASE		(0x1fffc000)
+#define FLASH_OPT_RDP		(*(volatile unsigned short int *)FLASH_OPT_BASE)
+
 /* GPIO */
 #define PIN_INPUT		0x0 /* mode */
 #define PIN_OUTPUT		0x1
