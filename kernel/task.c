@@ -87,6 +87,10 @@ static void unlink_task(struct task *task)
 	if (task == &init)
 		return;
 
+	if (current->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL)
+		debug(MSG_SYSTEM, "stack overflow %x(%x)"
+				, current, current->addr);
+
 	if ((get_task_state(task) == TASK_RUNNING) && (current != task))
 		runqueue_del(task);
 

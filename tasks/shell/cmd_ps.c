@@ -2,7 +2,7 @@
 #include "shell.h"
 #include <kernel/task.h>
 
-static void visit(struct task *p)
+static unsigned int visit(struct task *p, unsigned int nr)
 {
 	struct task *next;
 	static int tab = 0;
@@ -27,22 +27,24 @@ static void visit(struct task *p)
 	printf("|\n");
 
 	if (list_empty(&p->children))
-		return;
+		return nr + 1;
 
 	tab++;
 
 	next = get_container_of(p->children.next, struct task, sibling);
-	visit(next);
-	p = next;
+	nr   = visit(next, nr);
+	p    = next;
 
 	while (p->sibling.next != &p->parent->children) {
 		next = get_container_of(
 				p->sibling.next, struct task, sibling);
-		visit(next);
-		p = next;
+		nr   = visit(next, nr);
+		p    = next;
 	}
 
 	tab--;
+
+	return nr;
 }
 
 #ifdef CONFIG_PAGING
@@ -56,10 +58,9 @@ static int ps(int argc, char **argv)
 {
 	printf("    ADDR                   TYPE STAT PRI\n");
 
-	visit(&init);
-
-	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
-			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
+	printf("%d tasks running out of %d\n",
+			get_nr_running() + 1, /* including the current task */
+			visit(&init, 1)); /* count from the init task */
 
 #ifdef CONFIG_PAGING
 	extern struct buddy buddypool;
@@ -70,6 +71,8 @@ static int ps(int argc, char **argv)
 	extern unsigned int alloc_fail_count;
 	printf("Memory allocation errors : %d\n", alloc_fail_count);
 #endif
+
+	printf("%d timer(s) activated\n", get_timer_nr());
 
 #ifdef CONFIG_DEBUG
 #define MHZ	1000000
@@ -82,13 +85,17 @@ static int ps(int argc, char **argv)
 	printf("cloning overhead %dus / %dus (%d)\n",
 			clone_overhead / FREQ, MHZ / HZ, clone_overhead);
 #endif
-	printf("%d timer(s) activated\n", get_timer_nr());
 
 	unsigned long long uptime = get_systick64();
 	printf("uptime: %d minutes (0x%08x%08x)\n"
 			, systick / HZ / 60
 			, (unsigned int)(uptime >> 32)
 			, (unsigned int)uptime);
+
+#ifdef CONFIG_DEBUG
+	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
+			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
+#endif
 
 	extern void print_rq();
 	printf("\nRun queue list:\n");

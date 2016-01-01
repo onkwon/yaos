@@ -227,6 +227,15 @@ void __init scheduler_init()
 	run_scheduler();
 }
 
+unsigned int get_nr_running()
+{
+	unsigned int total = cfs.nr_running;
+#ifdef CONFIG_REALTIME
+	total += rts.nr_running;
+#endif
+	return total;
+}
+
 void sys_yield()
 {
 	set_task_state(current, TASK_SLEEPING);
