@@ -10,6 +10,15 @@
 
 #define INIT_IRQFLAG(flag)		((flag) = 0)
 
+#define DEFAULT_PSR			0x10
+#define DEFAULT_PSR_SYS			0x1f
+
+#define INDEX_PSR			0
+#define INDEX_PC			16
+#define INDEX_R0			1
+#define INDEX_R1			3
+#define INDEX_SP			2
+
 /*  __________
  * | r15(pc)  |  |
  * | r14(lr)  |  |
@@ -98,15 +107,6 @@ struct regs {
 #define __context_prepare()
 #define __context_finish()
 
-#define INDEX_PSR			0
-#define INDEX_PC			16
-#define INDEX_R0			1
-#define INDEX_R1			3
-#define INDEX_SP			2
-
-#define DEFAULT_PSR			0x10
-#define DEFAULT_PSR_SYS			0x1f
-
 #define __save_curr_context(regs) do {					\
 	__asm__ __volatile__(						\
 			"str	r0, [%0]			\n\t"	\
@@ -119,11 +119,11 @@ struct regs {
 			"mov	r0, %3				\n\t"	\
 			"stmia	r0, {sp}			\n\t"	\
 		"1:						\n\t"	\
-			:: "r"(regs+INDEX_R0)				\
-			, "r"(regs+INDEX_PSR)				\
-			, "r"(regs+INDEX_PC)				\
-			, "r"(regs+INDEX_SP)				\
-			, "r"(regs+INDEX_R1)				\
+			:: "r"((regs)+INDEX_R0)				\
+			, "r"((regs)+INDEX_PSR)				\
+			, "r"((regs)+INDEX_PC)				\
+			, "r"((regs)+INDEX_SP)				\
+			, "r"((regs)+INDEX_R1)				\
 			: "r0", "memory");				\
 } while (0)
 

@@ -124,6 +124,8 @@ static void unlink_task(struct task *task)
 	set_task_state(&init, TASK_RUNNING);
 	runqueue_add(&init);
 
+	dsb();
+
 	resched();
 }
 
@@ -304,7 +306,7 @@ int clone(unsigned int flags, void *ref)
 	struct regs regs;
 	int result;
 
-	__save_curr_context(&regs);
+	__save_curr_context((unsigned int *)&regs);
 
 	if (get_task_flags(current) & TASK_CLONED) {
 		set_task_flags(current, get_task_flags(current) & ~TASK_CLONED);

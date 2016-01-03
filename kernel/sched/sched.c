@@ -265,6 +265,11 @@ void print_rq()
 //		for (i = 0; i < NR_CONTEXT; i++)
 //			printf(("%x : %x", p->sp + i, *(p->sp + i));
 
+		/* run queue list gets changed continuously so referencing link
+		 * here may be broken. Make exception condition to avoid
+		 * infinite loop */
+		if (rq == rq->next) break;
+
 		rq = rq->next;
 	}
 }

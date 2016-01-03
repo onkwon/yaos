@@ -6,7 +6,7 @@
 #include <asm/page.h>
 
 #ifndef PAGE_SHIFT
-#define PAGE_SHIFT		12
+#define PAGE_SHIFT		12 /* 4096 bytes */
 #endif
 #define PAGE_SIZE		(1UL << PAGE_SHIFT)
 #define PAGE_NR(x)		((unsigned int)(x) >> PAGE_SHIFT)

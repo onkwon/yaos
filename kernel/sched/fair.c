@@ -41,7 +41,10 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 
 void cfs_rq_del(struct scheduler *cfs, struct task *task)
 {
+	if (list_empty(&task->rq)) return;
+
 	list_del(&task->rq);
+	list_link_init(&task->rq);
 	cfs->nr_running--;
 }
 
