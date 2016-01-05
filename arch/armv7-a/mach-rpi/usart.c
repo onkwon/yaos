@@ -45,7 +45,8 @@ int __usart_putc(unsigned int channel, int c)
 {
 	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
 
-	while (!(uart->lsr & 0x20)) ;
+	if (!(uart->lsr & 0x20)) return 0;
+
 	uart->dr = c;
 
 	return 1;

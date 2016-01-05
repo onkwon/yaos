@@ -100,7 +100,9 @@ static void unlink_task(struct task *task)
 
 	/* Clean its relationship. Hand children to grand parents
 	 * if it has its own children */
-	list_del(&task->children);
+	if (!list_empty(&task->children)) {
+		list_del(&task->children);
+	}
 	list_del(&task->sibling);
 
 	/* add it to zombie list */
@@ -123,8 +125,6 @@ static void unlink_task(struct task *task)
 	set_task_pri(&init, get_task_pri(current));
 	set_task_state(&init, TASK_RUNNING);
 	runqueue_add(&init);
-
-	dsb();
 
 	resched();
 }

@@ -32,8 +32,11 @@ void rts_rq_add(struct scheduler *q, struct task *new)
 
 void rts_rq_del(struct scheduler *q, struct task *p)
 {
+	if (list_empty(&p->rq)) return;
+
 	q->nr_running--;
 	list_del(&p->rq);
+	list_link_init(&p->rq);
 
 	unsigned int i;
 	q->pri = RT_PRIORITY + 1;
