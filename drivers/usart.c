@@ -221,6 +221,15 @@ static size_t usart_write(struct file *file, void *buf, size_t len)
 	return -ERR_UNDEF;
 }
 
+#ifdef CONFIG_DEBUG
+static unsigned int bufover[USART_CHANNEL_MAX];
+
+unsigned int get_usart_bufover(int ch)
+{
+	return bufover[ch];
+}
+#endif
+
 static void isr_usart()
 {
 	int c;
@@ -238,6 +247,9 @@ static void isr_usart()
 
 		if (c == -1) {
 			/* overflow */
+#ifdef CONFIG_DEBUG
+			bufover[channel]++;
+#endif
 		}
 
 		wq_wake(&wq[channel], WQ_ALL);
@@ -309,6 +321,10 @@ static int usart_open(struct inode *inode, struct file *file)
 		WQ_INIT(wq[CHANNEL(dev->id)]);
 
 		register_isr(nr_irq, isr_usart);
+
+#ifdef CONFIG_DEBUG
+		bufover[CHANNEL(dev->id)] = 0;
+#endif
 	}
 
 out:

@@ -101,6 +101,16 @@ static int ps(int argc, char **argv)
 	printf("\nRun queue list:\n");
 	print_rq();
 
+#ifdef CONFIG_DEBUG
+	extern unsigned int get_usart_bufover();
+	printf("\nUSART buffer overflow: %d, %d, %d, %d, %d\n",
+			get_usart_bufover(0),
+			get_usart_bufover(1),
+			get_usart_bufover(2),
+			get_usart_bufover(3),
+			get_usart_bufover(4));
+#endif
+
 	return 0;
 }
 REGISTER_CMD(ps, ps, "report process status");

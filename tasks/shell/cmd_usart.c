@@ -5,49 +5,43 @@
 static int usart(int argc, char **argv)
 {
 	char *dev;
-	int request, fd;
-	unsigned int value;
+	int fd, req;
+	unsigned int brr;
 
 	if (argc < 3) goto out;
 
-	switch (argv[2][0]) {
-	case '1':
-		dev = "/dev/usart1";
-		break;
-	case '2':
-		dev = "/dev/usart2";
-		break;
-	case '3':
-		dev = "/dev/usart3";
-		break;
-	case '4':
-		dev = "/dev/usart4";
-		break;
-	case '5':
-		dev = "/dev/usart5";
-		break;
-	default:
+	if        (!strcmp(argv[1], "setbrr")) { req = USART_SET_BAUDRATE;
+	} else if (!strcmp(argv[1], "getbrr")) { req = USART_GET_BAUDRATE;
+	} else if (!strcmp(argv[1], "flush"))  { req = USART_FLUSH;
+	} else if (!strcmp(argv[1], "kbhit"))  { req = USART_KBHIT;
+	} else {
+		printf("wrong request %s\n", argv[1]);
 		goto out;
 	}
 
-	request = atoi(argv[1]);
-	if (argc == 4) value = atoi(argv[3]);
-	else value = 0;
+	if        (!strcmp(argv[2], "com1")) { dev = "/dev/usart1";
+	} else if (!strcmp(argv[2], "com2")) { dev = "/dev/usart2";
+	} else if (!strcmp(argv[2], "com3")) { dev = "/dev/usart3";
+	} else if (!strcmp(argv[2], "com4")) { dev = "/dev/usart4";
+	} else if (!strcmp(argv[2], "com5")) { dev = "/dev/usart5";
+	} else {
+		printf("unknown port %s\n", argv[2]);
+		goto out;
+	}
 
-	char *desc[4] = { "FLUSH", "KBHIT", "GET_BAUDRATE", "SET_BAUDRATE" };
-	printf("Request %s to value of %d on %s\n", desc[request-1], value, dev);
+	if (argc == 4) brr = atoi(argv[3]);
+	else brr = 0;
 
 	if ((fd = open(dev, O_RDWR)) <= 0) {
-		debug(MSG_USER, "open error");
+		printf("open error: %s\n", dev);
 		goto out;
 	}
 
-	int ret = ioctl(fd, request, value);
-	printf("%s %d\n", (ret < 0)? "ERR" : "Done", ret);
+	printf("%s\n", (ioctl(fd, req, brr) < 0)? "Error" : "OK");
 
 	close(fd);
 
 out:
 	return 0;
 }
-REGISTER_CMD(usart, usart, "usart nREQ channel value");
+REGISTER_CMD(usart, usart, "usart <setbrr|getbrr|flush|kbhit> <comN> <baudrate>");
