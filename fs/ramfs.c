@@ -319,16 +319,6 @@ static size_t ramfs_read(struct file *file, void *buf, size_t len)
 	return count;
 }
 
-static int ramfs_open(struct inode *inode, struct file *file)
-{
-	file->offset = 0;
-	file->inode = inode;
-	file->op = inode->fop;
-	lock_init(&file->lock);
-
-	return 0;
-}
-
 static int ramfs_lookup(struct inode *inode, const char *pathname)
 {
 	struct ramfs_inode *fs_inode;
@@ -355,7 +345,7 @@ static struct inode_operations iops = {
 };
 
 static struct file_operations fops = {
-	.open  = ramfs_open,
+	.open  = NULL,
 	.read  = ramfs_read,
 	.write = NULL,
 	.close = NULL,

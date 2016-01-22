@@ -25,7 +25,7 @@ unsigned int mkfile(struct file *file)
 	return (unsigned int)new;
 }
 
-void remove_file(struct file *file)
+void rmfile(struct file *file)
 {
 	unsigned int irqflag;
 	spin_lock_irqsave(fdtable_lock, irqflag);

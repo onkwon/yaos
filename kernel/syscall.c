@@ -56,20 +56,21 @@ int sys_open_core(char *filename, int mode, void *option)
 	spin_lock(inode->lock);
 	inode->count++;
 	spin_unlock(inode->lock);
-	file.flags = mode;
-	file.option = option;
-	inode->fop->open(inode, &file);
 
-	memcpy(ops, file.op, sizeof(struct file_operations));
-	file.op = ops;
-
-	if (GET_FILE_TYPE(inode->mode) == FT_DEV) {
-		memcpy(file.op, getdev(inode->dev)->op,
+	if (GET_FILE_TYPE(inode->mode) == FT_DEV)
+		memcpy(ops, getdev(inode->dev)->op,
 				sizeof(struct file_operations));
+	else
+		memcpy(ops, inode->fop, sizeof(struct file_operations));
 
-		if (file.op->open)
-			file.op->open(inode, &file);
-	}
+	file.flags  = mode;
+	file.option = option;
+	file.offset = 0;
+	file.inode  = inode;
+	file.op     = ops;
+
+	if (file.op->open)
+		file.op->open(inode, &file);
 
 	return mkfile(&file);
 
@@ -150,7 +151,7 @@ int sys_close(int fd)
 	if (file->op->close)
 		file->op->close(file);
 
-	remove_file(file);
+	rmfile(file);
 
 	return 0;
 }

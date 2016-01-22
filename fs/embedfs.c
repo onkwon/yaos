@@ -669,16 +669,6 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 	return -ERR_UNDEF;
 }
 
-static int embed_open(struct inode *inode, struct file *file)
-{
-	file->offset = 0;
-	file->op = inode->fop;
-	file->inode = inode;
-	lock_init(&file->lock);
-
-	return 0;
-}
-
 static int embed_seek(struct file *file, unsigned int offset, int whence)
 {
 	switch (whence) {
@@ -750,7 +740,7 @@ static struct inode_operations iops = {
 };
 
 static struct file_operations fops = {
-	.open  = embed_open,
+	.open  = NULL,
 	.read  = embed_read,
 	.write = embed_write,
 	.close = embed_close,

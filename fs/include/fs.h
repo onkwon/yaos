@@ -103,8 +103,6 @@ struct file {
 
 	struct file_operations *op;
 
-	lock_t lock;
-
 	struct list list;
 
 	void *option;
@@ -120,7 +118,7 @@ struct file_operations {
 };
 
 unsigned int mkfile(struct file *file);
-void remove_file(struct file *file);
+void rmfile(struct file *file);
 struct file *getfile(int fd);
 
 struct inode *iget(struct superblock *sb, unsigned int id);
