@@ -11,12 +11,6 @@
 
 #define barrier()			__asm__ __volatile__("" ::: "memory")
 
-#define O_RDONLY			0x01
-#define O_WRONLY			0x02
-#define O_RDWR				(O_RDONLY | O_WRONLY)
-#define O_NONBLOCK			0x04
-#define O_CREATE			0x08
-
 #ifdef MACHINE
 #include <asm/io.h>
 #endif
@@ -33,6 +27,7 @@ extern int getc();
 extern int (*getchar)();
 extern void puts(const char *s);
 
+#include <fs/fs.h>
 #include <kernel/interrupt.h>
 #include <kernel/gpio.h>
 

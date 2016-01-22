@@ -252,7 +252,7 @@ static void isr_usart()
 #endif
 		}
 
-		wq_wake(&wq[channel], WQ_ALL);
+		wq_wake(&wq[channel], WQ_EXCLUSIVE);
 	}
 
 	if (__usart_check_tx(channel)) {

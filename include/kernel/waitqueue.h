@@ -28,7 +28,7 @@ struct waitqueue {
 		.link = INIT_LIST_HEAD(name.link), \
 	}
 
-extern void wq_wait(struct waitqueue_head *q);
-extern void wq_wake(struct waitqueue_head *q, int nr_task);
+void wq_wait(struct waitqueue_head *q);
+void wq_wake(struct waitqueue_head *q, int nr_task);
 
 #endif /* __WAITQUEUE_H__ */

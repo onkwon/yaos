@@ -82,6 +82,14 @@ enum file_type {
 	FT_DEV		= 0x04,
 };
 
+enum file_flag {
+	O_RDONLY	= 0x01,
+	O_WRONLY	= 0x02,
+	O_RDWR		= (O_RDONLY | O_WRONLY),
+	O_NONBLOCK	= 0x04,
+	O_CREATE	= 0x08,
+};
+
 enum whence {
 	SEEK_SET	= 0x00, /* beginning of file */
 	SEEK_CUR	= 0x01, /* current position of the file pointer */
