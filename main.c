@@ -57,10 +57,8 @@ static int __init console_init()
 {
 	extern int sys_open_core(char *filename, int mode, void *opt);
 
-	int fd = sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR | O_NONBLOCK
-			, (void *)115200);
-
-	stdin = stdout = stderr = fd;
+	stdin = stdout = stderr =
+		sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR, (void *)115200);
 
 	return 0;
 }

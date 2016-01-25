@@ -12,7 +12,7 @@ static unsigned int getline(int fd, char *buf, int maxlen)
 	unsigned int i = 0;
 
 	do {
-		read(fd, &c, 1);
+		while (read(fd, &c, 1) <= 0);
 
 		switch (c) {
 		case (char)-1: /* no input */
@@ -60,13 +60,8 @@ static unsigned int getcmd(char *s, char **argv)
 
 void shell()
 {
-	int argc, fd, retval;
+	int argc, retval;
 	char **argv, buf[MAXLEN];
-
-	if ((fd = open(DEVFS_ROOT CONSOLE, O_RDONLY, NULL)) <= 0) {
-		debug(MSG_DEBUG, "console: open error %x\n", fd);
-		return;
-	}
 
 	argv   = (char **)malloc(sizeof(char *) * MAXARG);
 	retval = 0;
@@ -75,7 +70,7 @@ void shell()
 
 	do {
 		puts("> ");
-		if (getline(fd, buf, MAXLEN)) {
+		if (getline(stdin, buf, MAXLEN)) {
 			/* add history functionality */
 			if (!(argc = getcmd(buf, argv))) continue;
 
@@ -95,7 +90,6 @@ void shell()
 		}
 	} while(retval != SHELL_EXIT);
 
-	close(fd);
 	free(argv);
 }
 REGISTER_TASK(shell, 0, DEFAULT_PRIORITY);
