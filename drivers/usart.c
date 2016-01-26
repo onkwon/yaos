@@ -120,8 +120,8 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 	for (retval = 0; retval < len && file->offset < file->inode->size;) {
 		if ((cnt = usart_read_core(file, buf + retval, len - retval))
 				<= 0) {
-			cnt = 0;
 			wq_wait(&wq[CHANNEL(file->inode->dev)]);
+			continue;
 		}
 		retval += cnt;
 	}

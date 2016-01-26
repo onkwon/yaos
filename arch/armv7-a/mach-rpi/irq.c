@@ -7,7 +7,7 @@ static void (*irq_table[IRQ_MAX])();
 int register_isr(unsigned int nirq, void (*func)())
 {
 	irq_table[nirq] = func;
-	dsb();
+	isb();
 	return 0;
 }
 

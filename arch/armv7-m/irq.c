@@ -5,7 +5,7 @@ int register_isr(unsigned int nvector, void (*func)())
 {
 	extern unsigned int _ram_start;
 	*((unsigned int *)&_ram_start + nvector) = (unsigned int)func;
-	dsb();
+	isb();
 
 	return 0;
 }
