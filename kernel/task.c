@@ -338,6 +338,24 @@ int sys_fork()
 	return tid;
 }
 #else /* remove architecture dependent code under `/arch` directory */
+void __attribute__((naked)) sys_fork_finish()
+{
+	__asm__ __volatile__(
+			"push	{r0}		\n\t" /* save return value */
+			"tst	r0, 0		\n\t"
+			"itt	gt		\n\t"
+			"movgt	r0, %0		\n\t"
+			"blgt	sys_kill	\n\t"
+			"bl	resched		\n\t"
+			:
+			: "r"(current)
+			: "r0",
+			"r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
+			"memory");
+
+	__asm__ __volatile__("pop {r0, pc}" ::: "memory");
+}
+
 int __attribute__((naked)) sys_fork()
 {
 	__asm__ __volatile__("push {lr}" ::: "memory");
@@ -348,27 +366,12 @@ int __attribute__((naked)) sys_fork()
 			"orr	r0, r0, %3	\n\t"
 			"mov	r1, %4		\n\t"
 			"bl	clone		\n\t"
+			"b	sys_fork_finish	\n\t"
 			:
-			: "r"(get_task_flags(current)), "I"(TASK_PRIVILEGED)
-			, "I"(TASK_SYSCALL), "I"(STACK_SHARED), "r"(&init)
-			: "r0", "r1"
-			, "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11"
-			, "memory");
-
-	__asm__ __volatile__(
-			"push	{r0}		\n\t" /* save return value */
-			"tst	r0, 0		\n\t"
-			"itt	gt		\n\t"
-			"movgt	r0, %0		\n\t"
-			"blgt	sys_kill	\n\t"
-			"bl	resched		\n\t"
-			:
-			: "r"(current)
-			: "r0"
-			, "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11"
-			, "memory");
-
-	__asm__ __volatile__("pop {r0, pc}" ::: "memory");
+			: "r"(get_task_flags(current)), "I"(TASK_PRIVILEGED),
+			"I"(TASK_SYSCALL), "I"(STACK_SHARED), "r"(&init)
+			: "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
+			"memory");
 }
 #endif
 

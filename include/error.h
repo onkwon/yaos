@@ -18,11 +18,11 @@
 #define MSG_DEBUG		2
 #define MSG_USER		3
 
-#define panic()			while (1) debug(MSG_SYSTEM, "panic")
+#define panic()			while (1) debug(MSG_ERROR, "panic")
 #if ((SOC == bcm2835) || (SOC == bcm2836)) /* syscall to raise scheduler */
 #define freeze()		while (1) syscall(SYSCALL_NR)
 #else
-#define freeze()		while (1) debug(MSG_SYSTEM, "freezed")
+#define freeze()		while (1) debug(MSG_ERROR, "freezed")
 #endif
 
 #include <io.h>
