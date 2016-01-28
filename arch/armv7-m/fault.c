@@ -52,9 +52,11 @@ static inline void print_task_status(struct task *task)
 		"  task->irqflag    0x%08x\n"
 		"  task->addr       0x%08x\n"
 		"  task             0x%08x\n"
-		, task->mm.sp, task->mm.base, task->mm.heap,
+		"  task->parent     0x%08x - 0x%08x\n",
+		task->mm.sp, task->mm.base, task->mm.heap,
 		task->mm.kernel.base, task->mm.kernel.sp, task->state,
-		task->irqflag, task->addr, task);
+		task->irqflag, task->addr, task,
+		task->parent, task->parent->addr);
 }
 
 static inline void print_kernel_status(unsigned int *sp, unsigned int lr,

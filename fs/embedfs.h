@@ -24,7 +24,10 @@
 #define FT_ROOT				0xffff
 
 struct embed_superblock {
+	unsigned int magic;
+
 	unsigned short int block_size;
+	char __pad[2];
 
 	unsigned int blocks_count;
 	unsigned int inodes_count;
@@ -34,8 +37,6 @@ struct embed_superblock {
 	unsigned int first_block;
 	unsigned int inode_table;
 	unsigned int data_block;
-
-	unsigned int magic;
 } __attribute__((packed));
 
 struct embed_inode {
@@ -50,6 +51,7 @@ struct embed_dir {
 	unsigned short int rec_len;
 	unsigned char type;
 	unsigned char name_len;
+	char __pad[2];
 	char *name;
 } __attribute__((packed));
 

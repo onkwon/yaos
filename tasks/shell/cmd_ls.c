@@ -16,6 +16,7 @@ struct embed_dir {
 	unsigned short int rec_len;
 	unsigned char type;
 	unsigned char name_len;
+	char __pad[2];
 	char *name;
 } __attribute__((packed));
 
