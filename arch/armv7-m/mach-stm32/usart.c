@@ -267,14 +267,6 @@ void __usart_tx_irq_raise(unsigned int channel)
 	*(volatile unsigned int *)(channel + 0x0c) |= 1 << TXE; /* TXEIE */
 }
 
-void __putc_debug(int c)
-{
-	while (!__usart_putc(0, c));
-
-	if (c == '\n')
-		while (!__usart_putc(0, '\r'));
-}
-
 void __usart_flush(unsigned int channel)
 {
 	/* wait until transmission complete */

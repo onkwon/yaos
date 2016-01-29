@@ -18,13 +18,10 @@ extern struct buddy buddypool;
 void *kmalloc(size_t size)
 {
 	struct page *page;
-	unsigned int irqflag;
 
 retry:
-	spin_lock_irqsave(buddypool.lock, irqflag);
 	page = alloc_pages(&buddypool,
 			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
-	spin_unlock_irqrestore(buddypool.lock, irqflag);
 
 	if (page)
 		return page->addr;
@@ -34,7 +31,7 @@ retry:
 	if (kill_zombie())
 		goto retry;
 
-	debug(MSG_SYSTEM, "Out of memory");
+	debug(MSG_ERROR, "Out of memory");
 #ifdef CONFIG_DEBUG
 	alloc_fail_count++;
 #endif
@@ -47,7 +44,6 @@ void kfree(void *addr)
 	struct page *page;
 	struct buddy *pool = &buddypool;
 	unsigned int index;
-	unsigned int irqflag;
 
 	if (!addr) return;
 
@@ -61,11 +57,7 @@ void kfree(void *addr)
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
 
-	spin_lock_irqsave(pool->lock, irqflag);
 	free_pages(pool, page);
-	spin_unlock_irqrestore(pool->lock, irqflag);
-
-	addr = NULL;
 }
 
 void __init free_bootmem()
@@ -104,7 +96,7 @@ retry:
 		if (kill_zombie())
 			goto retry;
 
-		debug(MSG_SYSTEM, "Out of memory");
+		debug(MSG_ERROR, "Out of memory");
 	}
 
 	return p;
@@ -173,8 +165,6 @@ void __init mm_init()
 			PAGE_INDEX((page-1)->addr));
 	debug(MSG_DEBUG, "mem_map size : %d bytes", page - mem_map);
 
-	buddypool.nr_pages = nr_pages;
-	buddypool.nr_free  = 0;
 	buddy_init(&buddypool, nr_pages, mem_map);
 #else
 	struct ff_freelist *p;

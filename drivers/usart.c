@@ -354,3 +354,27 @@ static void __init usart_init()
 	}
 }
 MODULE_INIT(usart_init);
+
+void __putc_debug(int c)
+{
+	struct file *file;
+	int res, chan;
+	unsigned int irqflag;
+
+	if ((file = getfile(stdout)))
+		chan = CHANNEL(file->inode->dev);
+	else
+		chan = 0;
+
+putcr:
+	do {
+		spin_lock_irqsave(tx_lock[chan], irqflag);
+		res = __usart_putc(chan, c);
+		spin_unlock_irqrestore(tx_lock[chan], irqflag);
+	} while (!res);
+
+	if (c == '\n') {
+		c = '\r';
+		goto putcr;
+	}
+}

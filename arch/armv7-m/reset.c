@@ -14,6 +14,10 @@ static void __init __attribute__((naked, used)) reset()
 	SCB_SHCSR |= 0x00070000; /* enable faults */
 	SCB_CCR   |= 0x00000008; /* enable unaligned access traps */
 
+#ifdef CONFIG_DEBUG
+	SCB_ACTLR |= 2; /* disable write buffer */
+#endif
+
 	unsigned int i;
 	for (i = 0; i < MAX_IRQ; i++)
 		nvic_set_pri(i, NVIC_DEFAULT_PRIORITY);

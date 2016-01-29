@@ -74,13 +74,17 @@ static int ps(int argc, char **argv)
 
 	printf("%d timer(s) activated\n", get_timer_nr());
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_SCHED
 #define MHZ	1000000
 #define FREQ	9 /* (get_systick_max() * HZ / MHZ) --> privileged */
 	extern int sched_overhead;
 	printf("scheduling overhead %dus / %dus (%d)\n",
 			sched_overhead / FREQ, MHZ / HZ, sched_overhead);
+#endif
 
+#ifdef CONFIG_DEBUG_CLONE
+#define MHZ	1000000
+#define FREQ	9 /* (get_systick_max() * HZ / MHZ) --> privileged */
 	extern int clone_overhead;
 	printf("cloning overhead %dus / %dus (%d)\n",
 			clone_overhead / FREQ, MHZ / HZ, clone_overhead);

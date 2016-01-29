@@ -86,14 +86,6 @@ void __usart_tx_irq_raise(unsigned int channel)
 {
 }
 
-void __putc_debug(int c)
-{
-	__usart_putc(0, c);
-
-	if (c == '\n')
-		__usart_putc(0, '\r');
-}
-
 void __usart_flush(unsigned int channel)
 {
 }

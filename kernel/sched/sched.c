@@ -193,14 +193,15 @@ void sum_curr_stat(struct task *to)
 	irq_restore(irqflag);
 }
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_SCHED
 int sched_overhead;
 #endif
 
 void __attribute__((naked, used)) __schedule()
 {
-#ifdef CONFIG_DEBUG
-	/* make sure that registers used here must be the ones saved already */
+#ifdef CONFIG_DEBUG_SCHED
+	/* FIXME:
+	 * make sure that registers used here must be the ones saved already */
 	sched_overhead = get_sysclk();
 #endif
 	/* schedule_prepare() saves the current context and
@@ -209,7 +210,7 @@ void __attribute__((naked, used)) __schedule()
 	schedule_prepare();
 	schedule_core();
 	schedule_finish();
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_SCHED
 	sched_overhead -= get_sysclk();
 #endif
 	__ret();

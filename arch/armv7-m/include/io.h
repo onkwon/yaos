@@ -40,6 +40,8 @@
 #define SCB_MMFAR		(*(volatile unsigned int *)(SCB_BASE + 0x34))
 #define SCB_BFAR		(*(volatile unsigned int *)(SCB_BASE + 0x38))
 
+#define SCB_ACTLR		(*(volatile unsigned int *)0xE000E008)
+
 /* Systick */
 #define SYSTICK_BASE		(0xe000e010)
 #define STK_CTRL		(*(volatile unsigned int *)SYSTICK_BASE)

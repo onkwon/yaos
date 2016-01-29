@@ -23,6 +23,11 @@ void free_pages(struct buddy *pool, struct page *page)
 	struct buddy_freelist *freelist;
 	unsigned int order, index;
 
+	debug(MSG_DEBUG, "free page 0x%08x", page->addr);
+
+	unsigned int irqflag;
+	spin_lock_irqsave(pool->lock, irqflag);
+
 	order    = GET_PAGE_ORDER(page);
 	freelist = &pool->free[order];
 	index    = PAGE_INDEX(page->addr);
@@ -52,14 +57,22 @@ void free_pages(struct buddy *pool, struct page *page)
 	list_add(&mem_map[index].link, &freelist->list);
 
 	RESET_PAGE_FLAG(page, PAGE_BUDDY);
+
+	spin_unlock_irqrestore(pool->lock, irqflag);
 }
 
 struct page *alloc_pages(struct buddy *pool, unsigned int order)
 {
-	struct buddy_freelist *freelist = &pool->free[order];
+	struct buddy_freelist *freelist;
 	struct list *head, *curr;
 	struct page *page;
 	unsigned int i;
+
+	unsigned int irqflag;
+	spin_lock_irqsave(pool->lock, irqflag);
+
+	freelist = &pool->free[order];
+	page = NULL;
 
 	for (i = order; i < BUDDY_MAX_ORDER; i++, freelist++) {
 		head = &freelist->list;
@@ -90,11 +103,15 @@ struct page *alloc_pages(struct buddy *pool, unsigned int order)
 			SET_PAGE_ORDER(page, order);
 			SET_PAGE_FLAG(page, PAGE_BUDDY);
 
-			return page;
+			debug(MSG_DEBUG, "alloc page 0x%08x (order %d)",
+					page->addr, order);
+			break;
 		}
 	}
 
-	return NULL;
+	spin_unlock_irqrestore(pool->lock, irqflag);
+
+	return page;
 }
 
 #include <kernel/task.h>
@@ -188,8 +205,11 @@ out:
 
 void buddy_init(struct buddy *pool, unsigned int nr_pages, struct page *array)
 {
-	buddy_freelist_init(pool, nr_pages, array);
+	pool->nr_pages = nr_pages;
+	pool->nr_free  = 0;
 	lock_init(&pool->lock);
+
+	buddy_freelist_init(pool, nr_pages, array);
 }
 
 #ifdef CONFIG_DEBUG

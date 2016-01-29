@@ -13,7 +13,7 @@
 #define PAGE_INDEX(x)		\
 	(PAGE_NR((unsigned int)(x) - (unsigned int)mem_map->addr))
 #define ALIGN_PAGE(x)		\
-	( ((unsigned int)(x) + PAGE_SIZE-1) & ~(PAGE_SIZE-1) )
+	( (ALIGN_WORD(x) + PAGE_SIZE-1) & ~(PAGE_SIZE-1) )
 
 #define PAGE_FLAG_BIT		0
 #define PAGE_ORDER_BIT		12

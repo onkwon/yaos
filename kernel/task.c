@@ -297,7 +297,7 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	return 0;
 }
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_CLONE
 int clone_overhead;
 #endif
 
@@ -313,11 +313,11 @@ int clone(unsigned int flags, void *ref)
 		return get_task_tid(current);
 	}
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_CLONE
 	clone_overhead = get_sysclk();
 #endif
 	result = clone_core(flags, ref, &regs, __get_sp());
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_CLONE
 	clone_overhead -= get_sysclk();
 #endif
 
