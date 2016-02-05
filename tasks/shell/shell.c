@@ -86,7 +86,7 @@ void shell()
 				}
 			}
 
-                        if(!cmd->name) puts("unknown command\n");
+			if(!cmd->name) puts("unknown command\n");
 		}
 	} while(retval != SHELL_EXIT);
 

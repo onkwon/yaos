@@ -111,8 +111,6 @@ void kfree(void *addr)
 	spin_lock_irqsave(mem_lock, irqflag);
 	ff_free(&mem_map, addr);
 	spin_unlock_irqrestore(mem_lock, irqflag);
-
-	addr = NULL;
 }
 
 void __init free_bootmem()

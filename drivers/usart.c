@@ -30,6 +30,19 @@ static void usart_flush(struct file *file)
 	spin_unlock_irqrestore(rx_lock[CHANNEL(file->inode->dev)], irqflag);
 
 	__usart_flush(CHANNEL(file->inode->dev));
+
+	/* It must awaken tasks waiting in runqueue before closing the file
+	 * descriptor which is in use also by other tasks. If a file descriptor
+	 * is used by not only a task but also other tasks, the file descriptor
+	 * might be destroyed(closed) by a task while other tasks waiting in
+	 * runqueue are still referencing the file descriptor. That will cause
+	 * a fault.
+	 *
+	 * lock or reference count in file struct should be a solution. But I
+	 * rather suggest to use different file descriptor each task instead.
+	 *
+	 * wq_wake(&wq[channel], WQ_ALL);
+	 */
 }
 
 static int usart_ioctl(struct file *file, unsigned int request, void *args)
