@@ -8,10 +8,16 @@
 #ifndef PAGE_SHIFT
 #define PAGE_SHIFT		12 /* 4096 bytes */
 #endif
+
+#ifdef CONFIG_PAGING
 #define PAGE_SIZE		(1UL << PAGE_SHIFT)
+#else
+#define PAGE_SIZE		1
+#endif
+
 #define PAGE_NR(x)		((unsigned int)(x) >> PAGE_SHIFT)
-#define PAGE_INDEX(x)		\
-	(PAGE_NR((unsigned int)(x) - (unsigned int)mem_map->addr))
+#define PAGE_INDEX(base, x)	\
+	(PAGE_NR((unsigned int)(x) - (unsigned int)base->addr))
 #define ALIGN_PAGE(x)		\
 	( (ALIGN_WORD(x) + PAGE_SIZE-1) & ~(PAGE_SIZE-1) )
 
@@ -45,6 +51,7 @@ void kfree(void *addr);
 
 void mm_init();
 void free_bootmem();
+size_t getfree();
 
 void *sys_brk(size_t size);
 

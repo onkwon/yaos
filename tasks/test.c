@@ -169,12 +169,11 @@ static void rt_task1()
 {
 	while (1) {
 		printf("REALTIME START\n");
-#ifdef CONFIG_PAGING
-	show_buddy(NULL);
-#endif
-	show_freelist(current->mm.heap);
+
+		getfree();
+		show_freelist(&current->mm.heap);
 #ifdef CONFIG_SYSCALL
-	display_devtab();
+		display_devtab();
 #endif
 		sleep(3);
 		printf("REALTIME END\n");

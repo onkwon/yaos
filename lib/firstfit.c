@@ -117,20 +117,30 @@ struct ff_freelist *ff_freelist_init(void *start, void *end)
 
 #ifdef CONFIG_DEBUG
 #include <foundation.h>
+#endif
 
-void show_freelist(void *pool)
+size_t show_freelist(void *pool)
 {
 	struct list *head, *curr;
 	struct ff_freelist *p;
-	unsigned int i = 0;
+	unsigned int size_available;
 
-	head = curr = &(((struct ff_freelist *)pool)->list);
+	head = curr = &(*(struct ff_freelist **)pool)->list;
+	size_available = 0;
+
+#ifdef CONFIG_DEBUG
+	unsigned int i = 0;
+#endif
 
 	do {
 		p = get_container_of(curr, struct ff_freelist, list);
+		size_available += p->size;
+#ifdef CONFIG_DEBUG
 		printf("[%4d] addr 0x%08x, size %d\n", ++i, p->addr, p->size);
+#endif
 
 		curr = curr->next;
 	} while (curr != head);
+
+	return size_available;
 }
-#endif

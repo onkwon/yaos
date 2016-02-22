@@ -13,11 +13,6 @@ struct ff_freelist *ff_freelist_init(void *start, void *end);
 
 void *ff_alloc(void *freelist, size_t size);
 void ff_free(void *freelist, void *addr);
-
-#ifdef CONFIG_DEBUG
-void show_freelist(void *pool);
-#else
-#define show_freelist(nul)
-#endif
+size_t show_freelist(void *pool);
 
 #endif /* __FIRSTFIT_H__ */

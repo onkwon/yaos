@@ -3,7 +3,11 @@
 #include <asm/usart.h>
 #include <error.h>
 
+#ifdef CONFIG_PAGING
 #define BUF_SIZE		PAGE_SIZE
+#else
+#define BUF_SIZE		32
+#endif
 
 #ifndef USART_CHANNEL_MAX
 #define USART_CHANNEL_MAX	1

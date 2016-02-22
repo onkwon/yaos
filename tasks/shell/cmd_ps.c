@@ -47,11 +47,8 @@ static unsigned int visit(struct task *p, unsigned int nr)
 	return nr;
 }
 
-#ifdef CONFIG_PAGING
-#include <kernel/buddy.h>
-#endif
+#include <kernel/page.h>
 #include <kernel/systick.h>
-
 #include <kernel/timer.h>
 
 static int ps(int argc, char **argv)
@@ -62,11 +59,8 @@ static int ps(int argc, char **argv)
 			get_nr_running() + 1, /* including the current task */
 			visit(&init, 1)); /* count from the init task */
 
-#ifdef CONFIG_PAGING
-	extern struct buddy buddypool;
-	printf("%d pages free out of %d pages\n",
-			buddypool.nr_free, buddypool.nr_pages);
-#endif
+	printf("%d bytes free\n", getfree() * PAGE_SIZE);
+
 #ifdef CONFIG_DEBUG
 	extern unsigned int alloc_fail_count;
 	printf("Memory allocation errors : %d\n", alloc_fail_count);

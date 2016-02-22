@@ -3,10 +3,6 @@
 #include <stdlib.h>
 #include <error.h>
 
-struct buddy buddypool;
-
-extern struct page *mem_map;
-
 #define BITMAP_POS(bitmap, pfn, order) \
 	/* (bitmap + ((pfn >> order) / (WORD_SIZE*8) / 2)) */ \
 	(bitmap + (pfn >> (order + 5 + 1)))
@@ -30,7 +26,7 @@ void free_pages(struct buddy *pool, struct page *page)
 
 	order    = GET_PAGE_ORDER(page);
 	freelist = &pool->free[order];
-	index    = PAGE_INDEX(page->addr);
+	index    = PAGE_INDEX(pool->mem_map, page->addr);
 
 	pool->nr_free += 1U << order;
 
@@ -44,7 +40,7 @@ void free_pages(struct buddy *pool, struct page *page)
 			break;
 
 		/* find buddy and detach it from current order to merge */
-		buddy = &mem_map[index ^ (1U << order)];
+		buddy = &pool->mem_map[index ^ (1U << order)];
 		list_del(&buddy->link);
 
 		/* grab the first address of merging buddies */
@@ -54,7 +50,7 @@ void free_pages(struct buddy *pool, struct page *page)
 		freelist++;
 	}
 
-	list_add(&mem_map[index].link, &freelist->list);
+	list_add(&pool->mem_map[index].link, &freelist->list);
 
 	RESET_PAGE_FLAG(page, PAGE_BUDDY);
 
@@ -83,7 +79,8 @@ struct page *alloc_pages(struct buddy *pool, unsigned int order)
 
 			list_del(curr);
 			BITMAP_TOGGLE(freelist->bitmap,
-					PAGE_INDEX(page->addr), i);
+					PAGE_INDEX(pool->mem_map, page->addr),
+					i);
 
 			/* if allocating from higher order, split in half to add
 			 * one of them to current order. */
@@ -93,7 +90,8 @@ struct page *alloc_pages(struct buddy *pool, unsigned int order)
 
 				list_add(&page->link, &freelist->list);
 				BITMAP_TOGGLE(freelist->bitmap,
-						PAGE_INDEX(page->addr), i);
+						PAGE_INDEX(pool->mem_map, page->addr),
+						i);
 
 				page += 1 << i;
 			}
@@ -151,7 +149,7 @@ static void buddy_freelist_init(struct buddy *pool,
 	/* current offset is the first free page */
 	offset = ALIGN_PAGE(((char *)&array[nr_pages]) + offset);
 	debug(MSG_DEBUG, "the first free page 0x%08x, page[%d]", offset,
-			PAGE_INDEX(offset));
+			PAGE_INDEX(pool->mem_map, offset));
 
 	/* buddy list initialization */
 	struct buddy_freelist *freelist;
@@ -163,7 +161,7 @@ static void buddy_freelist_init(struct buddy *pool,
 	SET_PAGE_ORDER(&array[nr_pages], order);
 	/* and mark kernel .data and .bss sections as used.
 	 * mem_map array and its bitmap region as well. */
-	index = next = PAGE_INDEX(offset);
+	index = next = PAGE_INDEX(pool->mem_map, offset);
 
 	order    = BUDDY_MAX_ORDER - 1;
 	freelist = &pool->free[order];
@@ -212,19 +210,15 @@ void buddy_init(struct buddy *pool, unsigned int nr_pages, struct page *array)
 	buddy_freelist_init(pool, nr_pages, array);
 }
 
-#ifdef CONFIG_DEBUG
-#include <foundation.h>
-
-void show_buddy(void *zone)
+size_t show_buddy(void *zone)
 {
+	struct buddy *pool = (struct buddy *)zone;
+
+#ifdef CONFIG_DEBUG
 	struct page *page;
 	struct list *p;
 	size_t size;
 	unsigned int i, j;
-
-	struct buddy *pool = (struct buddy *)zone;
-
-	if (!pool) pool = &buddypool;
 
 	printf("available pages %d\nfree pages %d\n",
 			pool->nr_pages, pool->nr_free);
@@ -251,5 +245,7 @@ void show_buddy(void *zone)
 		}
 		printf("\n");
 	}
-}
 #endif
+
+	return pool->nr_free;
+}
