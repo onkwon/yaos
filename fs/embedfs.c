@@ -768,7 +768,7 @@ static int embed_seek(struct file *file, unsigned int offset, int whence)
 		break;
 	}
 
-	return 0;
+	return file->offset;
 }
 
 static int embed_lookup(struct inode *inode, const char *pathname)

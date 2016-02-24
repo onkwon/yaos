@@ -24,7 +24,7 @@ static void __init __attribute__((naked, used)) reset()
 
 	dsb();
 
-	main();
+	kernel_init();
 }
 
 extern char _ram_end;

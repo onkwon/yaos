@@ -77,7 +77,7 @@ static void __init sys_init()
 #include <kernel/timer.h>
 #include <kernel/systick.h>
 
-int __init main()
+int __init kernel_init()
 {
 	/* keep the calling order below because of dependencies */
 	sys_init();

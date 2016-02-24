@@ -43,7 +43,7 @@ reset:
 	ldr	sp, =_ram_end
 
 	bl	__cli
-	b	main
+	b	kernel_init
 
 undefined_instruction:
 prefetch_abort:

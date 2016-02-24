@@ -8,6 +8,6 @@
 	__attribute__((section(".text.init."#order \
 					",\"ax\",\%progbits @"), used)) = func
 
-extern int main();
+extern int kernel_init();
 
 #endif /* __INIT_H__ */
