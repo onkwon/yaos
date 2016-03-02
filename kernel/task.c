@@ -294,6 +294,8 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	set_task_state(child, TASK_RUNNING);
 	runqueue_add(child);
 
+	dsb();
+
 	return 0;
 }
 

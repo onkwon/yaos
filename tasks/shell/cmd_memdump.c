@@ -15,7 +15,7 @@ static void dump(unsigned int saddr, unsigned int len, unsigned int width)
 		for (i = 0; i < width; i++) {
 			printf("%02x ", getbyte(curr + i));
 			if(!((i + 1) % 4)) printf(" ");
-		}   
+		}
 		printf(" ");
 		for (i = 0; i < width; i++) {
 			if (getbyte(curr + i) >= 0x20 && getbyte(curr + i) < 0x7f) 
