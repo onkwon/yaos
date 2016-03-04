@@ -110,6 +110,7 @@ static void unlink_task(struct task *task)
 	task->addr = zombie;
 	zombie = (unsigned int *)task;
 	spin_unlock(zombie_lock);
+	dsb();
 
 	set_task_state(task, TASK_ZOMBIE);
 
@@ -129,6 +130,19 @@ static void unlink_task(struct task *task)
 	resched();
 }
 
+void destroy(struct task *task)
+{
+	if (!task || task == &init)
+		return;
+
+	kfree(task->mm.base);
+	if (!(get_task_flags(task) & STACK_SHARED))
+		kfree(task->mm.kernel.base);
+
+	if (!(get_task_flags(task) & TASK_STATIC))
+		kfree(task);
+}
+
 unsigned int kill_zombie()
 {
 	struct task *task;
@@ -140,22 +154,10 @@ unsigned int kill_zombie()
 		zombie = task->addr;
 		spin_unlock_irqrestore(zombie_lock, irqflag);
 		destroy(task);
+		dsb();
 	}
 
 	return cnt;
-}
-
-void destroy(struct task *task)
-{
-	if (task == &init)
-		return;
-
-	kfree(task->mm.base);
-	if (!(get_task_flags(task) & STACK_SHARED))
-		kfree(task->mm.kernel.base);
-
-	if (!(get_task_flags(task) & TASK_STATIC))
-		kfree(task);
 }
 
 struct task *find_task(unsigned int addr, struct task *head)
@@ -293,8 +295,6 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	set_task_pri(child, get_task_pri(current));
 	set_task_state(child, TASK_RUNNING);
 	runqueue_add(child);
-
-	dsb();
 
 	return 0;
 }

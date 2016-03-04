@@ -5,7 +5,7 @@
 
 void wq_wait(struct waitqueue_head *q)
 {
-	unsigned irqflag;
+	unsigned int irqflag;
 	DEFINE_WAIT(wait);
 
 	spin_lock_irqsave(q->lock, irqflag);
@@ -22,7 +22,7 @@ void wq_wake(struct waitqueue_head *q, int nr_task)
 {
 	struct list *p = q->list.next;
 	struct task *task;
-	unsigned irqflag;
+	unsigned int irqflag;
 
 	spin_lock_irqsave(q->lock, irqflag);
 	while (p != &q->list && nr_task) {

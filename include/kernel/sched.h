@@ -27,13 +27,11 @@ struct scheduler {
 #define schedule_prepare() { \
 	__context_prepare(); \
 	__context_save(current); \
-	dsb(); \
 }
 #define schedule_finish() { \
 	__context_restore(current); \
 	dsb(); \
-	isb(); \
-	__context_finish(); \
+	__context_finish(); /* isb() executed here after enabling interrupts */ \
 }
 
 void schedule_core();

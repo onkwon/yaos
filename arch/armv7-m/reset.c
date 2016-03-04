@@ -151,7 +151,7 @@ static void __init mem_init()
 	for (i = 0; (((unsigned int *)&_bss) + i) < (unsigned int *)&_ebss; i++)
 		((unsigned int *)&_bss)[i] = 0;
 
-	dmb();
+	dsb();
 }
 REGISTER_INIT(mem_init, 1);
 

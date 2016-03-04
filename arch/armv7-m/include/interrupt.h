@@ -3,7 +3,11 @@
 
 #define IRQ_SYSTICK		15
 
-#define __sei()			__asm__ __volatile__("cpsie i" ::: "memory")
+#define __sei()								\
+	__asm__ __volatile__(						\
+			"cpsie i	\n\t"				\
+			"isb		\n\t"				\
+			::: "memory")
 #define __cli()			__asm__ __volatile__("cpsid i" ::: "memory")
 
 #define __dmb()			__asm__ __volatile__("dmb" ::: "memory")
@@ -13,7 +17,10 @@
 #define __irq_save(flag)						\
 	__asm__ __volatile__("mrs %0, primask" : "=r"(flag) :: "memory")
 #define __irq_restore(flag)						\
-	__asm__ __volatile__("msr primask, %0" :: "r"(flag) : "memory")
+	__asm__ __volatile__(						\
+			"msr primask, %0	\n\t"			\
+			"isb			\n\t"			\
+			:: "r"(flag) : "memory")
 
 #define __get_active_irq()	(GET_PSR() & 0x1ff)
 

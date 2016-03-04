@@ -17,6 +17,7 @@
 	do {								\
 		__val = __ldrex(count) + 1;				\
 	} while (__strex(__val, count));				\
+	dmb();								\
 	__val;								\
 })
 #define down(count)			({				\
@@ -24,6 +25,7 @@
 	do {								\
 		__val = __ldrex(count) - 1;				\
 	} while (__strex(__val, count));				\
+	dmb();								\
 	__val;								\
 })
 
@@ -89,6 +91,7 @@ struct semaphore {
 		}							\
 		__val = __ldrex(&s.count) - 1;				\
 	} while (__strex(__val, &s.count));				\
+	dmb();								\
 }
 
 #define semaphore_up(s) do {						\

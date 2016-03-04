@@ -17,10 +17,11 @@ void rts_rq_add(struct scheduler *q, struct task *new)
 	if (!new || get_task_state(new))
 		return;
 
-	int pri = get_task_pri(new);
-	struct list *rq_head = &rts_rq[pri];
+	struct list *rq_head;
+	int pri;
 
-	q->nr_running++;
+	pri     = get_task_pri(new);
+	rq_head = &rts_rq[pri];
 
 	/* real time run queue always holds the most priority in `pri` */
 	if (pri < q->pri)
@@ -28,15 +29,16 @@ void rts_rq_add(struct scheduler *q, struct task *new)
 
 	/* add new in the end of list */
 	list_add(&new->rq, rq_head->prev);
+	q->nr_running++;
 }
 
 void rts_rq_del(struct scheduler *q, struct task *p)
 {
 	if (list_empty(&p->rq)) return;
 
-	q->nr_running--;
 	list_del(&p->rq);
 	list_link_init(&p->rq);
+	q->nr_running--;
 
 	unsigned int i;
 	q->pri = RT_PRIORITY + 1;

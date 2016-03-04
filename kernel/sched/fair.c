@@ -19,23 +19,22 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 	if (!new || get_task_state(new))
 		return;
 
-	struct list *curr, *head;
+	struct list *curr, *head, *to;
 	struct task *task;
 
 	head = cfs->rq;
+	to   = head->prev;
 
 	for (curr = head->next; curr != head; curr = curr->next) {
 		task = get_container_of(curr, struct task, rq);
 
 		if (task->se.vruntime > new->se.vruntime) {
-			list_add(&new->rq, curr->prev);
+			to = curr->prev;
 			break;
 		}
 	}
 
-	if (curr == head) /* if empty or the last entry */
-		list_add(&new->rq, head->prev);
-
+	list_add(&new->rq, to);
 	cfs->nr_running++;
 }
 
@@ -44,6 +43,7 @@ void cfs_rq_del(struct scheduler *cfs, struct task *task)
 	if (list_empty(&task->rq)) return;
 
 	list_del(&task->rq);
+	dsb();
 	list_link_init(&task->rq);
 	cfs->nr_running--;
 }

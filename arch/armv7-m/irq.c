@@ -5,6 +5,7 @@ int register_isr(unsigned int nvector, void (*func)())
 {
 	extern unsigned int _ram_start;
 	*((unsigned int *)&_ram_start + nvector) = (unsigned int)func;
+	dsb();
 	isb();
 
 	return 0;
@@ -27,6 +28,8 @@ void nvic_set(unsigned int nirq, int on)
 	spin_lock(nvic_lock);
 	*reg = 1 << bit;
 	spin_unlock(nvic_lock);
+
+	dsb();
 }
 
 void nvic_set_pri(unsigned int nirq, unsigned int pri)
@@ -38,6 +41,8 @@ void nvic_set_pri(unsigned int nirq, unsigned int pri)
 	reg  = (volatile unsigned int *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
 	*reg &= ~(0xff << bit);
 	*reg |= ((pri & 0xf) << 4) << bit;
+
+	dsb();
 }
 
 void __attribute__((naked)) sys_schedule()
