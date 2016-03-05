@@ -37,6 +37,7 @@ void rts_rq_del(struct scheduler *q, struct task *p)
 	if (list_empty(&p->rq)) return;
 
 	list_del(&p->rq);
+	barrier();
 	list_link_init(&p->rq);
 	q->nr_running--;
 

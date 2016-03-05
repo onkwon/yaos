@@ -110,7 +110,6 @@ static void unlink_task(struct task *task)
 	task->addr = zombie;
 	zombie = (unsigned int *)task;
 	spin_unlock(zombie_lock);
-	dsb();
 
 	set_task_state(task, TASK_ZOMBIE);
 
@@ -154,7 +153,6 @@ unsigned int kill_zombie()
 		zombie = task->addr;
 		spin_unlock_irqrestore(zombie_lock, irqflag);
 		destroy(task);
-		dsb();
 	}
 
 	return cnt;
