@@ -14,7 +14,7 @@ struct task *rts_pick_next(struct scheduler *q)
 
 void rts_rq_add(struct scheduler *q, struct task *new)
 {
-	if (!new || get_task_state(new))
+	if (!new || get_task_state(new) || !list_empty(&new->rq))
 		return;
 
 	struct list *rq_head;

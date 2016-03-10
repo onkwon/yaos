@@ -10,15 +10,17 @@
 #define PAD_RIGHT		1
 #define PAD_ZERO		2
 
-static void printc(char **s, int c)
+static void printc(int fd, char **s, int c)
 {
 	if (s)
 		*(*s)++ = c;
+	else if (fd)
+		fputc(fd, c);
 	else
 		putchar(c);
 }
 
-static size_t prints(char **to, const char *s, size_t width, int pad,
+static size_t prints(int fd, char **to, const char *s, size_t width, int pad,
 		size_t maxlen)
 {
 	int len;
@@ -30,21 +32,21 @@ static size_t prints(char **to, const char *s, size_t width, int pad,
 	for (len = 0; s[len]; len++) ;
 
 	if (pad & PAD_RIGHT)
-		for (; *s && maxlen; s++, maxlen--) printc(to, *s);
+		for (; *s && maxlen; s++, maxlen--) printc(fd, to, *s);
 
 	if (width > len) {
 		for (len = width - len; len && maxlen; len--, maxlen--)
-			printc(to, padchar);
+			printc(fd, to, padchar);
 	} else
 		width = len;
 
 	if (!(pad & PAD_RIGHT))
-		for (; *s && maxlen; s++, maxlen--) printc(to, *s);
+		for (; *s && maxlen; s++, maxlen--) printc(fd, to, *s);
 
 	return maxlen;
 }
 
-static size_t printi(char **to, int v, unsigned int base, size_t width,
+static size_t printi(int fd, char **to, int v, unsigned int base, size_t width,
 		int pad, size_t maxlen)
 {
 	char buf[BUFSIZE], *s;
@@ -53,7 +55,7 @@ static size_t printi(char **to, int v, unsigned int base, size_t width,
 
 	if (*s == '-') {
 		if ((pad & PAD_ZERO) && !(pad & PAD_RIGHT)) {
-			printc(to, '-');
+			printc(fd, to, '-');
 			if (width > 0) width--;
 			maxlen--;
 			s++;
@@ -65,7 +67,7 @@ static size_t printi(char **to, int v, unsigned int base, size_t width,
 		s[1] = '\0';
 	}
 
-	return prints(to, s, width, pad, maxlen);
+	return prints(fd, to, s, width, pad, maxlen);
 }
 
 #ifdef FLOAT_POINT_TEST
@@ -81,8 +83,8 @@ static size_t printi(char **to, int v, unsigned int base, size_t width,
 #define BIAS		127
 #define RESOLUTION	1000000
 #define GETEXP(r)	(r.i.e - BIAS)
-static size_t printr(char **to, double v, unsigned int base, size_t width,
-		int pad, size_t maxlen)
+static size_t printr(int fd, char **to, double v, unsigned int base,
+		size_t width, int pad, size_t maxlen)
 {
 	unsigned int integer, fraction, i;
 	int exp;
@@ -124,11 +126,11 @@ static size_t printr(char **to, double v, unsigned int base, size_t width,
 	if (strnlen(buf, BUFSIZE) == 1)
 		buf[0] = '0';
 
-	return prints(to, buf, width, pad, maxlen);
+	return prints(fd, to, buf, width, pad, maxlen);
 }
 #endif
 
-static size_t print(char **to, size_t limit, int *args)
+static size_t print(int fd, char **to, size_t limit, int *args)
 {
 	const char *format;
 	size_t width, len, maxlen;
@@ -158,30 +160,30 @@ static size_t print(char **to, size_t limit, int *args)
 			}
 
 			switch (*format) {
-			case 'd': len = limit - printi(to, getarg(args, int),
+			case 'd': len = limit - printi(fd, to, getarg(args, int),
 						  10, width, pad, limit);
 				  break;
-			case 'x': len = limit - printi(to, getarg(args, int),
+			case 'x': len = limit - printi(fd, to, getarg(args, int),
 						  16, width, pad, limit);
 				  break;
-			case 'b': len = limit - printi(to, getarg(args, int),
+			case 'b': len = limit - printi(fd, to, getarg(args, int),
 						  2, width, pad, limit);
 				  break;
 #ifdef FLOAT_POINT_TEST
 			case 'f': FORWARD(args);
 				  args = (int *)ALIGN_DWORD(args);
-				  len = limit - printr(to, getarg(args, double),
+				  len = limit - printr(fd, to, getarg(args, double),
 						  10, width, pad, limit);
 				  FORWARD(args);
 				  break;
 #endif
-			case 's': len = limit - prints(to, getarg(args, char *)
+			case 's': len = limit - prints(fd, to, getarg(args, char *)
 						  , width, pad, limit);
 				  break;
-			case 'c': printc(to, getarg(args, char));
+			case 'c': printc(fd, to, getarg(args, char));
 				  len = 1;
 				  break;
-			case '%': printc(to, *format);
+			case '%': printc(fd, to, *format);
 				  len = 1;
 				  break;
 			default : format--;
@@ -190,7 +192,7 @@ static size_t print(char **to, size_t limit, int *args)
 
 			format++;
 		} else {
-			printc(to, *format++);
+			printc(fd, to, *format++);
 			len = 1;
 		}
 
@@ -198,37 +200,41 @@ static size_t print(char **to, size_t limit, int *args)
 	}
 
 	if (to)
-		printc(to, '\0');
+		printc(fd, to, '\0');
 
 	return maxlen - limit;
 }
 
 size_t printf(const char *format, ...)
 {
-	return print(0, -1, (int *)&format);
+	return print(0, 0, -1, (int *)&format);
 }
 
 size_t sprintf(char *to, const char *format, ...)
 {
-	return print(&to, -1, (int *)&format);
+	return print(0, &to, -1, (int *)&format);
 }
 
 size_t snprintf(char *to, size_t maxlen, const char *format, ...)
 {
-	return print(&to, maxlen, (int *)&format);
+	return print(0, &to, maxlen, (int *)&format);
+}
+
+size_t fprintf(int fd, const char *format, ...)
+{
+	return print(fd, 0, -1, (int *)&format);
 }
 
 size_t printk(const char *format, ...)
 {
-	if (!stdout)
-		return 0;
+	if (!stdout) return 0;
 
 	extern void __putc_debug(int c);
 	size_t retval;
 	void (*temp)(int) = putchar;
 
 	putchar = __putc_debug;
-	retval = print(0, -1, (int *)&format);
+	retval = print(0, 0, -1, (int *)&format);
 	putchar = temp;
 
 	return retval;

@@ -1,15 +1,19 @@
 #include <io.h>
 #include <kernel/syscall.h>
 
-void putc(int c)
-{
-	write(stdout, &c, 1);
+void (*putchar)(int c) = putc;
 
-	if (c == '\n')
-		putc('\r');
+void fputc(int fd, int c)
+{
+	write(fd, &c, 1);
+
+	if (c == '\n') fputc(fd, '\r');
 }
 
-void (*putchar)(int c) = putc;
+void putc(int c)
+{
+	fputc(stdout, c);
+}
 
 void puts(const char *s)
 {

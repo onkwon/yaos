@@ -113,6 +113,7 @@ void schedule_core()
 rts_next:
 			if ((next = rts_pick_next(&rts))) {
 				rts_rq_del(&rts, next);
+				barrier();
 				runqueue_add_core(current);
 				current = next;
 
@@ -143,9 +144,9 @@ rts_next:
 
 	/* add `current` back to runqueue after picking the next */
 	/* and remove the next task from runqueue */
-	cfs_rq_add(&cfs, current);
 	cfs_rq_del(&cfs, next);
-
+	barrier();
+	cfs_rq_add(&cfs, current);
 	current = next;
 
 adjust_vruntime:

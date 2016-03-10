@@ -91,12 +91,13 @@ static void unlink_task(struct task *task)
 		debug(MSG_SYSTEM, "stack overflow %x(%x)"
 				, current, current->addr);
 
-	if ((get_task_state(task) == TASK_RUNNING) && (current != task))
-		runqueue_del(task);
-
 	unsigned int irqflag;
 	irq_save(irqflag);
 	local_irq_disable();
+
+	/* safe to unlink even if it's already not in run queue because
+	 * it has empty links since getting unlinked. */
+	runqueue_del(task);
 
 	/* Clean its relationship. Hand children to grand parents
 	 * if it has its own children */
@@ -198,9 +199,7 @@ void wrapper()
 
 	((void (*)())current->addr)();
 	kill((unsigned int)current);
-
-	/* never reaches here */
-	while (1);
+	freeze(); /* never reaches here */
 }
 
 #include <stdlib.h>

@@ -71,7 +71,7 @@ static inline void list_del(struct list *node)
 
 static inline int list_empty(const struct list *node)
 {
-	return node->next == node;
+	return (node->next == node) && (node->prev == node);
 }
 
 /* fifo */

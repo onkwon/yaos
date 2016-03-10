@@ -16,7 +16,7 @@ struct task *cfs_pick_next(struct scheduler *cfs)
 
 void cfs_rq_add(struct scheduler *cfs, struct task *new)
 {
-	if (!new || get_task_state(new))
+	if (!new || get_task_state(new) || !list_empty(&new->rq))
 		return;
 
 	struct list *curr, *head, *to;

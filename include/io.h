@@ -21,6 +21,8 @@ int stdin, stdout, stderr;
 
 extern size_t printk(const char *format, ...);
 extern size_t printf(const char *format, ...);
+extern size_t fprintf(int fd, const char *format, ...);
+extern void fputc(int fd, int c);
 extern void putc(int c);
 extern void (*putchar)(int c);
 extern int getc();
