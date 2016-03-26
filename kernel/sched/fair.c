@@ -1,3 +1,4 @@
+#include <io.h>
 #include <kernel/task.h>
 #include "fair.h"
 

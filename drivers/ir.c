@@ -69,6 +69,7 @@ static void daemon()
 {
 	unsigned int data, len, i = 0;
 	while (1) {
+continue;
 		len = ir_read(0, &data, 1);
 		if (len != 1) break;
 		printf("[%02d] %d\n", i, data);

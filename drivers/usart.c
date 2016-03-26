@@ -214,10 +214,14 @@ static size_t usart_write(struct file *file, void *buf, size_t len)
 	}
 
 	size_t (*f)(struct file *file, void *data);
+#if ((SOC == bcm2835) || (SOC == bcm2836))
+	f = usart_write_polling;
+#else
 	if (file->flags & O_NONBLOCK)
 		f = usart_write_polling;
 	else
 		f = usart_write_int;
+#endif
 
 	/* child takes place from here turning to kernel task,
 	 * nomore in handler mode */

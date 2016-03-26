@@ -1,5 +1,6 @@
 #include "rt.h"
 #include <kernel/task.h>
+#include <io.h>
 
 static struct list rts_rq[RT_PRIORITY+1];
 
