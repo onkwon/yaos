@@ -1,5 +1,61 @@
 #include <string.h>
 
+double atof(const char *s)
+{
+	double v;
+	int integer, decimal, *p;
+	unsigned int ndigit;
+	int sign;
+
+	integer = decimal = 0;
+	ndigit  = 1;
+	sign    = 1;
+
+	if (*s == '-') {
+		sign = -1;
+		s++;
+	}
+
+	for (p = &integer; *s; s++) {
+		if (*s == '.') {
+			p = &decimal;
+			ndigit = 1;
+			continue;
+		}
+
+		*p *= 10;
+		*p += *s - '0';
+		ndigit *= 10;
+	}
+
+	v = (double)integer;
+
+	if (decimal)
+		v += (double)decimal / ndigit;
+
+	return v * sign;
+}
+
+int strtoi(const char *s, int base)
+{
+	unsigned int digit;
+	int v = 0;
+
+	while (*s) {
+		digit = *s - '0';
+
+		if (digit > ('Z' - '0')) /* lower case */
+			digit = *s - 'a' + 10;
+		else if (digit > 9) /* upper case */
+			digit = *s - 'A' + 10;
+
+		v = v * base + digit;
+		s++;
+	}
+
+	return v;
+}
+
 char *itoa(int v, char *buf, unsigned int base, size_t n)
 {
 	char *s;

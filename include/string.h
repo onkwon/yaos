@@ -7,7 +7,9 @@
 			c >= 'A' && c <= 'F'? c - 55 : c - '0')
 
 char *itoa(int v, char *buf, unsigned int base, size_t n);
+int strtoi(const char *s, int base);
 int atoi(const char *s);
+double atof(const char *s);
 int strncmp(const char *s1, const char *s2, size_t n);
 int strcmp(const char *s1, const char *s2);
 char *strncpy(char *d, const char *s, size_t n);
