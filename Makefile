@@ -127,10 +127,7 @@ rpi2:
 TTY = /dev/tty.SLAB_USBtoUART
 .PHONY: burn
 burn:
-	tools/stm32flash/stm32flash -w $(PROJECT:%=%.bin) -v -b 115200 $(TTY)
-.PHONY: dev
-dev:
-	tools/stm32flash/stm32flash -b 115200 $(TTY)
+	st-flash --reset write $(PROJECT:%=%.bin) 0x08000000
 .PHONY: term
 term:
 	minicom -D $(TTY)

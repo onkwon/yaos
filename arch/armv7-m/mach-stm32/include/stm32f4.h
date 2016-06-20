@@ -53,6 +53,10 @@
 	FLASH_KEYR = 0x45670123; /* KEY1 */ \
 	FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
 }
+#define FLASH_UNLOCK_OPTPG() { \
+	FLASH_OPTKEYR = 0x08192a3b; /* KEY1 */ \
+	FLASH_OPTKEYR = 0x4c5d6e7f; /* KEY2 */ \
+}
 		
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40023800)
