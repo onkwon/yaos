@@ -7,8 +7,9 @@
 	__asm__ __volatile__(						\
 			"cpsie i	\n\t"				\
 			"isb		\n\t"				\
-			::: "memory")
-#define __cli()			__asm__ __volatile__("cpsid i" ::: "memory")
+			::: "cc", "memory")
+#define __cli()								\
+	__asm__ __volatile__("cpsid i" ::: "cc", "memory")
 
 #define __dmb()			__asm__ __volatile__("dmb" ::: "memory")
 #define __dsb()			__asm__ __volatile__("dsb" ::: "memory")
