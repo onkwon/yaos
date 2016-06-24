@@ -22,7 +22,7 @@ static inline void update_curr()
 	uint64_t clock = get_systick64();
 	unsigned int delta_exec;
 
-	/* if delta_exec zero, runtime is finer than clolck(HZ) granularity */
+	/* if delta_exec zero, runtime is finer than clock(HZ) granularity */
 	delta_exec = clock - current->se.exec_start;
 	current->se.vruntime += delta_exec;
 	current->se.sum_exec_runtime += delta_exec;
