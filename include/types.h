@@ -12,7 +12,7 @@
 #define OFF				0
 #define DISABLE				0
 
-typedef enum {FALSE = 0, TRUE = 1} bool;
+typedef enum {false = 0, true = 1} bool;
 typedef unsigned short int refcnt_t;
 typedef unsigned short int mode_t;
 typedef volatile int lock_t;
@@ -25,13 +25,13 @@ typedef struct list buf_t;
 #define WORD_SIZE			sizeof(int)
 #define WORD_BITS			(WORD_SIZE << 3)
 
-#define WORD_BASE(x)			((unsigned int)(x) & ~(WORD_SIZE-1))
+#define BASE_WORD(x)			((unsigned int)(x) & ~(WORD_SIZE-1))
 #define ALIGN_WORD(x)			\
-	WORD_BASE((unsigned int)(x) + (WORD_SIZE-1))
-#define DWORD_BASE(x)			\
+	BASE_WORD((unsigned int)(x) + (WORD_SIZE-1))
+#define BASE_DWORD(x)			\
 	((unsigned int)(x) & ~((WORD_SIZE << 1) - 1))
 #define ALIGN_DWORD(x)			\
-	DWORD_BASE((unsigned int)(x) + ((WORD_SIZE << 1) - 1))
+	BASE_DWORD((unsigned int)(x) + ((WORD_SIZE << 1) - 1))
 #define BLOCK_BASE(x, size)		\
 	((unsigned int)(x) & ~((size)-1))
 #define ALIGN_BLOCK(x, size)		\

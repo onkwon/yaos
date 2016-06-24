@@ -113,7 +113,7 @@ static int flash_seek(struct file *file, unsigned int offset, int whence)
 	case SEEK_END:
 		dev = getdev(file->inode->dev);
 		end = dev->block_size * dev->nr_blocks - 1;
-		end = WORD_BASE(end + dev->base_addr);
+		end = BASE_WORD(end + dev->base_addr);
 
 		if (end - offset < dev->base_addr)
 			return -ERR_RANGE;
@@ -128,13 +128,13 @@ static int flash_seek(struct file *file, unsigned int offset, int whence)
 static size_t __attribute__((section(".iap")))
 __flash_write(void *addr, void *buf, size_t len)
 {
-	unsigned int *temp, *data, *to;
+	unsigned int *tmp, *data, *to;
 	unsigned int index, sentinel;
 
-	if ((temp = kmalloc(BLOCK_SIZE)) == NULL)
+	if ((tmp = kmalloc(BLOCK_SIZE)) == NULL)
 		return -ERR_ALLOC;
 
-	len  = WORD_BASE(len); /* to prevent underflow */
+	len  = BASE_WORD(len); /* to prevent underflow */
 	data = (unsigned int *)buf;
 	to   = (unsigned int *)addr;
 	sentinel = 0;
@@ -150,12 +150,12 @@ __flash_write(void *addr, void *buf, size_t len)
 			sentinel /= WORD_SIZE;
 
 			to = (unsigned int *)BLOCK_BASE(to, BLOCK_SIZE);
-			__flash_read(to, temp, BLOCK_SIZE);
+			__flash_read(to, tmp, BLOCK_SIZE);
 			flash_erase(to);
 		}
 
 		while (sentinel) {
-			WRITE_WORD(to, temp[index]);
+			WRITE_WORD(to, tmp[index]);
 #if (SOC == stm32f1)
 			if (FLASH_SR & 0x14) goto out;
 #elif (SOC == stm32f4)
@@ -180,7 +180,7 @@ __flash_write(void *addr, void *buf, size_t len)
 	}
 
 	while (index < BLOCK_LEN) {
-		WRITE_WORD(to, temp[index]);
+		WRITE_WORD(to, tmp[index]);
 #if (SOC == stm32f1)
 		if (FLASH_SR & 0x14) goto out;
 #elif (SOC == stm32f4)
@@ -195,7 +195,7 @@ out:
 	FLASH_LOCK();
 	spin_unlock(wlock);
 
-	kfree(temp);
+	kfree(tmp);
 
 	if (len || (index != BLOCK_LEN)) {
 		unsigned int errcode;
