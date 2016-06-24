@@ -1,8 +1,6 @@
 #ifndef __ARMv7M_INTERRUPT_H__
 #define __ARMv7M_INTERRUPT_H__
 
-#define IRQ_SYSTICK		15
-
 #define __sei()								\
 	__asm__ __volatile__(						\
 			"cpsie i	\n\t"				\
@@ -21,13 +19,13 @@
 	__asm__ __volatile__(						\
 			"msr primask, %0	\n\t"			\
 			"isb			\n\t"			\
-			:: "r"(flag) : "memory")
+			:: "r"(flag) : "cc", "memory")
 
 #define __get_active_irq()	(GET_PSR() & 0x1ff)
 
-#define __nop()			__asm__ __volatile__("nop" ::: "memory")
+#define __nop()			__asm__ __volatile__("nop")
 
-#define __ret()			__asm__ __volatile__("bx lr" ::: "memory")
+#define __ret()			__asm__ __volatile__("bx lr")
 #define __ret_from_exc(offset)
 
 int register_isr(unsigned int nvector, void (*func)());
@@ -81,11 +79,11 @@ void nvic_set_pri(unsigned int nirq, unsigned int pri);
 		:: "r"(addr) : "memory");				\
 })
 #define SET_SP(sp)							\
-	__asm__ __volatile__("mov sp, %0" :: "r"(sp) : "memory")
+	__asm__ __volatile__("mov sp, %0" :: "r"(sp))
 #define SET_KSP(sp)							\
-	__asm__ __volatile__("msr msp, %0" :: "r"(sp) : "memory")
+	__asm__ __volatile__("msr msp, %0" :: "r"(sp))
 #define SET_USP(sp)							\
-	__asm__ __volatile__("msr psp, %0" :: "r"(sp) : "memory")
+	__asm__ __volatile__("msr psp, %0" :: "r"(sp))
 #define __set_usp(sp)		SET_USP(sp)
 #define __set_ksp(sp)		SET_KSP(sp)
 #define __get_ret_addr()	GET_LR()

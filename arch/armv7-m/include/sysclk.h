@@ -3,6 +3,8 @@
 
 #include <io.h>
 
+#define IRQ_SYSTICK		15
+
 /* Systick */
 #define SYSTICK_INT		2
 #define SYSTICK_FLAG()		(STK_CTRL & 0x10000)
