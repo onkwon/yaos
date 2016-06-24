@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include "embedfs.h"
 
-static size_t read_block(unsigned int nr, void *buf, const struct device *dev)
+static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 {
 	unsigned int disk_block, fs_block, offset;
 
@@ -34,7 +34,7 @@ static size_t read_block(unsigned int nr, void *buf, const struct device *dev)
 }
 
 static size_t write_block(unsigned int nr, void *buf, size_t len,
-		const struct device *dev)
+		struct device *dev)
 {
 	unsigned int disk_block, fs_block, offset;
 
@@ -61,7 +61,7 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 }
 
 static int read_superblock(struct embed_superblock *sb,
-		const struct device *dev)
+		struct device *dev)
 {
 	char *buf;
 
@@ -76,22 +76,22 @@ static int read_superblock(struct embed_superblock *sb,
 }
 
 static void write_superblock(struct embed_superblock *sb,
-		const struct device *dev)
+		struct device *dev)
 {
 	write_block(SUPERBLOCK, sb, sizeof(struct embed_superblock), dev);
 }
 
-static void read_inode_bitmap(char *bitmap, const struct device *dev)
+static void read_inode_bitmap(char *bitmap, struct device *dev)
 {
 	read_block(I_BMAP_BLK, bitmap, dev);
 }
 
-static void write_inode_bitmap(char *bitmap, const struct device *dev)
+static void write_inode_bitmap(char *bitmap, struct device *dev)
 {
 	write_block(I_BMAP_BLK, bitmap, BLOCK_SIZE, dev);
 }
 
-static unsigned int alloc_free_inode(const struct device *dev)
+static unsigned int alloc_free_inode(struct device *dev)
 {
 	struct embed_superblock *sb;
 	unsigned int i, bit, n, len;
@@ -142,7 +142,7 @@ err_alloc:
 	return 0;
 }
 
-static unsigned int alloc_free_block(const struct device *dev)
+static unsigned int alloc_free_block(struct device *dev)
 {
 	struct embed_superblock *sb;
 	char *bitmap;
@@ -204,7 +204,7 @@ err_alloc:
 }
 
 static int update_inode_table(struct embed_inode *inode,
-		const struct device *dev)
+		struct device *dev)
 {
 	struct embed_superblock *sb;
 	char *buf;
@@ -248,7 +248,7 @@ err_alloc:
 	return -ERR_ALLOC;
 }
 
-static inline unsigned int alloc_zeroed_free_block(const struct device *dev)
+static inline unsigned int alloc_zeroed_free_block(struct device *dev)
 {
 	unsigned int nblock;
 	char *buf;
@@ -267,7 +267,7 @@ out:
 }
 
 static inline unsigned int check_n_alloc_block(unsigned int nblock,
-		unsigned int index, const struct device *dev)
+		unsigned int index, struct device *dev)
 {
 	char *buf;
 
@@ -293,7 +293,7 @@ out:
 }
 
 static inline unsigned int get_data_block(struct embed_inode *inode,
-		unsigned int offset, const struct device *dev)
+		unsigned int offset, struct device *dev)
 {
 	unsigned int nblock, nr_entry, idx1, idx2, idx3;
 
@@ -350,7 +350,7 @@ static inline unsigned int get_data_block(struct embed_inode *inode,
 }
 
 static int write_data_block(struct embed_inode *inode, const void *data,
-		size_t len, const struct device *dev)
+		size_t len, struct device *dev)
 {
 	unsigned int nblk, prev, offset;
 	char *buf, *src;
@@ -399,7 +399,7 @@ static int write_data_block(struct embed_inode *inode, const void *data,
 }
 
 static int read_data_block(struct embed_inode *inode, unsigned int offset,
-		void *buf, size_t len, const struct device *dev)
+		void *buf, size_t len, struct device *dev)
 {
 	unsigned int nblk;
 	char *s, *d, *t;
@@ -422,7 +422,7 @@ static int read_data_block(struct embed_inode *inode, unsigned int offset,
 	return (int)((unsigned int)d - (unsigned int)buf);
 }
 
-static unsigned int make_node(mode_t mode, const struct device *dev)
+static unsigned int make_node(mode_t mode, struct device *dev)
 {
 	unsigned int inode, i;
 	struct embed_inode *new;
@@ -446,7 +446,7 @@ static unsigned int make_node(mode_t mode, const struct device *dev)
 	return inode;
 }
 
-static int read_inode(struct embed_inode *inode, const struct device *dev)
+static int read_inode(struct embed_inode *inode, struct device *dev)
 {
 	struct embed_superblock *sb;
 	unsigned int nblock, offset;
@@ -505,7 +505,7 @@ static size_t tok_strlen(const char *s, const char token)
 }
 
 static const char *lookup(struct embed_inode *inode, const char *pathname,
-		const struct device *dev)
+		struct device *dev)
 {
 	struct embed_dir *dir;
 	struct embed_inode *curr;
@@ -585,7 +585,7 @@ err_alloc:
 }
 
 static int create_file(const char *filename, mode_t mode,
-		struct embed_inode *parent, const struct device *dev)
+		struct embed_inode *parent, struct device *dev)
 {
 	struct embed_dir *dir;
 	unsigned int inode_new;
@@ -885,7 +885,7 @@ errout:
 	inode->fop = NULL;
 }
 
-static int build_file_system(const struct device *dev)
+static int build_file_system(struct device *dev)
 {
 	unsigned int disk_size, nr_inodes;
 
@@ -1005,7 +1005,7 @@ err_alloc:
 	return -ERR_ALLOC;
 }
 
-int embedfs_mount(const struct device *dev)
+int embedfs_mount(struct device *dev)
 {
 	unsigned int end;
 	end = dev->block_size * dev->nr_blocks + dev->base_addr - 1;
@@ -1045,7 +1045,7 @@ static struct super_operations super_ops = {
 	.mount = embedfs_mount,
 };
 
-static int read_super(struct superblock *sb, const struct device *dev)
+static int read_super(struct superblock *sb, struct device *dev)
 {
 	/* no need to read from disk because the root inode is always zero */
 	sb->root_inode = 0;

@@ -146,7 +146,7 @@ struct file_system_type *get_file_system(const char *name)
 
 static DEFINE_LIST_HEAD(sblist);
 
-int mount(const struct device *dev, const char *mnt_point, const char *fs_type)
+int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 {
 	/* check if the same mount point exists */
 
@@ -218,7 +218,7 @@ struct superblock *search_super(const char *pathname)
 #include "ramfs.h"
 #include "embedfs.h"
 
-const struct device *devfs;
+struct device *devfs;
 
 void __init fs_init()
 {

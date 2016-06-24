@@ -6,21 +6,19 @@
 #include <stdlib.h>
 #include "ramfs.h"
 
-static void read_superblock(struct ramfs_superblock *sb,
-		const struct device *dev)
+static void read_superblock(struct ramfs_superblock *sb, struct device *dev)
 {
 	memcpy(sb, (void *)dev->base_addr, sizeof(struct ramfs_superblock));
 }
 
-static void write_superblock(struct ramfs_superblock *sb,
-		const struct device *dev)
+static void write_superblock(struct ramfs_superblock *sb, struct device *dev)
 {
 	memcpy((void *)dev->base_addr, sb, sizeof(struct ramfs_superblock));
 }
 
 #include <lib/firstfit.h>
 
-static void *ramfs_malloc(size_t size, const struct device *dev)
+static void *ramfs_malloc(size_t size, struct device *dev)
 {
 	struct ramfs_superblock sb;
 	unsigned int *head;
@@ -41,7 +39,7 @@ static void *ramfs_malloc(size_t size, const struct device *dev)
 	return addr;
 }
 
-static void ramfs_free(void *addr, const struct device *dev)
+static void ramfs_free(void *addr, struct device *dev)
 {
 	struct ramfs_superblock sb;
 	unsigned int *head;
@@ -59,7 +57,7 @@ static void ramfs_free(void *addr, const struct device *dev)
 	/* unlock superblock */
 }
 
-static struct ramfs_inode *ramfs_mknod(mode_t mode, const struct device *dev)
+static struct ramfs_inode *ramfs_mknod(mode_t mode, struct device *dev)
 {
 	struct ramfs_inode *new;
 	unsigned int i;
@@ -87,7 +85,7 @@ static struct ramfs_inode *ramfs_mknod(mode_t mode, const struct device *dev)
 	((unsigned int *)&((unsigned int *)(blk))[offset])
 
 static inline unsigned int *get_data_block(struct ramfs_inode *inode,
-		unsigned int offset, const struct device *dev)
+		unsigned int offset, struct device *dev)
 {
 	unsigned int index, nr_entry;
 	unsigned int *blk;
@@ -140,7 +138,7 @@ static inline unsigned int *get_data_block(struct ramfs_inode *inode,
 }
 
 static int write_block(struct ramfs_inode *inode, void *data, size_t len,
-		const struct device *dev)
+		struct device *dev)
 {
 	char *d, *s = (char *)data;
 	unsigned int *blk, offset;
@@ -177,7 +175,7 @@ static int write_block(struct ramfs_inode *inode, void *data, size_t len,
 }
 
 static size_t read_block(struct ramfs_inode *inode, unsigned int offset,
-		void *buf, size_t len, const struct device *dev)
+		void *buf, size_t len, struct device *dev)
 {
 	unsigned int *blk;
 	char *s, *d;
@@ -218,7 +216,7 @@ static size_t tok_strlen(const char *s, const char token)
 }
 
 static const char *lookup(struct ramfs_inode **inode, const char *pathname,
-		const struct device *dev)
+		struct device *dev)
 {
 	struct ramfs_inode *curr;
 	struct ramfs_dir dir;
@@ -267,8 +265,7 @@ static const char *lookup(struct ramfs_inode **inode, const char *pathname,
 	return pathname + i;
 }
 
-static int create_file(const char *pathname, mode_t mode,
-		const struct device *dev)
+static int create_file(const char *pathname, mode_t mode, struct device *dev)
 {
 	struct ramfs_inode *new, *parent;
 	struct ramfs_dir dir;
@@ -365,7 +362,7 @@ static void ramfs_read_inode(struct inode *inode)
 	inode->fop = &fops;
 }
 
-static int ramfs_mount(const struct device *dev)
+static int ramfs_mount(struct device *dev)
 {
 	return 0;
 }
@@ -413,7 +410,7 @@ struct device *ramfs_build(size_t size, const char *name)
 	return dev;
 }
 
-static int read_super(struct superblock *sb, const struct device *dev)
+static int read_super(struct superblock *sb, struct device *dev)
 {
 	struct ramfs_superblock fs_sb;
 

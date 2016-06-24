@@ -15,7 +15,7 @@ struct superblock;
 struct device;
 struct file_system_type {
 	const char *name;
-	int (*read_super)(struct superblock *sb, const struct device *dev);
+	int (*read_super)(struct superblock *sb, struct device *dev);
 	struct file_system_type *next;
 };
 
@@ -32,7 +32,7 @@ struct superblock {
 
 	struct super_operations *op;
 
-	const struct device *dev; /* associated block device */
+	struct device *dev; /* associated block device */
 	const struct file_system_type *type;
 
 	struct list list; /* list of all superblocks */
@@ -41,7 +41,7 @@ struct superblock {
 struct inode;
 struct super_operations {
 	void (*read_inode)(struct inode *inode);
-	int (*mount)(const struct device *dev);
+	int (*mount)(struct device *dev);
 };
 
 struct file;
@@ -124,7 +124,7 @@ struct file *getfile(int fd);
 struct inode *iget(struct superblock *sb, unsigned int id);
 void iput(struct inode *inode);
 
-int mount(const struct device *dev, const char *mnt_point, const char *fs_type);
+int mount(struct device *dev, const char *mnt_point, const char *fs_type);
 struct superblock *search_super(const char *pathname);
 
 void fs_init();
