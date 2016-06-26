@@ -7,7 +7,7 @@
 #define stm32f4	2
 #endif
 
-static DEFINE_SPINLOCK(gpio_irq_lock);
+DEFINE_SPINLOCK(gpio_irq_lock);
 static DEFINE_SPINLOCK(gpio_init_lock);
 
 #define calc_port(i)		(i / PINS_PER_PORT)
@@ -45,7 +45,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 	port = calc_port(index);
 	pin  = calc_pin(index);
 
-	spin_lock_irqsave(gpio_init_lock, irqflag);
+	spin_lock_irqsave(&gpio_init_lock, irqflag);
 
 #if (SOC == stm32f1)
 	SET_CLOCK_APB2(ENABLE, port + 2);
@@ -144,7 +144,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		link_exti_to_nvic(calc_port(index), pin);
 	}
 
-	spin_unlock_irqrestore(gpio_init_lock, irqflag);
+	spin_unlock_irqrestore(&gpio_init_lock, irqflag);
 
 	return vector;
 }

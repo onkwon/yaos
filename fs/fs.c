@@ -18,9 +18,9 @@ unsigned int mkfile(struct file *file)
 	memcpy(new, file, sizeof(struct file));
 
 	unsigned int irqflag;
-	spin_lock_irqsave(fdtable_lock, irqflag);
+	spin_lock_irqsave(&fdtable_lock, irqflag);
 	list_add(&new->list, &fdtable);
-	spin_unlock_irqrestore(fdtable_lock, irqflag);
+	spin_unlock_irqrestore(&fdtable_lock, irqflag);
 
 	return (unsigned int)new;
 }
@@ -28,14 +28,14 @@ unsigned int mkfile(struct file *file)
 void rmfile(struct file *file)
 {
 	unsigned int irqflag;
-	spin_lock_irqsave(fdtable_lock, irqflag);
+	spin_lock_irqsave(&fdtable_lock, irqflag);
 	list_del(&file->list);
-	spin_unlock_irqrestore(fdtable_lock, irqflag);
+	spin_unlock_irqrestore(&fdtable_lock, irqflag);
 
 	if (--file->inode->count <= 0) {
-		spin_lock_irqsave(file->inode->lock, irqflag);
+		spin_lock_irqsave(&file->inode->lock, irqflag);
 		list_del(&file->inode->list);
-		spin_unlock_irqrestore(file->inode->lock, irqflag);
+		spin_unlock_irqrestore(&file->inode->lock, irqflag);
 		kfree(file->inode);
 	}
 
@@ -50,7 +50,7 @@ struct file *getfile(int fd)
 	unsigned int *addr = (unsigned int *)fd;
 
 	unsigned int irqflag;
-	spin_lock_irqsave(fdtable_lock, irqflag);
+	spin_lock_irqsave(&fdtable_lock, irqflag);
 
 	for (p = fdtable.next; p != &fdtable; p = p->next) {
 		file = get_container_of(p, struct file, list);
@@ -59,7 +59,7 @@ struct file *getfile(int fd)
 		else file = NULL;
 	}
 
-	spin_unlock_irqrestore(fdtable_lock, irqflag);
+	spin_unlock_irqrestore(&fdtable_lock, irqflag);
 
 	return file;
 }
@@ -81,9 +81,9 @@ struct inode *iget(struct superblock *sb, unsigned int id)
 	curr = head;
 
 	do {
-		read_lock(lock_itab);
+		read_lock(&lock_itab);
 		curr = curr->next;
-		read_unlock(lock_itab);
+		read_unlock(&lock_itab);
 
 		if (curr == head) {
 			inode = NULL;
@@ -100,9 +100,9 @@ void iput(struct inode *inode)
 {
 	struct list *head = &itab[hash(inode->addr, HASH_SHIFT)];
 
-	write_lock(lock_itab);
+	write_lock(&lock_itab);
 	list_add(&inode->list, head);
-	write_unlock(lock_itab);
+	write_unlock(&lock_itab);
 }
 
 static void itab_init()

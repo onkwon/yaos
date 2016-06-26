@@ -107,10 +107,10 @@ static void unlink_task(struct task *task)
 	list_del(&task->sibling);
 
 	/* add it to zombie list */
-	spin_lock(zombie_lock);
+	spin_lock(&zombie_lock);
 	task->addr = zombie;
 	zombie = (unsigned int *)task;
-	spin_unlock(zombie_lock);
+	spin_unlock(&zombie_lock);
 
 	set_task_state(task, TASK_ZOMBIE);
 
@@ -149,10 +149,10 @@ unsigned int kill_zombie()
 	unsigned int irqflag, cnt;
 
 	for (cnt = 0; zombie; cnt++) {
-		spin_lock_irqsave(zombie_lock, irqflag);
+		spin_lock_irqsave(&zombie_lock, irqflag);
 		task = (struct task *)zombie;
 		zombie = task->addr;
-		spin_unlock_irqrestore(zombie_lock, irqflag);
+		spin_unlock_irqrestore(&zombie_lock, irqflag);
 		destroy(task);
 	}
 

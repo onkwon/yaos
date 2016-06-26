@@ -12,6 +12,8 @@
 #define OFF				0
 #define DISABLE				0
 
+#define UNLOCKED			1
+
 typedef enum {false = 0, true = 1} bool;
 typedef unsigned short int refcnt_t;
 typedef unsigned short int mode_t;

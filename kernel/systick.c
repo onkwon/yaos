@@ -25,9 +25,9 @@ static inline void update_tick(unsigned int delta)
 {
 	unsigned int irqflag;
 
-	spin_lock_irqsave(lock_systick64, irqflag);
+	spin_lock_irqsave(&lock_systick64, irqflag);
 	systick64 += delta;
-	spin_unlock_irqrestore(lock_systick64, irqflag);
+	spin_unlock_irqrestore(&lock_systick64, irqflag);
 }
 
 static void isr_systick()

@@ -16,9 +16,9 @@ static inline void ret_from_gpio_int(unsigned int n)
 
 	unsigned int pin = n % PINS_PER_PORT;
 
-	spin_lock_irqsave(gpio_irq_lock, irqflag);
+	spin_lock_irqsave(&gpio_irq_lock, irqflag);
 	EXTI_PR |= 1 << pin;
-	spin_unlock_irqrestore(gpio_irq_lock, irqflag);
+	spin_unlock_irqrestore(&gpio_irq_lock, irqflag);
 }
 
 #endif /* __STM32_GPIO_H__ */

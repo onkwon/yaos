@@ -231,11 +231,11 @@ size_t printk(const char *format, ...)
 
 	extern void __putc_debug(int c);
 	size_t retval;
-	void (*temp)(int) = putchar;
+	void (*tmp)(int) = putchar;
 
 	putchar = __putc_debug;
 	retval = print(0, 0, -1, (int *)&format);
-	putchar = temp;
+	putchar = tmp;
 
 	return retval;
 }

@@ -139,7 +139,7 @@ __flash_write(void *addr, void *buf, size_t len)
 	to   = (unsigned int *)addr;
 	sentinel = 0;
 
-	spin_lock(wlock);
+	spin_lock(&wlock);
 	FLASH_UNLOCK();
 
 	for (index = BLOCK_LEN; len; len -= WORD_SIZE) {
@@ -193,7 +193,7 @@ __flash_write(void *addr, void *buf, size_t len)
 
 out:
 	FLASH_LOCK();
-	spin_unlock(wlock);
+	spin_unlock(&wlock);
 
 	kfree(tmp);
 

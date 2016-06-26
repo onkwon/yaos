@@ -29,22 +29,22 @@
 #ifdef CONFIG_DEBUG
 #define debug(lv, fmt...)	do {					\
 	extern void __putc_debug(int c);				\
-	void (*temp)(int) = putchar;					\
+	void (*tmp)(int) = putchar;					\
 	putchar = __putc_debug;						\
 	printk("%04x %s:%s():%d: ", lv, __FILE__, __func__, __LINE__);	\
 	printk(fmt);							\
 	printk("\n");							\
-	putchar = temp;							\
+	putchar = tmp;							\
 } while (0)
 #else
 #define debug(lv, fmt...)	do {					\
 	if (lv <= MSG_SYSTEM) {						\
 		extern void __putc_debug(int c);			\
-		void (*temp)(int) = putchar;				\
+		void (*tmp)(int) = putchar;				\
 		putchar = __putc_debug;					\
 		printk(fmt);						\
 		printk("\n");						\
-		putchar = temp;						\
+		putchar = tmp;						\
 	} else if (lv == MSG_USER) {					\
 		printf("%04x %s:%s():%d: ", lv, __FILE__, __func__, __LINE__); \
 		putchar('\n');						\

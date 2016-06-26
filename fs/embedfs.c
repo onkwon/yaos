@@ -705,9 +705,9 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 
 	if (inode->size > size) {
 		unsigned int irqflag;
-		spin_lock_irqsave(file->inode->lock, irqflag);
+		spin_lock_irqsave(&file->inode->lock, irqflag);
 		file->inode->size = inode->size;
-		spin_unlock_irqrestore(file->inode->lock, irqflag);
+		spin_unlock_irqrestore(&file->inode->lock, irqflag);
 	}
 
 out:

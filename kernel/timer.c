@@ -21,7 +21,7 @@ static inline int __add_timer(struct timer *new)
 	new->task = current;
 
 	unsigned int irqflag;
-	spin_lock_irqsave(timerq.lock, irqflag);
+	spin_lock_irqsave(&timerq.lock, irqflag);
 
 	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
 		if (((int)new->expires - stamp) <
@@ -35,7 +35,7 @@ static inline int __add_timer(struct timer *new)
 	list_add(&new->list, curr->prev);
 	timerq.nr++;
 
-	spin_unlock_irqrestore(timerq.lock, irqflag);
+	spin_unlock_irqrestore(&timerq.lock, irqflag);
 
 	return 0;
 }
@@ -82,10 +82,10 @@ infinite:
 		} else if (tid != 0) /* error if not parent */
 			break;
 
-		spin_lock_irqsave(timerq, irqflag);
+		spin_lock_irqsave(&timerq.lock, irqflag);
 		list_del(curr);
 		timerq.nr--;
-		spin_unlock_irqrestore(timerq, irqflag);
+		spin_unlock_irqrestore(&timerq.lock, irqflag);
 	}
 
 	yield();

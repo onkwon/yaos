@@ -165,13 +165,13 @@ static size_t clcd_write_core(struct file *file, void *buf, size_t len)
 	char *src = buf;
 	unsigned int i;
 
-	mutex_lock(dev->lock);
+	mutex_lock(&dev->mutex);
 	for (i = 0; i < len; i++) {
 		while (fifo_put(&queue, src[i], 1) < 0)
 			fifo_get(&queue, 1);
 		clcd_print();
 	}
-	mutex_unlock(dev->lock);
+	mutex_unlock(&dev->mutex);
 
 	return i;
 }
@@ -221,7 +221,7 @@ static int clcd_open(struct inode *inode, struct file *file)
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
-	mutex_lock(dev->lock);
+	mutex_lock(&dev->mutex);
 
 	if (dev->count++ == 0) {
 		void *buf;
@@ -244,7 +244,7 @@ static int clcd_open(struct inode *inode, struct file *file)
 	}
 
 out:
-	mutex_unlock(dev->lock);
+	mutex_unlock(&dev->mutex);
 
 	return err;
 }
@@ -256,13 +256,13 @@ static int clcd_close(struct file *file)
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
-	mutex_lock(dev->lock);
+	mutex_lock(&dev->mutex);
 
 	if (--dev->count == 0) {
 		kfree(queue.buf);
 	}
 
-	mutex_unlock(dev->lock);
+	mutex_unlock(&dev->mutex);
 
 	return 0;
 }

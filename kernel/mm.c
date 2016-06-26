@@ -89,9 +89,9 @@ void *kmalloc(size_t size)
 	unsigned int irqflag;
 
 retry:
-	spin_lock_irqsave(mem_lock, irqflag);
+	spin_lock_irqsave(&mem_lock, irqflag);
 	p = ff_alloc(&mem_map, size);
-	spin_unlock_irqrestore(mem_lock, irqflag);
+	spin_unlock_irqrestore(&mem_lock, irqflag);
 
 	if (p == NULL) {
 		debug(MSG_DEBUG, "Low memory");
@@ -111,9 +111,9 @@ void kfree(void *addr)
 
 	if (!addr) return;
 
-	spin_lock_irqsave(mem_lock, irqflag);
+	spin_lock_irqsave(&mem_lock, irqflag);
 	ff_free(&mem_map, addr);
-	spin_unlock_irqrestore(mem_lock, irqflag);
+	spin_unlock_irqrestore(&mem_lock, irqflag);
 }
 
 void __init free_bootmem()

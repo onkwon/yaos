@@ -21,9 +21,9 @@ struct device *getdev(dev_t id)
 	curr = head;
 
 	do {
-		read_lock(lock_devtab);
+		read_lock(&lock_devtab);
 		curr = curr->next;
-		read_unlock(lock_devtab);
+		read_unlock(&lock_devtab);
 
 		if (curr == head) {
 			dev = NULL;
@@ -40,9 +40,9 @@ void linkdev(dev_t id, struct device *new)
 {
 	struct list *head = &devtab[hash(id, HASH_SHIFT)];
 
-	write_lock(lock_devtab);
+	write_lock(&lock_devtab);
 	list_add(&new->link, head);
-	write_unlock(lock_devtab);
+	write_unlock(&lock_devtab);
 }
 
 #include <string.h>
@@ -61,9 +61,9 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 			goto err;
 
 		unsigned int irqflag;
-		spin_lock_irqsave(nr_lock, irqflag);
+		spin_lock_irqsave(&nr_lock, irqflag);
 		nr_device += 1;
-		spin_unlock_irqrestore(nr_lock, irqflag);
+		spin_unlock_irqrestore(&nr_lock, irqflag);
 
 		major = nr_device;
 	}
@@ -88,7 +88,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 	dev->count = 0;
 	dev->op = ops;
 	list_link_init(&dev->link);
-	INIT_MUTEX(dev->lock);
+	INIT_MUTEX(dev->mutex);
 
 	dev->block_size = 1;
 	dev->nr_blocks = 0;

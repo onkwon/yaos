@@ -14,7 +14,7 @@ unsigned int request_softirq(void (*func)())
 
 	unsigned int i;
 
-	mutex_lock(req_lock);
+	mutex_lock(&req_lock);
 	for (i = 0; i < SOFTIRQ_MAX; i++) {
 		if ((softirq.bitmap & (1 << i)) == 0) {
 			softirq.bitmap |= 1 << i;
@@ -22,7 +22,7 @@ unsigned int request_softirq(void (*func)())
 			break;
 		}
 	}
-	mutex_unlock(req_lock);
+	mutex_unlock(&req_lock);
 
 	return i;
 }
@@ -31,10 +31,10 @@ static inline unsigned int softirq_pending()
 {
 	unsigned int pending, irqflag;
 
-	spin_lock_irqsave(softirq.wlock, irqflag);
+	spin_lock_irqsave(&softirq.wlock, irqflag);
 	pending = softirq.pending;
 	softirq.pending = 0;
-	spin_unlock_irqrestore(softirq.wlock, irqflag);
+	spin_unlock_irqrestore(&softirq.wlock, irqflag);
 
 	return pending;
 }

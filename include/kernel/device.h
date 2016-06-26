@@ -18,7 +18,7 @@ struct device {
 	dev_t id; /* major & minor */
 	refcnt_t count;
 
-	mutex_t lock; /* to synchronize calls to its driver */
+	mutex_t mutex; /* to synchronize calls to its driver */
 
 	struct file_operations *op; /* remove this!! */
 

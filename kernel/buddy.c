@@ -22,7 +22,7 @@ void free_pages(struct buddy *pool, struct page *page)
 	debug(MSG_DEBUG, "free page 0x%08x", page->addr);
 
 	unsigned int irqflag;
-	spin_lock_irqsave(pool->lock, irqflag);
+	spin_lock_irqsave(&pool->lock, irqflag);
 
 	order    = GET_PAGE_ORDER(page);
 	freelist = &pool->free[order];
@@ -54,7 +54,7 @@ void free_pages(struct buddy *pool, struct page *page)
 
 	RESET_PAGE_FLAG(page, PAGE_BUDDY);
 
-	spin_unlock_irqrestore(pool->lock, irqflag);
+	spin_unlock_irqrestore(&pool->lock, irqflag);
 }
 
 struct page *alloc_pages(struct buddy *pool, unsigned int order)
@@ -65,7 +65,7 @@ struct page *alloc_pages(struct buddy *pool, unsigned int order)
 	unsigned int i;
 
 	unsigned int irqflag;
-	spin_lock_irqsave(pool->lock, irqflag);
+	spin_lock_irqsave(&pool->lock, irqflag);
 
 	freelist = &pool->free[order];
 	page = NULL;
@@ -107,7 +107,7 @@ struct page *alloc_pages(struct buddy *pool, unsigned int order)
 		}
 	}
 
-	spin_unlock_irqrestore(pool->lock, irqflag);
+	spin_unlock_irqrestore(&pool->lock, irqflag);
 
 	return page;
 }

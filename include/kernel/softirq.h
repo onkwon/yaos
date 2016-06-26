@@ -19,9 +19,9 @@ struct softirq softirq;
 static inline void raise_softirq(unsigned int nr)
 {
 	unsigned int irqflag;
-	spin_lock_irqsave(softirq.wlock, irqflag);
+	spin_lock_irqsave(&softirq.wlock, irqflag);
 	softirq.pending |= (1 << nr);
-	spin_unlock_irqrestore(softirq.wlock, irqflag);
+	spin_unlock_irqrestore(&softirq.wlock, irqflag);
 }
 
 struct task *softirqd;
