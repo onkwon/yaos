@@ -2,6 +2,7 @@
 
 double atof(const char *s)
 {
+#ifdef CONFIG_FLOAT
 	double v;
 	int integer, decimal, *p;
 	unsigned int ndigit;
@@ -34,6 +35,9 @@ double atof(const char *s)
 		v += (double)decimal / ndigit;
 
 	return v * sign;
+#else
+	return 0;
+#endif
 }
 
 int strtoi(const char *s, int base)
@@ -48,6 +52,9 @@ int strtoi(const char *s, int base)
 			digit = *s - 'a' + 10;
 		else if (digit > 9) /* upper case */
 			digit = *s - 'A' + 10;
+
+		if (digit >= base)
+			break;
 
 		v = v * base + digit;
 		s++;

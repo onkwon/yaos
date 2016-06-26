@@ -26,6 +26,9 @@ endif
 ifdef CONFIG_TIMER
 CFLAGS += -DCONFIG_TIMER
 endif
+ifdef CONFIG_FLOAT
+CFLAGS += -DCONFIG_FLOAT
+endif
 
 # Common 
 
