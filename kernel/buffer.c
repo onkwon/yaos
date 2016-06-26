@@ -35,8 +35,9 @@ static unsigned int getbuf_lru(buf_t *head, struct buffer_cache **buffer_cache)
 	struct buffer_cache *p;
 	struct device *dev;
 
-	if ((head == NULL) || (head->prev == head))
+	if ((head == NULL) || (head->prev == head)) {
 		return BUFFER_UNDEF;
+	}
 
 	dev = get_container_of(head, struct device, buffer);
 	p   = get_container_of(head->prev, struct buffer_cache, list);
@@ -44,7 +45,7 @@ static unsigned int getbuf_lru(buf_t *head, struct buffer_cache **buffer_cache)
 	/* to prevent corruption taking the same buffer as lru again
 	 * before previous process like copying data to user space gets done.
 	 * It must be unlocked by calling `putblk_unlock()`. */
-	mutex_lock(p->lock);
+	mutex_lock(&p->mutex);
 
 	nblock = p->nblock;
 	p->nblock = BUFFER_INITIAL; 
@@ -54,7 +55,7 @@ static unsigned int getbuf_lru(buf_t *head, struct buffer_cache **buffer_cache)
 	return nblock;
 }
 
-void *getblk_lock(unsigned int nblock_new, const struct device *dev)
+void *getblk_lock(unsigned int nblock_new, struct device *dev)
 {
 	struct buffer_cache *p;
 
@@ -67,19 +68,19 @@ void *getblk_lock(unsigned int nblock_new, const struct device *dev)
 		nblock_old += dev->base_addr;
 
 		if (p->dirty) { /* write back first */
-			mutex_lock(dev->lock);
+			mutex_lock(&dev->mutex);
 			dev->op->write((struct file *)&nblock_old,
 					p->buf, dev->block_size);
-			mutex_unlock(dev->lock);
+			mutex_unlock(&dev->mutex);
 		}
 
 		p->dirty = 0;
 		nblock_old = nblock_new + dev->base_addr;
 
-		mutex_lock(dev->lock);
+		mutex_lock(&dev->mutex);
 		dev->op->read((struct file *)&nblock_old,
 				p->buf, dev->block_size);
-		mutex_unlock(dev->lock);
+		mutex_unlock(&dev->mutex);
 	}
 
 	update_lru(p, dev->buffer);
@@ -88,21 +89,32 @@ void *getblk_lock(unsigned int nblock_new, const struct device *dev)
 	return (void *)p->buf;
 }
 
-void *getblk(unsigned int nblock, const struct device *dev)
+void *getblk(unsigned int nblock, struct device *dev)
 {
 	void *buf = getblk_lock(nblock, dev);
 	putblk_unlock(nblock, dev);
 	return buf;
 }
 
-void putblk_unlock(unsigned int nblock, const struct device *dev)
+void putblk_unlock(unsigned int nblock, struct device *dev)
 {
 	struct buffer_cache *buffer_cache;
-	if ((buffer_cache = getbuf(nblock, dev->buffer)))
-		mutex_unlock(buffer_cache->lock);
+	if ((buffer_cache = getbuf(nblock, dev->buffer))) {
+		/* TODO:
+		 * If previously buffer taken, gebuf_lru(), which is called
+		 * from getblk_lock(), doesn't need to get a buffer again.  So
+		 * I put here the condition not to manipulate lock in case of
+		 * it.
+		 *
+		 * But this kind of mechanism seems quite ugly. I want to get
+		 * back to improve this later */
+		if (is_locked(buffer_cache->mutex.count)) {
+			mutex_unlock(&buffer_cache->mutex);
+		}
+	}
 }
 
-void updateblk(unsigned int nblock, const struct device *dev)
+void updateblk(unsigned int nblock, struct device *dev)
 {
 	struct buffer_cache *buffer_cache;
 	if ((buffer_cache = getbuf(nblock, dev->buffer)))
@@ -117,7 +129,7 @@ static struct buffer_cache *mkbuf(unsigned short int block_size)
 		buffer_cache->nblock = BUFFER_INITIAL;
 		buffer_cache->dirty = 0;
 		list_link_init(&buffer_cache->list);
-		INIT_MUTEX(buffer_cache->lock);
+		INIT_MUTEX(buffer_cache->mutex);
 
 		if ((buffer_cache->buf = kmalloc(block_size)) == NULL) {
 			kfree(buffer_cache);
@@ -128,7 +140,7 @@ static struct buffer_cache *mkbuf(unsigned short int block_size)
 	return buffer_cache;
 }
 
-int __sync(const struct device *dev)
+int __sync(struct device *dev)
 {
 	/* read all devices */
 
@@ -146,10 +158,10 @@ int __sync(const struct device *dev)
 		if (p->dirty && (p->nblock != BUFFER_INITIAL)) {
 			nblock = p->nblock + dev->base_addr;
 
-			mutex_lock(dev->lock);
+			mutex_lock(&dev->mutex);
 			dev->op->write((struct file *)&nblock, p->buf
 					, dev->block_size);
-			mutex_unlock(dev->lock);
+			mutex_unlock(&dev->mutex);
 
 			p->dirty = 0;
 		}
@@ -199,7 +211,7 @@ void release_buffer(buf_t *head)
 		/* no need to unlock.
 		 * but what if a task came in waitqueue in the meantime?
 		 * the task would be hung forever. */
-		mutex_lock(p->lock);
+		mutex_lock(&p->mutex);
 		kfree(p->buf);
 		kfree(p);
 	}
