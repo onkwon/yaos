@@ -1,14 +1,6 @@
 #ifndef __ARMv7M_LOCK_H__
 #define __ARMv7M_LOCK_H__
 
-#include <types.h>
-#include <kernel/waitqueue.h>
-
-struct semaphore {
-	lock_t count;
-	struct waitqueue_head wq;
-};
-
 #define __ldrex(addr)				({	\
 	unsigned int __result = 0;			\
 	__asm__ __volatile__("ldrex %0, [%1]"		\

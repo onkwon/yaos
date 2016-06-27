@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <fs/fs.h>
+#include <kernel/lock.h>
 
 #define MINOR_BITS		16
 #define MAJOR_MASK		((1 << MINOR_BITS) - 1)

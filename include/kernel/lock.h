@@ -2,6 +2,12 @@
 #define __LOCK_H__
 
 #include <types.h>
+#include <kernel/waitqueue.h>
+
+struct semaphore {
+	lock_t count;
+	struct waitqueue_head wq;
+};
 
 #ifdef MACHINE
 #include <asm/lock.h>

@@ -1,68 +1,16 @@
 #ifndef __ARMv7A_LOCK_H__
 #define __ARMv7A_LOCK_H__
 
-/*
-#define spin_lock(count)					\
-	__asm__ __volatile__(					\
-		"try:"	"ldrex		r12, [%0]	\n\t"	\
-			"cmp		r12, #0		\n\t"	\
-			"subgt		r12, r12, #1	\n\t"	\
-			"strexgt	r12, r12, [%0]	\n\t"	\
-			"cmpgt		r12, #0		\n\t"	\
-			"bne		try		\n\t"	\
-			: "+r"(&count)				\
-			:: "r12", "memory")
-
-#define read_lock(count)					\
-	volatile int *p = &count;				\
-	__asm__ __volatile__(					\
-		"try:"	"ldrex		r12, [%0]	\n\t"	\
-			"cmp		r12, #0		\n\t"	\
-			"addgt		r12, r12, #1	\n\t"	\
-			"strexgt	r11, r12, [%0]	\n\t"	\
-			"cmpgt		r11, #0		\n\t"	\
-			"bne		try		\n\t"	\
-			: "+r"(p)				\
-			:: "r11", "r12", "memory")
-
-#define __ldrex(addr)				({	\
-	unsigned int __result = 0;			\
-	__asm__ __volatile__("ldrex %0, [%1]"		\
-		: "=r"(__result)			\
-		: "r"(addr)				\
-		: "memory");				\
-	__result;					\
-})
-
-#define __strex(value, addr)			({	\
-	unsigned int __result = 0;			\
-	__asm__ __volatile__("strex %0, %2, [%1]"	\
-		: "=r"(result)				\
-		: "r"(addr), "r"(value)			\
-		: "memory");				\
-	__result;					\
-})
-
-static inline int atomic_set(int *p, int v)
-{
-	int result;
-
-	__ldrex(p);
-	result = __strex(v, p);
-
-	return result;
-}
-*/
-
-/* It seems like the below instructions, ldrex and strex, don't work before
- * some condition matches. Should MMU be turned on to make it work? */
+/* FIXME:
+ * It seems like the instructions, ldrex and strex, don't work before some
+ * condition match? Should MMU be turned on to make it work? */
 #if 0
 #define __ldrex(addr)				({	\
 	unsigned int __result = 0;			\
 	__asm__ __volatile__("ldrex %0, [%1]"		\
 		: "=r"(__result)			\
 		: "r"(addr)				\
-		: "memory");				\
+		: "cc");				\
 	__result;					\
 })
 
@@ -70,17 +18,210 @@ static inline int atomic_set(int *p, int v)
 #define __strex(value, addr)			({	\
 	unsigned int __result = 0;			\
 	__asm__ __volatile__("strex %0, %2, [%1]"	\
-		: "=&r"(__result)			\
+		: "=r"(__result)			\
 		: "r"(addr), "r"(value)			\
-		: "memory");				\
+		: "cc");				\
 	__result;					\
 })
+
+static inline void semaphore_dec(struct semaphore *sem)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"cmp	%0, #0			\n\t"
+			"bgt	2f			\n\t"
+			"mov	r0, %3			\n\t"
+			"bl	sleep_in_waitqueue	\n\t"
+			"b	1b			\n\t"
+		"2:"	"sub	%0, #1			\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"cmp	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			"mcr	p15, 0, r0, c7, c10, 5	\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(&sem->count), "r"(&sem->wq)
+			: "r0", "lr", "cc", "memory");
+}
+
+static inline void semaphore_inc(struct semaphore *sem)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"add	%0, #1			\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"cmp	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			"cmp	%0, #0			\n\t"
+			"mcr	p15, 0, r0, c7, c10, 5	\n\t"
+			"itt	gt			\n\t"
+			"movgt	r0, %3			\n\t"
+			"blgt	shake_waitqueue_out	\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(&sem->count), "r"(&sem->wq)
+			: "r0", "lr", "cc", "memory");
+}
+
+static inline void lock_dec_spinning(lock_t *counter)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"cmp	%0, #0			\n\t"
+			"ble	1b			\n\t"
+			"sub	%0, %0, #1		\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"cmp	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			"mcr	p15, 0, r0, c7, c10, 5	\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(counter)
+			: "cc", "memory");
+}
+
+static inline void lock_inc_spinning(lock_t *counter)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"add	%0, %0, #1		\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"cmp	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			"mcr	p15, 0, r0, c7, c10, 5	\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(counter)
+			: "cc", "memory");
+}
+
+static inline void atomic_sub(int i, lock_t *counter)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"sub	%0, %0, %3		\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"teq	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(counter), "Ir"(i)
+			: "cc");
+}
+
+static inline void atomic_add(int i, lock_t *counter)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"add	%0, %0, %3		\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"teq	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(counter), "Ir"(i)
+			: "cc");
+}
+
+static inline void read_lock_spinning(lock_t *lock)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"cmp	%0, #0			\n\t"
+			"ble	1b			\n\t"
+			"add	%0, %0, #1		\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"cmp	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			"mcr	p15, 0, r0, c7, c10, 5	\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(lock)
+			: "cc", "memory");
+}
+
+static inline void write_lock_spinning(lock_t *lock)
+{
+	int count, result;
+
+	__asm__ __volatile__(
+		"1:"	"ldrex	%0, [%2]		\n\t"
+			"cmp	%0, %3			\n\t"
+			"bne	1b			\n\t"
+			"sub	%0, %0, #1		\n\t"
+			"strex	%1, %0, [%2]		\n\t"
+			"cmp	%1, #0			\n\t"
+			"bne	1b			\n\t"
+			"mcr	p15, 0, r0, c7, c10, 5	\n\t"
+			: "=&r"(count), "=&r"(result)
+			: "r"(lock), "I"(UNLOCKED)
+			: "cc", "memory");
+}
 #else
-#define __ldrex(addr)		(*(int *)(addr))
-#define __strex(value, addr)	({ \
-	*(int *)(addr) = value; \
-	0; \
-})
+static inline void semaphore_dec(struct semaphore *sem)
+{
+	extern void sleep_in_waitqueue(struct waitqueue_head *q);
+
+	while (sem->count <= 0) {
+		sleep_in_waitqueue(&sem->wq);
+	}
+
+	sem->count = sem->count - 1;
+}
+
+static inline void semaphore_inc(struct semaphore *sem)
+{
+	extern void shake_waitqueue_out(struct waitqueue_head *q);
+
+	sem->count = sem->count + 1;
+
+	if (sem->count > 0) {
+		shake_waitqueue_out(&sem->wq);
+	}
+}
+
+static inline void lock_dec_spinning(lock_t *counter)
+{
+	while (*counter <= 0) ;
+
+	*counter = *counter - 1;
+}
+
+static inline void lock_inc_spinning(lock_t *counter)
+{
+	*counter = *counter + 1;
+}
+
+static inline void atomic_sub(int i, lock_t *counter)
+{
+	*counter = *counter - i;
+}
+
+static inline void atomic_add(int i, lock_t *counter)
+{
+	*counter = *counter + i;
+}
+
+static inline void read_lock_spinning(lock_t *counter)
+{
+	while (*counter <= 0) ;
+
+	*counter = *counter + 1;
+}
+
+static inline void write_lock_spinning(lock_t *counter)
+{
+	while (*counter != UNLOCKED) ;
+
+	*counter = *counter - 1;
+}
 #endif
 
 #endif /* __ARMv7A_LOCK_H__ */
