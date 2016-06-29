@@ -61,7 +61,7 @@ static inline int __attribute__((section(".iap"))) flash_erase(void *addr)
 #if (SOC == stm32f1)
 	FLASH_AR = (unsigned int)addr;
 #elif (SOC == stm32f4)
-	FLASH_CR = ~(FLASH_CR & 0x78) | (get_sector((unsigned int)addr) << SNB);
+	FLASH_CR = (FLASH_CR & ~0x78) | (get_sector((unsigned int)addr) << SNB);
 #endif
 	FLASH_CR |= (1 << STRT);
 	while (FLASH_SR & (1 << BSY)) ;
@@ -238,7 +238,7 @@ static struct file_operations ops = {
 static int flash_init()
 {
 #if (SOC == stm32f4)
-	FLASH_CR = ~(FLASH_CR & (3 << PSIZE)) | (2 << PSIZE);
+	FLASH_CR = (FLASH_CR & ~(3 << PSIZE)) | (2 << PSIZE);
 #endif
 
 	extern char _rom_size, _rom_start, _etext, _data, _ebss;
@@ -261,7 +261,12 @@ static int flash_init()
 		((unsigned int)&_ebss - (unsigned int)&_data);
 	dev->base_addr = ALIGN_BLOCK(dev->base_addr, BLOCK_SIZE);
 
+#if (SOC == stm32f4)
+	/* 16KiB sectors only, total 64KiB only for stm32f4xx family */
+	end = (unsigned int)&_rom_start + (BLOCK_SIZE * 4);
+#else
 	end = (unsigned int)&_rom_start + (unsigned int)&_rom_size;
+#endif
 	dev->nr_blocks = (end - dev->base_addr) / BLOCK_SIZE;
 
 	/* request buffer cache */

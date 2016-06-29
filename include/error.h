@@ -42,6 +42,8 @@
 		extern void __putc_debug(int c);			\
 		void (*tmp)(int) = putchar;				\
 		putchar = __putc_debug;					\
+		if (lv == MSG_ERROR)					\
+			printk("error: ");				\
 		printk(fmt);						\
 		printk("\n");						\
 		putchar = tmp;						\

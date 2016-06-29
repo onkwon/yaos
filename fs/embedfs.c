@@ -60,6 +60,28 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 	return i;
 }
 
+#ifdef CONFIG_DEBUG
+static void print_block(unsigned int n, struct device *dev)
+{
+	char *buf;
+	int i;
+
+	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
+		return;
+
+	read_block(n, buf, dev);
+
+	for (i = 1; i <= BLOCK_SIZE; i++) {
+		printk("%02x ", buf[i-1]);
+		if (!(i % 16))
+			printk("\n");
+	}
+	printk("\n");
+
+	kfree(buf);
+}
+#endif
+
 static int read_superblock(struct embed_superblock *sb,
 		struct device *dev)
 {
@@ -109,13 +131,13 @@ static unsigned int alloc_free_inode(struct device *dev)
 	read_superblock(sb, dev);
 	read_inode_bitmap(bitmap, dev);
 
-	len = sb->inodes_count / 8;
+	len = sb->nr_inodes / 8;
 	for (i = 0; (i < len) && (bitmap[i] == 0xff); i++) ;
 	for (bit = 0; (bit < 8) && (bitmap[i] & (1 << bit)); bit++) ;
 
-	if ((i >= len) && (bit > (sb->inodes_count % 8))) {
+	if ((i >= len) && (bit > (sb->nr_inodes % 8))) {
 		i = len;
-		if (!(len = sb->inodes_count % 8))
+		if (!(len = sb->nr_inodes % 8))
 			goto out;
 
 		for (bit = 0; (bit < len) && (bitmap[i] & (1 << bit)); bit++) ;
@@ -146,7 +168,8 @@ static unsigned int alloc_free_block(struct device *dev)
 {
 	struct embed_superblock *sb;
 	char *bitmap;
-	unsigned int size, len, bit, i, j, n;
+	unsigned int data_bitmap_size;
+	unsigned int size, bit, i, j, n;
 
 	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
 		goto err_alloc;
@@ -157,12 +180,10 @@ static unsigned int alloc_free_block(struct device *dev)
 
 	read_superblock(sb, dev);
 
-	size = sb->blocks_count / 8;
-	size += (sb->blocks_count % 8)? 1 : 0;
-	len = size / BLOCK_SIZE;
+	data_bitmap_size = sb->nr_blocks / 8;
 	n = 0;
 
-	for (i = 0; i < len; i++) {
+	for (i = 0; i < data_bitmap_size; i++) {
 		read_block(D_BMAP_BLK + i, bitmap, dev);
 		for (j = 0; (j < BLOCK_SIZE) && (bitmap[j] == 0xff); j++) ;
 		for (bit = 0; (bit < 8) && (bitmap[j] & (1 << bit)); bit++) ;
@@ -174,14 +195,15 @@ static unsigned int alloc_free_block(struct device *dev)
 		}
 	}
 
-	if (!n && (sb->blocks_count % 8)) {
-		read_block(D_BMAP_BLK + len, bitmap, dev);
-		size = sb->blocks_count % 8;
+	if (!n && (sb->nr_blocks % 8)) {
+		read_block(D_BMAP_BLK + data_bitmap_size, bitmap, dev);
+		size = sb->nr_blocks % 8;
 		for (bit = 0; (bit < size) && (bitmap[0] & (1 << bit)); bit++) ;
 		if (bit < size) {
-			n = len * 8 + bit;
+			n = data_bitmap_size * 8 + bit;
 			set_bitmap(n, bitmap);
-			write_block(D_BMAP_BLK+len, bitmap, BLOCK_SIZE, dev);
+			write_block(D_BMAP_BLK+data_bitmap_size, bitmap,
+					BLOCK_SIZE, dev);
 		}
 	}
 
@@ -340,7 +362,11 @@ static inline unsigned int get_data_block(struct embed_inode *inode,
 		}
 	} else {
 		if (!(nblock = inode->data[idx1])) {
-			nblock = alloc_zeroed_free_block(dev);
+			if (!(nblock = alloc_zeroed_free_block(dev))) {
+				debug(MSG_ERROR, "embedfs: can not get a"
+						"free block!");
+				return 0;
+			}
 			inode->data[idx1] = nblock;
 			update_inode_table(inode, dev);
 		}
@@ -428,8 +454,10 @@ static unsigned int make_node(mode_t mode, struct device *dev)
 	struct embed_inode *new;
 
 	if (!(inode = alloc_free_inode(dev))) {
-		if (GET_FILE_TYPE(mode) != FT_ROOT)
+		if (GET_FILE_TYPE(mode) != FT_ROOT) {
+			debug(MSG_ERROR, "embedfs: out of inode!!");
 			return 0;
+		}
 	}
 
 	if ((new = kmalloc(sizeof(struct embed_inode))) == NULL)
@@ -525,7 +553,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 
 	curr->addr = 0; /* start searching from root */
 	if (read_inode(curr, dev)) {
-		debug(MSG_DEBUG, "wrong inode");
+		debug(MSG_ERROR, "embedfs: can not read root inode");
 		goto err_alloc2;
 	}
 
@@ -560,7 +588,8 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		/* or move on */
 		curr->addr = dir->inode;
 		if (read_inode(curr, dev)) {
-			debug(MSG_DEBUG, "wrong inode");
+			debug(MSG_ERROR, "embedfs: can not read inode, %x",
+					curr->addr);
 		}
 
 		i += len;
@@ -657,7 +686,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 		resched();
 		return 0;
 	} else if (tid < 0) { /* error */
-		debug(MSG_SYSTEM, "failed cloning");
+		debug(MSG_ERROR, "embedfs: failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -701,7 +730,7 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		file->offset += retval;
 
 	if (file->offset > inode->size)
-		debug(MSG_DEBUG, "file offset exceeds file size");
+		debug(MSG_ERROR, "embedfs: file offset exceeds file size");
 
 	if (inode->size > size) {
 		unsigned int irqflag;
@@ -729,7 +758,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 		resched();
 		return 0;
 	} else if (tid < 0) {
-		debug(MSG_SYSTEM, "failed cloning");
+		debug(MSG_ERROR, "embedfs: failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -891,67 +920,90 @@ static int build_file_system(struct device *dev)
 
 	disk_size = dev->block_size * dev->nr_blocks;
 	nr_inodes = disk_size / INODE_TABLE_SIZE(sizeof(struct embed_inode));
+	if (nr_inodes < NR_INODE_MIN)
+		nr_inodes = NR_INODE_MIN;
+	else if (nr_inodes > NR_INODE_MAX)
+		nr_inodes = NR_INODE_MAX;
 
-	debug(MSG_SYSTEM, "disk size %d", disk_size);
+	debug(MSG_SYSTEM, "# Building embedded file system\n"
+			"disk size %d",
+			disk_size);
 
-	unsigned int nr_blocks, nr_data_bitmap;
-	unsigned int inode_table;
+	unsigned int nr_blocks;
+	unsigned int data_bitmap_size; /* by byte */
+	unsigned int inode_table_size_by_block;
+	unsigned int inode_table; /* the start block number of the inode table */
+	unsigned int data_block; /* the start block number of the first data
+				    block */
 
 	nr_blocks = disk_size / BLOCK_SIZE;
-	nr_data_bitmap = nr_blocks / 8;
-	nr_data_bitmap += (nr_blocks % 8)? 1 : 0;
-	inode_table = nr_data_bitmap / BLOCK_SIZE + 1;
+	data_bitmap_size  = nr_blocks / 8;
+	data_bitmap_size += (nr_blocks % 8)? 1 : 0;
+	inode_table = data_bitmap_size / BLOCK_SIZE + 1;
 	inode_table += 2;
 
-	unsigned int nr_inode_table;
-	unsigned int data_block;
+	inode_table_size_by_block = ALIGN_BLOCK(sizeof(struct embed_inode) *
+			nr_inodes, BLOCK_SIZE) / BLOCK_SIZE + 1;
 
-	nr_inode_table = ALIGN_BLOCK(sizeof(struct embed_inode) *
-			nr_inodes,BLOCK_SIZE) / BLOCK_SIZE + 1;
-	data_block = inode_table + nr_inode_table;
+	data_block = inode_table + inode_table_size_by_block;
+
+	debug(MSG_SYSTEM, "the number of blocks %d\n"
+			"the number of inodes %d\n"
+			"data bitmap size %d\n"
+			"inode table size %d",
+			nr_blocks, nr_inodes, data_bitmap_size,
+			inode_table_size_by_block);
 
 	struct embed_superblock *sb;
 	char *buf, *data_bitmap;
-	unsigned int allocated, i;
 
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		goto err_alloc;
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		goto err_alloc1;
-	if ((data_bitmap = kmalloc(nr_data_bitmap)) == NULL)
+	if ((data_bitmap = kmalloc(data_bitmap_size)) == NULL)
 		goto err_alloc2;
 
 	sb->block_size = BLOCK_SIZE;
-	sb->blocks_count = nr_blocks;
-	sb->inodes_count = nr_inodes;
+	sb->nr_blocks  = nr_blocks;
+	sb->nr_inodes  = nr_inodes;
 	sb->free_inodes_count = nr_inodes;
 	sb->free_blocks_count = nr_blocks - data_block;
 	sb->inode_table = inode_table;
-	sb->data_block = data_block;
+	sb->data_block  = data_block;
 	sb->first_block = dev->base_addr;
 	sb->magic = MAGIC;
 
 	write_superblock(sb, dev);
 
-	/* initialize bitmaps */
+	unsigned int allocated, i;
+
+	/* set bitmaps for blocks already allocated; the superblock, the inode
+	 * bitmap, the block bitmap, and the inode table. */
 	allocated = data_block / 8;
 	memset(data_bitmap, 0xff, allocated);
-	memset(data_bitmap + allocated, 0, nr_data_bitmap - allocated);
-	if (nr_blocks % 8) data_bitmap[nr_data_bitmap-1] |= ~(nr_blocks % 8);
-	data_bitmap[allocated] |= data_block % 8;
+	/* set zeros for free blocks */
+	memset(data_bitmap + allocated, 0, data_bitmap_size - allocated);
+	if (nr_blocks % 8)
+		data_bitmap[data_bitmap_size-1] |=
+			~((1 << (nr_blocks % 8)) - 1);
+	/* set the rest of bitmaps for already allocated blocks */
+	data_bitmap[allocated] |= (1 << (data_block % 8)) - 1;
+
+	/* write the inode bitmap in the file system */
 	memset(buf, 0xff, BLOCK_SIZE);
 	write_block(inode_table-1, buf, BLOCK_SIZE, dev);
 	memset(buf, 0, nr_inodes / 8);
-	buf[nr_inodes / 8] &= ~(nr_inodes % 8);
+	buf[nr_inodes / 8] &= ~((1 << (nr_inodes % 8)) - 1);
 	write_inode_bitmap(buf, dev);
-	for (i = 0; i < (nr_data_bitmap / BLOCK_SIZE); i++)
+
+	/* write the data bitmap in the file system */
+	for (i = 0; i < (data_bitmap_size / BLOCK_SIZE); i++)
 		write_block(D_BMAP_BLK + i, data_bitmap + (i * BLOCK_SIZE),
 				BLOCK_SIZE, dev);
-	if (nr_data_bitmap % BLOCK_SIZE)
+	if (data_bitmap_size % BLOCK_SIZE)
 		write_block(D_BMAP_BLK + i, data_bitmap + (i * BLOCK_SIZE),
-				nr_data_bitmap % BLOCK_SIZE, dev);
-
-	debug(MSG_DEBUG, "nr_data_bitmap %d", nr_data_bitmap);
+				data_bitmap_size % BLOCK_SIZE, dev);
 
 	kfree(buf);
 	kfree(data_bitmap);
@@ -960,7 +1012,7 @@ static int build_file_system(struct device *dev)
 
 	/* make the root node. root inode is always 0. */
 	if (make_node(FT_ROOT, dev) != 0) {
-		debug(MSG_DEBUG, "wrong root inode");
+		debug(MSG_ERROR, "embedfs: wrong root inode");
 		retval = -ERR_UNDEF;
 		goto out;
 	}
@@ -974,18 +1026,13 @@ static int build_file_system(struct device *dev)
 	read_inode(root_inode, dev);
 	create_file("dev", FT_DIR, root_inode, dev);
 
-	debug(MSG_SYSTEM, "built embed file system:\n"
-			"block_size %d\n"
-			"blocks_count %d\n"
-			"free_inodes_count %d\n"
+	debug(MSG_SYSTEM, "block_size %d\n"
 			"free_blocks_count %d\n"
-			"inode_table %d\n"
-			"data_block %d\n"
-			"first_block %x\n"
-			"magic %x\n",
+			"the first block of inode_table %d\n"
+			"the first block of data_block %d\n"
+			"base address of device %x\n"
+			"magic %x",
 			sb->block_size,
-			sb->blocks_count,
-			sb->free_inodes_count,
 			sb->free_blocks_count,
 			sb->inode_table,
 			sb->data_block,
@@ -1035,7 +1082,7 @@ int embedfs_mount(struct device *dev)
 	kfree(sb);
 
 	if (err)
-		debug(MSG_SYSTEM, "can't build root file system");
+		debug(MSG_ERROR, "can't build root file system");
 
 	return err;
 }

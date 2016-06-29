@@ -145,7 +145,7 @@ void __init mm_init()
 
 	struct page *page = (struct page *)ALIGN_PAGE(&_ebss);
 
-	debug(MSG_SYSTEM, "Memory initiailization");
+	debug(MSG_SYSTEM, "# Initializing memory");
 	debug(MSG_SYSTEM, "page size %d bytes", PAGE_SIZE);
 	debug(MSG_SYSTEM, "page struct size %d bytes", sizeof(struct page));
 	debug(MSG_SYSTEM, "ram range 0x%08x - 0x%08x", start, end);

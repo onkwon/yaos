@@ -1,4 +1,3 @@
 *.o
 .config
-tools/stm32flash/parsers/parsers.a
-tools/stm32flash/stm32flash
+tags

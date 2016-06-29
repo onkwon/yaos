@@ -6,6 +6,8 @@
 #define BLOCK_SIZE			64
 #define INODE_TABLE_SIZE(sz)		(100 * (sz)) /* 1% of disk size */
 #define NAME_MAX			(256 - 1)
+#define NR_INODE_MIN			16
+#define NR_INODE_MAX			(BLOCK_SIZE * 8)
 
 #define SUPERBLOCK			0
 #define I_BMAP_BLK			1
@@ -29,14 +31,14 @@ struct embed_superblock {
 	unsigned short int block_size;
 	char __pad[2];
 
-	unsigned int blocks_count;
-	unsigned int inodes_count;
+	unsigned int nr_blocks;
+	unsigned int nr_inodes;
 	unsigned int free_inodes_count;
 	unsigned int free_blocks_count;
 
-	unsigned int first_block;
-	unsigned int inode_table;
-	unsigned int data_block;
+	unsigned int first_block; /* the first block of device, base address */
+	unsigned int inode_table; /* the first block of inode table */
+	unsigned int data_block; /* the first block of data block */
 } __attribute__((packed));
 
 struct embed_inode {
