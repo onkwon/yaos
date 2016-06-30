@@ -101,7 +101,8 @@ int __init kernel_init()
 #define DEFSTR(x)	DEFMKSTR(x)
 #endif
 	/* a banner */
-	printk("yaos %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
+	printk("\nyaos %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
+	debug(MSG_SYSTEM, "Running at %dHz", get_hclk());
 	debug(MSG_DEBUG, "&current 0x%08x", &current);
 	debug(MSG_DEBUG, "User stack size : %d, Heap size : %d"
 			, USER_STACK_SIZE, HEAP_SIZE);

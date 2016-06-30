@@ -867,9 +867,35 @@ err_alloc:
 
 static int embed_close(struct file *file)
 {
+	struct task *parent;
+	int tid;
+
+	parent = current;
+	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+
+	if (tid == 0) { /* parent */
+		set_task_state(current, TASK_WAITING);
+		resched();
+		return 0;
+	} else if (tid < 0) { /* error */
+		debug(MSG_ERROR, "embedfs: failed cloning");
+		return -ERR_RETRY;
+	}
+
 	__sync(file->inode->sb->dev);
 
-	return 0;
+	__set_retval(parent, 0);
+	sum_curr_stat(parent);
+
+	if (get_task_state(parent)) {
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add(parent);
+	}
+
+	sys_kill((unsigned int)current);
+	freeze(); /* never reaches here */
+
+	return -ERR_UNDEF;
 }
 
 static struct inode_operations iops = {
@@ -1040,6 +1066,7 @@ static int build_file_system(struct device *dev)
 			sb->magic);
 
 out:
+	__sync(dev);
 	kfree(sb);
 
 	return retval;

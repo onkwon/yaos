@@ -142,8 +142,6 @@ static struct buffer_cache *mkbuf(unsigned short int block_size)
 
 int __sync(struct device *dev)
 {
-	/* read all devices */
-
 	unsigned int nblock;
 	struct buffer_cache *p;
 	struct list *curr;

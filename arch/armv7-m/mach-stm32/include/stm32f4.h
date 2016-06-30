@@ -50,8 +50,10 @@
 }
 #define FLASH_LOCK()			(FLASH_CR |= 0x80000000)
 #define FLASH_UNLOCK() { \
-	FLASH_KEYR = 0x45670123; /* KEY1 */ \
-	FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
+	if (FLASH_CR & 0x80000000) { \
+		FLASH_KEYR = 0x45670123; /* KEY1 */ \
+		FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
+	} \
 }
 #define FLASH_UNLOCK_OPTPG() { \
 	FLASH_OPTKEYR = 0x08192a3b; /* KEY1 */ \

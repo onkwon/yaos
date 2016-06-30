@@ -32,8 +32,10 @@
 #define BLOCK_SIZE		16384
 
 #define WRITE_WORD(addr, data)	{ \
+	FLASH_CR &= ~(3 << PSIZE); \
+	FLASH_CR |= (2 << PSIZE); \
 	FLASH_WRITE_START(); \
-	FLASH_SR |= 0xf3; \
+	FLASH_SR |= 0xf1; \
 	FLASH_WRITE_WORD(addr, data); \
 	FLASH_WRITE_END(); \
 }
@@ -62,6 +64,7 @@ static inline int __attribute__((section(".iap"))) flash_erase(void *addr)
 	FLASH_AR = (unsigned int)addr;
 #elif (SOC == stm32f4)
 	FLASH_CR = (FLASH_CR & ~0x78) | (get_sector((unsigned int)addr) << SNB);
+	FLASH_CR = (FLASH_CR & ~(3 << PSIZE)) | (2 << PSIZE);
 #endif
 	FLASH_CR |= (1 << STRT);
 	while (FLASH_SR & (1 << BSY)) ;
@@ -204,8 +207,9 @@ out:
 #if (SOC == stm32f1)
 		FLASH_SR |= 0x34; /* clear flags */
 #elif (SOC == stm32f4)
-		FLASH_SR |= 0xf2; /* clear flags */
+		FLASH_SR |= 0xf1; /* clear flags */
 #endif
+		debug(MSG_ERROR, "embedfs: can not write %x", errcode);
 
 		return errcode;
 	}
@@ -262,8 +266,9 @@ static int flash_init()
 	dev->base_addr = ALIGN_BLOCK(dev->base_addr, BLOCK_SIZE);
 
 #if (SOC == stm32f4)
-	/* 16KiB sectors only, total 64KiB only for stm32f4xx family */
-	end = (unsigned int)&_rom_start + (BLOCK_SIZE * 4);
+	/* 16KiB sectors only and part of 64KiB block,
+	 * total 80KiB only for stm32f4xx family */
+	end = (unsigned int)&_rom_start + (BLOCK_SIZE * 5);
 #else
 	end = (unsigned int)&_rom_start + (unsigned int)&_rom_size;
 #endif
