@@ -33,10 +33,10 @@
 #define FLASH_WRITE_END()		(FLASH_CR &= ~(1 << PG))
 #define FLASH_WRITE_WORD(addr, data)	{ \
 	*(volatile unsigned short int *)(addr) = (unsigned short int)(data); \
-	while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
+	while (FLASH_SR & (1 << BSY)); \
 	*(volatile unsigned short int *)((unsigned int)(addr)+2) \
 		= (unsigned short int)((data) >> 16); \
-	while (FLASH_SR & 1); /* Check BSY bit, need timeout */ \
+	while (FLASH_SR & (1 << BSY)); \
 }
 #define FLASH_LOCK()			(FLASH_CR |= 0x80)
 #define FLASH_UNLOCK() { \
@@ -49,6 +49,7 @@
 	FLASH_OPTKEYR = 0x45670123; /* KEY1 */ \
 	FLASH_OPTKEYR = 0xcdef89ab; /* KEY2 */ \
 }
+#define FLASH_LOCK_OPTPG()
 		
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40021000)

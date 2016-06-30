@@ -59,6 +59,9 @@ static DEFINE_SPINLOCK(wlock);
 
 static inline int __attribute__((section(".iap"))) flash_erase(void *addr)
 {
+	/* FIXME:
+	 * Flush I/D cache before erase, noting that I/D cache should be
+	 * flushed only when it is disabled. */
 	FLASH_CR |= (1 << PER);
 #if (SOC == stm32f1)
 	FLASH_AR = (unsigned int)addr;
@@ -288,23 +291,38 @@ MODULE_INIT(flash_init);
 
 void flash_protect()
 {
+#if (SOC == stm32f1)
 	if (FLASH_OPT_RDP != 0x5aa5)
 		return;
+#else
+	if (((FLASH_OPTCR >> 8) & 0xff) != 0xaa)
+		return;
+#endif
 
 	debug(MSG_SYSTEM, "Protect flash memory from externel accesses");
 
-	while (FLASH_SR & 1);
+	while (FLASH_SR & (1 << BSY));
 
 	FLASH_UNLOCK();
-
 	FLASH_UNLOCK_OPTPG();
 
+#if (SOC == stm32f1)
 	FLASH_CR |= 0x20; /* OPTER */
 	FLASH_CR |= 1 << STRT;
+#else
+	FLASH_OPTCR &= ~(0xff << 8);
+	FLASH_OPTCR |= 2; /* set start bit */
+#endif
 
-	while (FLASH_SR & 1);
+	while (FLASH_SR & (1 << BSY));
 
+#if (SOC == stm32f1)
 	FLASH_CR &= ~0x20; /* OPTER */
+#else
+	FLASH_OPTCR &= ~2;
+#endif
+
+	FLASH_LOCK_OPTPG();
 	FLASH_LOCK();
 
 	debug(MSG_SYSTEM, "Rebooting...");

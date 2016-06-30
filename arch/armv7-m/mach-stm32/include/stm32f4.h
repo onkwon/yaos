@@ -59,6 +59,7 @@
 	FLASH_OPTKEYR = 0x08192a3b; /* KEY1 */ \
 	FLASH_OPTKEYR = 0x4c5d6e7f; /* KEY2 */ \
 }
+#define FLASH_LOCK_OPTPG()		(FLASH_OPTCR |= 1)
 		
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40023800)
