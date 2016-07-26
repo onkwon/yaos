@@ -120,9 +120,9 @@ static unsigned int alloc_free_inode(struct device *dev)
 	char *bitmap;
 
 	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
-		goto err_alloc;
+		goto out;
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		goto err_alloc1;
+		goto out_free_bitmap;
 
 	n = 0; /* to avoid compiler warning */
 
@@ -138,10 +138,10 @@ static unsigned int alloc_free_inode(struct device *dev)
 	if ((i >= len) && (bit > (sb->nr_inodes % 8))) {
 		i = len;
 		if (!(len = sb->nr_inodes % 8))
-			goto out;
+			goto out_free_sb;
 
 		for (bit = 0; (bit < len) && (bitmap[i] & (1 << bit)); bit++) ;
-		if (bit >= len) goto out;
+		if (bit >= len) goto out_free_sb;
 	}
 
 	n = i * 8 + bit;
@@ -151,16 +151,16 @@ static unsigned int alloc_free_inode(struct device *dev)
 	write_superblock(sb, dev);
 	write_inode_bitmap(bitmap, dev);
 
-out:
+out_free_sb:
 	/* unlock superblock */
 
 	kfree(sb);
 	kfree(bitmap);
 	return n;
 
-err_alloc1:
+out_free_bitmap:
 	kfree(bitmap);
-err_alloc:
+out:
 	return 0;
 }
 
@@ -172,9 +172,9 @@ static unsigned int alloc_free_block(struct device *dev)
 	unsigned int size, bit, i, j, n;
 
 	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
-		goto err_alloc;
+		goto out;
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		goto err_alloc1;
+		goto out_free_bitmap;
 
 	/* lock superblock */
 
@@ -219,9 +219,9 @@ static unsigned int alloc_free_block(struct device *dev)
 	kfree(bitmap);
 	return n;
 
-err_alloc1:
+out_free_bitmap:
 	kfree(bitmap);
-err_alloc:
+out:
 	return 0;
 }
 
@@ -233,9 +233,9 @@ static int update_inode_table(struct embed_inode *inode,
 	unsigned int nblock, offset;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
-		goto err_alloc;
+		goto out;
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		goto err_alloc1;
+		goto out_free_buf;
 
 	read_superblock(sb, dev);
 
@@ -264,9 +264,9 @@ static int update_inode_table(struct embed_inode *inode,
 	kfree(buf);
 	return 0;
 
-err_alloc1:
+out_free_buf:
 	kfree(buf);
-err_alloc:
+out:
 	return -ERR_ALLOC;
 }
 
@@ -482,12 +482,12 @@ static int read_inode(struct embed_inode *inode, struct device *dev)
 	unsigned int inode_size;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
-		goto err_alloc;
+		goto out;
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		goto err_alloc1;
+		goto out_free_buf;
 
 	if (read_superblock(sb, dev))
-		goto err_alloc2;
+		goto out_free_sb;
 
 	inode_size = sizeof(struct embed_inode);
 
@@ -510,11 +510,11 @@ static int read_inode(struct embed_inode *inode, struct device *dev)
 	kfree(buf);
 	return 0;
 
-err_alloc2:
+out_free_sb:
 	kfree(sb);
-err_alloc1:
+out_free_buf:
 	kfree(buf);
-err_alloc:
+out:
 	return -ERR_ALLOC;
 }
 
@@ -542,9 +542,9 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	char *name;
 
 	if ((dir = kmalloc(sizeof(struct embed_dir))) == NULL)
-		goto err_alloc;
+		goto out;
 	if ((curr = kmalloc(sizeof(struct embed_inode))) == NULL)
-		goto err_alloc1;
+		goto out_free_dir;
 
 	dir_size = sizeof(struct embed_dir) - sizeof(char *);
 
@@ -554,7 +554,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	curr->addr = 0; /* start searching from root */
 	if (read_inode(curr, dev)) {
 		debug(MSG_ERROR, "embedfs: can not read root inode");
-		goto err_alloc2;
+		goto out_free_inode;
 	}
 
 	for (pwd = pathname + i; *pwd; pwd = pathname + i) {
@@ -567,13 +567,14 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		for (offset = 0; offset < curr->size; offset += dir->rec_len) {
 			read_data_block(curr, offset, dir, dir_size, dev);
 
-			if ((name = kmalloc(dir->name_len+1)) == NULL)
-				goto err_alloc2;
+			if ((name = kmalloc(dir->name_len)) == NULL)
+				goto out_free_inode;
 
 			read_data_block(curr, offset + dir_size, name,
-					dir->name_len+1, dev);
+					dir->name_len, dev);
 
-			if (!strncmp(name, pwd, len)) {
+			if (len == dir->name_len-1 &&
+					!strncmp(name, pwd, len)) {
 				kfree(name);
 				break;
 			}
@@ -603,13 +604,14 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 
 	kfree(curr);
 	kfree(dir);
+
 	return pathname + i;
 
-err_alloc2:
+out_free_inode:
 	kfree(curr);
-err_alloc1:
+out_free_dir:
 	kfree(dir);
-err_alloc:
+out:
 	return (char *)-ERR_ALLOC;
 }
 
@@ -642,6 +644,7 @@ static int create_file(const char *filename, mode_t mode,
 
 out:
 	kfree(dir);
+
 	return retval;
 }
 
@@ -652,13 +655,13 @@ static size_t embed_read_core(struct file *file, void *buf, size_t len)
 
 	if ((inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
 		retval = 0;
-		goto err_alloc;
+		goto out;
 	}
 
 	inode->addr = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
 		retval = 0;
-		goto out;
+		goto out_free_inode;
 	}
 
 	retval = read_data_block(inode, file->offset, buf, len,
@@ -667,9 +670,9 @@ static size_t embed_read_core(struct file *file, void *buf, size_t len)
 	if (retval > 0)
 		file->offset += retval;
 
-out:
+out_free_inode:
 	kfree(inode);
-err_alloc:
+out:
 	return retval;
 }
 
@@ -713,13 +716,13 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 
 	if ((inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
 		retval = 0;
-		goto err_alloc;
+		goto out;
 	}
 
 	inode->addr = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
 		retval = 0;
-		goto out;
+		goto out_free_inode;
 	}
 
 	size = inode->size;
@@ -739,9 +742,9 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		spin_unlock_irqrestore(&file->inode->lock, irqflag);
 	}
 
-out:
+out_free_inode:
 	kfree(inode);
-err_alloc:
+out:
 	return retval;
 }
 
@@ -808,26 +811,26 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
 		retval = -ERR_ALLOC;
-		goto err_alloc;
+		goto out;
 	}
 
 	if ((int)(s = lookup(embed_inode, pathname, inode->sb->dev)) < 0) {
 		retval = (int)s;
-		goto out;
+		goto out_free_inode;
 	}
 
 	if (*s) {
 		retval = -ERR_PATH;
-		goto out;
+		goto out_free_inode;
 	}
 
 	inode->addr = embed_inode->addr;
 	inode->mode = embed_inode->mode;
 	inode->size = embed_inode->size;
 
-out:
+out_free_inode:
 	kfree(embed_inode);
-err_alloc:
+out:
 	return retval;
 }
 
@@ -839,29 +842,29 @@ static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
 		retval = -ERR_ALLOC;
-		goto err_alloc;
+		goto out;
 	}
 
 	if ((int)(s = lookup(embed_inode, pathname, inode->sb->dev)) < 0) {
 		retval = (int)s;
-		goto out;
+		goto out_free_inode;
 	}
 
 	if (!*s || toknum(s, "/")) {
 		retval = -ERR_DUP;
-		goto out;
+		goto out_free_inode;
 	}
 
 	if (create_file(s, mode, embed_inode, inode->sb->dev)) {
 		retval = -ERR_CREATE;
-		goto out;
+		goto out_free_inode;
 	}
 
 	retval = embed_lookup(inode, pathname);
 
-out:
+out_free_inode:
 	kfree(embed_inode);
-err_alloc:
+out:
 	return retval;
 }
 
@@ -876,9 +879,11 @@ static int embed_close(struct file *file)
 	if (tid == 0) { /* parent */
 		set_task_state(current, TASK_WAITING);
 		resched();
+
 		return 0;
 	} else if (tid < 0) { /* error */
 		debug(MSG_ERROR, "embedfs: failed cloning");
+
 		return -ERR_RETRY;
 	}
 
@@ -917,14 +922,14 @@ static void embed_read_inode(struct inode *inode)
 	struct embed_inode *embed_inode;
 
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL)
-		goto errout;
+		goto out;
 
 	embed_inode->addr = inode->addr;
 
 	if (read_inode(embed_inode, inode->sb->dev) ||
 			(inode->addr != embed_inode->addr)) {
 		kfree(embed_inode);
-		goto errout;
+		goto out;
 	}
 
 	inode->mode = embed_inode->mode;
@@ -933,9 +938,10 @@ static void embed_read_inode(struct inode *inode)
 	inode->fop = &fops;
 
 	kfree(embed_inode);
+
 	return;
 
-errout:
+out:
 	inode->iop = NULL;
 	inode->fop = NULL;
 }
@@ -984,11 +990,11 @@ static int build_file_system(struct device *dev)
 	char *buf, *data_bitmap;
 
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		goto err_alloc;
+		goto out_error;
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
-		goto err_alloc1;
+		goto out_free_sb;
 	if ((data_bitmap = kmalloc(data_bitmap_size)) == NULL)
-		goto err_alloc2;
+		goto out_free_buf;
 
 	sb->block_size = BLOCK_SIZE;
 	sb->nr_blocks  = nr_blocks;
@@ -1046,7 +1052,7 @@ static int build_file_system(struct device *dev)
 	struct embed_inode *root_inode;
 
 	if ((root_inode = kmalloc(sizeof(struct embed_inode))) == NULL)
-		goto err_alloc1;
+		goto out_free_sb;
 
 	root_inode->addr = 0;
 	read_inode(root_inode, dev);
@@ -1071,11 +1077,11 @@ out:
 
 	return retval;
 
-err_alloc2:
+out_free_buf:
 	kfree(buf);
-err_alloc1:
+out_free_sb:
 	kfree(sb);
-err_alloc:
+out_error:
 	return -ERR_ALLOC;
 }
 

@@ -28,19 +28,19 @@ int sys_open_core(char *filename, int mode, void *option)
 
 	if ((ops = kmalloc(sizeof(struct file_operations))) == NULL) {
 		err = -ERR_ALLOC;
-		goto errout;
+		goto out_free;
 	}
 
 	if (new->iop->lookup(new, filename + sb->pathname_len)) {
 		if (!(mode & O_CREATE)) {
 			err = -ERR_PATH;
-			goto errout;
+			goto out_free;
 		}
 
 		if (!new->iop->create || new->iop->create(new,
 					filename + sb->pathname_len, FT_FILE)) {
 			err = -ERR_CREATE;
-			goto errout;
+			goto out_free;
 		}
 	}
 
@@ -74,8 +74,9 @@ int sys_open_core(char *filename, int mode, void *option)
 
 	return mkfile(&file);
 
-errout:
+out_free:
 	kfree(new);
+
 	return err;
 }
 

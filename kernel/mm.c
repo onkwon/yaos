@@ -51,7 +51,8 @@ void kfree(void *addr)
 
 	page = &pool->mem_map[PAGE_INDEX(buddypool.mem_map, addr)];
 
-	/* If not allocated by buddy allocator there is no way to free. */
+	/* already freed or no way to free if not allocated by buddy
+	 * allocator */
 	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
 		return;
 

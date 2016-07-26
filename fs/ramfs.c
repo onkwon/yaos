@@ -242,7 +242,8 @@ static const char *lookup(struct ramfs_inode **inode, const char *pathname,
 			read_block(curr, offset, &dir,
 					sizeof(struct ramfs_dir), dev);
 
-			if (!strncmp(dir.name, pwd, len))
+			if (len == strlen(dir.name) &&
+					!strncmp(dir.name, pwd, len))
 				break;
 		}
 
