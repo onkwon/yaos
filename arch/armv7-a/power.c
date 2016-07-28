@@ -32,3 +32,7 @@ void disp_sysinfo()
 {
 }
 #endif
+
+unsigned int __read_reset_source()
+{
+}

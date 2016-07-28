@@ -16,4 +16,6 @@ void __sleep_on_exit();
 
 void __reboot();
 
+unsigned int __read_reset_source();
+
 #endif /* __ARMv7M_POWER_H__ */

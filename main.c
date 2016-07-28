@@ -76,6 +76,7 @@ static void __init sys_init()
 #include <kernel/softirq.h>
 #include <kernel/timer.h>
 #include <kernel/systick.h>
+#include <asm/power.h>
 
 int __init kernel_init()
 {
@@ -103,6 +104,7 @@ int __init kernel_init()
 	/* a banner */
 	printk("\nyaos %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
 	debug(MSG_SYSTEM, "Running at %dHz", get_hclk());
+	debug(MSG_SYSTEM, "Reset source : %x", __read_reset_source());
 	debug(MSG_DEBUG, "&current 0x%08x", &current);
 	debug(MSG_DEBUG, "User stack size : %d, Heap size : %d"
 			, USER_STACK_SIZE, HEAP_SIZE);

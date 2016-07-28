@@ -202,3 +202,13 @@ void disp_sysinfo()
 	disp_clkinfo();
 }
 #endif
+
+unsigned int __read_reset_source()
+{
+	unsigned int ret;
+
+	ret = RCC_CSR;
+	RCC_CSR |= 1 << 24;
+
+	return ret >> 24;
+}
