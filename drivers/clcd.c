@@ -179,7 +179,7 @@ static size_t clcd_write_core(struct file *file, void *buf, size_t len)
 static size_t clcd_write(struct file *file, void *buf, size_t len)
 {
 	struct task *parent;
-	size_t retval;
+	size_t ret;
 	int tid;
 
 	parent = current;
@@ -187,9 +187,9 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 
 	if (tid > 0) { /* child turning to kernel task,
 			  nomore in handler mode */
-		retval = clcd_write_core(file, buf, len);
+		ret = clcd_write_core(file, buf, len);
 
-		__set_retval(parent, retval);
+		__set_retval(parent, ret);
 		sum_curr_stat(parent);
 
 		if (get_task_state(parent)) {
@@ -203,14 +203,14 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 		sys_yield(); /* it goes sleep as soon as exiting from system
 				call to wait for its child's job to be done
 				that returns the result. */
-		retval = 0;
+		ret = 0;
 	} else { /* error */
 		/* use errno */
 		debug(MSG_SYSTEM, "failed cloning");
-		retval = -ERR_RETRY;
+		ret = -ERR_RETRY;
 	}
 
-	return retval;
+	return ret;
 }
 
 static int clcd_open(struct inode *inode, struct file *file)

@@ -4,6 +4,7 @@
 #include <error.h>
 #include <string.h>
 #include <stdlib.h>
+#include <bitops.h>
 #include "ramfs.h"
 
 static void read_superblock(struct ramfs_superblock *sb, struct device *dev)
@@ -74,64 +75,41 @@ static struct ramfs_inode *ramfs_mknod(mode_t mode, struct device *dev)
 	return new;
 }
 
-/* alloc new block if null */
-#define newblk(blk, size, dev) \
-	if (!blk) { \
-		blk = (unsigned int)ramfs_malloc(size, dev); \
-		if (!blk) return 0; \
-		memset((void *)blk, 0, size); \
-	}
-#define getblk(blk, offset) \
-	((unsigned int *)&((unsigned int *)(blk))[offset])
-
 static inline unsigned int *get_data_block(struct ramfs_inode *inode,
-		unsigned int offset, struct device *dev)
+		size_t pos, struct device *dev)
 {
-	unsigned int index, nr_entry;
-	unsigned int *blk;
+	unsigned int nblock;
 	size_t block_size;
 
 	block_size = RAMFS_BLOCKSIZE;
-	index = offset / block_size;
+	nblock = pos / block_size;
 
-	if (index >= NR_DATA_BLOCK_DIRECT) {
-		index -= NR_DATA_BLOCK_DIRECT;
-		nr_entry = block_size / WORD_SIZE;
+	if (nblock < NR_DATA_BLOCK_DIRECT)
+		return (unsigned int *)&inode->data[nblock];
 
-		if (index < nr_entry) { /* single indirect */
-			blk = (unsigned int *)
-				&inode->data[NR_DATA_BLOCK_DIRECT];
+	nblock -= NR_DATA_BLOCK_DIRECT;
 
-			newblk(*blk, block_size, dev);
-			blk = getblk(*blk, index);
-		} else if (index < (nr_entry * nr_entry)) { /* doubl indirect */
-			blk = (unsigned int *)
-				&inode->data[NR_DATA_BLOCK_DIRECT+1];
+	unsigned int nr_entry, depth, base, i;
+	unsigned int *blk;
 
-			newblk(*blk, block_size, dev);
-			index -= nr_entry;
-			blk = getblk(*blk, index / nr_entry);
+	nr_entry = block_size / WORD_SIZE;
+	depth = (fls(nblock)-1) / fls(nr_entry-1);
+	base = 1 << ((fls(nr_entry)-1) * depth);
+	nblock -= base;
+	blk = (unsigned int *)&inode->data[depth];
 
-			newblk(*blk, block_size, dev);
-			blk = getblk(*blk, index % nr_entry);
-		} else { /* triple indirect */
-			blk   = (unsigned int *)
-				&inode->data[NR_DATA_BLOCK_DIRECT+2];
+	for (i = 0; i <= depth; i++) {
+		if (!*blk && !(*blk = (unsigned int)
+					ramfs_malloc(block_size, dev)))
+			return 0;
+		memset((void *)*blk, 0, block_size);
 
-			newblk(*blk, block_size, dev);
-			index -= nr_entry * nr_entry;
-			blk = getblk(*blk, index / (nr_entry * nr_entry));
+#define getblk(blk, offset) \
+	((unsigned int *)&((unsigned int *)(blk))[offset])
 
-			newblk(*blk, block_size, dev);
-			blk = getblk(*blk, index %
-					(nr_entry * nr_entry) / nr_entry);
-
-			newblk(*blk, block_size, dev);
-			blk = getblk(*blk, index %
-					(nr_entry * nr_entry) % nr_entry);
-		}
-	} else {
-		blk = (unsigned int *)&inode->data[index];
+		base = base >> ((fls(nr_entry)-1) * i);
+		blk = getblk(*blk, (nblock / base) % nr_entry);
+		nblock %= base;
 	}
 
 	return blk;

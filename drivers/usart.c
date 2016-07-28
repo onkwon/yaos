@@ -113,7 +113,7 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		return usart_read_core(file, buf, len);
 
 	struct task *parent;
-	size_t retval, cnt;
+	size_t ret, cnt;
 	int tid;
 
 	parent = current;
@@ -134,16 +134,16 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 
 	/* child takes place from here turning to kernel task,
 	 * nomore in handler mode */
-	for (retval = 0; retval < len && file->offset < file->inode->size;) {
-		if ((cnt = usart_read_core(file, buf + retval, len - retval))
+	for (ret = 0; ret < len && file->offset < file->inode->size;) {
+		if ((cnt = usart_read_core(file, buf + ret, len - ret))
 				<= 0) {
 			wq_wait(&wq[CHANNEL(file->inode->dev)]);
 			continue;
 		}
-		retval += cnt;
+		ret += cnt;
 	}
 
-	__set_retval(parent, retval);
+	__set_retval(parent, ret);
 	sum_curr_stat(parent);
 
 	if (get_task_state(parent)) {
@@ -194,7 +194,7 @@ static size_t usart_write_polling(struct file *file, void *data)
 static size_t usart_write(struct file *file, void *buf, size_t len)
 {
 	struct task *parent;
-	size_t retval;
+	size_t ret;
 	int tid;
 
 	parent = current;
@@ -225,10 +225,10 @@ static size_t usart_write(struct file *file, void *buf, size_t len)
 
 	/* child takes place from here turning to kernel task,
 	 * nomore in handler mode */
-	for (retval = 0; retval < len && file->offset < file->inode->size;)
-		if (f(file, buf + retval) >= 1) retval++;
+	for (ret = 0; ret < len && file->offset < file->inode->size;)
+		if (f(file, buf + ret) >= 1) ret++;
 
-	__set_retval(parent, retval);
+	__set_retval(parent, ret);
 	sum_curr_stat(parent);
 
 	if (get_task_state(parent)) {

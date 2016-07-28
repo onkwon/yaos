@@ -230,12 +230,12 @@ size_t printk(const char *format, ...)
 	if (!stdout) return 0;
 
 	extern void __putc_debug(int c);
-	size_t retval;
+	size_t ret;
 	void (*tmp)(int) = putchar;
 
 	putchar = __putc_debug;
-	retval = print(0, 0, -1, (int *)&format);
+	ret = print(0, 0, -1, (int *)&format);
 	putchar = tmp;
 
-	return retval;
+	return ret;
 }

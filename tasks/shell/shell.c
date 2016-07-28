@@ -60,11 +60,11 @@ static unsigned int getcmd(char *s, char **argv)
 
 void shell()
 {
-	int argc, retval;
+	int argc, ret;
 	char **argv, buf[MAXLEN];
 
-	argv   = (char **)malloc(sizeof(char *) * MAXARG);
-	retval = 0;
+	argv = (char **)malloc(sizeof(char *) * MAXARG);
+	ret = 0;
 
 	write(stdout, "Type `help` for help on commands.\r\n", 35);
 
@@ -77,9 +77,9 @@ void shell()
 			extern char _shell_cmdlist;
 			struct shell_cmd *cmd = (struct shell_cmd *)&_shell_cmdlist;
 
-			for (retval = 0; cmd->name; cmd++) {
+			for (ret = 0; cmd->name; cmd++) {
 				if (!strncmp(cmd->name, argv[0], MAXLEN)) {
-					if ((retval = cmd->run(argc, argv))) {
+					if ((ret = cmd->run(argc, argv))) {
 						printf("usage: %s\n", cmd->usage);
 					}
 					break;
@@ -88,7 +88,7 @@ void shell()
 
 			if(!cmd->name) puts("unknown command\n");
 		}
-	} while(retval != SHELL_EXIT);
+	} while(ret != SHELL_EXIT);
 
 	free(argv);
 }

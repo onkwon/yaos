@@ -131,6 +131,9 @@ TTY = /dev/tty.SLAB_USBtoUART
 .PHONY: burn
 burn:
 	st-flash --reset write $(PROJECT:%=%.bin) 0x08000000
+.PHONY: erase
+erase:
+	st-flash erase
 .PHONY: term
 term:
 	minicom -D $(TTY)
