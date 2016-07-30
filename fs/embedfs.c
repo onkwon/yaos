@@ -753,8 +753,6 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		goto out;
 	}
 
-	mutex_lock(&file->inode->lock);
-
 	inode->addr = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
 		ret = 0;
@@ -777,8 +775,6 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		debug(MSG_ERROR, "embedfs: disk full!\n");
 
 out_free_inode:
-	mutex_unlock(&file->inode->lock);
-
 	kfree(inode);
 out:
 	return ret;

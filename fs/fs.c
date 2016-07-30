@@ -113,7 +113,7 @@ static void itab_init()
 	}
 }
 
-static unsigned int fslist = 0;
+static struct file_system_type *file_system_list = NULL;
 
 int add_file_system(struct file_system_type *fs, const char *name)
 {
@@ -124,15 +124,15 @@ int add_file_system(struct file_system_type *fs, const char *name)
 
 	strncpy(str, name, strlen(name)+1);
 	fs->name = str;
-	fs->next = (struct file_system_type *)fslist;
-	fslist = (unsigned int)fs;
+	fs->next = file_system_list;
+	file_system_list = fs;
 
 	return 0;
 }
 
 struct file_system_type *get_file_system(const char *name)
 {
-	struct file_system_type *p = (struct file_system_type *)fslist;
+	struct file_system_type *p = file_system_list;
 
 	while (p) {
 		if (!strcmp(p->name, name))
@@ -148,7 +148,9 @@ static DEFINE_LIST_HEAD(sblist);
 
 int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 {
-	/* check if the same mount point exists */
+	/* TODO:
+	 * check if the same mount point exists and if the same device is
+	 * already mounted */
 
 	struct superblock *sb;
 	struct file_system_type *fs;

@@ -54,9 +54,9 @@ int sys_open_core(char *filename, int mode, void *option)
 		kfree(new);
 	}
 
-	spin_lock(&inode->lock);
+	mutex_lock(&inode->lock);
 	inode->count++;
-	spin_unlock(&inode->lock);
+	mutex_unlock(&inode->lock);
 
 	if (GET_FILE_TYPE(inode->mode) == FT_DEV)
 		memcpy(ops, getdev(inode->dev)->op,

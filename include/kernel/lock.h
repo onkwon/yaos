@@ -9,6 +9,8 @@ struct semaphore {
 	struct waitqueue_head wq;
 };
 
+typedef struct semaphore mutex_t;
+
 #ifdef MACHINE
 #include <asm/lock.h>
 #endif
@@ -59,8 +61,6 @@ struct semaphore {
 #include <kernel/sched.h>
 
 /* mutex */
-typedef struct semaphore mutex_t;
-
 #define DEFINE_MUTEX(name)		DEFINE_SEMAPHORE(name, 1)
 #define INIT_MUTEX(name)		INIT_SEMAPHORE(name, 1)
 #define mutex_lock(sem)			semaphore_dec(sem)
