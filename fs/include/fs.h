@@ -28,7 +28,7 @@ struct superblock {
 	size_t pathname_len;
 	unsigned int root_inode;
 
-	lock_t lock;
+	struct semaphore lock;
 
 	struct super_operations *op;
 
@@ -61,7 +61,7 @@ struct inode {
 
 	struct superblock *sb;
 
-	lock_t lock;
+	struct semaphore lock;
 
 	struct list list;
 };

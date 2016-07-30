@@ -34,6 +34,8 @@
 
 #define FT_ROOT				0xffff
 
+static DEFINE_MUTEX(sb_lock);
+
 static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 {
 	unsigned int disk_block, fs_block, offset;
@@ -42,19 +44,25 @@ static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 	disk_block = BLOCK_BASE(fs_block, dev->block_size);
 	offset = fs_block % dev->block_size;
 
-	unsigned int i;
 	char *diskbuf, *s, *d;
+	unsigned int i = 0;
 
-	diskbuf = getblk_lock(disk_block, dev);
+	mutex_lock(&dev->mutex);
+
+	if ((diskbuf = getblk_lock(disk_block, dev)) == NULL)
+		goto out;
 
 	s = diskbuf + offset;
 	d = buf;
 
-	for (i = 0; (i < BLOCK_SIZE) &&
-			((diskbuf+i) < (diskbuf+dev->block_size)); i++)
-		*d++ = *s++;
+	while ((i < BLOCK_SIZE) &&
+			((diskbuf+i) < (diskbuf+dev->block_size)))
+		*d++ = *s++, i++;
 
 	putblk_unlock(disk_block, dev);
+
+out:
+	mutex_unlock(&dev->mutex);
 
 	return i;
 }
@@ -68,20 +76,27 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 	disk_block = BLOCK_BASE(fs_block, dev->block_size);
 	offset = fs_block % dev->block_size;
 
-	unsigned int i;
 	char *diskbuf, *s, *d;
+	unsigned int i = 0;
 
-	diskbuf = getblk_lock(disk_block, dev);
+	mutex_lock(&dev->mutex);
+
+	if ((diskbuf = getblk_lock(disk_block, dev)) == NULL)
+		goto out;
 
 	s = buf;
 	d = diskbuf + offset;
 
-	for (i = 0; (i < len) && ((diskbuf+i) < (diskbuf+dev->block_size)); i++)
-		*d++ = *s++;
+	while ((i < len) &&
+			((diskbuf+i) < (diskbuf+dev->block_size)))
+		*d++ = *s++, i++;
 
 	updateblk(disk_block, dev);
 
 	putblk_unlock(disk_block, dev);
+
+out:
+	mutex_unlock(&dev->mutex);
 
 	return i;
 }
@@ -120,6 +135,7 @@ static int read_superblock(struct embed_superblock *sb,
 	memcpy(sb, buf, sizeof(struct embed_superblock));
 
 	kfree(buf);
+
 	return 0;
 }
 
@@ -152,7 +168,7 @@ static unsigned int alloc_free_inode(struct device *dev)
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		goto out_free_bitmap;
 
-	/* lock superblock */
+	mutex_lock(&sb_lock);
 
 	read_superblock(sb, dev);
 	read_inode_bitmap(bitmap, dev);
@@ -173,7 +189,7 @@ static unsigned int alloc_free_inode(struct device *dev)
 	write_inode_bitmap(bitmap, dev);
 
 out_free_sb:
-	/* unlock superblock */
+	mutex_unlock(&sb_lock);
 
 	kfree(sb);
 out_free_bitmap:
@@ -196,8 +212,6 @@ static unsigned int alloc_free_block(struct device *dev)
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		goto out_free_bitmap;
 
-	/* lock superblock */
-
 	read_superblock(sb, dev);
 
 	data_bitmap_size = ALIGN_BLOCK(sb->nr_blocks, 8) / 8;
@@ -214,8 +228,11 @@ static unsigned int alloc_free_block(struct device *dev)
 				break;
 
 			n = j * 8 + bit;
+
 			set_bitmap(n, bitmap);
 			write_block(D_BMAP_BLK + i, bitmap, BLOCK_SIZE, dev);
+
+			n += BLOCK_SIZE * 8 * i;
 			break;
 		}
 	}
@@ -226,8 +243,6 @@ static unsigned int alloc_free_block(struct device *dev)
 
 		n += sb->data_block;
 	}
-
-	/* unlock superblock */
 
 	kfree(sb);
 out_free_bitmap:
@@ -242,6 +257,7 @@ static int update_inode_table(struct embed_inode *inode,
 	struct embed_superblock *sb;
 	char *buf;
 	unsigned int nblock, offset;
+	int ret = -ERR_ALLOC;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		goto out;
@@ -249,8 +265,6 @@ static int update_inode_table(struct embed_inode *inode,
 		goto out_free_buf;
 
 	read_superblock(sb, dev);
-
-	/* lock superblock */
 
 	nblock = get_inode_table(inode->addr, sb->inode_table);
 	offset = get_inode_table_offset(inode->addr);
@@ -269,17 +283,13 @@ static int update_inode_table(struct embed_inode *inode,
 	memcpy(buf+offset, inode, diff);
 	write_block(nblock, buf, BLOCK_SIZE, dev);
 
-	/* unlock superblock */
+	ret = 0;
 
 	kfree(sb);
-	kfree(buf);
-
-	return 0;
-
 out_free_buf:
 	kfree(buf);
 out:
-	return -ERR_ALLOC;
+	return ret;
 }
 
 static inline unsigned int alloc_zeroed_free_block(struct device *dev)
@@ -304,7 +314,7 @@ out:
 static inline unsigned int check_n_alloc_block(unsigned int nblock,
 		unsigned int index, struct device *dev)
 {
-	char *buf;
+	unsigned int *buf;
 
 	if (!nblock)
 		return 0;
@@ -312,14 +322,20 @@ static inline unsigned int check_n_alloc_block(unsigned int nblock,
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		return 0;
 
-	read_block(nblock, buf, dev);
-	if (!buf[index]) {
-		if (!(buf[index] = alloc_zeroed_free_block(dev))) {
+	if (!read_block(nblock, buf, dev)) {
+		nblock = 0;
+		goto out;
+	}
+
+	if (!buf[index] || buf[index] == (unsigned int)-1) {
+		if (!(buf[index] = alloc_free_block(dev))) {
 			nblock = 0;
 			goto out; /* disk full */
 		}
+
 		write_block(nblock, buf, BLOCK_SIZE, dev);
 	}
+
 	nblock = buf[index];
 
 out:
@@ -328,64 +344,61 @@ out:
 	return nblock;
 }
 
-static inline unsigned int get_data_block(struct embed_inode *inode,
-		unsigned int offset, struct device *dev)
+static inline unsigned int take_dblock(struct embed_inode *inode,
+		unsigned int pos, struct device *dev)
 {
-	unsigned int nblock, nr_entry, idx1, idx2, idx3;
+	unsigned int nblock, index;
 
-	idx1 = offset / BLOCK_SIZE;
+	index = pos / BLOCK_SIZE;
 
-	if (idx1 >= NR_DATA_BLOCK_DIRECT) {
-		idx1 -= NR_DATA_BLOCK_DIRECT;
-		nr_entry = BLOCK_SIZE / WORD_SIZE;
-
-		if (idx1 < nr_entry) { /* single indirect */
-			if (!(nblock = inode->data[NR_DATA_BLOCK_DIRECT])) {
-				nblock = alloc_zeroed_free_block(dev);
-				inode->data[NR_DATA_BLOCK_DIRECT] = nblock;
-				update_inode_table(inode, dev);
-			}
-
-			nblock = check_n_alloc_block(nblock, idx1, dev);
-		} else if (idx1 < (nr_entry * nr_entry)) { /* double indirect */
-			if (!(nblock = inode->data[NR_DATA_BLOCK_DIRECT+1])) {
-				nblock = alloc_zeroed_free_block(dev);
-				inode->data[NR_DATA_BLOCK_DIRECT+1] = nblock;
-				update_inode_table(inode, dev);
-			}
-
-			idx1 -= nr_entry;
-			idx2  = idx1 % nr_entry;
-			idx1 /= nr_entry;
-			nblock = check_n_alloc_block(nblock, idx1, dev);
-			nblock = check_n_alloc_block(nblock, idx2, dev);
-		} else { /* triple indirect */
-			if (!(nblock = inode->data[NR_DATA_BLOCK_DIRECT+2])) {
-				nblock = alloc_zeroed_free_block(dev);
-				inode->data[NR_DATA_BLOCK_DIRECT+2] = nblock;
-				update_inode_table(inode, dev);
-			}
-
-			idx1 -= nr_entry * nr_entry;
-			idx2 = idx1 % (nr_entry * nr_entry) / nr_entry;
-			idx3 = idx1 % (nr_entry * nr_entry) % nr_entry;
-			idx1 /= (nr_entry * nr_entry);
-			nblock = check_n_alloc_block(nblock, idx1, dev);
-			nblock = check_n_alloc_block(nblock, idx2, dev);
-			nblock = check_n_alloc_block(nblock, idx3, dev);
-		}
-	} else {
-		if (!(nblock = inode->data[idx1])) {
-			if (!(nblock = alloc_zeroed_free_block(dev))) {
-				debug(MSG_ERROR, "embedfs: can not get a"
-						"free block!");
-				return 0;
-			}
-			inode->data[idx1] = nblock;
+	if (index < NR_DATA_BLOCK_DIRECT) {
+		if (!(nblock = inode->data[index]) &&
+				(nblock = alloc_free_block(dev))) {
+			inode->data[index] = nblock;
 			update_inode_table(inode, dev);
 		}
+
+		goto out;
 	}
 
+	unsigned int nr_entry, depth, length, i;
+
+	index -= NR_DATA_BLOCK_DIRECT;
+	nr_entry = BLOCK_SIZE / WORD_SIZE;
+	length = 1;
+
+#define mylog2(n)	(fls(n) - 1)
+	for (depth = 0; index >> (mylog2(nr_entry) * (depth+1)); depth++) {
+		length = 1 << (mylog2(nr_entry) * (depth+1));
+		index -= length;
+	}
+
+	if (depth >= NR_DATA_BLOCK - NR_DATA_BLOCK_DIRECT) {
+		nblock = 0;
+		goto out;
+	}
+
+	nblock = inode->data[depth + NR_DATA_BLOCK_DIRECT];
+
+	if (!nblock) {
+		if (!(nblock = alloc_free_block(dev)))
+			goto out;
+
+		inode->data[depth + NR_DATA_BLOCK_DIRECT] = nblock;
+		update_inode_table(inode, dev);
+	}
+
+	for (i = 0; i <= depth; i++) {
+		if (!(nblock = check_n_alloc_block(nblock,
+						(index/length) % nr_entry,
+						dev)))
+			goto out;
+
+		index %= length;
+		length = length >> (fls(nr_entry) - 1);
+	}
+
+out:
 	return nblock;
 }
 
@@ -399,14 +412,12 @@ static int write_data_block(struct embed_inode *inode, const void *data,
 		return -ERR_ALLOC;
 
 	src = (char *)data;
-	offset = 0;
-	prev = 0;
-	nblk = 0;
+	offset = prev = nblk = 0;
 
-	/* lock inode */
+	mutex_lock(&sb_lock);
 
 	while (offset < len) {
-		if (!(nblk = get_data_block(inode, inode->size, dev)))
+		if (!(nblk = take_dblock(inode, inode->size, dev)))
 			break; /* disk full */
 
 		if (nblk != prev) {
@@ -431,14 +442,14 @@ static int write_data_block(struct embed_inode *inode, const void *data,
 
 	update_inode_table(inode, dev);
 
-	/* unlock inode */
+	mutex_unlock(&sb_lock);
 
 	kfree(buf);
 
 	return offset;
 }
 
-static int read_data_block(struct embed_inode *inode, unsigned int offset,
+static int read_data_block(struct embed_inode *inode, unsigned int pos,
 		void *buf, size_t len, struct device *dev)
 {
 	unsigned int nblk;
@@ -447,18 +458,19 @@ static int read_data_block(struct embed_inode *inode, unsigned int offset,
 	if ((t = kmalloc(BLOCK_SIZE)) == NULL)
 		return -ERR_ALLOC;
 
-	for (d = (char *)buf; len && (offset < inode->size); len--, offset++) {
-		if (!(nblk = get_data_block(inode, offset, dev))) {
+	for (d = (char *)buf; len && (pos < inode->size); len--, pos++) {
+		if (!(nblk = take_dblock(inode, pos, dev))) {
 			kfree(t);
 			return -ERR_RANGE;
 		}
 
 		read_block(nblk, t, dev);
-		s = t + offset % BLOCK_SIZE;
+		s = t + pos % BLOCK_SIZE;
 		*d++ = *s++;
 	}
 
 	kfree(t);
+
 	return (int)((unsigned int)d - (unsigned int)buf);
 }
 
@@ -482,9 +494,12 @@ static unsigned int make_node(mode_t mode, struct device *dev)
 	new->size = 0;
 	for (i = 0; i < NR_DATA_BLOCK; i++) new->data[i] = 0;
 
+	mutex_lock(&sb_lock);
 	update_inode_table(new, dev);
+	mutex_unlock(&sb_lock);
 
 	kfree(new);
+
 	return inode;
 }
 
@@ -494,11 +509,14 @@ static int read_inode(struct embed_inode *inode, struct device *dev)
 	unsigned int nblock, offset;
 	char *buf;
 	unsigned int inode_size;
+	int ret = -ERR_ALLOC;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		goto out;
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		goto out_free_buf;
+
+	mutex_lock(&sb_lock);
 
 	if (read_superblock(sb, dev))
 		goto out_free_sb;
@@ -520,16 +538,16 @@ static int read_inode(struct embed_inode *inode, struct device *dev)
 	read_block(nblock, buf, dev);
 	memcpy(inode, buf+offset, diff);
 
-	kfree(sb);
-	kfree(buf);
-	return 0;
+	ret = 0;
 
 out_free_sb:
+	mutex_unlock(&sb_lock);
+
 	kfree(sb);
 out_free_buf:
 	kfree(buf);
 out:
-	return -ERR_ALLOC;
+	return ret;
 }
 
 static size_t tok_strlen(const char *s, const char token)
@@ -701,9 +719,11 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 	if (tid == 0) { /* parent */
 		set_task_state(current, TASK_WAITING);
 		resched();
+
 		return 0;
 	} else if (tid < 0) { /* error */
 		debug(MSG_ERROR, "embedfs: failed cloning");
+
 		return -ERR_RETRY;
 	}
 
@@ -733,6 +753,8 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		goto out;
 	}
 
+	mutex_lock(&file->inode->lock);
+
 	inode->addr = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
 		ret = 0;
@@ -748,17 +770,15 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 	if (file->offset > inode->size)
 		debug(MSG_ERROR, "embedfs: file offset exceeds file size");
 
-	if (inode->size > size) {
-		unsigned int irqflag;
-		spin_lock_irqsave(&file->inode->lock, irqflag);
+	if (inode->size > size)
 		file->inode->size = inode->size;
-		spin_unlock_irqrestore(&file->inode->lock, irqflag);
-	}
 
 	if (!ret)
 		debug(MSG_ERROR, "embedfs: disk full!\n");
 
 out_free_inode:
+	mutex_unlock(&file->inode->lock);
+
 	kfree(inode);
 out:
 	return ret;
@@ -775,9 +795,11 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 	if (tid == 0) {
 		set_task_state(current, TASK_WAITING);
 		resched();
+
 		return 0;
 	} else if (tid < 0) {
 		debug(MSG_ERROR, "embedfs: failed cloning");
+
 		return -ERR_RETRY;
 	}
 
@@ -840,9 +862,11 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 		goto out_free_inode;
 	}
 
+	mutex_lock(&inode->lock);
 	inode->addr = embed_inode->addr;
 	inode->mode = embed_inode->mode;
 	inode->size = embed_inode->size;
+	mutex_unlock(&inode->lock);
 
 out_free_inode:
 	kfree(embed_inode);
@@ -1003,9 +1027,10 @@ static int build_file_system(struct device *dev)
 
 	struct embed_superblock *sb;
 	char *buf, *data_bitmap;
+	int ret = -ERR_ALLOC;
 
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		goto out_error;
+		goto out;
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		goto out_free_sb;
 	if ((data_bitmap = kmalloc(data_bitmap_size)) == NULL)
@@ -1052,22 +1077,17 @@ static int build_file_system(struct device *dev)
 		write_block(D_BMAP_BLK + i, data_bitmap + (i * BLOCK_SIZE),
 				data_bitmap_size % BLOCK_SIZE, dev);
 
-	kfree(buf);
-	kfree(data_bitmap);
-
-	int ret = 0;
-
 	/* make the root node. root inode is always 0. */
 	if (make_node(FT_ROOT, dev) != 0) {
 		debug(MSG_ERROR, "embedfs: wrong root inode");
 		ret = -ERR_UNDEF;
-		goto out;
+		goto out_free_bitmap;
 	}
 
 	struct embed_inode *root_inode;
 
 	if ((root_inode = kmalloc(sizeof(struct embed_inode))) == NULL)
-		goto out_free_sb;
+		goto out_free_bitmap;
 
 	root_inode->addr = 0;
 	read_inode(root_inode, dev);
@@ -1086,18 +1106,18 @@ static int build_file_system(struct device *dev)
 			sb->first_block,
 			sb->magic);
 
-out:
 	__sync(dev);
-	kfree(sb);
+	ret = 0;
 
-	return ret;
-
+	kfree(root_inode);
+out_free_bitmap:
+	kfree(data_bitmap);
 out_free_buf:
 	kfree(buf);
 out_free_sb:
 	kfree(sb);
-out_error:
-	return -ERR_ALLOC;
+out:
+	return ret;
 }
 
 int embedfs_mount(struct device *dev)
@@ -1111,12 +1131,16 @@ int embedfs_mount(struct device *dev)
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		return -ERR_ALLOC;
 
+	mutex_lock(&sb_lock);
 	read_superblock(sb, dev);
+	mutex_unlock(&sb_lock);
 
 	if (sb->magic != MAGIC)
 		build_file_system(dev);
 
+	mutex_lock(&sb_lock);
 	read_superblock(sb, dev);
+	mutex_unlock(&sb_lock);
 
 	int err = 0;
 

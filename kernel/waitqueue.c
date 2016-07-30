@@ -25,7 +25,6 @@ void sleep_in_waitqueue(struct waitqueue_head *q)
 
 void shake_waitqueue_out(struct waitqueue_head *q)
 {
-	return;
 	struct task *task;
 	unsigned int irqflag;
 

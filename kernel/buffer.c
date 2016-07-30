@@ -35,9 +35,8 @@ static unsigned int getbuf_lru(buf_t *head, struct buffer_cache **buffer_cache)
 	struct buffer_cache *p;
 	struct device *dev;
 
-	if ((head == NULL) || (head->prev == head)) {
+	if ((head == NULL) || (head->prev == head))
 		return BUFFER_UNDEF;
-	}
 
 	dev = get_container_of(head, struct device, buffer);
 	p   = get_container_of(head->prev, struct buffer_cache, list);
@@ -68,19 +67,15 @@ void *getblk_lock(unsigned int nblock_new, struct device *dev)
 		nblock_old += dev->base_addr;
 
 		if (p->dirty) { /* write back first */
-			mutex_lock(&dev->mutex);
 			dev->op->write((struct file *)&nblock_old,
 					p->buf, dev->block_size);
-			mutex_unlock(&dev->mutex);
 		}
 
 		p->dirty = 0;
 		nblock_old = nblock_new + dev->base_addr;
 
-		mutex_lock(&dev->mutex);
 		dev->op->read((struct file *)&nblock_old,
 				p->buf, dev->block_size);
-		mutex_unlock(&dev->mutex);
 	}
 
 	update_lru(p, dev->buffer);
@@ -108,9 +103,8 @@ void putblk_unlock(unsigned int nblock, struct device *dev)
 		 *
 		 * But this kind of mechanism seems quite ugly. I want to get
 		 * back to improve this later */
-		if (is_locked(buffer_cache->mutex.count)) {
+		if (is_locked(buffer_cache->mutex.count))
 			mutex_unlock(&buffer_cache->mutex);
-		}
 	}
 }
 

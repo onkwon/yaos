@@ -177,7 +177,7 @@ int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 	strncpy(sb->pathname, mnt_point, sb->pathname_len);
 	sb->pathname[sb->pathname_len] = '\0';
 
-	lock_init(&sb->lock);
+	INIT_MUTEX(sb->lock);
 	sb->dev  = dev;
 	sb->type = fs;
 

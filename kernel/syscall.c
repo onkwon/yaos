@@ -21,6 +21,7 @@ int sys_open_core(char *filename, int mode, void *option)
 
 	new->addr = sb->root_inode;
 	new->sb = sb;
+	INIT_MUTEX(new->lock);
 	sb->op->read_inode(new);
 
 	if (new->iop == NULL) /* probably due to failuer of memory allocation */
@@ -48,7 +49,7 @@ int sys_open_core(char *filename, int mode, void *option)
 		iput(new);
 		inode = new;
 		inode->count = 0;
-		lock_init(&inode->lock);
+		INIT_MUTEX(inode->lock);
 	} else {
 		kfree(new);
 	}

@@ -75,41 +75,43 @@ static struct ramfs_inode *ramfs_mknod(mode_t mode, struct device *dev)
 	return new;
 }
 
-static inline unsigned int *get_data_block(struct ramfs_inode *inode,
+/* If no valid data block, it tries to allocate new one. Read operation always
+ * accesses to already allocated ones. */
+static inline unsigned int *take_dblock(struct ramfs_inode *inode,
 		size_t pos, struct device *dev)
 {
-	unsigned int nblock;
-	size_t block_size;
-
-	block_size = RAMFS_BLOCKSIZE;
-	nblock = pos / block_size;
+	unsigned int nblock = pos / RAMFS_BLOCKSIZE;
 
 	if (nblock < NR_DATA_BLOCK_DIRECT)
 		return (unsigned int *)&inode->data[nblock];
 
-	nblock -= NR_DATA_BLOCK_DIRECT;
-
-	unsigned int nr_entry, depth, base, i;
+	unsigned int nr_entry, depth, length, i;
 	unsigned int *blk;
 
-	nr_entry = block_size / WORD_SIZE;
-	depth = (fls(nblock)-1) / fls(nr_entry-1);
-	base = 1 << ((fls(nr_entry)-1) * depth);
-	nblock -= base;
-	blk = (unsigned int *)&inode->data[depth];
+	nblock -= NR_DATA_BLOCK_DIRECT;
+	nr_entry = RAMFS_BLOCKSIZE / WORD_SIZE;
+	length = 1;
+
+#define mylog2(n)	(fls(n) - 1)
+	for (depth = 0; nblock >> (mylog2(nr_entry) * (depth+1)); depth++) {
+		length = 1 << (mylog2(nr_entry) * (depth+1));
+		nblock -= length;
+	}
+
+	blk = (unsigned int *)&inode->data[depth + NR_DATA_BLOCK_DIRECT];
 
 	for (i = 0; i <= depth; i++) {
 		if (!*blk && !(*blk = (unsigned int)
-					ramfs_malloc(block_size, dev)))
+					ramfs_malloc(RAMFS_BLOCKSIZE, dev)))
 			return 0;
-		memset((void *)*blk, 0, block_size);
+		memset((void *)*blk, 0, RAMFS_BLOCKSIZE);
 
 #define getblk(blk, offset) \
 	((unsigned int *)&((unsigned int *)(blk))[offset])
 
-		base = base >> ((fls(nr_entry)-1) * i);
-		blk = getblk(*blk, (nblock / base) % nr_entry);
-		nblock %= base;
+		blk = getblk(*blk, (nblock / length) % nr_entry);
+		nblock %= length;
+		length = length >> (fls(nr_entry) - 1);
 	}
 
 	return blk;
@@ -120,28 +122,26 @@ static int write_block(struct ramfs_inode *inode, void *data, size_t len,
 {
 	char *d, *s = (char *)data;
 	unsigned int *blk, offset;
-	size_t block_size;
-	int err = 0;
-
-	block_size = RAMFS_BLOCKSIZE;
+	int ret = 0;
 
 	/* lock inode */
 
 	for (offset = 0; offset < len; offset++) {
-		if ((blk = get_data_block(inode, inode->size, dev)) == NULL) {
-			err = -ERR_ALLOC;
+		if ((blk = take_dblock(inode, inode->size, dev)) == NULL) {
+			ret = -ERR_ALLOC;
 			break;
 		}
 
 		if (!*blk) { /* if not allocated yet */
-			*blk = (unsigned int)ramfs_malloc(block_size, dev);
-			if(!*blk) {
-				err = -ERR_ALLOC;
+			*blk = (unsigned int)ramfs_malloc(RAMFS_BLOCKSIZE, dev);
+			if (!*blk) {
+				ret = -ERR_ALLOC;
 				break;
 			}
 		}
 
-		d = (char *)((unsigned int)*blk + inode->size % block_size);
+		d = (char *)((unsigned int)*blk +
+				inode->size % RAMFS_BLOCKSIZE);
 
 		*d++ = *s++;
 		inode->size++;
@@ -149,7 +149,7 @@ static int write_block(struct ramfs_inode *inode, void *data, size_t len,
 
 	/* unlock inode */
 
-	return err;
+	return ret;
 }
 
 static size_t read_block(struct ramfs_inode *inode, unsigned int offset,
@@ -157,17 +157,14 @@ static size_t read_block(struct ramfs_inode *inode, unsigned int offset,
 {
 	unsigned int *blk;
 	char *s, *d;
-	size_t block_size;
-
-	block_size = RAMFS_BLOCKSIZE;
 
 	/* lock inode */
 
 	for (d = (char *)buf; len && (offset < inode->size); len--) {
-		if ((blk = get_data_block(inode, offset, dev)) == NULL)
+		if ((blk = take_dblock(inode, offset, dev)) == NULL)
 			break;
 
-		s = (char *)((unsigned int)*blk + offset % block_size);
+		s = (char *)((unsigned int)*blk + offset % RAMFS_BLOCKSIZE);
 
 		*d++ = *s++;
 
@@ -418,7 +415,7 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 
 	char *buf, *suffix, str[SUFFIX_MAXLEN] = { 0, };
 	unsigned int len;
-	int err;
+	int ret;
 
 	suffix = itoa(MINOR(id), str, 10, SUFFIX_MAXLEN);
 	len = strlen(name) + strnlen(suffix, SUFFIX_MAXLEN);
@@ -427,10 +424,10 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 		return -ERR_ALLOC;
 
 	snprintf(buf, len, "%s%s", name, suffix);
-	err = create_file(buf, mode, devfs);
+	ret = create_file(buf, mode, devfs);
 
-	if (err)
-		return err;
+	if (ret)
+		return ret;
 
 	struct ramfs_inode *inode;
 	const char *s;
@@ -445,5 +442,6 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 	inode->data[0] = (void *)id;
 
 	kfree(buf);
+
 	return 0;
 }
