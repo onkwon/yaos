@@ -11,7 +11,11 @@
 
 #define MAGIC				0xdeafc0de
 
+#ifdef CONFIG_PAGING
+#define BLOCK_SIZE			PAGE_SIZE
+#else
 #define BLOCK_SIZE			64
+#endif
 
 #define INODE_TABLE_SIZE(sz)		(100 * (sz)) /* 1% of disk size */
 #define NAME_MAX			(256 - 1)
@@ -45,7 +49,7 @@ static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 	offset = fs_block % dev->block_size;
 
 	char *diskbuf, *s, *d;
-	unsigned int i = 0;
+	size_t len = 0;
 
 	mutex_lock(&dev->mutex);
 
@@ -54,17 +58,17 @@ static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 
 	s = diskbuf + offset;
 	d = buf;
+	//len = (diskbuf + BLOCK_SIZE) - s;
+	len = BLOCK_SIZE;
 
-	while ((i < BLOCK_SIZE) &&
-			((diskbuf+i) < (diskbuf+dev->block_size)))
-		*d++ = *s++, i++;
+	memcpy(d, s, len);
 
 	putblk_unlock(disk_block, dev);
 
 out:
 	mutex_unlock(&dev->mutex);
 
-	return i;
+	return len;
 }
 
 static size_t write_block(unsigned int nr, void *buf, size_t len,
@@ -77,7 +81,6 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 	offset = fs_block % dev->block_size;
 
 	char *diskbuf, *s, *d;
-	unsigned int i = 0;
 
 	mutex_lock(&dev->mutex);
 
@@ -87,9 +90,11 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 	s = buf;
 	d = diskbuf + offset;
 
-	while ((i < len) &&
-			((diskbuf+i) < (diskbuf+dev->block_size)))
-		*d++ = *s++, i++;
+	//get_container_of(diskbuf, struct buffer_cache, buf)->size
+	if ((d + len) > (diskbuf + dev->block_size))
+		len -= (d + len) - (diskbuf + dev->block_size);
+
+	memcpy(d, s, len);
 
 	updateblk(disk_block, dev);
 
@@ -98,7 +103,7 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 out:
 	mutex_unlock(&dev->mutex);
 
-	return i;
+	return len;
 }
 
 #ifdef CONFIG_DEBUG
@@ -179,7 +184,7 @@ static unsigned int alloc_free_inode(struct device *dev)
 
 	if (bit >= 8 || i >= len ||
 			((i == (len - 1)) && (bit > (sb->nr_inodes % 8))))
-		goto out_free_sb;
+		goto out_unlock;
 
 	n = i * 8 + bit;
 
@@ -188,7 +193,7 @@ static unsigned int alloc_free_inode(struct device *dev)
 	write_superblock(sb, dev);
 	write_inode_bitmap(bitmap, dev);
 
-out_free_sb:
+out_unlock:
 	mutex_unlock(&sb_lock);
 
 	kfree(sb);
@@ -405,68 +410,90 @@ out:
 static int write_data_block(struct embed_inode *inode, const void *data,
 		size_t len, struct device *dev)
 {
-	unsigned int nblk, prev, offset;
+	unsigned int nblk, pblk, off;
+	size_t left;
 	char *buf, *src;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		return -ERR_ALLOC;
 
 	src = (char *)data;
-	offset = prev = nblk = 0;
+	pblk = nblk = 0;
 
-	mutex_lock(&sb_lock);
+	while (len) {
+		/* exclusive access guaranteed as its inode is already locked
+		 * and it will take the device lock in write_block() */
+		mutex_lock(&sb_lock);
+		nblk = take_dblock(inode, inode->size, dev);
+		mutex_unlock(&sb_lock);
 
-	while (offset < len) {
-		if (!(nblk = take_dblock(inode, inode->size, dev)))
-			break; /* disk full */
+		if (!nblk) /* disk full */
+			break;
 
-		if (nblk != prev) {
+		if (nblk != pblk) {
 			/* write back before reading the next block */
-			if (prev)
-				write_block(prev, buf, BLOCK_SIZE, dev);
+			if (pblk)
+				write_block(pblk, buf, BLOCK_SIZE, dev);
 
 			read_block(nblk, buf, dev);
 		}
 
-		buf[inode->size % BLOCK_SIZE] = *src;
+		off = inode->size % BLOCK_SIZE;
+		left = BLOCK_SIZE - off;
+		left = min(len, left);
 
-		src++;
-		inode->size++;
-		offset++;
+		memcpy(buf + off, src, left);
 
-		prev = nblk;
+		src += left;
+		len -= left;
+		inode->size += left;
+
+		pblk = nblk;
 	}
 
 	if (nblk)
 		write_block(nblk, buf, BLOCK_SIZE, dev);
 
+	mutex_lock(&sb_lock);
 	update_inode_table(inode, dev);
-
 	mutex_unlock(&sb_lock);
 
 	kfree(buf);
 
-	return offset;
+	return (unsigned int)src - (unsigned int)data;
 }
 
 static int read_data_block(struct embed_inode *inode, unsigned int pos,
 		void *buf, size_t len, struct device *dev)
 {
-	unsigned int nblk;
+	unsigned int blk;
+	size_t left;
 	char *s, *d, *t;
 
 	if ((t = kmalloc(BLOCK_SIZE)) == NULL)
 		return -ERR_ALLOC;
 
-	for (d = (char *)buf; len && (pos < inode->size); len--, pos++) {
-		if (!(nblk = take_dblock(inode, pos, dev))) {
+	if (pos + len > inode->size)
+		len -= pos + len - inode->size;
+
+	d = (char *)buf;
+
+	while (len) {
+		if (!(blk = take_dblock(inode, pos, dev))) {
 			kfree(t);
 			return -ERR_RANGE;
 		}
 
-		read_block(nblk, t, dev);
+		left = BLOCK_SIZE - pos % BLOCK_SIZE;
+		left = min(len, left);
+
+		read_block(blk, t, dev);
 		s = t + pos % BLOCK_SIZE;
-		*d++ = *s++;
+		memcpy(d, s, left);
+
+		d += left;
+		pos += left;
+		len -= left;
 	}
 
 	kfree(t);
@@ -727,7 +754,9 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 		return -ERR_RETRY;
 	}
 
+	mutex_lock(&file->inode->lock);
 	__set_retval(parent, embed_read_core(file, buf, len));
+	mutex_unlock(&file->inode->lock);
 
 	sum_curr_stat(parent);
 
@@ -799,7 +828,9 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 		return -ERR_RETRY;
 	}
 
+	mutex_lock(&file->inode->lock);
 	__set_retval(parent, embed_write_core(file, buf, len));
+	mutex_unlock(&file->inode->lock);
 
 	sum_curr_stat(parent);
 

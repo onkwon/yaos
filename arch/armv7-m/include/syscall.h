@@ -6,7 +6,9 @@
 			     "bx	lr	\n\t"	\
 			:: "I"(n) : "memory")
 
-static int __attribute__((naked)) syscall(int n, ...)
+/* It must not be inline as the first parameter, `r0`, is used to pass syscall
+ * number to distinguish each syscall */
+static int __attribute__((naked, noinline)) syscall(int n, ...)
 {
 	svc(SYSCALL_NR);
 

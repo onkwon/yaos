@@ -6,7 +6,7 @@
 void *malloc(size_t size);
 void free(void *addr);
 
-void *memcpy(void *dst, const void *src, int len);
-void *memset(void *src, int c, int n);
+void *memcpy(void *dst, const void *src, size_t len);
+void *memset(void *src, int c, size_t len);
 
 #endif /* __STDLIB_H__ */

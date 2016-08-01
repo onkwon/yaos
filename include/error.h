@@ -43,7 +43,7 @@
 		void (*tmp)(int) = putchar;				\
 		putchar = __putc_debug;					\
 		if (lv == MSG_ERROR)					\
-			printk("error: ");				\
+			printk("error: %s: ", __func__);		\
 		printk(fmt);						\
 		printk("\n");						\
 		putchar = tmp;						\

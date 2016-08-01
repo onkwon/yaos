@@ -2,22 +2,28 @@
 #include <kernel/lock.h>
 #include <kernel/sched.h>
 #include <kernel/task.h>
+#include <error.h>
 
 void sleep_in_waitqueue(struct waitqueue_head *q)
 {
 	unsigned int irqflag;
 	DEFINE_WAIT(new);
 
-	lock_dec_spinning(&q->lock);
-
-	if (list_empty(&new.link))
-		list_add(&new.link, q->list.prev);
-
-	lock_inc_spinning(&q->lock);
-
+	mutex_lock_atomic(&q->lock);
 	irq_save(irqflag);
 	local_irq_disable();
+
+	if (!list_empty(&new.link)) {
+		debug(MSG_ERROR, "already linked to 0x%x - 0x%x",
+				new.link.prev, new.link.next);
+		goto out;
+	}
+
+	list_add(&new.link, q->list.prev);
 	set_task_state(current, TASK_WAITING);
+
+out:
+	mutex_unlock_atomic(&q->lock);
 	irq_restore(irqflag);
 
 	schedule();
@@ -25,26 +31,32 @@ void sleep_in_waitqueue(struct waitqueue_head *q)
 
 void shake_waitqueue_out(struct waitqueue_head *q)
 {
-	struct task *task;
+	struct task *task = NULL;
+	struct list *next;
 	unsigned int irqflag;
 
-	lock_dec_spinning(&q->lock);
-
-	if (q->list.next == &q->list) {
-		lock_inc_spinning(&q->lock);
-		return;
-	}
-
-	task = get_container_of(q->list.next, struct waitqueue, link)->task;
-	list_del(q->list.next);
-
-	lock_inc_spinning(&q->lock);
-
+	mutex_lock_atomic(&q->lock);
 	irq_save(irqflag);
 	local_irq_disable();
-	set_task_state(task, TASK_RUNNING);
+
+	for (next = q->list.next; next != &q->list; next = next->next) {
+		task = get_container_of(next, struct waitqueue, link)->task;
+
+		if (get_task_state(task) == TASK_WAITING) {
+			list_del(next);
+			set_task_state(task, TASK_RUNNING);
+			break;
+		}
+	}
+
+	mutex_unlock_atomic(&q->lock);
 	irq_restore(irqflag);
-	runqueue_add(task);
+
+	if (next == &q->list)
+		return;
+
+	if (task)
+		runqueue_add(task);
 }
 
 void wq_wait(struct waitqueue_head *q)

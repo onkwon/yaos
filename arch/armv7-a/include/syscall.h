@@ -6,7 +6,7 @@
 			     "bx	lr	\n\t"	\
 			:: "I"(n) : "memory")
 
-static int __attribute__((naked)) syscall(int n, ...)
+static int __attribute__((naked, noinline)) syscall(int n, ...)
 {
 	svc(SYSCALL_NR);
 

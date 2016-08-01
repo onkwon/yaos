@@ -68,14 +68,14 @@ void *getblk_lock(unsigned int nblock_new, struct device *dev)
 
 		if (p->dirty) { /* write back first */
 			dev->op->write((struct file *)&nblock_old,
-					p->buf, dev->block_size);
+					p->buf, p->size);
 		}
 
 		p->dirty = 0;
 		nblock_old = nblock_new + dev->base_addr;
 
 		dev->op->read((struct file *)&nblock_old,
-				p->buf, dev->block_size);
+				p->buf, p->size);
 	}
 
 	update_lru(p, dev->buffer);
@@ -94,6 +94,7 @@ void *getblk(unsigned int nblock, struct device *dev)
 void putblk_unlock(unsigned int nblock, struct device *dev)
 {
 	struct buffer_cache *buffer_cache;
+
 	if ((buffer_cache = getbuf(nblock, dev->buffer))) {
 		/* TODO:
 		 * If previously buffer taken, gebuf_lru(), which is called
@@ -122,6 +123,7 @@ static struct buffer_cache *mkbuf(unsigned short int block_size)
 	if ((buffer_cache = kmalloc(sizeof(struct buffer_cache)))) {
 		buffer_cache->nblock = BUFFER_INITIAL;
 		buffer_cache->dirty = 0;
+		buffer_cache->size = block_size;
 		list_link_init(&buffer_cache->list);
 		INIT_MUTEX(buffer_cache->mutex);
 
@@ -151,8 +153,7 @@ int __sync(struct device *dev)
 			nblock = p->nblock + dev->base_addr;
 
 			mutex_lock(&dev->mutex);
-			dev->op->write((struct file *)&nblock, p->buf
-					, dev->block_size);
+			dev->op->write((struct file *)&nblock, p->buf, p->size);
 			mutex_unlock(&dev->mutex);
 
 			p->dirty = 0;
@@ -200,7 +201,8 @@ void release_buffer(buf_t *head)
 
 		p = get_container_of(curr, struct buffer_cache, list);
 
-		/* no need to unlock.
+		/* FIXME:
+		 * no need to unlock.
 		 * but what if a task came in waitqueue in the meantime?
 		 * the task would be hung forever. */
 		mutex_lock(&p->mutex);

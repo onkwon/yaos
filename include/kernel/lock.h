@@ -65,6 +65,8 @@ typedef struct semaphore mutex_t;
 #define INIT_MUTEX(name)		INIT_SEMAPHORE(name, 1)
 #define mutex_lock(sem)			semaphore_dec(sem)
 #define mutex_unlock(sem)		semaphore_inc(sem)
+#define mutex_lock_atomic(sem)		atomic_sub(1, sem)
+#define mutex_unlock_atomic(sem)	atomic_add(1, sem)
 
 /* reader-writer spin lock */
 #define DEFINE_RWLOCK(name)		DEFINE_LOCK(name)

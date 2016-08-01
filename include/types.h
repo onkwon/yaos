@@ -27,6 +27,9 @@ typedef struct list buf_t;
 #define WORD_SIZE			sizeof(int)
 #define WORD_BITS			(WORD_SIZE << 3)
 
+#define max(a, b)			(((a) > (b))? a : b)
+#define min(a, b)			(((a) > (b))? b : a)
+
 #define BASE_WORD(x)			((unsigned int)(x) & ~(WORD_SIZE-1))
 #define ALIGN_WORD(x)			\
 	BASE_WORD((unsigned int)(x) + (WORD_SIZE-1))

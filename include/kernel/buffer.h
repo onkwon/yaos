@@ -7,6 +7,7 @@
 struct buffer_cache {
 	unsigned int nblock;
 	char *buf;
+	size_t size;
 	bool dirty;
 	struct list list;
 	mutex_t mutex;
