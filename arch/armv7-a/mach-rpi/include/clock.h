@@ -3,6 +3,7 @@
 
 unsigned int get_pllclk();
 unsigned int get_sysclk_freq();
+unsigned int get_hclk();
 
 void run_sysclk();
 void stop_sysclk();

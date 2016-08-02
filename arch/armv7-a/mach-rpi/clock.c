@@ -9,6 +9,11 @@ unsigned int get_pllclk()
 	return 0;
 }
 
+unsigned int get_hclk()
+{
+	return 0;
+}
+
 unsigned int get_sysclk_freq()
 {
 	return TIMER_FREQ;

@@ -5,7 +5,7 @@
 #include <kernel/waitqueue.h>
 
 struct semaphore {
-	lock_t count;
+	lock_t counter;
 	struct waitqueue_head wq;
 };
 
@@ -49,12 +49,12 @@ typedef struct semaphore mutex_t;
 
 #define DEFINE_SEMAPHORE(name, v)					\
 	struct semaphore name = {					\
-		.count = v,						\
+		.counter = v,						\
 		.wq = INIT_WAIT_HEAD(name.wq),				\
 	}
 
 #define INIT_SEMAPHORE(name, v)	name = (struct semaphore){		\
-	.count = v,							\
+	.counter = v,							\
 	.wq = INIT_WAIT_HEAD(name.wq),					\
 }
 

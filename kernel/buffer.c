@@ -104,7 +104,7 @@ void putblk_unlock(unsigned int nblock, struct device *dev)
 		 *
 		 * But this kind of mechanism seems quite ugly. I want to get
 		 * back to improve this later */
-		if (is_locked(buffer_cache->mutex.count))
+		if (is_locked(buffer_cache->mutex.counter))
 			mutex_unlock(&buffer_cache->mutex);
 	}
 }

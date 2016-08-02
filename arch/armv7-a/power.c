@@ -35,4 +35,5 @@ void disp_sysinfo()
 
 unsigned int __read_reset_source()
 {
+	return 0;
 }

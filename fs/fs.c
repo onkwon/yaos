@@ -32,14 +32,14 @@ void rmfile(struct file *file)
 	list_del(&file->list);
 	spin_unlock_irqrestore(&fdtable_lock, irqflag);
 
-	mutex_lock_atomic(&file->inode->lock);
+	mutex_lock_atomic(&file->inode->lock.counter);
 	if (--file->inode->count <= 0) {
 		list_del(&file->inode->list);
 		kfree(file->inode);
 		/* no need to unlock as it's gone */
 		goto out;
 	}
-	mutex_unlock_atomic(&file->inode->lock);
+	mutex_unlock_atomic(&file->inode->lock.counter);
 
 out:
 	kfree(file->op);

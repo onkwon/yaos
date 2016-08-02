@@ -19,7 +19,7 @@ void semaphore_dec(struct semaphore *sem)
 			"bne	1b			\n\t"
 			"dmb				\n\t"
 			: "=&h"(count), "=&h"(result)
-			: "h"(&sem->count), "h"(&sem->wq)
+			: "h"(&sem->counter), "h"(&sem->wq)
 			: "r0", "lr", "cc", "memory");
 }
 
@@ -39,6 +39,6 @@ void semaphore_inc(struct semaphore *sem)
 			"movgt	r0, %3			\n\t"
 			"blgt	shake_waitqueue_out	\n\t"
 			: "=&h"(count), "=&h"(result)
-			: "h"(&sem->count), "h"(&sem->wq)
+			: "h"(&sem->counter), "h"(&sem->wq)
 			: "r0", "lr", "cc", "memory");
 }

@@ -41,7 +41,7 @@ static inline void semaphore_dec(struct semaphore *sem)
 			"bne	1b			\n\t"
 			"mcr	p15, 0, r0, c7, c10, 5	\n\t"
 			: "=&r"(count), "=&r"(result)
-			: "r"(&sem->count), "r"(&sem->wq)
+			: "r"(&sem->counter), "r"(&sem->wq)
 			: "r0", "lr", "cc", "memory");
 }
 
@@ -61,7 +61,7 @@ static inline void semaphore_inc(struct semaphore *sem)
 			"movgt	r0, %3			\n\t"
 			"blgt	shake_waitqueue_out	\n\t"
 			: "=&r"(count), "=&r"(result)
-			: "r"(&sem->count), "r"(&sem->wq)
+			: "r"(&sem->counter), "r"(&sem->wq)
 			: "r0", "lr", "cc", "memory");
 }
 
@@ -169,20 +169,20 @@ static inline void semaphore_dec(struct semaphore *sem)
 {
 	extern void sleep_in_waitqueue(struct waitqueue_head *q);
 
-	while (sem->count <= 0) {
+	while (sem->counter <= 0) {
 		sleep_in_waitqueue(&sem->wq);
 	}
 
-	sem->count = sem->count - 1;
+	sem->counter = sem->counter - 1;
 }
 
 static inline void semaphore_inc(struct semaphore *sem)
 {
 	extern void shake_waitqueue_out(struct waitqueue_head *q);
 
-	sem->count = sem->count + 1;
+	sem->counter = sem->counter + 1;
 
-	if (sem->count > 0) {
+	if (sem->counter > 0) {
 		shake_waitqueue_out(&sem->wq);
 	}
 }
