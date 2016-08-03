@@ -6,6 +6,7 @@
 #define c2i(c)		(c >= 'a' && c <= 'f'? c - 87 : \
 			c >= 'A' && c <= 'F'? c - 55 : c - '0')
 
+size_t itos(char *buf, int v, int base, size_t n);
 char *itoa(int v, char *buf, unsigned int base, size_t n);
 int strtoi(const char *s, int base);
 int atoi(const char *s);

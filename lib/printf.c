@@ -1,73 +1,62 @@
 #include <io.h>
 #include <string.h>
 
-#define BUFSIZE			(WORD_SIZE * 8 + 1) /* max length of binary */
+#define BUFSIZE				\
+	(WORD_SIZE * 8 + 1) /* max length of binary */
 
-#define FORWARD(addr)		((int *)(addr)++)
-#define BACKWARD(addr)		((int *)(addr)--)
-#define getarg(args, type)	(*(type *)FORWARD(args))
+#define FORWARD(addr)			((int *)(addr)++)
+#define BACKWARD(addr)			((int *)(addr)--)
+#define getarg(args, type)		(*(type *)FORWARD(args))
 
-#define PAD_RIGHT		1
-#define PAD_ZERO		2
+#define PAD_RIGHT			(unsigned int)(1 << (WORD_SIZE * 8 - 1))
+#define PAD_ZERO			(unsigned int)(1 << (WORD_SIZE * 8 - 2))
 
-static void printc(int fd, char **s, int c)
+#define set_padding_dir(v, dir)		(v |= dir)
+#define get_padding_dir(v)		((v) & PAD_RIGHT)
+#define set_padding_zero(v)		(v |= PAD_ZERO)
+#define is_padding_zero(v)		((v) & PAD_ZERO)
+#define get_padding_width(v)		((v) & ~(PAD_RIGHT | PAD_ZERO))
+
+#define tok2base(x)			\
+	((x == 'd')? 10 : (x == 'x')? 16 : (x == 'b')? 2 : 10)
+
+static void printc(int fd, void **s, int c)
 {
 	if (s)
-		*(*s)++ = c;
+		*(*(char **)s)++ = c;
 	else if (fd)
 		fputc(fd, c);
 	else
 		putchar(c);
 }
 
-static size_t prints(int fd, char **to, const char *s, size_t width, int pad,
+static size_t prints(int fd, void **to, const char *s, size_t padding,
 		size_t maxlen)
 {
-	int len;
+	size_t len, i;
+	bool is_right;
 	char padchar = ' ';
 
-	if (pad & PAD_ZERO)
+	len = strnlen(s, maxlen);
+	is_right = get_padding_dir(padding)? true : false;
+
+	if (is_padding_zero(padding))
 		padchar = '0';
 
-	for (len = 0; s[len]; len++) ;
+	padding = get_padding_width(padding);
+	padding = padding - min(len, get_padding_width(padding));
+	len = min(len + padding, maxlen);
 
-	if (pad & PAD_RIGHT)
-		for (; *s && maxlen; s++, maxlen--) printc(fd, to, *s);
-
-	if (width > len) {
-		for (len = width - len; len && maxlen; len--, maxlen--)
+	for (i = 0; i < len; i++) {
+		if (!*s || (is_right && i < padding)) {
 			printc(fd, to, padchar);
-	} else
-		width = len;
-
-	if (!(pad & PAD_RIGHT))
-		for (; *s && maxlen; s++, maxlen--) printc(fd, to, *s);
-
-	return maxlen;
-}
-
-static size_t printi(int fd, char **to, int v, unsigned int base, size_t width,
-		int pad, size_t maxlen)
-{
-	char buf[BUFSIZE], *s;
-
-	s = itoa(v, buf, base, BUFSIZE);
-
-	if (*s == '-') {
-		if ((pad & PAD_ZERO) && !(pad & PAD_RIGHT)) {
-			printc(fd, to, '-');
-			if (width > 0) width--;
-			maxlen--;
-			s++;
+			continue;
 		}
+
+		printc(fd, to, *s++);
 	}
 
-	if (strnlen(s, BUFSIZE) == 0) {
-		*s = '0';
-		s[1] = '\0';
-	}
-
-	return prints(fd, to, s, width, pad, maxlen);
+	return i;
 }
 
 #ifdef FLOAT_POINT_TEST
@@ -130,73 +119,68 @@ static size_t printr(int fd, char **to, double v, unsigned int base,
 }
 #endif
 
-static size_t print(int fd, char **to, size_t limit, int *args)
+static size_t print(int fd, void **to, size_t limit, int *args)
 {
 	const char *format;
-	size_t width, len, maxlen;
-	int pad;
+	size_t padding, width, printed, maxlen;
+	bool op;
+	char buf[BUFSIZE];
 
 	format = getarg(args, char *);
 	maxlen = limit;
-	len = 0;
+	printed = 0;
 
-	while (*format && limit) {
-		if (*format == '%') {
+	for (op = false; *format && limit; format++) {
+		if (!op) {
+			if (*format != '%') {
+				printc(fd, to, *format);
+				limit--;
+				continue;
+			}
+
+			op = true;
+			padding = width = 0;
 			format++;
-			pad = width = 0;
-
-			if (*format == '-') {
-				format++;
-				pad = PAD_RIGHT;
-			}
-			if (*format == '0') {
-				format++;
-				pad |= PAD_ZERO;
-			}
-			while (*format >= '0' && *format <= '9') {
-				width *= 10;
-				width += *format - '0';
-				format++;
-			}
-
-			switch (*format) {
-			case 'd': len = limit - printi(fd, to, getarg(args, int),
-						  10, width, pad, limit);
-				  break;
-			case 'x': len = limit - printi(fd, to, getarg(args, int),
-						  16, width, pad, limit);
-				  break;
-			case 'b': len = limit - printi(fd, to, getarg(args, int),
-						  2, width, pad, limit);
-				  break;
-#ifdef FLOAT_POINT_TEST
-			case 'f': FORWARD(args);
-				  args = (int *)ALIGN_DWORD(args);
-				  len = limit - printr(fd, to, getarg(args, double),
-						  10, width, pad, limit);
-				  FORWARD(args);
-				  break;
-#endif
-			case 's': len = limit - prints(fd, to, getarg(args, char *)
-						  , width, pad, limit);
-				  break;
-			case 'c': printc(fd, to, getarg(args, char));
-				  len = 1;
-				  break;
-			case '%': printc(fd, to, *format);
-				  len = 1;
-				  break;
-			default : format--;
-				  break;
-			}
-
-			format++;
-		} else {
-			printc(fd, to, *format++);
-			len = 1;
 		}
 
-		limit -= len;
+		switch (*format) {
+		case '-':
+			set_padding_dir(padding, PAD_RIGHT);
+			continue;
+		case '0' ... '9':
+			width *= 10;
+			width += *format - '0';
+			if (!width) /* if the leading zero */
+				set_padding_zero(padding);
+			continue;
+		case 'd':
+		case 'x':
+		case 'b':
+			itos(buf, getarg(args, int), tok2base(*format),
+					BUFSIZE);
+			printed = prints(fd, to, buf, padding | width, limit);
+			break;
+		case 'f':
+			break;
+		case 's':
+			printed = prints(fd, to, getarg(args, char *),
+					padding | width, limit);
+			break;
+		case 'c':
+			printc(fd, to, getarg(args, char));
+			printed = 1;
+			break;
+		case '%':
+			printc(fd, to, *format);
+			printed = 1;
+			break;
+		default:
+			format--;
+			break;
+		}
+
+		limit -= printed;
+		op = false;
 	}
 
 	if (to)
@@ -212,12 +196,12 @@ size_t printf(const char *format, ...)
 
 size_t sprintf(char *to, const char *format, ...)
 {
-	return print(0, &to, -1, (int *)&format);
+	return print(0, (void **)&to, -1, (int *)&format);
 }
 
 size_t snprintf(char *to, size_t maxlen, const char *format, ...)
 {
-	return print(0, &to, maxlen, (int *)&format);
+	return print(0, (void **)&to, maxlen, (int *)&format);
 }
 
 size_t fprintf(int fd, const char *format, ...)

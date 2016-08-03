@@ -63,19 +63,64 @@ int strtoi(const char *s, int base)
 	return v;
 }
 
+#define BASE_MAX	16
+
+/* TODO:
+ * if n is less than the actual string length as the converting result,
+ * it saves from the last digits, not from the first digits. */
+size_t itos(char *buf, int v, int base, size_t n)
+{
+	bool is_negative;
+	size_t i;
+	char *p, t;
+
+	if (!buf || base > BASE_MAX)
+		return 0;
+
+	is_negative = false;
+	p = buf;
+	n--; /* to preserve a null byte */
+
+	if (v < 0 && base == 10) {
+		is_negative = true;
+		v = -v;
+		n--;
+		*p++ = '-';
+	}
+
+	for (i = 0; v && (i < n); i++) {
+		t = "0123456789abcdef"[v % base];
+		v /= base;
+		*p++ = t;
+	}
+
+	*p = '\0';
+	n = i; /* Note that the local variable, n, is redefined here */
+	p = buf + is_negative;
+
+	for (i = 0; i < (n >> 1); i++) {
+		t = p[i];
+		p[i] = p[n-i-1];
+		p[n-i-1] = t;
+	}
+
+	return n + is_negative;
+}
+
 char *itoa(int v, char *buf, unsigned int base, size_t n)
 {
 	char *s;
-	int neg;
+	bool is_negative;
 
-	if (!buf) return NULL;
+	if (!buf || base > BASE_MAX)
+		return NULL;
 
-	s   = &buf[n-1];
-	*s  = '\0';
-	neg = 0;
+	s = &buf[n-1];
+	*s = '\0';
+	is_negative = false;
 
 	if ((v < 0) && (base == 10)) {
-		neg = 1;
+		is_negative = true;
 		v = -v;
 	}
 
@@ -85,7 +130,7 @@ char *itoa(int v, char *buf, unsigned int base, size_t n)
 		n--;
 	}
 
-	if (neg) *--s = '-';
+	if (is_negative) *--s = '-';
 
 	return s;
 }
