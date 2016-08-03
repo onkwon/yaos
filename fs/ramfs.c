@@ -7,6 +7,12 @@
 #include <bitops.h>
 #include "ramfs.h"
 
+#ifdef CONFIG_PAGING
+#define RAMFS_BLOCKSIZE			PAGE_SIZE
+#else
+#define RAMFS_BLOCKSIZE			64
+#endif
+
 static void read_superblock(struct ramfs_superblock *sb, struct device *dev)
 {
 	memcpy(sb, (void *)dev->base_addr, sizeof(struct ramfs_superblock));
@@ -217,7 +223,8 @@ static const char *lookup(struct ramfs_inode **inode, const char *pathname,
 			read_block(curr, offset, &dir,
 					sizeof(struct ramfs_dir), dev);
 
-			if (len == strlen(dir.name) &&
+			if (dir.name && len == strnlen(dir.name,
+						FILENAME_MAX) &&
 					!strncmp(dir.name, pwd, len))
 				break;
 		}
@@ -258,7 +265,7 @@ static int create_file(const char *pathname, mode_t mode, struct device *dev)
 	if (toknum(p, "/") || !(parent->mode & FT_DIR))
 		return -ERR_PATH;
 
-	len = strlen(p);
+	len = strnlen(p, FILENAME_MAX);
 
 	if (!(new = ramfs_mknod(mode, dev)) ||
 			!(name = ramfs_malloc(len+1, dev)))
@@ -417,8 +424,12 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 	unsigned int len;
 	int ret;
 
+	if (!name)
+		return -ERR_RANGE;
+
 	suffix = itoa(MINOR(id), str, 10, SUFFIX_MAXLEN);
-	len = strlen(name) + strnlen(suffix, SUFFIX_MAXLEN);
+	len = strnlen(name, FILENAME_MAX) +
+		strnlen(suffix, SUFFIX_MAXLEN);
 
 	if ((buf = (char *)kmalloc(len + 1)) == NULL)
 		return -ERR_ALLOC;

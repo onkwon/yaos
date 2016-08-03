@@ -122,10 +122,13 @@ int add_file_system(struct file_system_type *fs, const char *name)
 {
 	char *str;
 
-	if ((str = kmalloc(strlen(name)+1)) == NULL)
+	if (!name)
+		return -ERR_RANGE;
+
+	if ((str = kmalloc(strnlen(name, FILENAME_MAX)+1)) == NULL)
 		return -ERR_ALLOC;
 
-	strncpy(str, name, strlen(name)+1);
+	strncpy(str, name, strnlen(name, FILENAME_MAX)+1);
 	fs->name = str;
 	fs->next = file_system_list;
 	file_system_list = fs;
@@ -158,7 +161,7 @@ int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 	struct superblock *sb;
 	struct file_system_type *fs;
 
-	if ((fs = get_file_system(fs_type)) == NULL)
+	if (!mnt_point || !(fs = get_file_system(fs_type)))
 		return -ERR_UNDEF;
 
 	if ((sb = kmalloc(sizeof(struct superblock))) == NULL)
@@ -169,7 +172,7 @@ int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 		return -ERR_ATTR; /* wrong file system */
 	}
 
-	sb->pathname_len = strlen(mnt_point);
+	sb->pathname_len = strnlen(mnt_point, FILENAME_MAX);
 	/* skip the last `/`s */
 	while ((sb->pathname_len > 1) && (mnt_point[sb->pathname_len-1] == '/'))
 		sb->pathname_len--;

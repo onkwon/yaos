@@ -692,7 +692,7 @@ static int create_file(const char *filename, mode_t mode,
 	}
 
 	dir->inode = inode_new;
-	dir->name_len = strlen(filename) + 1;
+	dir->name_len = strnlen(filename, FILENAME_MAX) + 1;
 	dir->rec_len = sizeof(struct embed_dir) + dir->name_len - sizeof(char *);
 	dir->type = GET_FILE_TYPE(mode);
 	dir->name = (char *)filename;

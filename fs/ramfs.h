@@ -1,12 +1,6 @@
 #ifndef __RAMFS_H__
 #define __RAMFS_H__
 
-#ifdef CONFIG_PAGING
-#define RAMFS_BLOCKSIZE			PAGE_SIZE
-#else
-#define RAMFS_BLOCKSIZE			64
-#endif
-
 #include <types.h>
 
 struct ramfs_superblock {

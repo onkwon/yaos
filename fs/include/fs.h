@@ -11,6 +11,13 @@
 #include <types.h>
 #include <kernel/lock.h>
 
+#include <kernel/page.h>
+#ifdef CONFIG_PAGE
+#define FILENAME_MAX			PAGE_SIZE
+#else
+#define FILENAME_MAX			64
+#endif
+
 struct superblock;
 struct device;
 struct file_system_type {
