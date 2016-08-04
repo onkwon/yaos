@@ -1,5 +1,8 @@
 #include <string.h>
 
+/* TODO: Support all double-precision numbers
+ * It only gets a few small floating-point numbers correctly and has bad
+ * rounding erros.  Let's support all double-precision numbers. */
 double atof(const char *s)
 {
 #ifdef CONFIG_FLOAT
@@ -40,6 +43,43 @@ double atof(const char *s)
 #endif
 }
 
+size_t ftos(double v, char *buf, size_t maxlen)
+{
+#ifdef CONFIG_FLOAT
+	double f;
+	int i;
+	char c;
+	size_t off = 0;
+
+	if (v < 0) {
+		buf[off++] = '-';
+		v = -v;
+	}
+
+	f = v;
+	i = (int)f;
+	off += itos(i, &buf[off], 10, maxlen - off - 1);
+	buf[off++] = '.';
+
+	while ((f = f - (float)i) != 0.0 && off < maxlen-1) {
+		c = (int)(f * 10) + '0';
+		if (!isdigit(c))
+			break;
+
+		buf[off++] = c;
+		v *= 10;
+		f = v;
+		i = (int)f;
+	}
+
+	buf[off] = '\0';
+
+	return off;
+#else
+	return 0;
+#endif
+}
+
 int strtoi(const char *s, int base)
 {
 	unsigned int digit;
@@ -65,10 +105,10 @@ int strtoi(const char *s, int base)
 
 #define BASE_MAX	16
 
-/* TODO:
+/* TODO: Get the result from the first digits
  * if n is less than the actual string length as the converting result,
  * it saves from the last digits, not from the first digits. */
-size_t itos(char *buf, int v, int base, size_t n)
+size_t itos(int v, char *buf, int base, size_t n)
 {
 	bool is_negative;
 	size_t i;
@@ -92,6 +132,11 @@ size_t itos(char *buf, int v, int base, size_t n)
 		t = "0123456789abcdef"[v % base];
 		v /= base;
 		*p++ = t;
+	}
+
+	if (!i) { /* in case of v == 0 */
+		*p++ = '0';
+		i = 1;
 	}
 
 	*p = '\0';

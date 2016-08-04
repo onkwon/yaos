@@ -3,14 +3,16 @@
 
 #include <types.h>
 
-#define c2i(c)		(c >= 'a' && c <= 'f'? c - 87 : \
-			c >= 'A' && c <= 'F'? c - 55 : c - '0')
+#define c2i(c)		((c) >= 'a' && (c) <= 'f'? (c) - 87 : \
+			(c) >= 'A' && (c) <= 'F'? (c) - 55 : (c) - '0')
+#define isdigit(c)	((c) >= '0' && (c) <= '9')
 
-size_t itos(char *buf, int v, int base, size_t n);
+size_t itos(int v, char *buf, int base, size_t n);
 char *itoa(int v, char *buf, unsigned int base, size_t n);
 int strtoi(const char *s, int base);
 int atoi(const char *s);
 double atof(const char *s);
+size_t ftos(double v, char *buf, size_t maxlen);
 int strncmp(const char *s1, const char *s2, size_t n);
 int strcmp(const char *s1, const char *s2);
 char *strncpy(char *d, const char *s, size_t n);
