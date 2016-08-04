@@ -57,36 +57,62 @@ static unsigned int getcmd(char *s, char **argv)
 
 #include <kernel/task.h>
 #include <kernel/device.h>
+#include <kernel/timer.h>
 
+static int runcmd(struct shell_cmd *cmd, int argc, char **argv)
+{
+	int ret;
+
+	ret = cmd->run(argc, argv);
+
+	if (ret) {
+		printf("usage: %s\n", cmd->usage);
+	}
+
+	return ret;
+}
+
+/* TODO: add history functionality */
 void shell()
 {
-	int argc, ret;
+	extern char _shell_cmdlist;
+	int argc, ret, len;
 	char **argv, buf[MAXLEN];
+	struct shell_cmd *cmd, *prev;
 
 	argv = (char **)malloc(sizeof(char *) * MAXARG);
+	argc = 0;
 	ret = 0;
+	prev = NULL;
 
-	write(stdout, "Type `help` for help on commands.\r\n", 35);
+	sleep(1); /* not to be mixed with other init messages */
+
+	/* TODO: Separate resource like string below,
+	 * in the way of categorized by locale */
+	printf("Type `help` for help on commands.\n");
 
 	do {
 		puts("> ");
-		if (getline(stdin, buf, MAXLEN)) {
-			/* add history functionality */
-			if (!(argc = getcmd(buf, argv))) continue;
+		if ((len = getline(stdin, buf, MAXLEN))) {
+			if (len == 1 && buf[0] == '/' &&
+					argc && prev && prev->name) {
+				ret = runcmd(prev, argc, argv);
+				continue;
+			} else if (!(argc = getcmd(buf, argv)))
+				continue;
 
-			extern char _shell_cmdlist;
-			struct shell_cmd *cmd = (struct shell_cmd *)&_shell_cmdlist;
-
-			for (ret = 0; cmd->name; cmd++) {
+			for (cmd = (struct shell_cmd *)&_shell_cmdlist;
+					cmd->name; cmd++) {
 				if (!strncmp(cmd->name, argv[0], MAXLEN)) {
-					if ((ret = cmd->run(argc, argv))) {
-						printf("usage: %s\n", cmd->usage);
-					}
+					ret = runcmd(cmd, argc, argv);
+					prev = cmd;
 					break;
 				}
 			}
 
-			if(!cmd->name) puts("unknown command\n");
+			if(!cmd->name) {
+				puts("unknown command\n");
+			}
 		}
 	} while(ret != SHELL_EXIT);
 
