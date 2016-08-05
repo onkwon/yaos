@@ -42,28 +42,24 @@ static DEFINE_MUTEX(sb_lock);
 
 static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 {
-	unsigned int disk_block, fs_block, offset;
-
-	fs_block   = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
-	disk_block = BLOCK_BASE(fs_block, dev->block_size);
-	offset = fs_block % dev->block_size;
-
+	unsigned int fs_block;
 	char *diskbuf, *s, *d;
 	size_t len = 0;
 
+	fs_block = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
+
 	mutex_lock(&dev->mutex);
 
-	if ((diskbuf = getblk_lock(disk_block, dev)) == NULL)
+	if ((diskbuf = getblk_lock(fs_block, dev)) == NULL)
 		goto out;
 
-	s = diskbuf + offset;
+	s = diskbuf;
 	d = buf;
-	//len = (diskbuf + BLOCK_SIZE) - s;
 	len = BLOCK_SIZE;
 
 	memcpy(d, s, len);
 
-	putblk_unlock(disk_block, dev);
+	putblk_unlock(fs_block, dev);
 
 out:
 	mutex_unlock(&dev->mutex);
@@ -74,31 +70,29 @@ out:
 static size_t write_block(unsigned int nr, void *buf, size_t len,
 		struct device *dev)
 {
-	unsigned int disk_block, fs_block, offset;
-
-	fs_block   = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
-	disk_block = BLOCK_BASE(fs_block, dev->block_size);
-	offset = fs_block % dev->block_size;
-
+	unsigned int fs_block;
 	char *diskbuf, *s, *d;
+
+	fs_block = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
 
 	mutex_lock(&dev->mutex);
 
-	if ((diskbuf = getblk_lock(disk_block, dev)) == NULL)
+	if ((diskbuf = getblk_lock(fs_block, dev)) == NULL) {
+		len = 0;
 		goto out;
+	}
 
 	s = buf;
-	d = diskbuf + offset;
+	d = diskbuf;
 
-	//get_container_of(diskbuf, struct buffer_cache, buf)->size
-	if ((d + len) > (diskbuf + dev->block_size))
-		len -= (d + len) - (diskbuf + dev->block_size);
+	if ((d + len) > (diskbuf + BLOCK_SIZE))
+		len -= (d + len) - (diskbuf + BLOCK_SIZE);
 
 	memcpy(d, s, len);
 
-	updateblk(disk_block, dev);
+	updateblk(fs_block, dev);
 
-	putblk_unlock(disk_block, dev);
+	putblk_unlock(fs_block, dev);
 
 out:
 	mutex_unlock(&dev->mutex);
@@ -1157,6 +1151,10 @@ int embedfs_mount(struct device *dev)
 
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		return -ERR_ALLOC;
+
+	/* request buffer cache */
+	if (!getblk(0, dev))
+		dev->buffer = request_buffer(32, BLOCK_SIZE);
 
 	mutex_lock(&sb_lock);
 	read_superblock(sb, dev);

@@ -336,7 +336,8 @@ int sys_fork()
 
 	return tid;
 }
-#else /* remove architecture dependent code under `/arch` directory */
+#else
+/* TODO: remove architecture dependent code under `/arch` directory */
 void __attribute__((naked)) sys_fork_finish()
 {
 	__asm__ __volatile__(

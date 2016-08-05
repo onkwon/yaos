@@ -131,6 +131,10 @@ static int flash_seek(struct file *file, unsigned int offset, int whence)
 	return 0;
 }
 
+/* TODO: Support variable block sizes
+ * It only works for fixed block size. Support variable block sizes. And
+ * a block is too big to hold in memory. Find alternative. Do not allocate
+ * memory too much of `BLOCK_SIZE`. */
 static size_t __attribute__((section(".iap")))
 __flash_write(void *addr, void *buf, size_t len)
 {
@@ -276,10 +280,6 @@ static int flash_init()
 	end = (unsigned int)&_rom_start + (unsigned int)&_rom_size;
 #endif
 	dev->nr_blocks = (end - dev->base_addr) / BLOCK_SIZE;
-
-	/* request buffer cache */
-	if ((dev->buffer = request_buffer(1, dev->block_size)) == NULL)
-		return -ERR_ALLOC;
 
 	mount(dev, "/", "embedfs");
 

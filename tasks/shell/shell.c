@@ -94,7 +94,7 @@ void shell()
 	do {
 		puts("> ");
 		if ((len = getline(stdin, buf, MAXLEN))) {
-			if (len == 1 && buf[0] == '/' &&
+			if (len == 1 && buf[0] == '.' &&
 					argc && prev && prev->name) {
 				ret = runcmd(prev, argc, argv);
 				continue;
