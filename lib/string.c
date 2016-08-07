@@ -110,6 +110,7 @@ int strtoi(const char *s, int base)
  * it saves from the last digits, not from the first digits. */
 size_t itos(int v, char *buf, int base, size_t n)
 {
+	unsigned int u;
 	bool is_negative;
 	size_t i;
 	char *p, t;
@@ -128,13 +129,15 @@ size_t itos(int v, char *buf, int base, size_t n)
 		*p++ = '-';
 	}
 
-	for (i = 0; v && (i < n); i++) {
-		t = "0123456789abcdef"[v % base];
-		v /= base;
+	u = (unsigned int)v;
+
+	for (i = 0; u && (i < n); i++) {
+		t = "0123456789abcdef"[u % base];
+		u /= base;
 		*p++ = t;
 	}
 
-	if (!i) { /* in case of v == 0 */
+	if (!i) { /* in case of u == 0 */
 		*p++ = '0';
 		i = 1;
 	}
@@ -154,6 +157,7 @@ size_t itos(int v, char *buf, int base, size_t n)
 
 char *itoa(int v, char *buf, unsigned int base, size_t n)
 {
+	unsigned int u;
 	char *s;
 	bool is_negative;
 
@@ -169,9 +173,11 @@ char *itoa(int v, char *buf, unsigned int base, size_t n)
 		v = -v;
 	}
 
-	while (v && n) {
-		*--s = "0123456789abcdef"[v % base];
-		v /= base;
+	u = (unsigned int)v;
+
+	while (u && n) {
+		*--s = "0123456789abcdef"[u % base];
+		u /= base;
 		n--;
 	}
 
