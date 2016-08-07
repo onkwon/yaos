@@ -205,7 +205,6 @@ $ arm-none-eabi-objdump -D a.out
 
 [...]
 
-```
 00008220 <subsub>:
     8220:	e52db004 	push	{fp}		; (str fp, [sp, #-4]!)
     8224:	e28db000 	add	fp, sp, #0
