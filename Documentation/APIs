@@ -15,8 +15,6 @@ overflow.
 than 1 means unlocked. 락 기본형. 0 이하 값은 잠김, 1 이상의 값은 풀림이라는
 것이 구현된 모든 락의 기본 전제.
 
-[공유 메모리 동기화](https://note.toanyone.net/bbs/board.php?bo_table=note&wr_id=19)
-
 `schedule()` never takes place in an interrupt context. If there are any
 interrupts active or pending, `schedule()` gets its chance to run after all
 that interrupts handled first.
