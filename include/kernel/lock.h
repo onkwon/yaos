@@ -21,6 +21,9 @@ typedef struct semaphore mutex_t;
 #define lock_init(couter)		(*(lock_t *)(couter) = UNLOCKED)
 #define is_locked(count)		((count) <= 0)
 
+#define lock_atomic(counter)		atomic_sub(1, counter)
+#define unlock_atomic(counter)		atomic_add(1, counter)
+
 /* spinlock */
 #ifdef CONFIG_SMP
 #define DEFINE_SPINLOCK(name)		DEFINE_LOCK(name)
@@ -65,8 +68,10 @@ typedef struct semaphore mutex_t;
 #define INIT_MUTEX(name)		INIT_SEMAPHORE(name, 1)
 #define mutex_lock(sem)			semaphore_dec(sem)
 #define mutex_unlock(sem)		semaphore_inc(sem)
-#define mutex_lock_atomic(sem)		atomic_sub(1, sem)
-#define mutex_unlock_atomic(sem)	atomic_add(1, sem)
+#define mutex_lock_atomic(sem)		\
+	atomic_sub(1, &((mutex_t *)(sem))->counter)
+#define mutex_unlock_atomic(sem)	\
+	atomic_add(1, &((mutex_t *)(sem))->counter)
 
 /* reader-writer spin lock */
 #define DEFINE_RWLOCK(name)		DEFINE_LOCK(name)

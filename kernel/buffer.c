@@ -149,6 +149,7 @@ int __sync(struct device *dev)
 	for (curr = head->next; curr != head; curr = curr->next) {
 		p = get_container_of(curr, struct buffer_cache, list);
 
+		mutex_lock(&p->mutex);
 		if (p->dirty && (p->nblock != BUFFER_INITIAL)) {
 			nblock = p->nblock + dev->base_addr;
 
@@ -158,6 +159,7 @@ int __sync(struct device *dev)
 
 			p->dirty = 0;
 		}
+		mutex_unlock(&p->mutex);
 	}
 
 	return 0;

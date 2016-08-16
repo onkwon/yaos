@@ -24,7 +24,7 @@ int sys_open_core(char *filename, int mode, void *option)
 	INIT_MUTEX(new->lock);
 	sb->op->read_inode(new);
 
-	if (new->iop == NULL) /* probably due to failuer of memory allocation */
+	if (new->iop == NULL) /* probably due to failure of memory allocation */
 		return -ERR_RETRY;
 
 	if ((ops = kmalloc(sizeof(struct file_operations))) == NULL) {

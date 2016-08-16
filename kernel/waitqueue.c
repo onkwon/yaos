@@ -9,7 +9,7 @@ void sleep_in_waitqueue(struct waitqueue_head *q)
 	unsigned int irqflag;
 	DEFINE_WAIT(new);
 
-	mutex_lock_atomic(&q->lock);
+	lock_atomic(&q->lock);
 	irq_save(irqflag);
 	local_irq_disable();
 
@@ -23,7 +23,7 @@ void sleep_in_waitqueue(struct waitqueue_head *q)
 	set_task_state(current, TASK_WAITING);
 
 out:
-	mutex_unlock_atomic(&q->lock);
+	unlock_atomic(&q->lock);
 	irq_restore(irqflag);
 
 	schedule();
@@ -35,7 +35,7 @@ void shake_waitqueue_out(struct waitqueue_head *q)
 	struct list *next;
 	unsigned int irqflag;
 
-	mutex_lock_atomic(&q->lock);
+	lock_atomic(&q->lock);
 	irq_save(irqflag);
 	local_irq_disable();
 
@@ -49,7 +49,7 @@ void shake_waitqueue_out(struct waitqueue_head *q)
 		}
 	}
 
-	mutex_unlock_atomic(&q->lock);
+	unlock_atomic(&q->lock);
 	irq_restore(irqflag);
 
 	if (next == &q->list)
