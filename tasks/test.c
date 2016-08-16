@@ -76,21 +76,72 @@ static void test_timer()
 }
 REGISTER_TASK(test_timer, 0, DEFAULT_PRIORITY);
 
+static void test_write()
+{
+	int fd;
+	char *buf = "01234567890123456789012345678901234567890123456789"
+		"01234567890123456789012345678901234567890123456789"
+		"0123456789012345678901234567";
+
+	sleep(3);
+	printk("\nstart write test #2 %x %x\n", current, current->addr);
+	if ((fd = open("/test_write", O_RDWR)) == -ERR_PATH) {
+		if ((fd = open("/test_write", O_CREATE | O_RDWR)) < 0) {
+			printk("FAILED to create #2\n");
+			goto out;
+		}
+
+		int i;
+		for (i = 0; i < 50; i++) {
+			if (!write(fd, buf, 128))
+			//if (write(fd, buf, 32) <= 0)
+				break;
+			printf("=> %d written\n", (i+1) * 128);
+		}
+	}
+
+	close(fd);
+
+out:
+	printf("\nend write test #2\n");
+}
+REGISTER_TASK(test_write, 0, DEFAULT_PRIORITY);
+
 static void test_task()
 {
 	unsigned long long t;
 	unsigned int th, bh;
 	unsigned int v;
 
-	printf("start write test\n");
 	int fd;
-	char *buf = "abcdefABCDEF";
-	fd = open("/test_write", O_CREATE | O_RDWR);
-	write(fd, buf, 12);
+	char *buf = "abcdefABCDEFabcdefABCDEFabcdefABCDEFabcdefABCDEFabcdef"
+		"ABCDEFabcdabcdefABCDEFabcdefABCDEFabcdefABCDEFabcdefABCDEF"
+		"abcdefABCDEFabcd";
+
+	sleep(3);
+	printk("\nstart write test %x %x\n", current, current->addr);
+	//if ((fd = open("/test_write", O_CREATE | O_RDWR)) <= 0) {
+	if ((fd = open("/test_write", O_RDWR)) == -ERR_PATH) {
+		if ((fd = open("/test_write", O_CREATE | O_RDWR)) < 0) {
+			printk("FAILED to create\n");
+			goto out;
+		}
+
+		int i;
+		//for (i = 0; i < 5000; i++) {
+		for (i = 0; i < 50; i++) {
+			if (write(fd, buf, 128) <= 0)
+				break;
+			printf("%d written\n", (i+1) * 128);
+		}
+	}
+
 	close(fd);
-	fd = open("/dev_overlap", O_CREATE);
-	close(fd);
-	printf("end write test\n");
+out:
+
+	if ((fd = open("/dev_overlap", O_CREATE)) > 0)
+		close(fd);
+	printf("\nend write test\n");
 
 	printf("test()\n");
 	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
