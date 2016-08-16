@@ -39,6 +39,7 @@
 #define FT_ROOT				0xffff
 
 static DEFINE_MUTEX(sb_lock);
+static DEFINE_MUTEX(cr_lock);
 
 static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 {
@@ -678,8 +679,6 @@ static int create_file(const char *filename, mode_t mode,
 	if ((dir = kmalloc(sizeof(struct embed_dir))) == NULL)
 		return -ERR_ALLOC;
 
-	/* check if the same filename exists */
-
 	if (!(inode_new = make_node(mode, dev))) {
 		ret = -ERR_RANGE;
 		goto out;
@@ -901,6 +900,11 @@ static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 	const char *s;
 	int ret;
 
+	/* Avoid to be run simultaneously by multiple tasks which may try to
+	 * create the same file. And lock first before allocating. This is
+	 * less efficient but more avoidable from memory shortage. */
+	mutex_lock(&cr_lock);
+
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
 		ret = -ERR_ALLOC;
 		goto out;
@@ -926,6 +930,8 @@ static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 out_free_inode:
 	kfree(embed_inode);
 out:
+	mutex_unlock(&cr_lock);
+
 	return ret;
 }
 
