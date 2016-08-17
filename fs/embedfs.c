@@ -49,8 +49,6 @@ static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 
 	fs_block = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
 
-	mutex_lock(&dev->mutex);
-
 	if ((diskbuf = getblk_lock(fs_block, dev)) == NULL)
 		goto out;
 
@@ -63,8 +61,6 @@ static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 	putblk_unlock(fs_block, dev);
 
 out:
-	mutex_unlock(&dev->mutex);
-
 	return len;
 }
 
@@ -75,8 +71,6 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 	char *diskbuf, *s, *d;
 
 	fs_block = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
-
-	mutex_lock(&dev->mutex);
 
 	if ((diskbuf = getblk_lock(fs_block, dev)) == NULL) {
 		len = 0;
@@ -96,8 +90,6 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 	putblk_unlock(fs_block, dev);
 
 out:
-	mutex_unlock(&dev->mutex);
-
 	return len;
 }
 
@@ -417,7 +409,7 @@ static int write_data_block(struct embed_inode *inode, const void *data,
 
 	while (len) {
 		/* exclusive access guaranteed as its inode is already locked
-		 * and it will take the device lock in write_block() */
+		 * and it will take the device lock through buffer-cache. */
 		mutex_lock(&sb_lock);
 		nblk = take_dblock(inode, inode->size, dev);
 		mutex_unlock(&sb_lock);
@@ -1158,9 +1150,15 @@ int embedfs_mount(struct device *dev)
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		return -ERR_ALLOC;
 
+	/* It doesn't need to get the locks below because nothing can hold the
+	 * locks before the device is mounted. But I'm just doing double check
+	 * getting the locks here. */
+
 	/* request buffer cache */
-	if (!getblk(0, dev))
+	mutex_lock(&dev->mutex);
+	if (!dev->buffer)
 		dev->buffer = request_buffer(32, BLOCK_SIZE);
+	mutex_unlock(&dev->mutex);
 
 	mutex_lock(&sb_lock);
 	read_superblock(sb, dev);

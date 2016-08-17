@@ -13,6 +13,7 @@ static void __init __attribute__((naked, used)) reset()
 	SCB_SHPR2 |= 0xf0000000; /* SVCall : the lowest priority, 15 */
 	SCB_SHCSR |= 0x00070000; /* enable faults */
 	SCB_CCR   |= 0x00000008; /* enable unaligned access traps */
+	//SCB_CCR   |= 0x00000200; /* 8-byte stack alignment */
 
 #ifdef CONFIG_DEBUG
 	SCB_ACTLR |= 2; /* disable write buffer */

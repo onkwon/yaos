@@ -58,11 +58,15 @@ void *getblk_lock(unsigned int nblock_new, struct device *dev)
 {
 	struct buffer_cache *p;
 
+	mutex_lock(&dev->mutex);
+
 	if ((p = getbuf(nblock_new, dev->buffer)) == NULL) {
 		unsigned int nblock_old;
 
-		if ((nblock_old = getbuf_lru(dev->buffer, &p)) == BUFFER_UNDEF)
+		if ((nblock_old = getbuf_lru(dev->buffer, &p)) == BUFFER_UNDEF) {
+			mutex_unlock(&dev->mutex);
 			return NULL;
+		}
 
 		nblock_old += dev->base_addr;
 
@@ -81,6 +85,8 @@ void *getblk_lock(unsigned int nblock_new, struct device *dev)
 	update_lru(p, dev->buffer);
 	p->nblock = nblock_new;
 
+	mutex_unlock(&dev->mutex);
+
 	return (void *)p->buf;
 }
 
@@ -95,6 +101,8 @@ void putblk_unlock(unsigned int nblock, struct device *dev)
 {
 	struct buffer_cache *buffer_cache;
 
+	mutex_lock(&dev->mutex);
+
 	if ((buffer_cache = getbuf(nblock, dev->buffer))) {
 		/* TODO:
 		 * If previously buffer taken, gebuf_lru(), which is called
@@ -107,13 +115,20 @@ void putblk_unlock(unsigned int nblock, struct device *dev)
 		if (is_locked(buffer_cache->mutex.counter))
 			mutex_unlock(&buffer_cache->mutex);
 	}
+
+	mutex_unlock(&dev->mutex);
 }
 
 void updateblk(unsigned int nblock, struct device *dev)
 {
 	struct buffer_cache *buffer_cache;
+
+	mutex_lock(&dev->mutex);
+
 	if ((buffer_cache = getbuf(nblock, dev->buffer)))
 		buffer_cache->dirty = 1;
+
+	mutex_unlock(&dev->mutex);
 }
 
 static struct buffer_cache *mkbuf(unsigned short int block_size)
@@ -141,10 +156,14 @@ int __sync(struct device *dev)
 	unsigned int nblock;
 	struct buffer_cache *p;
 	struct list *curr;
-	buf_t *head = dev->buffer;
+	buf_t *head;
 
-	if ((head == NULL) || (head->next == head))
+	mutex_lock(&dev->mutex);
+
+	if (((head = dev->buffer) == NULL) || (head->next == head)) {
+		mutex_unlock(&dev->mutex);
 		return BUFFER_UNDEF;
+	}
 
 	for (curr = head->next; curr != head; curr = curr->next) {
 		p = get_container_of(curr, struct buffer_cache, list);
@@ -152,15 +171,13 @@ int __sync(struct device *dev)
 		mutex_lock(&p->mutex);
 		if (p->dirty && (p->nblock != BUFFER_INITIAL)) {
 			nblock = p->nblock + dev->base_addr;
-
-			mutex_lock(&dev->mutex);
 			dev->op->write((struct file *)&nblock, p->buf, p->size);
-			mutex_unlock(&dev->mutex);
-
 			p->dirty = 0;
 		}
 		mutex_unlock(&p->mutex);
 	}
+
+	mutex_unlock(&dev->mutex);
 
 	return 0;
 }
