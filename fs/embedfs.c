@@ -939,7 +939,7 @@ static int embed_close(struct file *file)
 		set_task_state(current, TASK_WAITING);
 		resched();
 
-		return 0;
+		return SYSCALL_DEFERRED_WORK;
 	} else if (tid < 0) { /* error */
 		debug(MSG_ERROR, "embedfs: failed cloning");
 
@@ -947,6 +947,7 @@ static int embed_close(struct file *file)
 	}
 
 	__sync(file->inode->sb->dev);
+	rmfile(file);
 
 	__set_retval(parent, 0);
 	sum_curr_stat(parent);

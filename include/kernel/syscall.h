@@ -23,6 +23,8 @@
 #define SYSCALL_MKDIR			17
 #define SYSCALL_NR			18
 
+#define SYSCALL_DEFERRED_WORK		1
+
 int sys_open(char *filename, int mode, void *opt);
 int sys_read(int fd, void *buf, size_t len);
 int sys_write(int fd, void *buf, size_t len);

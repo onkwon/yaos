@@ -150,8 +150,9 @@ int sys_close(int fd)
 	if (!file)
 		return -ERR_UNDEF;
 
-	if (file->op->close)
-		file->op->close(file);
+	if (file->op->close &&
+			(file->op->close(file) == SYSCALL_DEFERRED_WORK))
+		return 0;
 
 	rmfile(file);
 
@@ -185,6 +186,8 @@ int sys_shutdown(int option)
 	if (!(get_task_type(current) & TASK_PRIVILEGED))
 		return -ERR_PERM;
 
+	/* FIXME: Clone here otherwise it causes a fault since sync() needs
+	 * a system call */
 	switch (option) {
 	case 1: /* shutdown */
 		break;
