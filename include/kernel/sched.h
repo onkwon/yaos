@@ -26,6 +26,7 @@ struct scheduler {
  * instruction pipeline simple nops will work effectively. */
 #define schedule_prepare() { \
 	__context_prepare(); \
+	dsb(); \
 	__context_save(current); \
 }
 #define schedule_finish() { \
