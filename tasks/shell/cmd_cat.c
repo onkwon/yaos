@@ -8,6 +8,13 @@ static int cat(int argc, char **argv)
 	int fd, len, i;
 	char buf[16];
 
+	if (argc != 2) {
+		printf("few argument\n");
+		return 0;
+	}
+
+	printf("%s:\n", argv[1]);
+
 	if ((fd = open(argv[1], O_RDONLY)) < 0) {
 		printf("can not open\n");
 		return 0;

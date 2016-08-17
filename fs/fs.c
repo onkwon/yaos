@@ -154,9 +154,8 @@ static DEFINE_LIST_HEAD(sblist);
 
 int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 {
-	/* TODO:
-	 * check if the same mount point exists and if the same device is
-	 * already mounted */
+	/* TODO: Check if the same mount point exists or/and if the same device
+	 * is already mounted */
 
 	struct superblock *sb;
 	struct file_system_type *fs;
