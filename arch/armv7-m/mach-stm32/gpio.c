@@ -69,6 +69,20 @@ int gpio_init(unsigned int index, unsigned int flags)
 		mode = PIN_OUTPUT;
 	} else if (flags & GPIO_MODE_ALT) {
 		mode = PIN_ALT;
+
+#if (SOC == stm32f4)
+		if (pin / 8) {
+			*(volatile unsigned int *)(port + 0x24) =
+				(*(volatile unsigned int *)(port + 0x24) &
+				~(0xf << 4 * (pin % 8))) |
+				((flags >> 16) << 4 * (pin %8));
+		} else {
+			*(volatile unsigned int *)(port + 0x20) =
+				(*(volatile unsigned int *)(port + 0x20) &
+				~(0xf << 4 * (pin % 8))) |
+				((flags >> 16) << 4 * (pin %8));
+		}
+#endif
 	} else if (flags & GPIO_MODE_ANALOG) {
 		mode = PIN_ANALOG;
 	} else { /* GPIO_MODE_INPUT */
