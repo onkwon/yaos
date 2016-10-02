@@ -158,6 +158,18 @@
 #define UART5			(0x40005000)
 #define USART6			(0x40011400)
 
+/* I2C1 */
+#define I2C1_BASE		(0x40005400)
+#define I2C1_CR1		(*(volatile unsigned int *)(I2C1_BASE + 0))
+#define I2C1_CR2		(*(volatile unsigned int *)(I2C1_BASE + 4))
+#define I2C1_OAR1		(*(volatile unsigned int *)(I2C1_BASE + 8))
+#define I2C1_OAR2		(*(volatile unsigned int *)(I2C1_BASE + 0xc))
+#define I2C1_DR			(*(volatile unsigned int *)(I2C1_BASE + 0x10))
+#define I2C1_SR1		(*(volatile unsigned int *)(I2C1_BASE + 0x14))
+#define I2C1_SR2		(*(volatile unsigned int *)(I2C1_BASE + 0x18))
+#define I2C1_CCR		(*(volatile unsigned int *)(I2C1_BASE + 0x1c))
+#define I2C1_TRISE		(*(volatile unsigned int *)(I2C1_BASE + 0x20))
+
 /* Timers */
 #define TIM1_BASE		(0x40010000)
 #define TIM1_CR1		(*(volatile unsigned int *)TIM2_BASE)
