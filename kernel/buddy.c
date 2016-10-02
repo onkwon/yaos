@@ -19,7 +19,7 @@ void free_pages(struct buddy *pool, struct page *page)
 	struct buddy_freelist *freelist;
 	unsigned int order, index;
 
-	debug(MSG_DEBUG, "free page 0x%08x", page->addr);
+	/* debug(MSG_DEBUG, "free page 0x%08x", page->addr); */
 
 	unsigned int irqflag;
 	spin_lock_irqsave(&pool->lock, irqflag);
@@ -101,8 +101,8 @@ struct page *alloc_pages(struct buddy *pool, unsigned int order)
 			SET_PAGE_ORDER(page, order);
 			SET_PAGE_FLAG(page, PAGE_BUDDY);
 
-			debug(MSG_DEBUG, "alloc page 0x%08x (order %d)",
-					page->addr, order);
+			/* debug(MSG_DEBUG, "alloc page 0x%08x (order %d)",
+					page->addr, order); */
 			break;
 		}
 	}
@@ -214,7 +214,7 @@ size_t show_buddy(void *zone)
 {
 	struct buddy *pool = (struct buddy *)zone;
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_PRINTF
 	struct page *page;
 	struct list *p;
 	size_t size;

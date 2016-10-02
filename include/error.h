@@ -18,40 +18,46 @@
 #define MSG_DEBUG		2
 #define MSG_USER		3
 
-#define panic()			while (1) debug(MSG_ERROR, "panic")
-#if ((SOC == bcm2835) || (SOC == bcm2836)) /* syscall to raise scheduler */
-#define freeze()		while (1) syscall(SYSCALL_NR)
-#else
-#define freeze()		while (1) debug(MSG_ERROR, "freezed")
-#endif
+#define panic()			({					\
+		debug(MSG_ERROR, "panic");				\
+		while (1) ;						\
+})
+
+#define freeze()		({					\
+		debug(MSG_ERROR, "freezed");				\
+		while (1) ;						\
+})
 
 #include <io.h>
 #ifdef CONFIG_DEBUG
 #define debug(lv, fmt...)	do {					\
-	extern void __putc_debug(int c);				\
-	void (*tmp)(int) = putchar;					\
-	putchar = __putc_debug;						\
 	printk("%04x %s:%s():%d: ", lv, __FILE__, __func__, __LINE__);	\
 	printk(fmt);							\
 	printk("\n");							\
-	putchar = tmp;							\
+} while (0)
+
+#define assert(exp)		do {					\
+	if (!(exp)) {							\
+		printk("%s:%s():%d: Assertion `%s` failed.\n",		\
+				__FILE__, __func__, __LINE__, #exp);	\
+	}								\
+	freeze();							\
 } while (0)
 #else
 #define debug(lv, fmt...)	do {					\
 	if (lv <= MSG_SYSTEM) {						\
-		extern void __putc_debug(int c);			\
-		void (*tmp)(int) = putchar;				\
-		putchar = __putc_debug;					\
 		if (lv == MSG_ERROR)					\
 			printk("error: %s: ", __func__);		\
 		printk(fmt);						\
 		printk("\n");						\
-		putchar = tmp;						\
 	} else if (lv == MSG_USER) {					\
-		printf("%04x %s:%s():%d: ", lv, __FILE__, __func__, __LINE__); \
+		printf("%04x %s:%s():%d: ",				\
+				lv, __FILE__, __func__, __LINE__);	\
 		putchar('\n');						\
 	}								\
 } while (0)
+
+#define assert(exp)
 #endif
 
 #endif /* __ERROR_H__ */

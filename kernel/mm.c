@@ -164,11 +164,13 @@ void __init mm_init()
 	}
 
 	debug(MSG_SYSTEM, "0x%08x - mem_map first entry, page[%d]",
-			buddypool.mem_map,
+			(unsigned int)buddypool.mem_map,
 			PAGE_INDEX(buddypool.mem_map, buddypool.mem_map));
-	debug(MSG_SYSTEM, "0x%08x - mem_map last entry, page[%d]", page - 1,
+	debug(MSG_SYSTEM, "0x%08x - mem_map last entry, page[%d]",
+			(unsigned int)page - 1,
 			PAGE_INDEX(buddypool.mem_map, (page-1)->addr));
-	debug(MSG_SYSTEM, "mem_map size : %d bytes", page - buddypool.mem_map);
+	debug(MSG_SYSTEM, "mem_map size : %d bytes",
+			(unsigned int)page - (unsigned int)buddypool.mem_map);
 
 	buddy_init(&buddypool, nr_pages, buddypool.mem_map);
 

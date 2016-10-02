@@ -102,7 +102,7 @@ int __init kernel_init()
 #define DEFSTR(x)	DEFMKSTR(x)
 #endif
 	/* a banner */
-	printk("\nyaos %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
+	printk("\n\nyaos %s %s\n", DEFSTR(VERSION), DEFSTR(MACHINE));
 	debug(MSG_SYSTEM, "Running at %dHz", get_hclk());
 	debug(MSG_SYSTEM, "Reset source : %x", __read_reset_source());
 	debug(MSG_DEBUG, "&current 0x%08x", &current);
