@@ -13,7 +13,7 @@
 
 #include <kernel/page.h>
 #ifdef CONFIG_PAGE
-#define FILENAME_MAX			PAGE_SIZE
+#define FILENAME_MAX			PAGESIZE
 #else
 #define FILENAME_MAX			64
 #endif

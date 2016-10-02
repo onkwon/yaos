@@ -139,6 +139,9 @@ void destroy(struct task *task)
 	if (!(get_task_flags(task) & STACK_SHARED))
 		kfree(task->mm.kernel.base);
 
+	/* TODO: free the static tasks as well
+	 * not possible to free the static tasks at the moment as its memory
+	 * region is not managed by buddy. */
 	if (!(get_task_flags(task) & TASK_STATIC))
 		kfree(task);
 }

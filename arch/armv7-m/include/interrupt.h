@@ -1,6 +1,9 @@
 #ifndef __ARMv7M_INTERRUPT_H__
 #define __ARMv7M_INTERRUPT_H__
 
+#define irq2exc(nirq)		((nirq) + 16)
+#define exc2irq(nexc)		((nexc) - 16)
+
 #define __sei()								\
 	__asm__ __volatile__(						\
 			"cpsie i	\n\t"				\

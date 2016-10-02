@@ -4,9 +4,9 @@
 #include <error.h>
 
 #ifdef CONFIG_PAGING
-#define BUF_SIZE		PAGE_SIZE
+#define BUFSIZE		PAGESIZE
 #else
-#define BUF_SIZE		32
+#define BUFSIZE		32
 #endif
 
 #ifndef USART_CHANNEL_MAX
@@ -322,21 +322,21 @@ static int usart_open(struct inode *inode, struct file *file)
 		}
 
 		/* read */
-		if ((buf = kmalloc(BUF_SIZE)) == NULL) {
+		if ((buf = kmalloc(BUFSIZE)) == NULL) {
 			__usart_close(CHANNEL(dev->id));
 			err = -ERR_ALLOC;
 			goto out;
 		}
-		fifo_init(&rxq[CHANNEL(dev->id)], buf, BUF_SIZE);
+		fifo_init(&rxq[CHANNEL(dev->id)], buf, BUFSIZE);
 		lock_init(&rx_lock[CHANNEL(dev->id)]);
 
 		/* write */
-		if ((buf = kmalloc(BUF_SIZE)) == NULL) {
+		if ((buf = kmalloc(BUFSIZE)) == NULL) {
 			__usart_close(CHANNEL(dev->id));
 			err = -ERR_ALLOC;
 			goto out;
 		}
-		fifo_init(&txq[CHANNEL(dev->id)], buf, BUF_SIZE);
+		fifo_init(&txq[CHANNEL(dev->id)], buf, BUFSIZE);
 		lock_init(&tx_lock[CHANNEL(dev->id)]);
 
 		WQ_INIT(wq[CHANNEL(dev->id)]);

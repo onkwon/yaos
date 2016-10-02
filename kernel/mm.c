@@ -147,7 +147,7 @@ void __init mm_init()
 	struct page *page = (struct page *)ALIGN_PAGE(&_ebss);
 
 	debug(MSG_SYSTEM, "# Initializing memory");
-	debug(MSG_SYSTEM, "page size %d bytes", PAGE_SIZE);
+	debug(MSG_SYSTEM, "page size %d bytes", PAGESIZE);
 	debug(MSG_SYSTEM, "page struct size %d bytes", sizeof(struct page));
 	debug(MSG_SYSTEM, "ram range 0x%08x - 0x%08x", start, end);
 	debug(MSG_SYSTEM, "total %d pages", nr_pages);
@@ -159,7 +159,7 @@ void __init mm_init()
 		page->addr  = (void *)start;
 		list_link_init(&page->link);
 
-		start += PAGE_SIZE;
+		start += PAGESIZE;
 		page++;
 	}
 
@@ -175,7 +175,7 @@ void __init mm_init()
 	buddy_init(&buddypool, nr_pages, buddypool.mem_map);
 
 	debug(MSG_SYSTEM, "%d pages, %d bytes free\n",
-			getfree(), getfree() * PAGE_SIZE);
+			getfree(), getfree() * PAGESIZE);
 #else
 	struct ff_freelist *p;
 

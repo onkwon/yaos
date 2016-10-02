@@ -10,16 +10,16 @@
 #endif
 
 #ifdef CONFIG_PAGING
-#define PAGE_SIZE		(1UL << PAGE_SHIFT)
+#define PAGESIZE		(1UL << PAGE_SHIFT)
 #else
-#define PAGE_SIZE		1
+#define PAGESIZE		1
 #endif
 
 #define PAGE_NR(x)		((unsigned int)(x) >> PAGE_SHIFT)
 #define PAGE_INDEX(base, x)	\
 	(PAGE_NR((unsigned int)(x) - (unsigned int)base->addr))
 #define ALIGN_PAGE(x)		\
-	( (ALIGN_WORD(x) + PAGE_SIZE-1) & ~(PAGE_SIZE-1) )
+	( (ALIGN_WORD(x) + PAGESIZE-1) & ~(PAGESIZE-1) )
 
 #define PAGE_FLAG_BIT		0
 #define PAGE_ORDER_BIT		12

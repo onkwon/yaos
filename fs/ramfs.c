@@ -8,7 +8,7 @@
 #include "ramfs.h"
 
 #ifdef CONFIG_PAGING
-#define RAMFS_BLOCKSIZE			PAGE_SIZE
+#define RAMFS_BLOCKSIZE			PAGESIZE
 #else
 #define RAMFS_BLOCKSIZE			64
 #endif

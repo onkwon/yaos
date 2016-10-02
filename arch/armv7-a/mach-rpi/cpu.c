@@ -25,7 +25,7 @@ REGISTER_INIT(mem_init, 1);
 
 static void alloc_irq_stack()
 {
-	unsigned int *sp = kmalloc(PAGE_SIZE);
+	unsigned int *sp = kmalloc(PAGESIZE);
 
 	__asm__ __volatile__(
 			"mrs	r1, cpsr		\n\t"

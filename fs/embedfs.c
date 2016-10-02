@@ -12,7 +12,7 @@
 #define MAGIC				0xdeafc0de
 
 #ifdef CONFIG_PAGING
-#define BLOCK_SIZE			PAGE_SIZE
+#define BLOCK_SIZE			PAGESIZE
 #else
 #define BLOCK_SIZE			64
 #endif

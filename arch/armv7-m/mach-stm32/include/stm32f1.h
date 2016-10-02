@@ -4,11 +4,11 @@
 /* RCC */
 #define SET_CLOCK_APB2(on, pin)		BITBAND(&RCC_APB2ENR, pin, on)
 #define SET_CLOCK_APB1(on, pin)		BITBAND(&RCC_APB1ENR, pin, on)
-#define RESET_CLOCK_APB2(pin) { \
+#define RESET_PERI_APB2(pin) { \
 	BITBAND(&RCC_APB2RSTR, pin, ON); \
 	BITBAND(&RCC_APB2RSTR, pin, OFF); \
 }
-#define RESET_CLOCK_APB1(pin) { \
+#define RESET_PERI_APB1(pin) { \
 	BITBAND(&RCC_APB1RSTR, pin, ON); \
 	BITBAND(&RCC_APB1RSTR, pin, OFF); \
 }
