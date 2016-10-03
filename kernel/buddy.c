@@ -2,6 +2,7 @@
 #include <kernel/lock.h>
 #include <stdlib.h>
 #include <error.h>
+#include <bitops.h>
 
 #define BITMAP_POS(bitmap, pfn, order) \
 	/* (bitmap + ((pfn >> order) / (WORD_SIZE*8) / 2)) */ \
@@ -126,8 +127,8 @@ static void buddy_freelist_init(struct buddy *pool,
 
 	/* bitmap initialization */
 	offset = 0;
-	size   = ALIGN_WORD(nr_pages) >> 4; /* nr_pages / 8-bit / 2 */
-	size   = ALIGN_WORD(size);
+	size = ALIGN_WORD(nr_pages) >> 4; /* nr_pages / 8-bit / 2 */
+	size = ALIGN_WORD(size);
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
 		if (size < WORD_SIZE)
 			size = WORD_SIZE;
@@ -157,15 +158,15 @@ static void buddy_freelist_init(struct buddy *pool,
 
 	/* preserve initial kernel stack to be free later */
 	nr_pages -= ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT;
-	order     = log2((ALIGN_PAGE(STACK_SIZE)-1) >> PAGE_SHIFT);
+	order = fls(ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT) - 1;
 	SET_PAGE_ORDER(&array[nr_pages], order);
 	/* and mark kernel .data and .bss sections as used.
 	 * mem_map array and its bitmap region as well. */
 	index = next = PAGE_INDEX(pool->mem_map, offset);
 
-	order    = BUDDY_MAX_ORDER - 1;
+	order = BUDDY_MAX_ORDER - 1;
 	freelist = &pool->free[order];
-	size     = 1 << order;
+	size = 1 << order;
 
 	while (1) {
 		next = index + size;

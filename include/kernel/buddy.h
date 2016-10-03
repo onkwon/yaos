@@ -28,11 +28,4 @@ void buddy_init(struct buddy *pool, unsigned int nr_pages,
 		struct page *array);
 size_t show_buddy(void *zone);
 
-static inline unsigned int log2(unsigned int v)
-{
-	unsigned int i;
-	for (i = 0; v; i++) v >>= 1;
-	return i;
-}
-
 #endif /* __PAGE_H__ */

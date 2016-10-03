@@ -3,6 +3,7 @@
 #include <kernel/init.h>
 #include <kernel/lock.h>
 #include <error.h>
+#include <bitops.h>
 
 extern char _ram_start, _ram_size, _ebss;
 
@@ -19,7 +20,7 @@ void *kmalloc(size_t size)
 
 retry:
 	page = alloc_pages(&buddypool,
-			log2((ALIGN_PAGE(size)-1) >> PAGE_SHIFT));
+			fls(ALIGN_PAGE(size) >> PAGE_SHIFT) - 1);
 
 	if (page)
 		return page->addr;

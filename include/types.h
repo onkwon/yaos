@@ -3,6 +3,7 @@
 
 #define NULL				((void *)0)
 #define EOF				(-1)
+#define INF				(-1)
 
 #define HIGH				1
 #define ON				1

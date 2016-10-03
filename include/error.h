@@ -2,8 +2,8 @@
 #define __ERROR_H__
 
 /* return error code */
-#define ERR_RETRY		1
-#define ERR_UNDEF		2
+#define ERR_UNDEF		1
+#define ERR_RETRY		2
 #define ERR_ALLOC		3
 #define ERR_RANGE		4
 #define ERR_PARAM		5
