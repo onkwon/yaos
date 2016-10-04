@@ -13,11 +13,18 @@
 #define PAD_RIGHT			(1 << (WORD_SIZE * 8 - 1))
 #define PAD_ZERO			(1 << (WORD_SIZE * 8 - 2))
 
-#define set_padding_dir(v, dir)		(v |= dir)
-#define get_padding_dir(v)		((v) & PAD_RIGHT)
-#define set_padding_zero(v)		(v |= PAD_ZERO)
-#define is_padding_zero(v)		((v) & PAD_ZERO)
-#define get_padding_width(v)		((v) & ~(PAD_RIGHT | PAD_ZERO))
+#define NR_BITS_WLEN			7
+#define WLAN_MASK			((1 << NR_BITS_WLEN) - 1)
+#define TLAN_MASK			\
+	(((1 << NR_BITS_WLEN) - 1) << NR_BITS_WLEN)
+
+#define set_padding_dir(x, dir)		(x |= dir)
+#define get_padding_dir(x)		((x) & PAD_RIGHT)
+#define fill_padding_zero(x)		(x |= PAD_ZERO)
+#define get_padding_type(x)		((x) & PAD_ZERO)
+#define get_padding_wlen(x)		((x) & WLAN_MASK)
+#define get_padding_tlen(x)		(((x) & TLAN_MASK) >> NR_BITS_WLEN)
+#define combine(tlen, wlen)		(((tlen) << NR_BITS_WLEN) | wlen)
 
 #define tok2base(x)			\
 	((x == 'd')? 10 : (x == 'x')? 16 : (x == 'b')? 2 : (x == 'p')? 16 : 10)
@@ -32,24 +39,30 @@ static void printc(int fd, void **s, int c)
 		putchar(c);
 }
 
-static size_t prints(int fd, void **to, const char *s, size_t padding,
-		size_t maxlen)
+static size_t prints(int fd, void **to, const char *s, int opt, size_t maxlen)
 {
-	size_t len, i;
-	bool is_right;
-	char padchar = ' ';
+	int padding, len, i;
+	char padchar;
+	bool is_right = false;
 
 	len = strnlen(s, maxlen);
-	is_right = get_padding_dir(padding)? true : false;
+	padding = get_padding_wlen(opt);
+	i = 0;
 
-	if (is_padding_zero(padding))
-		padchar = '0';
+	if (padding) {
+		is_right = get_padding_dir(opt)? true : false;
+		padchar = get_padding_type(opt)? '0' : ' ';
+		padding = ((padding - len) < 0)? 0 : padding - len;
+		len = min(get_padding_wlen(opt), maxlen);
 
-	padding = get_padding_width(padding);
-	padding = padding - min(len, get_padding_width(padding));
-	len = min(len + padding, maxlen);
+		if (*s == '-' && padchar == '0') {
+			printc(fd, to, *s++);
+			padding++;
+			i++;
+		}
+	}
 
-	for (i = 0; i < len; i++) {
+	for (; i < len; i++) {
 		if (!*s || (!is_right && i < padding)) {
 			printc(fd, to, padchar);
 			continue;
@@ -64,7 +77,8 @@ static size_t prints(int fd, void **to, const char *s, size_t padding,
 static size_t print(int fd, void **to, size_t limit, void *args)
 {
 	const char *fmt;
-	size_t padding, width, printed, maxlen;
+	size_t printed, maxlen, wlen, tlen;
+	int padding;
 	bool op;
 	char buf[BUFSIZE];
 
@@ -81,36 +95,37 @@ static size_t print(int fd, void **to, size_t limit, void *args)
 			}
 
 			op = true;
-			padding = width = 0;
+			padding = wlen = tlen = 0;
 			fmt++;
 		}
 
 		switch (*fmt) {
-		case '-':
-			set_padding_dir(padding, PAD_RIGHT);
-			continue;
 		case '0' ... '9':
-			width *= 10;
-			width += *fmt - '0';
-			if (!width) /* if the leading zero */
-				set_padding_zero(padding);
+			wlen *= 10;
+			wlen += *fmt - '0';
+			if (!wlen) /* if the leading zero */
+				fill_padding_zero(padding);
 			continue;
+		case '#': /* TODO: add "0x" prefix */
+			break;
 		case 'd':
 		case 'x':
-		case 'p': /* TODO: add "0x" prefix */
+		case 'p':
 		case 'b':
 			itos(getarg(args, int), buf, tok2base(*fmt), BUFSIZE);
-			printed = prints(fd, to, buf, padding | width, limit);
+			printed = prints(fd, to, buf, padding | wlen, limit);
 			break;
 #ifdef CONFIG_FLOAT
 		case 'f':
-			ftos(getarg(args, double), buf, BUFSIZE);
-			printed = prints(fd, to, buf, padding | width, limit);
+			ftos(getarg(args, double), buf, wlen, BUFSIZE);
+			printed = prints(fd, to, buf,
+					padding | ((tlen)? tlen : wlen),
+					limit);
 			break;
 #endif
 		case 's':
 			printed = prints(fd, to, getarg(args, char *),
-					padding | width, limit);
+					padding | wlen, limit);
 			break;
 		case 'c':
 			printc(fd, to, getarg(args, char));
@@ -120,6 +135,20 @@ static size_t print(int fd, void **to, size_t limit, void *args)
 			printc(fd, to, *fmt);
 			printed = 1;
 			break;
+		case '.':
+			if (fmt[-1] == '-' || fmt[-1] == '%' || wlen) {
+				tlen = wlen;
+				wlen = 0;
+				continue;
+			}
+			fmt--;
+			break;
+		case '-':
+			if (fmt[-1] == '%') {
+				set_padding_dir(padding, PAD_RIGHT);
+				continue;
+			}
+			/* fall through */
 		default:
 			fmt--;
 			break;

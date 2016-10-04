@@ -2,7 +2,7 @@
 
 /* TODO: Support all double-precision numbers
  * It only gets a few small floating-point numbers correctly and has bad
- * rounding erros.  Let's support all double-precision numbers. */
+ * rounding erros. */
 double atof(const char *s)
 {
 #ifdef CONFIG_FLOAT
@@ -43,7 +43,7 @@ double atof(const char *s)
 #endif
 }
 
-size_t ftos(double v, char *buf, size_t maxlen)
+size_t ftos(double v, char *buf, int flen, size_t maxlen)
 {
 #ifdef CONFIG_FLOAT
 	double f;
@@ -70,7 +70,15 @@ size_t ftos(double v, char *buf, size_t maxlen)
 		v *= 10;
 		f = v;
 		i = (int)f;
+
+		if (--flen == 0)
+			break;
 	}
+
+	/*
+	while (flen-- > 0 && off < maxlen-1)
+		buf[off++] = '0';
+	*/
 
 	buf[off] = '\0';
 
