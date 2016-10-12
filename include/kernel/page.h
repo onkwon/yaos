@@ -15,11 +15,15 @@
 #define PAGESIZE		1
 #endif
 
-#define PAGE_NR(x)		((unsigned int)(x) >> PAGE_SHIFT)
-#define PAGE_INDEX(base, x)	\
-	(PAGE_NR((unsigned int)(x) - (unsigned int)base->addr))
+struct page {
+	unsigned int flags;
+	void *addr;
+	struct list link;
+};
+
 #define ALIGN_PAGE(x)		\
 	( (ALIGN_WORD(x) + PAGESIZE-1) & ~(PAGESIZE-1) )
+#define PAGE_NR(x)		((unsigned int)(x) >> PAGE_SHIFT)
 
 #define PAGE_FLAG_BIT		0
 #define PAGE_ORDER_BIT		12
@@ -34,12 +38,6 @@
 #define GET_PAGE_FLAG(p)	(((p)->flags & PAGE_FLAG_MASK) >> PAGE_FLAG_BIT)
 #define SET_PAGE_FLAG(p, bit)	((p)->flags |= PAGE_FLAG_POS(bit))
 #define RESET_PAGE_FLAG(p, bit)	((p)->flags &= ~PAGE_FLAG_POS(bit))
-
-struct page {
-	unsigned int flags;
-	void *addr;
-	struct list link;
-};
 
 #define GET_PAGE_ORDER(p)	\
 	(((p)->flags & PAGE_ORDER_MASK) >> PAGE_ORDER_BIT)

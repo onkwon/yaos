@@ -59,12 +59,7 @@ static int ps(int argc, char **argv)
 			get_nr_running() + 1, /* including the current task */
 			visit(&init, 1)); /* count from the init task */
 
-	printf("%d bytes free\n", getfree() * PAGESIZE);
-
-#ifdef CONFIG_DEBUG
-	extern unsigned int alloc_fail_count;
-	printf("Memory allocation errors : %d\n", alloc_fail_count);
-#endif
+	printf("%d bytes free\n", getfree());
 
 	printf("%d timer(s) activated\n", get_timer_nr());
 

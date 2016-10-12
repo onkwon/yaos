@@ -4,249 +4,204 @@
 #include <error.h>
 #include <bitops.h>
 
-#define BITMAP_POS(bitmap, pfn, order) \
-	/* (bitmap + ((pfn >> order) / (WORD_SIZE*8) / 2)) */ \
-	(bitmap + (pfn >> (order + 5 + 1)))
-#define BITMAP_OFFSET(pfn, order) \
-	(1 << ((pfn >> (order+1)) & (WORD_SIZE*8-1)))
-#define BITMAP_TOGGLE(bitmap, pfn, order) \
-	(*BITMAP_POS(bitmap, pfn, order) ^= BITMAP_OFFSET(pfn, order))
-#define BITMAP_MASK(bitmap, pfn, order) \
-	(*BITMAP_POS(bitmap, pfn, order) & BITMAP_OFFSET(pfn, order))
-
-void free_pages(struct buddy *pool, struct page *page)
+static inline bool is_buddy_free(struct page *page, struct page *buddy,
+		unsigned int order)
 {
-	struct page *buddy;
+	if ((GET_PAGE_FLAG(buddy) & PAGE_BUDDY) &&
+			(order == GET_PAGE_ORDER(buddy)))
+		return true;
+
+	return false;
+}
+
+void free_pages(struct buddy *node, struct page *page)
+{
+	struct page *buddy, *mem_map;
 	struct buddy_freelist *freelist;
-	unsigned int order, index;
-
-	/* debug(MSG_DEBUG, "free page 0x%08x", page->addr); */
-
+	unsigned int order, idx, n;
 	unsigned int irqflag;
-	spin_lock_irqsave(&pool->lock, irqflag);
 
-	order    = GET_PAGE_ORDER(page);
-	freelist = &pool->free[order];
-	index    = PAGE_INDEX(pool->mem_map, page->addr);
+	mem_map = node->mem_map;
+	idx = page - mem_map;
+	order = GET_PAGE_ORDER(page);
+	freelist = &node->freelist[order];
+	n = 1U << order;
 
-	pool->nr_free += 1U << order;
+	spin_lock_irqsave(&node->lock, irqflag);
 
-	while (order < BUDDY_MAX_ORDER) {
-		BITMAP_TOGGLE(freelist->bitmap, index, order);
-		/* If it was 0 before toggling, it means both of buddies
-		 * were allocated. So nothing can be merged to upper order
-		 * as one of them is still allocated. Otherwise, both of 
-		 * them are free now. Therefore merge it to upper order. */
-		if (BITMAP_MASK(freelist->bitmap, index, order))
+	node->nr_free += n;
+
+	while (order < (BUDDY_MAX_ORDER - 1)) {
+		n = 1U << order;
+		buddy = &mem_map[idx ^ n];
+
+		if (!is_buddy_free(page, buddy, order))
 			break;
 
-		/* find buddy and detach it from current order to merge */
-		buddy = &pool->mem_map[index ^ (1U << order)];
 		list_del(&buddy->link);
+		freelist->nr_pageblocks--;
+		RESET_PAGE_FLAG(buddy, PAGE_BUDDY);
 
-		/* grab the first address of merging buddies */
-		index &= ~(1U << order);
-
+		idx &= ~n; /* grab the head of merging buddies */
 		order++;
 		freelist++;
 	}
 
-	list_add(&pool->mem_map[index].link, &freelist->list);
+	page = &mem_map[idx];
+	list_add(&page->link, &freelist->list);
+	freelist->nr_pageblocks++;
+	SET_PAGE_FLAG(page, PAGE_BUDDY);
+	SET_PAGE_ORDER(page, order);
 
-	RESET_PAGE_FLAG(page, PAGE_BUDDY);
-
-	spin_unlock_irqrestore(&pool->lock, irqflag);
+	spin_unlock_irqrestore(&node->lock, irqflag);
 }
 
-struct page *alloc_pages(struct buddy *pool, unsigned int order)
+struct page *alloc_pages(struct buddy *node, unsigned int order)
 {
+	struct page *page;
 	struct buddy_freelist *freelist;
 	struct list *head, *curr;
-	struct page *page;
-	unsigned int i;
+	unsigned int i, n;
+
+	freelist = &node->freelist[order];
+	page = NULL;
 
 	unsigned int irqflag;
-	spin_lock_irqsave(&pool->lock, irqflag);
-
-	freelist = &pool->free[order];
-	page = NULL;
+	spin_lock_irqsave(&node->lock, irqflag);
 
 	for (i = order; i < BUDDY_MAX_ORDER; i++, freelist++) {
 		head = &freelist->list;
 		curr = head->next;
 
-		if (curr != head) {
-			page = get_container_of(curr, struct page, link);
+		if (curr == head)
+			continue;
 
-			list_del(curr);
-			BITMAP_TOGGLE(freelist->bitmap,
-					PAGE_INDEX(pool->mem_map, page->addr),
-					i);
+		page = get_container_of(curr, struct page, link);
+		RESET_PAGE_FLAG(page, PAGE_BUDDY);
+		list_del(curr);
+		freelist->nr_pageblocks--;
 
-			/* if allocating from higher order, split in half to add
-			 * one of them to current order. */
-			while (i > order) {
-				freelist--;
-				i--;
+		/* split in half to add one of them to the current order list
+		 * if allocating from a higher order */
+		while (i > order) {
+			freelist--;
+			i--;
+			n = 1U << i;
 
-				list_add(&page->link, &freelist->list);
-				BITMAP_TOGGLE(freelist->bitmap,
-						PAGE_INDEX(pool->mem_map, page->addr),
-						i);
-
-				page += 1 << i;
-			}
-
-			pool->nr_free -= 1 << order;
-
-			SET_PAGE_ORDER(page, order);
-			SET_PAGE_FLAG(page, PAGE_BUDDY);
-
-			/* debug(MSG_DEBUG, "alloc page 0x%08x (order %d)",
-					page->addr, order); */
-			break;
+			SET_PAGE_FLAG(&page[n], PAGE_BUDDY);
+			SET_PAGE_ORDER(&page[n], i);
+			list_add(&page[n].link, &freelist->list);
+			freelist->nr_pageblocks++;
 		}
+
+		node->nr_free -= 1 << order;
+
+		RESET_PAGE_FLAG(page, PAGE_BUDDY);
+		SET_PAGE_ORDER(page, i);
+		break;
 	}
 
-	spin_unlock_irqrestore(&pool->lock, irqflag);
+	spin_unlock_irqrestore(&node->lock, irqflag);
 
 	return page;
 }
 
 #include <kernel/task.h>
 
-static void buddy_freelist_init(struct buddy *pool,
-		unsigned int nr_pages, struct page *array)
+#define mylog2(x)			(ffs(x) - 1) /* x > 0 */
+
+static void buddy_freelist_init(struct buddy *node, size_t nr_pages,
+		struct page *mem_map)
 {
-	size_t size;
-	unsigned int offset;
-	unsigned int i;
+	extern unsigned int _ram_start;
+	unsigned int order, idx, preserved, nr_free, n;
 
-	debug(MSG_DEBUG, "&mem_map[nr_pages] 0x%08x - bitmap start addr",
-			&array[nr_pages]);
+	/* Preserve the initial kernel stack to be free later, which is located
+	 * at the end of memory */
+	preserved = nr_pages - PAGE_NR(ALIGN_PAGE(STACK_SIZE));
+	order = mylog2(PAGE_NR(ALIGN_PAGE(STACK_SIZE)));
+	SET_PAGE_ORDER(&mem_map[preserved], order);
 
-	/* bitmap initialization */
-	offset = 0;
-	size = ALIGN_WORD(nr_pages) >> 4; /* nr_pages / 8-bit / 2 */
-	size = ALIGN_WORD(size);
-	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		if (size < WORD_SIZE)
-			size = WORD_SIZE;
+	/* And mark kernel .data and .bss sections as used.
+	 * The region of mem_map array as well. */
+	idx = PAGE_NR(ALIGN_PAGE(&mem_map[nr_pages]) -
+			(unsigned int)&_ram_start);
+	nr_free = preserved - idx;
+	debug(MSG_DEBUG, "The first free page(idx:%d) - %x",
+			idx, &mem_map[nr_pages]);
+	debug(MSG_DEBUG, "The number of free pages %d", nr_free);
 
-		pool->free[i].bitmap = (unsigned int *)
-				(((char *)&array[nr_pages]) + offset);
-		memset(pool->free[i].bitmap, 0, size);
-		debug(MSG_DEBUG, "[%02d] bitmap 0x%08x size %d bytes, order %d"
-				, i
-				, pool->free[i].bitmap
-				, size
-				, 1UL << (PAGE_SHIFT+i));
-		list_link_init(&pool->free[i].list);
-
-		offset += size;
-		size >>= 1;
-	}
-
-	/* current offset is the first free page */
-	offset = ALIGN_PAGE(((char *)&array[nr_pages]) + offset);
-	debug(MSG_DEBUG, "the first free page 0x%08x, page[%d]", offset,
-			PAGE_INDEX(pool->mem_map, offset));
-
-	/* buddy list initialization */
-	struct buddy_freelist *freelist;
-	unsigned int order, index, next;
-
-	/* preserve initial kernel stack to be free later */
-	nr_pages -= ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT;
-	order = fls(ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT) - 1;
-	SET_PAGE_ORDER(&array[nr_pages], order);
-	/* and mark kernel .data and .bss sections as used.
-	 * mem_map array and its bitmap region as well. */
-	index = next = PAGE_INDEX(pool->mem_map, offset);
-
-	order = BUDDY_MAX_ORDER - 1;
-	freelist = &pool->free[order];
-	size = 1 << order;
-
-	while (1) {
-		next = index + size;
-
-		/* split in half if short for current order region */
-		while ((int)(nr_pages - next) < 0) {
-			if (order == 0)
-				goto out;
-
-			order--;
-			freelist--;
-			size = 1 << order;
-			next = index + size;
-			debug(MSG_DEBUG, "### order %02d", order);
-		}
-
-		list_add(&array[index].link, &freelist->list);
-		debug(MSG_DEBUG, "freelist->bitmap %08x bitmap %08x"
-				, freelist->bitmap
-				, BITMAP_POS(freelist->bitmap, index, order));
-		BITMAP_TOGGLE(freelist->bitmap, index, order);
-		debug(MSG_DEBUG,
-			"index %d, size %d(%02d), addr %08x[%08x], bitmap %08x",
-				index, size, order, &array[index],
-				array[index].addr,
-				*BITMAP_POS(freelist->bitmap, index, order));
-		index = next;
-
-		pool->nr_free += 1 << order;
-	}
-
-out:
-	return;
-}
-
-void buddy_init(struct buddy *pool, unsigned int nr_pages, struct page *array)
-{
-	pool->nr_pages = nr_pages;
-	pool->nr_free  = 0;
-	lock_init(&pool->lock);
-
-	buddy_freelist_init(pool, nr_pages, array);
-}
-
-size_t show_buddy(void *zone)
-{
-	struct buddy *pool = (struct buddy *)zone;
-
-#ifdef CONFIG_DEBUG_PRINTF
 	struct page *page;
-	struct list *p;
-	size_t size;
-	unsigned int i, j;
 
-	printf("available pages %d\nfree pages %d\n",
-			pool->nr_pages, pool->nr_free);
+	while (nr_free) {
+		order = min(mylog2(idx), BUDDY_MAX_ORDER - 1);
+		while ((int)(nr_free - (1U << order)) < 0)
+			order--;
+
+		page = &mem_map[idx];
+		SET_PAGE_ORDER(page, order);
+		SET_PAGE_FLAG(page, PAGE_BUDDY);
+		list_add(&page->link, &node->freelist[order].list);
+
+		node->freelist[order].nr_pageblocks++;
+		debug(MSG_DEBUG, "%02d %x added to %x", order, &page->link,
+				&node->freelist[order].list);
+
+		n = 1U << order;
+		debug(MSG_DEBUG, "%04d: idx %d buddy %d head %d",
+				n, idx, idx ^ n, idx & ~n);
+		idx += n;
+		nr_free -= n;
+		node->nr_free += n; /* total pages being managed by buddy */
+		debug(MSG_DEBUG, "order %d, nr_free %d, next %d\n",
+				order, nr_free, idx);
+	}
+}
+
+void buddy_init(struct buddy *node, size_t nr_pages, struct page *array)
+{
+	int i;
 
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
-		printf("============= order %02d =============\n", i);
-		p = pool->free[i].list.next;
-		while (p != &pool->free[i].list) {
-			page = get_container_of(p, struct page, link);
-			printf("--> 0x%08x(0x%08x) ", page->addr, page);
+		node->freelist[i].nr_pageblocks = 0;
+		list_link_init(&node->freelist[i].list);
+	}
+
+	node->nr_pages = nr_pages;
+	node->nr_free = 0;
+	lock_init(&node->lock);
+
+	buddy_freelist_init(node, nr_pages, array);
+
+#ifdef CONFIG_DEBUG
+	show_buddy_all(node);
+#endif
+}
+
+size_t show_buddy_all(struct buddy *node)
+{
+	struct list *p;
+	int i;
+
+	printk("The number of pages managed by buddy %d/%d (%d bytes)\n",
+			node->nr_free, node->nr_pages,
+			node->nr_free * PAGESIZE);
+
+	unsigned int irqflag;
+	spin_lock_irqsave(&node->lock, irqflag);
+
+	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
+		printk("order %02d, %d page blocks\n",
+				i, node->freelist[i].nr_pageblocks);
+		p = node->freelist[i].list.next;
+		while (p != &node->freelist[i].list) {
+			printk(" -> %x", p);
 			p = p->next;
 		}
-
-		printf("\n------ bitmap 0x%08x ------\n",
-				pool->free[i].bitmap);
-		size = ALIGN_WORD(pool->nr_pages) >> (4 + i);
-		size = ALIGN_WORD(size);
-		size = size? size : WORD_SIZE;
-		size /= WORD_SIZE;
-		for (j = size; j; j--) {
-			printf("%08x ", *(pool->free[i].bitmap + j - 1));
-			if (!((size-j+1) % 8))
-				printf("\n");
-		}
-		printf("\n");
+		printk("\n");
 	}
-#endif
 
-	return pool->nr_free;
+	spin_unlock_irqrestore(&node->lock, irqflag);
+
+	return node->nr_free;
 }

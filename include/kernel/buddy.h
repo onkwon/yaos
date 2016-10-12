@@ -8,24 +8,20 @@
 
 struct buddy_freelist {
 	struct list list;
-	unsigned int *bitmap;
+	size_t nr_pageblocks;
 };
 
 struct buddy {
-	struct buddy_freelist free[BUDDY_MAX_ORDER];
-
-	unsigned int nr_free;
-	unsigned int nr_pages;
-
+	struct buddy_freelist freelist[BUDDY_MAX_ORDER];
+	size_t nr_pages;
+	size_t nr_free;
 	lock_t lock;
-
 	struct page *mem_map;
 };
 
-struct page *alloc_pages(struct buddy *pool, unsigned int order);
-void free_pages(struct buddy *pool, struct page *page);
-void buddy_init(struct buddy *pool, unsigned int nr_pages,
-		struct page *array);
-size_t show_buddy(void *zone);
+struct page *alloc_pages(struct buddy *node, unsigned int order);
+void free_pages(struct buddy *node, struct page *page);
+void buddy_init(struct buddy *node, size_t nr_pages, struct page *array);
+size_t show_buddy_all(struct buddy *node);
 
 #endif /* __PAGE_H__ */

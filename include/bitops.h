@@ -11,6 +11,7 @@ static inline int fls(int x)
 
 static inline int ffs(int x)
 {
+	/* mask the least significant bit only */
 	return fls(x & -x);
 }
 

@@ -20,10 +20,6 @@ struct scheduler {
 	void *rq;
 };
 
-/* It doesn't really seem like the barrier instructions are needed here on
- * Cortex-M processor. They are needed when external memory is changed by
- * someone else than the processor like DMA which bypasses caches. With a small
- * instruction pipeline simple nops will work effectively. */
 #define schedule_prepare() { \
 	__context_prepare(); \
 	dsb(); \

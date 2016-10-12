@@ -7,20 +7,27 @@
 
 extern char _ram_start, _ram_size, _ebss;
 
-#ifdef CONFIG_DEBUG
-unsigned int alloc_fail_count;
-#endif
-
 #ifdef CONFIG_PAGING
-static struct buddy buddypool;
+static struct buddy buddy;
+
+#define addr2page(addr, node)		(&(node)->mem_map[addr2idx(addr, node)])
+
+static inline unsigned int addr2idx(void *addr, struct buddy *node)
+{
+	return PAGE_NR((unsigned int)addr -
+			(unsigned int)(node->mem_map->addr));
+}
 
 void *kmalloc(size_t size)
 {
 	struct page *page;
 
+	if (!size)
+		return NULL;
+
 retry:
-	page = alloc_pages(&buddypool,
-			fls(ALIGN_PAGE(size) >> PAGE_SHIFT) - 1);
+#define mylog2(x)	(ffs(x) - 1) /* x > 0 */
+	page = alloc_pages(&buddy, mylog2(ALIGN_PAGE(size) >> PAGE_SHIFT));
 
 	if (page)
 		return page->addr;
@@ -31,9 +38,6 @@ retry:
 		goto retry;
 
 	debug(MSG_ERROR, "Out of memory");
-#ifdef CONFIG_DEBUG
-	alloc_fail_count++;
-#endif
 
 	return NULL;
 }
@@ -41,42 +45,36 @@ retry:
 void kfree(void *addr)
 {
 	struct page *page;
-	struct buddy *pool = &buddypool;
-	unsigned int index;
+	struct buddy *node = &buddy;
 
 	if (!addr) return;
 
-	index = PAGE_INDEX(buddypool.mem_map, addr);
-	if (index >= pool->nr_pages) /* out of range */
+	page = addr2page(addr, node);
+
+	if (GET_PAGE_FLAG(page) & PAGE_BUDDY) /* already in buddy list */
 		return;
 
-	page = &pool->mem_map[PAGE_INDEX(buddypool.mem_map, addr)];
-
-	/* already freed or no way to free if not allocated by buddy
-	 * allocator */
-	if (!(GET_PAGE_FLAG(page) & PAGE_BUDDY))
-		return;
-
-	free_pages(pool, page);
+	free_pages(node, page);
 }
 
 void __init free_bootmem()
 {
-	void *addr;
-	unsigned index;
+	unsigned int idx;
 	struct page *page;
 
-	index = buddypool.nr_pages - (ALIGN_PAGE(STACK_SIZE) >> PAGE_SHIFT);
-	addr  = buddypool.mem_map[index].addr;
-	page  = &buddypool.mem_map[index];
-	SET_PAGE_FLAG(page, PAGE_BUDDY);
+	idx = buddy.nr_pages - PAGE_NR(ALIGN_PAGE(STACK_SIZE));
+	page = &buddy.mem_map[idx];
 
-	kfree(addr);
+	kfree(page->addr);
 }
 
 size_t getfree()
 {
-	return show_buddy(&buddypool);
+#ifdef CONFIG_DEBUG
+	return show_buddy_all(&buddy) * PAGESIZE;
+#else
+	return buddy.nr_free * PAGESIZE;
+#endif
 }
 
 #else
@@ -143,6 +141,7 @@ void __init mm_init()
 	unsigned int end   =
 		(unsigned int)&_ram_start + (unsigned int)&_ram_size - 1;
 #ifdef CONFIG_PAGING
+	/* assume flat memory */
 	unsigned int nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
 
 	struct page *page = (struct page *)ALIGN_PAGE(&_ebss);
@@ -153,7 +152,7 @@ void __init mm_init()
 	debug(MSG_SYSTEM, "ram range 0x%08x - 0x%08x", start, end);
 	debug(MSG_SYSTEM, "total %d pages", nr_pages);
 
-	buddypool.mem_map = page;
+	buddy.mem_map = page;
 
 	while (start < end) {
 		page->flags = 0;
@@ -165,18 +164,15 @@ void __init mm_init()
 	}
 
 	debug(MSG_SYSTEM, "0x%08x - mem_map first entry, page[%d]",
-			(unsigned int)buddypool.mem_map,
-			PAGE_INDEX(buddypool.mem_map, buddypool.mem_map));
+			(unsigned int)buddy.mem_map,
+			addr2idx(buddy.mem_map, &buddy));
 	debug(MSG_SYSTEM, "0x%08x - mem_map last entry, page[%d]",
 			(unsigned int)page - 1,
-			PAGE_INDEX(buddypool.mem_map, (page-1)->addr));
+			addr2idx((page-1)->addr, &buddy));
 	debug(MSG_SYSTEM, "mem_map size : %d bytes",
-			(unsigned int)page - (unsigned int)buddypool.mem_map);
+			(unsigned int)page - (unsigned int)buddy.mem_map);
 
-	buddy_init(&buddypool, nr_pages, buddypool.mem_map);
-
-	debug(MSG_SYSTEM, "%d pages, %d bytes free\n",
-			getfree(), getfree() * PAGESIZE);
+	buddy_init(&buddy, nr_pages, buddy.mem_map);
 #else
 	struct ff_freelist *p;
 
