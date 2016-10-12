@@ -72,6 +72,11 @@ typedef struct semaphore mutex_t;
 	atomic_sub(1, &((mutex_t *)(sem))->counter)
 #define mutex_unlock_atomic(sem)	\
 	atomic_add(1, &((mutex_t *)(sem))->counter)
+#define mutex_init(sem) ({						\
+	((mutex_t *)(sem))->counter = 1;				\
+	((mutex_t *)(sem))->wq = (struct waitqueue_head)		\
+		INIT_WAIT_HEAD(((mutex_t *)(sem))->wq);			\
+})
 
 /* reader-writer spin lock */
 #define DEFINE_RWLOCK(name)		DEFINE_LOCK(name)

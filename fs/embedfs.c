@@ -729,7 +729,9 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
 	if (tid == 0) { /* parent */
+		spin_lock(&current->lock);
 		set_task_state(current, TASK_WAITING);
+		spin_unlock(&current->lock);
 		resched();
 
 		return 0;
@@ -745,10 +747,13 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 
 	sum_curr_stat(parent);
 
+	unsigned int irqflag;
+	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
 		runqueue_add(parent);
 	}
+	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
 	freeze(); /* never reaches here */
@@ -803,7 +808,9 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
 	if (tid == 0) {
+		spin_lock(&current->lock);
 		set_task_state(current, TASK_WAITING);
+		spin_unlock(&current->lock);
 		resched();
 
 		return 0;
@@ -819,10 +826,13 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 
 	sum_curr_stat(parent);
 
+	unsigned int irqflag;
+	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
 		runqueue_add(parent);
 	}
+	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
 	freeze(); /* never reaches here */
@@ -936,7 +946,9 @@ static int embed_close(struct file *file)
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
 
 	if (tid == 0) { /* parent */
+		spin_lock(&current->lock);
 		set_task_state(current, TASK_WAITING);
+		spin_unlock(&current->lock);
 		resched();
 
 		return SYSCALL_DEFERRED_WORK;
@@ -952,10 +964,13 @@ static int embed_close(struct file *file)
 	__set_retval(parent, 0);
 	sum_curr_stat(parent);
 
+	unsigned int irqflag;
+	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
 		runqueue_add(parent);
 	}
+	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
 	freeze(); /* never reaches here */

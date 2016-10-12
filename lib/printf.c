@@ -42,7 +42,7 @@ static void printc(int fd, void **s, int c)
 static size_t prints(int fd, void **to, const char *s, int opt, size_t maxlen)
 {
 	int padding, len, i;
-	char padchar;
+	char padchar = ' ';
 	bool is_right = false;
 
 	len = strnlen(s, maxlen);

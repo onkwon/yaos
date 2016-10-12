@@ -192,10 +192,12 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 		__set_retval(parent, ret);
 		sum_curr_stat(parent);
 
+		spin_lock(&current->lock);
 		if (get_task_state(parent)) {
 			set_task_state(parent, TASK_RUNNING);
 			runqueue_add(parent);
 		}
+		spin_unlock(&current->lock);
 
 		sys_kill((unsigned int)current);
 		freeze(); /* never reaches here */

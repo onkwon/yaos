@@ -40,6 +40,15 @@ static inline int __add_timer(struct timer *new)
 	return 0;
 }
 
+/* FIXME: Remove the need of controlling interrupts in a timer instance
+ * To avoid the race condition, interrupts must be disabled before getting the
+ * lock of task to change its state or/and priority. And a timer instance runs
+ * in the mode it is invoked by which means that can be called by a task
+ * doesn't have the right permission.
+ *
+ * Typically a timer instance is tied to its own task only. So I take the risk
+ * at the moment, but will get back soon. */
+
 static void run_timer()
 {
 	struct timer *timer;
@@ -62,7 +71,9 @@ infinite:
 			/* Note that it is running at HIGHEST_PRIORITY just
 			 * like its parent, run_timer(). Change the priority to
 			 * its own tasks' to do job at the right priority. */
+			spin_lock(&current->lock);
 			set_task_pri(current, get_task_pri(timer->task));
+			spin_unlock(&current->lock);
 			schedule();
 
 			if (timer->event)
@@ -70,8 +81,10 @@ infinite:
 
 			/* A trick to enter privileged mode */
 			if (!(get_task_flags(current) & TASK_PRIVILEGED)) {
+				spin_lock(&current->lock);
 				set_task_flags(current, get_task_flags(current)
 						| TASK_PRIVILEGED);
+				spin_unlock(&current->lock);
 				schedule();
 			}
 
@@ -98,14 +111,18 @@ static void sleep_callback(unsigned int data)
 
 	/* A trick to enter privileged mode */
 	if (!(get_task_flags(current) & TASK_PRIVILEGED)) {
+		spin_lock(&current->lock);
 		set_task_flags(current, get_task_flags(current)
 				| TASK_PRIVILEGED);
+		spin_unlock(&current->lock);
 		schedule();
 	}
 
 	if (get_task_state(task) == TASK_SLEEPING) {
+		spin_lock(&task->lock);
 		set_task_state(task, TASK_RUNNING);
 		runqueue_add(task);
+		spin_unlock(&task->lock);
 	}
 }
 

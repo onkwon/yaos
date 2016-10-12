@@ -57,6 +57,8 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 
 	INIT_SCHED_ENTITY(task->se);
 	task->se.vruntime = current->se.vruntime;
+
+	lock_init(&task->lock);
 }
 
 struct task *make(unsigned int flags, void *addr, void *ref)
@@ -112,22 +114,26 @@ static void unlink_task(struct task *task)
 	zombie = (unsigned int *)task;
 	spin_unlock(&zombie_lock);
 
+	spin_lock(&task->lock);
 	set_task_state(task, TASK_ZOMBIE);
-
-	irq_restore(irqflag);
+	spin_unlock(&task->lock);
 
 	/* wake init() up to do the rest of job destroying a task */
 	if (current == &init)
-		return;
+		goto out;
 
+	spin_lock(&init.lock);
 	if (get_task_state(&init) == TASK_RUNNING)
 		runqueue_del(&init);
 
 	set_task_pri(&init, get_task_pri(current));
 	set_task_state(&init, TASK_RUNNING);
 	runqueue_add(&init);
+	spin_unlock(&init.lock);
 
 	resched();
+out:
+	irq_restore(irqflag);
 }
 
 void destroy(struct task *task)

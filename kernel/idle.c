@@ -13,6 +13,8 @@ static void cleanup()
  * do some power savings */
 void idle()
 {
+	unsigned int irqflag;
+
 	cleanup();
 
 	while (1) {
@@ -52,7 +54,9 @@ void idle()
 			/* post-dos(); */
 		}
 
+		spin_lock_irqsave(&current->lock, irqflag);
 		set_task_pri(current, LOWEST_PRIORITY);
+		spin_unlock_irqrestore(&current->lock, irqflag);
 		yield();
 	}
 }

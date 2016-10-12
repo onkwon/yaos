@@ -93,7 +93,9 @@ int sys_open(char *filename, int mode, void *option)
 		/* it goes TASK_WAITING state as soon as exiting from system
 		 * call to wait for its child's job to be done that returns the
 		 * result. */
+		spin_lock(&current->lock);
 		set_task_state(current, TASK_WAITING);
+		spin_unlock(&current->lock);
 		resched();
 		return 0;
 	} else if (tid < 0) { /* error */
@@ -108,10 +110,13 @@ int sys_open(char *filename, int mode, void *option)
 
 	sum_curr_stat(parent);
 
+	unsigned int irqflag;
+	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
 		runqueue_add(parent);
 	}
+	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
 	freeze(); /* never reaches here */

@@ -72,6 +72,7 @@ struct mm {
 
 #include <types.h>
 #include <kernel/sched.h>
+#include <kernel/lock.h>
 
 struct task {
 	/* `state` must be the first element in the structure as it is used
@@ -91,6 +92,8 @@ struct task {
 	struct list rq;
 
 	struct sched_entity se;
+
+	lock_t lock;
 };
 
 #define REGISTER_TASK(f, t, p) \
