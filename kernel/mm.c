@@ -25,9 +25,16 @@ void *kmalloc(size_t size)
 	if (!size)
 		return NULL;
 
+	int order;
+	unsigned int nr_pages;
+
+	nr_pages = ALIGN_PAGE(size) >> PAGE_SHIFT;
+	order = log2(nr_pages);
+	order = order + !!(nr_pages - (1 << order)); /* round-up to the next
+							order */
+
 retry:
-#define mylog2(x)	(ffs(x) - 1) /* x > 0 */
-	page = alloc_pages(&buddy, mylog2(ALIGN_PAGE(size) >> PAGE_SHIFT));
+	page = alloc_pages(&buddy, order);
 
 	if (page)
 		return page->addr;
