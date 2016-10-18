@@ -26,7 +26,7 @@ static unsigned int visit(struct task *p, unsigned int nr)
 	print_tab();
 	printf("|\n");
 
-	if (list_empty(&p->children))
+	if (links_empty(&p->children))
 		return nr + 1;
 
 	tab++;

@@ -7,7 +7,7 @@
 
 static struct buffer_cache *getbuf(unsigned int nblock, buf_t *head)
 {
-	struct list *curr;
+	struct links *curr;
 	struct buffer_cache *p;
 
 	if ((head == NULL) || (head->next == head))
@@ -25,8 +25,8 @@ static struct buffer_cache *getbuf(unsigned int nblock, buf_t *head)
 
 static void update_lru(struct buffer_cache *p, buf_t *head)
 {
-	list_del(&p->list);
-	list_add(&p->list, head);
+	links_del(&p->list);
+	links_add(&p->list, head);
 }
 
 static unsigned int getbuf_lru(buf_t *head, struct buffer_cache **buffer_cache)
@@ -139,7 +139,7 @@ static struct buffer_cache *mkbuf(unsigned short int block_size)
 		buffer_cache->nblock = BUFFER_INITIAL;
 		buffer_cache->dirty = 0;
 		buffer_cache->size = block_size;
-		list_link_init(&buffer_cache->list);
+		links_init(&buffer_cache->list);
 		INIT_MUTEX(buffer_cache->mutex);
 
 		if ((buffer_cache->buf = kmalloc(block_size)) == NULL) {
@@ -155,7 +155,7 @@ int __sync(struct device *dev)
 {
 	unsigned int nblock;
 	struct buffer_cache *p;
-	struct list *curr;
+	struct links *curr;
 	buf_t *head;
 
 	mutex_lock(&dev->mutex);
@@ -190,7 +190,7 @@ buf_t *request_buffer(unsigned short int n, unsigned short int block_size)
 	if ((head = kmalloc(sizeof(buf_t))) == NULL)
 		return NULL;
 
-	list_link_init(head);
+	links_init(head);
 
 	while (n--) {
 		if ((p = mkbuf(block_size)) == NULL) {
@@ -201,7 +201,7 @@ buf_t *request_buffer(unsigned short int n, unsigned short int block_size)
 			break;
 		}
 
-		list_add(&p->list, head);
+		links_add(&p->list, head);
 	}
 
 	return head;
@@ -209,14 +209,14 @@ buf_t *request_buffer(unsigned short int n, unsigned short int block_size)
 
 void release_buffer(buf_t *head)
 {
-	struct list *curr;
+	struct links *curr;
 	struct buffer_cache *p;
 
 	if (head == NULL)
 		return;
 
 	for (curr = head->next; curr != head; curr = curr->next) {
-		list_del(curr);
+		links_del(curr);
 
 		p = get_container_of(curr, struct buffer_cache, list);
 
@@ -242,7 +242,7 @@ int expand_buffer(buf_t *head, unsigned short int block_size)
 	if ((p = mkbuf(block_size)) == NULL)
 		return -ERR_ALLOC;
 
-	list_add(&p->list, head->prev);
+	links_add(&p->list, head->prev);
 
 	return 0;
 }

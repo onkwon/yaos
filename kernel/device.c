@@ -7,7 +7,7 @@
 #define HASH_SHIFT			4
 #define TABLE_SIZE			(1 << HASH_SHIFT)
 
-static struct list devtab[TABLE_SIZE];
+static struct links devtab[TABLE_SIZE];
 static int nr_device;
 static DEFINE_RWLOCK(lock_devtab);
 static DEFINE_SPINLOCK(nr_lock);
@@ -15,7 +15,7 @@ static DEFINE_SPINLOCK(nr_lock);
 struct device *getdev(dev_t id)
 {
 	struct device *dev;
-	struct list *head, *curr;
+	struct links *head, *curr;
 
 	head = &devtab[hash(id, HASH_SHIFT)];
 	curr = head;
@@ -30,7 +30,7 @@ struct device *getdev(dev_t id)
 			break;
 		}
 
-		dev = get_container_of(curr, struct device, link);
+		dev = get_container_of(curr, struct device, list);
 	} while (dev->id != id);
 
 	return dev;
@@ -38,10 +38,10 @@ struct device *getdev(dev_t id)
 
 void linkdev(dev_t id, struct device *new)
 {
-	struct list *head = &devtab[hash(id, HASH_SHIFT)];
+	struct links *head = &devtab[hash(id, HASH_SHIFT)];
 
 	write_lock(&lock_devtab);
-	list_add(&new->link, head);
+	links_add(&new->list, head);
 	write_unlock(&lock_devtab);
 }
 
@@ -87,7 +87,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 	dev->id = id;
 	dev->count = 0;
 	dev->op = ops;
-	list_link_init(&dev->link);
+	links_init(&dev->list);
 	INIT_MUTEX(dev->mutex);
 
 	dev->block_size = 1;
@@ -127,7 +127,7 @@ static void devtab_init()
 {
 	unsigned int i;
 	for (i = 0; i < TABLE_SIZE; i++) {
-		list_link_init(&devtab[i]);
+		links_init(&devtab[i]);
 	}
 
 	nr_device = 0;
@@ -139,7 +139,7 @@ REGISTER_INIT(devtab_init, 2);
 void device_sync_all()
 {
 	struct device *dev;
-	struct list *head, *next;
+	struct links *head, *next;
 	unsigned int i;
 
 	for (i = 0; i < TABLE_SIZE; i++) {
@@ -147,7 +147,7 @@ void device_sync_all()
 		next = head->next;
 
 		while (next != head) {
-			dev = get_container_of(next, struct device, link);
+			dev = get_container_of(next, struct device, list);
 
 			__sync(dev);
 
@@ -160,7 +160,7 @@ void device_sync_all()
 void display_devtab()
 {
 	struct device *dev;
-	struct list *head, *next;
+	struct links *head, *next;
 	unsigned int i;
 
 	for (i = 0; i < TABLE_SIZE; i++) {
@@ -169,7 +169,7 @@ void display_devtab()
 
 		printf("[%02d] ", i);
 		while (next != head) {
-			dev = get_container_of(next, struct device, link);
+			dev = get_container_of(next, struct device, list);
 			printf("--> %d ", dev->id);
 
 			next = next->next;

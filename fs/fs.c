@@ -19,7 +19,7 @@ unsigned int mkfile(struct file *file)
 
 	unsigned int irqflag;
 	spin_lock_irqsave(&fdtable_lock, irqflag);
-	list_add(&new->list, &fdtable);
+	links_add(&new->list, &fdtable);
 	spin_unlock_irqrestore(&fdtable_lock, irqflag);
 
 	return (unsigned int)new;
@@ -29,12 +29,12 @@ void rmfile(struct file *file)
 {
 	unsigned int irqflag;
 	spin_lock_irqsave(&fdtable_lock, irqflag);
-	list_del(&file->list);
+	links_del(&file->list);
 	spin_unlock_irqrestore(&fdtable_lock, irqflag);
 
 	mutex_lock_atomic(&file->inode->lock);
 	if (--file->inode->count <= 0) {
-		list_del(&file->inode->list);
+		links_del(&file->inode->list);
 		kfree(file->inode);
 		/* no need to unlock as it's gone */
 		goto out;
@@ -48,7 +48,7 @@ out:
 
 struct file *getfile(int fd)
 {
-	struct list  *p;
+	struct links  *p;
 	struct file  *file = NULL;
 	unsigned int *addr = (unsigned int *)fd;
 
@@ -72,13 +72,13 @@ struct file *getfile(int fd)
 #define HASH_SHIFT			4
 #define TABLE_SIZE			(1 << HASH_SHIFT)
 
-static struct list itab[TABLE_SIZE];
+static struct links itab[TABLE_SIZE];
 static DEFINE_RWLOCK(lock_itab);
 
 struct inode *iget(struct superblock *sb, unsigned int id)
 {
 	struct inode *inode;
-	struct list *head, *curr;
+	struct links *head, *curr;
 
 	head = &itab[hash(id, HASH_SHIFT)];
 	curr = head;
@@ -101,10 +101,10 @@ struct inode *iget(struct superblock *sb, unsigned int id)
 
 void iput(struct inode *inode)
 {
-	struct list *head = &itab[hash(inode->addr, HASH_SHIFT)];
+	struct links *head = &itab[hash(inode->addr, HASH_SHIFT)];
 
 	write_lock(&lock_itab);
-	list_add(&inode->list, head);
+	links_add(&inode->list, head);
 	write_unlock(&lock_itab);
 }
 
@@ -112,7 +112,7 @@ static void itab_init()
 {
 	unsigned int i;
 	for (i = 0; i < TABLE_SIZE; i++) {
-		list_link_init(&itab[i]);
+		links_init(&itab[i]);
 	}
 }
 
@@ -188,7 +188,7 @@ int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 	sb->dev  = dev;
 	sb->type = fs;
 
-	list_add(&sb->list, &sblist);
+	links_add(&sb->list, &sblist);
 
 	sb->op->mount(dev);
 
@@ -197,7 +197,7 @@ int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 
 struct superblock *search_super(const char *pathname)
 {
-	struct list *curr, *head;
+	struct links *curr, *head;
 	struct superblock *p, *bestfit;
 
 	bestfit = NULL;

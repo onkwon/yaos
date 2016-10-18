@@ -10,7 +10,7 @@ struct task *timerd;
 
 static inline int __add_timer(struct timer *new)
 {
-	struct list *curr;
+	struct links *curr;
 	int stamp = (int)systick;
 
 	new->expires -= 1; /* as it uses time_after() not time_equal */
@@ -32,7 +32,7 @@ static inline int __add_timer(struct timer *new)
 	if (((int)new->expires - stamp) < ((int)timerq.next - stamp))
 		timerq.next = new->expires;
 
-	list_add(&new->list, curr->prev);
+	links_add(&new->list, curr->prev);
 	timerq.nr++;
 
 	spin_unlock_irqrestore(&timerq.lock, irqflag);
@@ -52,7 +52,7 @@ static inline int __add_timer(struct timer *new)
 static void run_timer()
 {
 	struct timer *timer;
-	struct list *curr;
+	struct links *curr;
 	unsigned int irqflag;
 	int tid;
 
@@ -96,7 +96,7 @@ infinite:
 			break;
 
 		spin_lock_irqsave(&timerq.lock, irqflag);
-		list_del(curr);
+		links_del(curr);
 		timerq.nr--;
 		spin_unlock_irqrestore(&timerq.lock, irqflag);
 	}
@@ -131,7 +131,7 @@ static void sleep_callback(unsigned int data)
 int __init timer_init()
 {
 	timerq.nr = 0;
-	list_link_init(&timerq.list);
+	links_init(&timerq.list);
 	lock_init(&timerq.lock);
 
 	if ((timerd = make(TASK_KERNEL | STACK_SHARED, run_timer, &init))

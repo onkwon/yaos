@@ -51,9 +51,9 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 	INIT_IRQFLAG(task->irqflag);
 
 	task->parent = current;
-	list_link_init(&task->children);
-	list_add(&task->sibling, &current->children);
-	list_link_init(&task->rq);
+	links_init(&task->children);
+	links_add(&task->sibling, &current->children);
+	links_init(&task->rq);
 
 	INIT_SCHED_ENTITY(task->se);
 	task->se.vruntime = current->se.vruntime;
@@ -103,10 +103,10 @@ static void unlink_task(struct task *task)
 
 	/* Clean its relationship. Hand children to grand parents
 	 * if it has its own children */
-	if (!list_empty(&task->children)) {
-		list_del(&task->children);
+	if (!links_empty(&task->children)) {
+		links_del(&task->children);
 	}
-	list_del(&task->sibling);
+	links_del(&task->sibling);
 
 	/* add it to zombie list */
 	spin_lock(&zombie_lock);
@@ -175,7 +175,7 @@ struct task *find_task(unsigned int addr, struct task *head)
 	if ((unsigned int)head->addr == addr)
 		return head;
 
-	if (list_empty(&head->children))
+	if (links_empty(&head->children))
 		return NULL;
 
 	next = get_container_of(head->children.next, struct task, sibling);

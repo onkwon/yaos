@@ -23,7 +23,7 @@ struct device {
 
 	struct file_operations *op; /* remove this!! */
 
-	struct list link; /* for device hash list */
+	struct links list; /* for device hash list */
 
 	/* block device only */
 	unsigned short int block_size;

@@ -13,13 +13,13 @@ void sleep_in_waitqueue(struct waitqueue_head *q)
 	irq_save(irqflag);
 	local_irq_disable();
 
-	if (!list_empty(&new.link)) {
+	if (!links_empty(&new.list)) {
 		debug(MSG_ERROR, "already linked to 0x%x - 0x%x",
-				new.link.prev, new.link.next);
+				new.list.prev, new.list.next);
 		goto out;
 	}
 
-	list_add(&new.link, q->list.prev);
+	links_add(&new.list, q->list.prev);
 	set_task_state(current, TASK_WAITING);
 
 out:
@@ -32,7 +32,7 @@ out:
 void shake_waitqueue_out(struct waitqueue_head *q)
 {
 	struct task *task = NULL;
-	struct list *next;
+	struct links *next;
 	unsigned int irqflag;
 
 	lock_atomic(&q->lock);
@@ -40,10 +40,10 @@ void shake_waitqueue_out(struct waitqueue_head *q)
 	local_irq_disable();
 
 	for (next = q->list.next; next != &q->list; next = next->next) {
-		task = get_container_of(next, struct waitqueue, link)->task;
+		task = get_container_of(next, struct waitqueue, list)->task;
 
 		if (get_task_state(task) == TASK_WAITING) {
-			list_del(next);
+			links_del(next);
 			set_task_state(task, TASK_RUNNING);
 			break;
 		}
@@ -65,8 +65,8 @@ void wq_wait(struct waitqueue_head *q)
 	DEFINE_WAIT(wait);
 
 	spin_lock_irqsave(&q->lock, irqflag);
-	if (list_empty(&wait.link))
-		list_add(&wait.link, q->list.prev);
+	if (links_empty(&wait.list))
+		links_add(&wait.list, q->list.prev);
 
 	set_task_state(current, TASK_WAITING);
 	spin_unlock_irqrestore(&q->lock, irqflag);
@@ -76,16 +76,16 @@ void wq_wait(struct waitqueue_head *q)
 
 void wq_wake(struct waitqueue_head *q, int nr_task)
 {
-	struct list *p = q->list.next;
+	struct links *p = q->list.next;
 	struct task *task;
 	unsigned int irqflag;
 
 	spin_lock_irqsave(&q->lock, irqflag);
 	while (p != &q->list && nr_task) {
-		task = get_container_of(p, struct waitqueue, link)->task;
+		task = get_container_of(p, struct waitqueue, list)->task;
 		set_task_state(task, TASK_RUNNING);
 		runqueue_add(task);
-		list_del(p);
+		links_del(p);
 
 		p = q->list.next;
 		nr_task--;

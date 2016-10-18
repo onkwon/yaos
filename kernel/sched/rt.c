@@ -2,7 +2,7 @@
 #include <kernel/task.h>
 #include <io.h>
 
-static struct list rts_rq[RT_PRIORITY+1];
+static struct links rts_rq[RT_PRIORITY+1];
 
 struct task *rts_pick_next(struct scheduler *q)
 {
@@ -15,10 +15,10 @@ struct task *rts_pick_next(struct scheduler *q)
 
 void rts_rq_add(struct scheduler *q, struct task *new)
 {
-	if (!new || get_task_state(new) || !list_empty(&new->rq))
+	if (!new || get_task_state(new) || !links_empty(&new->rq))
 		return;
 
-	struct list *rq_head;
+	struct links *rq_head;
 	int pri;
 
 	pri     = get_task_pri(new);
@@ -29,17 +29,17 @@ void rts_rq_add(struct scheduler *q, struct task *new)
 		q->pri = pri;
 
 	/* add new in the end of list */
-	list_add(&new->rq, rq_head->prev);
+	links_add(&new->rq, rq_head->prev);
 	q->nr_running++;
 }
 
 void rts_rq_del(struct scheduler *q, struct task *p)
 {
-	if (list_empty(&p->rq)) return;
+	if (links_empty(&p->rq)) return;
 
-	list_del(&p->rq);
+	links_del(&p->rq);
 	barrier();
-	list_link_init(&p->rq);
+	links_init(&p->rq);
 	q->nr_running--;
 
 	unsigned int i;
@@ -61,5 +61,5 @@ void rts_init(struct scheduler *rts)
 	rts->rq         = (void *)rts_rq;
 
 	for (i = 0; i <= RT_PRIORITY; i++)
-		list_link_init(&rts_rq[i]);
+		links_init(&rts_rq[i]);
 }

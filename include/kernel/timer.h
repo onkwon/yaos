@@ -4,7 +4,7 @@
 #include <types.h>
 
 struct timer {
-	struct list list; /* keep this first */
+	struct links list; /* keep this first */
 
 	unsigned int expires;
 	unsigned int data; /* reference to argument of event() */
@@ -20,7 +20,7 @@ struct timer {
 struct timer_queue {
 	unsigned int nr;
 	unsigned int next;
-	struct list list;
+	struct links list;
 	lock_t lock;
 };
 

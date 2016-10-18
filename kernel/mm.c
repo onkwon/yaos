@@ -164,7 +164,7 @@ void __init mm_init()
 	while (start < end) {
 		page->flags = 0;
 		page->addr  = (void *)start;
-		list_link_init(&page->link);
+		links_init(&page->list);
 
 		start += PAGESIZE;
 		page++;
@@ -195,7 +195,7 @@ void __init mm_init()
 		((unsigned int)&_ebss + sizeof(struct ff_freelist));
 	mem_map->addr = (void *)((unsigned int)mem_map +
 			sizeof(struct ff_freelist));
-	list_link_init(&mem_map->list);
+	links_init(&mem_map->list);
 #endif
 }
 

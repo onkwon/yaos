@@ -18,7 +18,7 @@
 struct page {
 	unsigned int flags;
 	void *addr;
-	struct list link;
+	struct links list;
 };
 
 #define ALIGN_PAGE(x)		\

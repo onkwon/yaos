@@ -86,10 +86,10 @@ struct task {
 	struct mm mm;
 
 	struct task *parent;
-	struct list children;
-	struct list sibling;
+	struct links children;
+	struct links sibling;
 
-	struct list rq;
+	struct links rq;
 
 	struct sched_entity se;
 

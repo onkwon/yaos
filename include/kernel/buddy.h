@@ -7,7 +7,7 @@
 #define BUDDY_MAX_ORDER		10
 
 struct buddy_freelist {
-	struct list list;
+	struct links list;
 	size_t nr_pageblocks;
 };
 

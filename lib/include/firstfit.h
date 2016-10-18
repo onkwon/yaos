@@ -6,7 +6,7 @@
 struct ff_freelist {
 	void *addr;
 	size_t size;
-	struct list list;
+	struct links list;
 };
 
 struct ff_freelist *ff_freelist_init(void *start, void *end);

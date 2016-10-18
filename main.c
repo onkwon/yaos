@@ -44,8 +44,8 @@ static int __init make_init_task()
 	set_task_state(&init, TASK_RUNNING);
 
 	/* make it the sole */
-	list_link_init(&init.children);
-	list_link_init(&init.sibling);
+	links_init(&init.children);
+	links_init(&init.sibling);
 
 	return 0;
 }

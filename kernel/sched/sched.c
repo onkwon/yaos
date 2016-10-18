@@ -37,8 +37,8 @@ static inline void update_curr()
 
 	/* pick the least vruntime in runqueue for vruntime_base
 	 * to keep order properly. */
-	if (((struct list *)cfs.rq)->next != cfs.rq) { /* if it's not empty */
-		task = get_container_of( ((struct list *)cfs.rq)->next,
+	if (((struct links *)cfs.rq)->next != cfs.rq) { /* if it's not empty */
+		task = get_container_of( ((struct links *)cfs.rq)->next,
 				struct task, rq );
 		if (cfs.vruntime_base > task->se.vruntime)
 			cfs.vruntime_base = task->se.vruntime;
@@ -247,7 +247,7 @@ void sys_yield()
 #include <foundation.h>
 void print_rq()
 {
-	struct list *rq = ((struct list *)cfs.rq)->next;
+	struct links *rq = ((struct links *)cfs.rq)->next;
 	struct task *p;
 
 //	int i;

@@ -5,7 +5,7 @@
 
 struct waitqueue_head {
 	lock_t lock;
-	struct list list;
+	struct links list;
 };
 
 #define INIT_WAIT_HEAD(name)	{ UNLOCKED, INIT_LIST_HEAD((name).list) }
@@ -16,7 +16,7 @@ struct waitqueue_head {
 
 struct waitqueue {
 	struct task *task;
-	struct list link;
+	struct links list;
 };
 
 #define WQ_EXCLUSIVE	1
@@ -25,7 +25,7 @@ struct waitqueue {
 #define DEFINE_WAIT(name) \
 	struct waitqueue name = { \
 		.task = current, \
-		.link = INIT_LIST_HEAD(name.link), \
+		.list = INIT_LIST_HEAD(name.list), \
 	}
 
 void wq_wait(struct waitqueue_head *q);

@@ -27,14 +27,14 @@ sizeof(int)를 기본 word 타입으로 결정했다. 위키피디아의 다음 
 	dev_t        device                - unsigned int
 	uint64_t     64 bit unsigned       - unsigned long long
 
-	struct list  doubly linked list
+	struct links doubly linked list
 	struct fifo  first in first out
 
-	buf_t        buffer cache          - struct list
+	buf_t        buffer cache          - struct links
 	mutex_t      mutual exclusive lock - struct semaphore
 
-`list_add` - new 노드는 ref의 다음 노드가 된다. 즉 `list_add_next`. 그 이외의
-함수는 지원하지 않는다. ref 조작으로 추가적인 함수(`list_add_prev`)를 실현할 수
+`links_add` - new 노드는 ref의 다음 노드가 된다. 즉 `links_add_next`. 그 이외의
+함수는 지원하지 않는다. ref 조작으로 추가적인 함수(`links_add_prev`)를 실현할 수
 있기 때문이다.
 
 ~~`slist_del_next` - 단일 링크드 리스트 자료구조는 인자로 넘어 온 노드의 다음

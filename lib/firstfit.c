@@ -3,7 +3,7 @@
 void *ff_alloc(void *freelist, size_t size)
 {
 	struct ff_freelist *p, *new, **head;
-	struct list *curr;
+	struct links *curr;
 	size_t size_min;
 
 	head = (struct ff_freelist **)freelist;
@@ -15,7 +15,7 @@ void *ff_alloc(void *freelist, size_t size)
 		p = get_container_of(curr, struct ff_freelist, list);
 
 		if (size == p->size) {
-			list_del(curr);
+			links_del(curr);
 			if (curr == &(*head)->list)
 				*head = get_container_of(curr->next,
 						struct ff_freelist, list);
@@ -29,8 +29,8 @@ void *ff_alloc(void *freelist, size_t size)
 			p->addr = (void *)((unsigned int)p +
 					sizeof(struct ff_freelist));
 			p->size = new->size - size_min;
-			list_add(&p->list, curr);
-			list_del(curr);
+			links_add(&p->list, curr);
+			links_del(curr);
 
 			/* as allocating lower address first,
 			 * head must be replaced with the next address */
@@ -51,7 +51,7 @@ void *ff_alloc(void *freelist, size_t size)
 void ff_free(void *freelist, void *addr)
 {
 	struct ff_freelist *new, *p, **head;
-	struct list *curr;
+	struct links *curr;
 
 	head = (struct ff_freelist **)freelist;
 	curr = &(*head)->list;
@@ -62,7 +62,7 @@ void ff_free(void *freelist, void *addr)
 		if (&new->list == curr) /* already in the list */
 			goto out;
 		else if (&new->list < curr) {
-			list_add(&new->list, curr->prev);
+			links_add(&new->list, curr->prev);
 
 			/* keep head to have the lowest address */
 			if (curr == &(*head)->list)
@@ -79,7 +79,7 @@ merge:
 						(unsigned int)p) {
 					new->size += p->size +
 						sizeof(struct ff_freelist);
-					list_del(curr);
+					links_del(curr);
 				} else {
 					break;
 				}
@@ -91,7 +91,7 @@ merge:
 		curr = curr->next;
 	} while (curr != &(*head)->list);
 
-	list_add(&new->list, (*head)->list.prev);
+	links_add(&new->list, (*head)->list.prev);
 
 	/* merge with the privious chunk if possible */
 	curr = &new->list;
@@ -110,7 +110,7 @@ struct ff_freelist *ff_freelist_init(void *start, void *end)
 	head->size = (unsigned int)end -
 		((unsigned int)head + sizeof(struct ff_freelist));
 	head->addr = (void *)((unsigned int)head + sizeof(struct ff_freelist));
-	list_link_init(&head->list);
+	links_init(&head->list);
 
 	return head;
 }
@@ -121,7 +121,7 @@ struct ff_freelist *ff_freelist_init(void *start, void *end)
 
 size_t show_freelist(void *pool)
 {
-	struct list *head, *curr;
+	struct links *head, *curr;
 	struct ff_freelist *p;
 	unsigned int size_available;
 

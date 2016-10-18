@@ -38,7 +38,7 @@ void free_pages(struct buddy *node, struct page *page)
 		if (!is_buddy_free(page, buddy, order))
 			break;
 
-		list_del(&buddy->link);
+		links_del(&buddy->list);
 		freelist->nr_pageblocks--;
 		RESET_PAGE_FLAG(buddy, PAGE_BUDDY);
 
@@ -48,7 +48,7 @@ void free_pages(struct buddy *node, struct page *page)
 	}
 
 	page = &mem_map[idx];
-	list_add(&page->link, &freelist->list);
+	links_add(&page->list, &freelist->list);
 	freelist->nr_pageblocks++;
 	SET_PAGE_FLAG(page, PAGE_BUDDY);
 	SET_PAGE_ORDER(page, order);
@@ -60,7 +60,7 @@ struct page *alloc_pages(struct buddy *node, unsigned int order)
 {
 	struct page *page;
 	struct buddy_freelist *freelist;
-	struct list *head, *curr;
+	struct links *head, *curr;
 	unsigned int i, n;
 
 	freelist = &node->freelist[order];
@@ -76,9 +76,9 @@ struct page *alloc_pages(struct buddy *node, unsigned int order)
 		if (curr == head)
 			continue;
 
-		page = get_container_of(curr, struct page, link);
+		page = get_container_of(curr, struct page, list);
 		RESET_PAGE_FLAG(page, PAGE_BUDDY);
-		list_del(curr);
+		links_del(curr);
 		freelist->nr_pageblocks--;
 
 		/* split in half to add one of them to the current order list
@@ -90,7 +90,7 @@ struct page *alloc_pages(struct buddy *node, unsigned int order)
 
 			SET_PAGE_FLAG(&page[n], PAGE_BUDDY);
 			SET_PAGE_ORDER(&page[n], i);
-			list_add(&page[n].link, &freelist->list);
+			links_add(&page[n].list, &freelist->list);
 			freelist->nr_pageblocks++;
 		}
 
@@ -141,10 +141,10 @@ static void buddy_freelist_init(struct buddy *node, size_t nr_pages,
 		page = &mem_map[idx];
 		SET_PAGE_ORDER(page, order);
 		SET_PAGE_FLAG(page, PAGE_BUDDY);
-		list_add(&page->link, &node->freelist[order].list);
+		links_add(&page->list, &node->freelist[order].list);
 
 		node->freelist[order].nr_pageblocks++;
-		debug(MSG_DEBUG, "%02d %x added to %x", order, &page->link,
+		debug(MSG_DEBUG, "%02d %x added to %x", order, &page->list,
 				&node->freelist[order].list);
 
 		n = 1U << order;
@@ -164,7 +164,7 @@ void buddy_init(struct buddy *node, size_t nr_pages, struct page *array)
 
 	for (i = 0; i < BUDDY_MAX_ORDER; i++) {
 		node->freelist[i].nr_pageblocks = 0;
-		list_link_init(&node->freelist[i].list);
+		links_init(&node->freelist[i].list);
 	}
 
 	node->nr_pages = nr_pages;
@@ -180,7 +180,7 @@ void buddy_init(struct buddy *node, size_t nr_pages, struct page *array)
 
 size_t show_buddy_all(struct buddy *node)
 {
-	struct list *p;
+	struct links *p;
 	int i;
 
 	printk("The number of pages managed by buddy %d/%d (%d bytes)\n",

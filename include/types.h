@@ -22,8 +22,8 @@ typedef volatile int lock_t;
 typedef unsigned int dev_t;
 typedef unsigned int size_t;
 typedef unsigned long long uint64_t;
-struct list;
-typedef struct list buf_t;
+struct links;
+typedef struct links buf_t;
 
 #define WORD_SIZE			sizeof(int)
 #define WORD_BITS			(WORD_SIZE << 3)
@@ -46,22 +46,22 @@ typedef struct list buf_t;
 #define get_container_of(ptr, type, member) \
 	((type *)((char *)ptr - (char *)&((type *)0)->member))
 
-/* double linked list */
-struct list {
-	struct list *next, *prev;
+/* doubly-linked list */
+struct links {
+	struct links *next, *prev;
 };
 
 #define INIT_LIST_HEAD(name) 		{ &(name), &(name) }
 #define DEFINE_LIST_HEAD(name)		\
-	struct list name = INIT_LIST_HEAD(name)
+	struct links name = INIT_LIST_HEAD(name)
 
-static inline void list_link_init(struct list *list)
+static inline void links_init(struct links *node)
 {
-	list->next = list;
-	list->prev = list;
+	node->next = node;
+	node->prev = node;
 }
 
-static inline void list_add(struct list *new, struct list *ref)
+static inline void links_add(struct links *new, struct links *ref)
 {
 	new->prev = ref;
 	new->next = ref->next;
@@ -69,15 +69,40 @@ static inline void list_add(struct list *new, struct list *ref)
 	ref->next = new;
 }
 
-static inline void list_del(struct list *node)
+static inline void links_del(struct links *node)
 {
 	node->prev->next = node->next;
 	node->next->prev = node->prev;
 }
 
-static inline int list_empty(const struct list *node)
+static inline int links_empty(const struct links *node)
 {
 	return (node->next == node) && (node->prev == node);
+}
+
+/* singly-linked list */
+struct link {
+	struct link *next;
+};
+
+#define INIT_SLIST_HEAD(name)		{ NULL }
+#define DEFINE_SLIST_HEAD(name)		\
+	struct link name = INIT_SLIST_HEAD(name)
+
+static inline void link_add(struct link *new, struct link *ref)
+{
+	new->next = ref->next;
+	ref->next = new;
+}
+
+static inline void link_del(struct link *node, struct link *ref)
+{
+	struct link **curr = &ref;
+
+	while (*curr && *curr != node)
+		curr = &(*curr)->next;
+
+	*curr = node->next;
 }
 
 /* fifo */

@@ -42,7 +42,7 @@ struct superblock {
 	struct device *dev; /* associated block device */
 	const struct file_system_type *type;
 
-	struct list list; /* list of all superblocks */
+	struct links list; /* list of all superblocks */
 };
 
 struct inode;
@@ -70,7 +70,7 @@ struct inode {
 
 	mutex_t lock;
 
-	struct list list;
+	struct links list;
 };
 
 struct inode_operations {
@@ -110,7 +110,7 @@ struct file {
 
 	struct file_operations *op;
 
-	struct list list;
+	struct links list;
 
 	void *option;
 };

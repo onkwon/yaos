@@ -7,7 +7,7 @@ static DEFINE_LIST_HEAD(cfs_rq);
 
 struct task *cfs_pick_next(struct scheduler *cfs)
 {
-	struct list *head = cfs->rq;
+	struct links *head = cfs->rq;
 
 	if (head->next == head) /* empty */
 		return NULL;
@@ -17,10 +17,10 @@ struct task *cfs_pick_next(struct scheduler *cfs)
 
 void cfs_rq_add(struct scheduler *cfs, struct task *new)
 {
-	if (!new || get_task_state(new) || !list_empty(&new->rq))
+	if (!new || get_task_state(new) || !links_empty(&new->rq))
 		return;
 
-	struct list *curr, *head, *to;
+	struct links *curr, *head, *to;
 	struct task *task;
 
 	head = cfs->rq;
@@ -35,17 +35,17 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 		}
 	}
 
-	list_add(&new->rq, to);
+	links_add(&new->rq, to);
 	cfs->nr_running++;
 }
 
 void cfs_rq_del(struct scheduler *cfs, struct task *task)
 {
-	if (list_empty(&task->rq)) return;
+	if (links_empty(&task->rq)) return;
 
-	list_del(&task->rq);
+	links_del(&task->rq);
 	barrier();
-	list_link_init(&task->rq);
+	links_init(&task->rq);
 	cfs->nr_running--;
 }
 

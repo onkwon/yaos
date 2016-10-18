@@ -9,7 +9,7 @@ struct buffer_cache {
 	char *buf;
 	size_t size;
 	bool dirty;
-	struct list list;
+	struct links list;
 	mutex_t mutex;
 };
 
