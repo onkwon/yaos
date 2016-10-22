@@ -15,7 +15,7 @@ struct task *rts_pick_next(struct scheduler *q)
 
 void rts_rq_add(struct scheduler *q, struct task *new)
 {
-	if (!new || get_task_state(new) || !links_empty(&new->rq))
+	if (!new || get_task_state(new))
 		return;
 
 	struct links *rq_head;
@@ -38,10 +38,10 @@ void rts_rq_del(struct scheduler *q, struct task *p)
 	if (links_empty(&p->rq)) return;
 
 	links_del(&p->rq);
-	barrier();
 	links_init(&p->rq);
 	q->nr_running--;
 
+	/* TODO: Improve a silly code here in `rts_rq_del()` */
 	unsigned int i;
 	q->pri = RT_PRIORITY + 1;
 	for (i = 0; i <= RT_PRIORITY; i++) {

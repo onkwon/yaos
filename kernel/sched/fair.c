@@ -2,7 +2,9 @@
 #include <kernel/task.h>
 #include "fair.h"
 
-/* runqueue's head can be init task. thnik about it */
+/* TODO: Make the runqueue's head to point to the init task
+ * The cost of turning to the idle task when no task running could be reduced
+ * in the way, I guess. think about it */
 static DEFINE_LIST_HEAD(cfs_rq);
 
 struct task *cfs_pick_next(struct scheduler *cfs)
@@ -17,7 +19,7 @@ struct task *cfs_pick_next(struct scheduler *cfs)
 
 void cfs_rq_add(struct scheduler *cfs, struct task *new)
 {
-	if (!new || get_task_state(new) || !links_empty(&new->rq))
+	if (!new || get_task_state(new))
 		return;
 
 	struct links *curr, *head, *to;
@@ -26,6 +28,7 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 	head = cfs->rq;
 	to   = head->prev;
 
+	/* TODO: Improve O(N) `cfs_rq_add()`, the more tasks the slower */
 	for (curr = head->next; curr != head; curr = curr->next) {
 		task = get_container_of(curr, struct task, rq);
 
@@ -41,10 +44,15 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 
 void cfs_rq_del(struct scheduler *cfs, struct task *task)
 {
-	if (links_empty(&task->rq)) return;
+	if (links_empty(&task->rq))
+		return;
 
+	/* NOTE: The links must get back to empty state after removing from the
+	 * runqueue, or the runqueue list will get screwed up removing the
+	 * links more than once. Actually you don't need to have `links_init()`
+	 * here as long as the init task doesn't need to be added to the
+	 * runqueue in `unlink_task()`. */
 	links_del(&task->rq);
-	barrier();
 	links_init(&task->rq);
 	cfs->nr_running--;
 }

@@ -81,7 +81,7 @@ struct task *make(unsigned int flags, void *addr, void *ref)
 #include <kernel/interrupt.h>
 #include <kernel/lock.h>
 
-static unsigned int *zombie = NULL;
+static volatile unsigned int *zombie = NULL;
 static DEFINE_SPINLOCK(zombie_lock);
 
 static void unlink_task(struct task *task)
@@ -97,12 +97,15 @@ static void unlink_task(struct task *task)
 	irq_save(irqflag);
 	local_irq_disable();
 
-	/* safe to unlink even if it's already not in run queue because
-	 * it has empty links since getting unlinked. */
+	assert(!is_locked(task->lock));
+	spin_lock(&task->lock);
+
+	/* safe to unlink again even if it's already removed from the runqueue
+	 * since its links become empty on once unlinked */
 	runqueue_del(task);
 
-	/* Clean its relationship. Hand children to grand parents
-	 * if it has its own children */
+	/* Clean its relationship. Hand its own children to the grand parents
+	 * if it has */
 	if (!links_empty(&task->children)) {
 		links_del(&task->children);
 	}
@@ -114,14 +117,14 @@ static void unlink_task(struct task *task)
 	zombie = (unsigned int *)task;
 	spin_unlock(&zombie_lock);
 
-	spin_lock(&task->lock);
 	set_task_state(task, TASK_ZOMBIE);
-	spin_unlock(&task->lock);
 
 	/* wake init() up to do the rest of job destroying a task */
 	if (current == &init)
 		goto out;
 
+	/* boost the init task priority up to the task's so that the memory
+	 * used by it can be free as soon as possible */
 	spin_lock(&init.lock);
 	if (get_task_state(&init) == TASK_RUNNING)
 		runqueue_del(&init);
@@ -136,7 +139,7 @@ out:
 	irq_restore(irqflag);
 }
 
-void destroy(struct task *task)
+static void destroy(struct task *task)
 {
 	if (!task || task == &init)
 		return;
@@ -161,8 +164,8 @@ unsigned int kill_zombie()
 		spin_lock_irqsave(&zombie_lock, irqflag);
 		task = (struct task *)zombie;
 		zombie = task->addr;
-		spin_unlock_irqrestore(&zombie_lock, irqflag);
 		destroy(task);
+		spin_unlock_irqrestore(&zombie_lock, irqflag);
 	}
 
 	return cnt;

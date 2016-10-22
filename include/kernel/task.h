@@ -113,7 +113,6 @@ int clone(unsigned int flags, void *ref);
 void set_task_dressed(struct task *task, unsigned int flags, void *addr);
 int alloc_mm(struct task *new, void *ref, unsigned int flags);
 void wrapper();
-void destroy(struct task *task);
 unsigned int kill_zombie();
 
 struct task *find_task(unsigned int addr, struct task *head);
