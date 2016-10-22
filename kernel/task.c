@@ -113,7 +113,7 @@ static void unlink_task(struct task *task)
 
 	/* add it to zombie list */
 	spin_lock(&zombie_lock);
-	task->addr = zombie;
+	task->addr = (void *)zombie;
 	zombie = (unsigned int *)task;
 	spin_unlock(&zombie_lock);
 

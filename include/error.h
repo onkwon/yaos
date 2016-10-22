@@ -40,8 +40,8 @@
 	if (!(exp)) {							\
 		printk("%s:%s():%d: Assertion `%s` failed.\n",		\
 				__FILE__, __func__, __LINE__, #exp);	\
+		freeze();						\
 	}								\
-	freeze();							\
 } while (0)
 #else
 #define debug(lv, fmt...)	do {					\

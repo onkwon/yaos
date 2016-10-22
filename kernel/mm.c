@@ -29,8 +29,7 @@ void *kmalloc(size_t size)
 	unsigned int nr_pages;
 
 	nr_pages = ALIGN_PAGE(size) >> PAGE_SHIFT;
-	order = log2(nr_pages);
-	order = order + !!(nr_pages - (1 << order)); /* round-up to the next
+	order = log2(nr_pages) + !is_pow2(nr_pages); /* round up to the next
 							order */
 
 retry:

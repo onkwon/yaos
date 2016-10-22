@@ -46,6 +46,11 @@ typedef struct links buf_t;
 #define get_container_of(ptr, type, member) \
 	((type *)((char *)ptr - (char *)&((type *)0)->member))
 
+static inline bool is_pow2(unsigned int x)
+{
+	return !(x & (x - 1));
+}
+
 /* doubly-linked list */
 struct links {
 	struct links *next, *prev;
