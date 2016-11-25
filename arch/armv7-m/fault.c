@@ -120,10 +120,10 @@ void __attribute__((naked)) isr_fault()
 
 	unsigned int sp, lr, psr, usp;
 
-	sp  = GET_SP ();
-	psr = GET_PSR();
-	lr  = GET_LR ();
-	usp = GET_USP();
+	sp  = __get_sp();
+	psr = __get_psr();
+	lr  = __get_lr();
+	usp = __get_usp();
 
 	debug(MSG_ERROR, "\nFault type: %x <%08x>\n"
 		"  (%x=Usage fault, %x=Bus fault, %x=Memory management fault)",

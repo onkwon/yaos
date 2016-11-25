@@ -1,25 +1,12 @@
 #ifndef __STM32F4_IO_H__
 #define __STM32F4_IO_H__
 
-/* RCC */
-#define SET_CLOCK_AHB1(on, pin)		BITBAND(&RCC_AHB1ENR, pin, on)
-#define SET_CLOCK_APB2(on, pin)		BITBAND(&RCC_APB2ENR, pin, on)
-#define SET_CLOCK_APB1(on, pin)		BITBAND(&RCC_APB1ENR, pin, on)
-#define RESET_PERI_APB2(pin) { \
-	BITBAND(&RCC_APB2RSTR, pin, ON); \
-	BITBAND(&RCC_APB2RSTR, pin, OFF); \
-}
-#define RESET_PERI_APB1(pin) { \
-	BITBAND(&RCC_APB1RSTR, pin, ON); \
-	BITBAND(&RCC_APB1RSTR, pin, OFF); \
-}
-
 #include <types.h>
 
 /* GPIO */
 #define SET_PORT_PIN(port, pin, mode) ( \
-	*(volatile unsigned int *)((port) + ((pin) / 16 * WORD_SIZE)) \
-		= MASK_RESET(*(volatile unsigned int *) \
+	*(volatile unsigned int *)((port) + ((pin) / 16 * WORD_SIZE)) = \
+		MASK_RESET(*(volatile unsigned int *) \
 			((port) + ((pin) / 16 * WORD_SIZE)), \
 			0x3 << (((pin) % 16) * 2)) \
 		| ((mode) << (((pin) % 16) * 2)) \
@@ -38,29 +25,9 @@
 #define PUT_PORT(port, data)		\
 	(*(volatile unsigned int *)((port) + 0x14) = data)
 #define PUT_PORT_PIN(port, pin, on) \
-	(*(volatile unsigned int *)((port) + 0x18) \
-		 = (on)? 1 << (pin) : 1 << ((pin) + 16))
+	(*(volatile unsigned int *)((port) + 0x18) = \
+		(on)? 1 << (pin) : 1 << ((pin) + 16))
 
-/* Embedded flash */
-#define FLASH_WRITE_START()		(FLASH_CR |=   1 << PG)
-#define FLASH_WRITE_END()		(FLASH_CR &= ~(1 << PG))
-#define FLASH_WRITE_WORD(addr, data)	{ \
-	*(volatile unsigned int *)(addr) = (unsigned int)(data); \
-	while (FLASH_SR & (1 << BSY)); /* Check BSY bit, need timeout */ \
-}
-#define FLASH_LOCK()			(FLASH_CR |= 0x80000000)
-#define FLASH_UNLOCK() { \
-	if (FLASH_CR & 0x80000000) { \
-		FLASH_KEYR = 0x45670123; /* KEY1 */ \
-		FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
-	} \
-}
-#define FLASH_UNLOCK_OPTPG() { \
-	FLASH_OPTKEYR = 0x08192a3b; /* KEY1 */ \
-	FLASH_OPTKEYR = 0x4c5d6e7f; /* KEY2 */ \
-}
-#define FLASH_LOCK_OPTPG()		(FLASH_OPTCR |= 1)
-		
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40023800)
 #define RCC_CR			(*(volatile unsigned int *)RCC_BASE)

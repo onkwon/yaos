@@ -6,8 +6,8 @@
 			     "bx	lr	\n\t"	\
 			:: "I"(n) : "memory")
 
-/* It must not be inline as the first parameter, `r0`, is used to pass syscall
- * number to distinguish each syscall */
+/* It must not be an inline function as the first parameter, `r0`, is used to
+ * pass syscall number to distinguish each syscalls */
 static int __attribute__((naked, noinline)) syscall(int n, ...)
 {
 	svc(SYSCALL_NR);

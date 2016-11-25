@@ -144,7 +144,7 @@ out:
 	printf("\nend write test\n");
 
 	printf("test()\n");
-	printf("sp : %x, lr : %x\n", GET_SP(), GET_LR());
+	printf("sp : %x, lr : %x\n", __get_sp(), __get_lr());
 
 	while (1) {
 		t = get_systick64();

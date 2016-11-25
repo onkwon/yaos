@@ -1,17 +1,7 @@
 #ifndef __STM32F1_IO_H__
 #define __STM32F1_IO_H__
 
-/* RCC */
-#define SET_CLOCK_APB2(on, pin)		BITBAND(&RCC_APB2ENR, pin, on)
-#define SET_CLOCK_APB1(on, pin)		BITBAND(&RCC_APB1ENR, pin, on)
-#define RESET_PERI_APB2(pin) { \
-	BITBAND(&RCC_APB2RSTR, pin, ON); \
-	BITBAND(&RCC_APB2RSTR, pin, OFF); \
-}
-#define RESET_PERI_APB1(pin) { \
-	BITBAND(&RCC_APB1RSTR, pin, ON); \
-	BITBAND(&RCC_APB1RSTR, pin, OFF); \
-}
+#include <types.h>
 
 /* GPIO */
 #define SET_PORT_PIN(port, pin, mode) ( \
@@ -20,37 +10,16 @@
 		0xf << (((pin) % 8) * 4)) \
 	| ((mode) << (((pin) % 8) * 4)) \
 )
-#define SET_PORT_CLOCK(on, port)	SET_CLOCK_APB2(on, (port >> 10) & 0xf)
-#define GET_PORT(port)			(*(volatile unsigned int *)((port) + 8))
+#define SET_PORT_CLOCK(on, port)	\
+	SET_CLOCK_APB2(on, (port >> 10) & 0xf)
+#define GET_PORT(port)			\
+	(*(volatile unsigned int *)((port) + 8))
 #define PUT_PORT(port, data)		\
 	(*(volatile unsigned int *)((port) + 0xc) = data)
 #define PUT_PORT_PIN(port, pin, on) \
-	(*(volatile unsigned int *)((port) + 0x10) \
-		 = (on)? 1 << (pin) : 1 << ((pin) + 16))
+	(*(volatile unsigned int *)((port) + 0x10) = \
+		(on)? 1 << (pin) : 1 << ((pin) + 16))
 
-/* Embedded flash */
-#define FLASH_WRITE_START()		(FLASH_CR |=   1 << PG)
-#define FLASH_WRITE_END()		(FLASH_CR &= ~(1 << PG))
-#define FLASH_WRITE_WORD(addr, data)	{ \
-	*(volatile unsigned short int *)(addr) = (unsigned short int)(data); \
-	while (FLASH_SR & (1 << BSY)); \
-	*(volatile unsigned short int *)((unsigned int)(addr)+2) \
-		= (unsigned short int)((data) >> 16); \
-	while (FLASH_SR & (1 << BSY)); \
-}
-#define FLASH_LOCK()			(FLASH_CR |= 0x80)
-#define FLASH_UNLOCK() { \
-	if (FLASH_CR & 0x80) { \
-		FLASH_KEYR = 0x45670123; /* KEY1 */ \
-		FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
-	} \
-}
-#define FLASH_UNLOCK_OPTPG() { \
-	FLASH_OPTKEYR = 0x45670123; /* KEY1 */ \
-	FLASH_OPTKEYR = 0xcdef89ab; /* KEY2 */ \
-}
-#define FLASH_LOCK_OPTPG()
-		
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40021000)
 #define RCC_CR			(*(volatile unsigned int *)RCC_BASE)

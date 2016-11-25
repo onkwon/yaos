@@ -1,5 +1,19 @@
 # Porting
 
+----
+
++ /arch/armv7-m/mach-xxx/include/clock.h
+  - HSE
++ /arch/armv7-m/mach-xxx/clock.c
+  - clock_init()
++ /arch/armv7-m/mach-xxx/gpio.c
+  - port_init()
++ /arch/armv7-m/mach-xxx/include/gpio.h
+  - NR_PORT
+  - PINS_PER_PORT
+
+----
+
 	/reset() #interrupt disabled
 	|-- main()
 	|   |-- sys_init()

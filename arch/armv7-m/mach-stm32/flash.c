@@ -4,41 +4,11 @@
 #include <kernel/module.h>
 #include <error.h>
 
+#include "flash.h"
+
 #ifndef stm32f1
 #define stm32f1	1
 #define stm32f4	2
-#endif
-
-#define PER			1
-#define PG			0
-#if (SOC == stm32f1)
-#define STRT			6
-#define BSY			0
-
-#define BLOCK_SIZE		2048
-
-#define WRITE_WORD(addr, data)	{ \
-	FLASH_WRITE_START(); \
-	FLASH_SR |= 0x34; \
-	FLASH_WRITE_WORD(addr, data); \
-	FLASH_WRITE_END(); \
-}
-#elif (SOC == stm32f4)
-#define STRT			16
-#define SNB			3
-#define PSIZE			8
-#define BSY			16
-
-#define BLOCK_SIZE		16384
-
-#define WRITE_WORD(addr, data)	{ \
-	FLASH_CR &= ~(3 << PSIZE); \
-	FLASH_CR |= (2 << PSIZE); \
-	FLASH_WRITE_START(); \
-	FLASH_SR |= 0xf1; \
-	FLASH_WRITE_WORD(addr, data); \
-	FLASH_WRITE_END(); \
-}
 #endif
 
 #define BLOCK_LEN		(BLOCK_SIZE / WORD_SIZE)

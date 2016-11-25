@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <foundation.h>
+#include <resource.h>
 
 #define MAXLEN		128
 #define MAXARG		10
@@ -66,7 +67,7 @@ static int runcmd(struct shell_cmd *cmd, int argc, char **argv)
 	ret = cmd->run(argc, argv);
 
 	if (ret) {
-		printf("usage: %s\n", cmd->usage);
+		printf(RC_STR_SHELL_USAGE "%s\n", cmd->usage);
 	}
 
 	return ret;
@@ -89,7 +90,7 @@ void shell()
 
 	/* TODO: Separate resource like string below,
 	 * in the way of categorized by locale */
-	printf("Type `help` for help on commands.\n");
+	printf(RC_STR_SHELL_WELCOME);
 
 	do {
 		puts("> ");
@@ -111,7 +112,7 @@ void shell()
 			}
 
 			if(!cmd->name) {
-				puts("unknown command\n");
+				puts(RC_STR_SHELL_UNKNOWN);
 			}
 		}
 	} while(ret != SHELL_EXIT);
