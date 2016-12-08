@@ -7,7 +7,7 @@
 #endif
 
 #define HSE			8000000 /* 8MHz */
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 #define HSI			8000000	/* 8MHz */
 #elif (SOC == stm32f4)
 #define HSI			16000000

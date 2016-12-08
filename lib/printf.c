@@ -186,7 +186,8 @@ size_t fprintf(int fd, const char *fmt, ...)
 
 size_t printk(const char *fmt, ...)
 {
-	if (!stdout) return 0;
+	if (!stdout)
+		return 0;
 
 	extern void __putc_debug(int c);
 	size_t ret;

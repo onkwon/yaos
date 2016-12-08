@@ -12,6 +12,9 @@ void fputc(int fd, int c)
 
 void putc(int c)
 {
+	if (!stdout)
+		return;
+
 	fputc(stdout, c);
 }
 

@@ -3,7 +3,8 @@
 
 #ifndef stm32f1
 #define stm32f1	1
-#define stm32f4	2
+#define stm32f3	3
+#define stm32f4	4
 #endif
 
 #define PER			1
@@ -12,7 +13,7 @@
 #define FLASH_WRITE_START()		(FLASH_CR |=   1 << PG)
 #define FLASH_WRITE_END()		(FLASH_CR &= ~(1 << PG))
 
-#if (SOC == stm32f1) /* stm32f1 */
+#if (SOC == stm32f1 || SOC == stm32f3)
 #define BLOCK_SIZE		2048
 
 #define STRT			6
@@ -39,10 +40,8 @@
 #define FLASH_LOCK_OPTPG()
 
 #define WRITE_WORD(addr, data)	{ \
-	FLASH_WRITE_START(); \
 	FLASH_SR |= 0x34; \
 	FLASH_WRITE_WORD(addr, data); \
-	FLASH_WRITE_END(); \
 }
 #elif (SOC == stm32f4) /* stm32f4 */
 #define BLOCK_SIZE		16384

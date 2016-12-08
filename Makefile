@@ -120,6 +120,8 @@ endif
 
 stm32f4:
 	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f4\nCFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" > .config
+stm32f3:
+	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f3\nCFLAGS += -mtune=cortex-m4 -mthumb" > .config
 stm32f1:
 	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f1\nCFLAGS += -mtune=cortex-m3 -mthumb" > .config
 rpi:

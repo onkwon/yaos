@@ -33,7 +33,7 @@ static inline int __attribute__((section(".iap"))) flash_erase(void *addr)
 	 * Flush I/D cache before erase, noting that I/D cache should be
 	 * flushed only when it is disabled. */
 	FLASH_CR |= (1 << PER);
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 	FLASH_AR = (unsigned int)addr;
 #elif (SOC == stm32f4)
 	FLASH_CR = (FLASH_CR & ~0x78) | (get_sector((unsigned int)addr) << SNB);
@@ -121,6 +121,7 @@ __flash_write(void *addr, void *buf, size_t len)
 
 	spin_lock(&wlock);
 	FLASH_UNLOCK();
+	FLASH_WRITE_START();
 
 	for (index = BLOCK_LEN; len; len -= WORD_SIZE) {
 		if (index >= BLOCK_LEN) {
@@ -131,12 +132,14 @@ __flash_write(void *addr, void *buf, size_t len)
 
 			to = (unsigned int *)BLOCK_BASE(to, BLOCK_SIZE);
 			__flash_read(to, tmp, BLOCK_SIZE);
+			FLASH_WRITE_END();
 			flash_erase(to);
+			FLASH_WRITE_START();
 		}
 
 		while (sentinel) {
 			WRITE_WORD(to, tmp[index]);
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 			if (FLASH_SR & 0x14) goto out;
 #elif (SOC == stm32f4)
 			if (FLASH_SR & 0xf0) goto out;
@@ -148,7 +151,7 @@ __flash_write(void *addr, void *buf, size_t len)
 		}
 
 		WRITE_WORD(to, *data);
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 		if (FLASH_SR & 0x14) goto out;
 #elif (SOC == stm32f4)
 		if (FLASH_SR & 0xf0) goto out;
@@ -161,7 +164,7 @@ __flash_write(void *addr, void *buf, size_t len)
 
 	while (index < BLOCK_LEN) {
 		WRITE_WORD(to, tmp[index]);
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 		if (FLASH_SR & 0x14) goto out;
 #elif (SOC == stm32f4)
 		if (FLASH_SR & 0xf0) goto out;
@@ -172,6 +175,7 @@ __flash_write(void *addr, void *buf, size_t len)
 	}
 
 out:
+	FLASH_WRITE_END();
 	FLASH_LOCK();
 	spin_unlock(&wlock);
 
@@ -181,7 +185,7 @@ out:
 		unsigned int errcode;
 
 		errcode = FLASH_SR;
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 		FLASH_SR |= 0x34; /* clear flags */
 #elif (SOC == stm32f4)
 		FLASH_SR |= 0xf1; /* clear flags */
@@ -261,7 +265,7 @@ MODULE_INIT(flash_init);
 
 void flash_protect()
 {
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 	if (FLASH_OPT_RDP != 0x5aa5)
 		return;
 #else
@@ -276,7 +280,7 @@ void flash_protect()
 	FLASH_UNLOCK();
 	FLASH_UNLOCK_OPTPG();
 
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 	FLASH_CR |= 0x20; /* OPTER */
 	FLASH_CR |= 1 << STRT;
 #else
@@ -286,7 +290,7 @@ void flash_protect()
 
 	while (FLASH_SR & (1 << BSY));
 
-#if (SOC == stm32f1)
+#if (SOC == stm32f1 || SOC == stm32f3)
 	FLASH_CR &= ~0x20; /* OPTER */
 #else
 	FLASH_OPTCR &= ~2;

@@ -87,7 +87,7 @@ static int ps(int argc, char **argv)
 
 #ifdef CONFIG_DEBUG
 	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
-			GET_CNTL(), GET_SP(), GET_KSP(), GET_USP());
+			__get_cntl(), __get_sp(), __get_ksp(), __get_usp());
 #endif
 
 	extern void print_rq();

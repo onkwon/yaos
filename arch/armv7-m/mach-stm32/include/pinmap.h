@@ -10,7 +10,9 @@
 
 /* Status LED */
 #if (SOC == stm32f1)
-#define PIN_STATUS_LED			50 /* PORTC.2 */
+#define PIN_STATUS_LED			50 /* PORTD.2 */
+#elif (SOC == stm32f3)
+#define PIN_STATUS_LED			32 /* PORTC.0 */
 #elif (SOC == stm32f4)
 #define PIN_STATUS_LED			20 /* PORTB.4 */
 #endif
