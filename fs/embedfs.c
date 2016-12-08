@@ -320,7 +320,7 @@ static inline unsigned int check_n_alloc_block(unsigned int nblock,
 	}
 
 	if (!buf[index] || buf[index] == (unsigned int)-1) {
-		if (!(buf[index] = alloc_free_block(dev))) {
+		if (!(buf[index] = alloc_zeroed_free_block(dev))) {
 			nblock = 0;
 			goto out; /* disk full */
 		}
@@ -345,7 +345,7 @@ static inline unsigned int take_dblock(struct embed_inode *inode,
 
 	if (index < NR_DATA_BLOCK_DIRECT) {
 		if (!(nblock = inode->data[index]) &&
-				(nblock = alloc_free_block(dev))) {
+				(nblock = alloc_zeroed_free_block(dev))) {
 			inode->data[index] = nblock;
 			update_inode_table(inode, dev);
 		}
@@ -373,7 +373,7 @@ static inline unsigned int take_dblock(struct embed_inode *inode,
 	nblock = inode->data[depth + NR_DATA_BLOCK_DIRECT];
 
 	if (!nblock) {
-		if (!(nblock = alloc_free_block(dev)))
+		if (!(nblock = alloc_zeroed_free_block(dev)))
 			goto out;
 
 		inode->data[depth + NR_DATA_BLOCK_DIRECT] = nblock;
