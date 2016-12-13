@@ -143,13 +143,13 @@ static void disp_clkinfo()
 	*/
 	printf("\n");
 
-	printf("PORTA %08x %08x\n", *(volatile unsigned int *)PORTA, *(volatile unsigned int *)(PORTA+4));
-	printf("PORTB %08x %08x\n", *(volatile unsigned int *)PORTB, *(volatile unsigned int *)(PORTB+4));
-	printf("PORTC %08x %08x\n", *(volatile unsigned int *)PORTC, *(volatile unsigned int *)(PORTC+4));
-	printf("PORTD %08x %08x\n", *(volatile unsigned int *)PORTD, *(volatile unsigned int *)(PORTD+4));
-	printf("PORTE %08x %08x\n", *(volatile unsigned int *)PORTE, *(volatile unsigned int *)(PORTE+4));
-	printf("PORTF %08x %08x\n", *(volatile unsigned int *)PORTF, *(volatile unsigned int *)(PORTF+4));
-	printf("PORTG %08x %08x\n", *(volatile unsigned int *)PORTG, *(volatile unsigned int *)(PORTG+4));
+	printf("PORTA %08x %08x\n", *(reg_t *)PORTA, *(reg_t *)(PORTA+4));
+	printf("PORTB %08x %08x\n", *(reg_t *)PORTB, *(reg_t *)(PORTB+4));
+	printf("PORTC %08x %08x\n", *(reg_t *)PORTC, *(reg_t *)(PORTC+4));
+	printf("PORTD %08x %08x\n", *(reg_t *)PORTD, *(reg_t *)(PORTD+4));
+	printf("PORTE %08x %08x\n", *(reg_t *)PORTE, *(reg_t *)(PORTE+4));
+	printf("PORTF %08x %08x\n", *(reg_t *)PORTF, *(reg_t *)(PORTF+4));
+	printf("PORTG %08x %08x\n", *(reg_t *)PORTG, *(reg_t *)(PORTG+4));
 	printf("\n");
 }
 

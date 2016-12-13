@@ -61,11 +61,11 @@ int gpio_init(unsigned int index, unsigned int flags)
 	/* default */
 #if (SOC == stm32f3 || SOC == stm32f4)
 	/* no pull-up, pull-down */
-	*(volatile unsigned int *)(port + 0xc) &= ~(3 << (pin * 2));
+	*(reg_t *)(port + 0xc) &= ~(3 << (pin * 2));
 	/* very high speed I/O output speed */
-	*(volatile unsigned int *)(port + 8) |= 3 << (pin * 2);
+	*(reg_t *)(port + 8) |= 3 << (pin * 2);
 	/* push-pull output */
-	*(volatile unsigned int *)(port + 4) &= ~(1 << pin);
+	*(reg_t *)(port + 4) &= ~(1 << pin);
 #endif
 
 	if (flags & GPIO_MODE_ALT) {
@@ -78,15 +78,15 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 #if (SOC == stm32f3 || SOC == stm32f4)
 		if (pin / 8) {
-			*(volatile unsigned int *)(port + 0x24) =
-				(*(volatile unsigned int *)(port + 0x24) &
+			*(reg_t *)(port + 0x24) =
+				(*(reg_t *)(port + 0x24) &
 				~(0xf << 4 * (pin % 8))) |
-				((flags >> 16) << 4 * (pin %8));
+				((flags >> GPIO_ALT_SHIFT) << 4 * (pin % 8));
 		} else {
-			*(volatile unsigned int *)(port + 0x20) =
-				(*(volatile unsigned int *)(port + 0x20) &
+			*(reg_t *)(port + 0x20) =
+				(*(reg_t *)(port + 0x20) &
 				~(0xf << 4 * (pin % 8))) |
-				((flags >> 16) << 4 * (pin %8));
+				((flags >> GPIO_ALT_SHIFT) << 4 * (pin % 8));
 		}
 #endif
 	} else if (flags & GPIO_MODE_ANALOG) {
@@ -102,7 +102,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (flags & GPIO_CONF_OPENDRAIN) {
 #if (SOC == stm32f3 || SCO == stm32f4)
-		*(volatile unsigned int *)(port + 4) |= 1 << pin;
+		*(reg_t *)(port + 4) |= 1 << pin;
 #elif (SOC == stm32f1)
 		mode &= ~(PIN_FLOATING);
 		if (flags & GPIO_MODE_ALT)
@@ -112,7 +112,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 #endif
 	} else if (flags & GPIO_CONF_PULL_UP) {
 #if (SOC == stm32f3 || SOC == stm32f4)
-		*(volatile unsigned int *)(port + 0xc) |= 1 << (pin * 2);
+		*(reg_t *)(port + 0xc) |= 1 << (pin * 2);
 #elif (SOC == stm32f1)
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
@@ -120,7 +120,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		PUT_PORT_PIN(port, pin, 1);
 	} else if (flags & GPIO_CONF_PULL_DOWN) {
 #if (SOC == stm32f3 || SOC == stm32f4)
-		*(volatile unsigned int *)(port + 0xc) |= 2 << (pin * 2);
+		*(reg_t *)(port + 0xc) |= 2 << (pin * 2);
 #elif (SOC == stm32f1)
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
@@ -200,25 +200,25 @@ static void __init port_init()
 	offset = 0xc;
 #endif
 	/* set pins to analog input(AIN) to reduce power consumption */
-	*(volatile unsigned int *)PORTA = mode;
-	*(volatile unsigned int *)(PORTA + offset) = conf;
-	*(volatile unsigned int *)PORTB = mode;
-	*(volatile unsigned int *)(PORTB + offset) = conf;
-	*(volatile unsigned int *)PORTC = mode;
-	*(volatile unsigned int *)(PORTC + offset) = conf;
-	*(volatile unsigned int *)PORTD = mode;
-	*(volatile unsigned int *)(PORTD + offset) = conf;
-	*(volatile unsigned int *)PORTE = mode;
-	*(volatile unsigned int *)(PORTE + offset) = conf;
-	*(volatile unsigned int *)PORTF = mode;
-	*(volatile unsigned int *)(PORTF + offset) = conf;
+	*(reg_t *)PORTA = mode;
+	*(reg_t *)(PORTA + offset) = conf;
+	*(reg_t *)PORTB = mode;
+	*(reg_t *)(PORTB + offset) = conf;
+	*(reg_t *)PORTC = mode;
+	*(reg_t *)(PORTC + offset) = conf;
+	*(reg_t *)PORTD = mode;
+	*(reg_t *)(PORTD + offset) = conf;
+	*(reg_t *)PORTE = mode;
+	*(reg_t *)(PORTE + offset) = conf;
+	*(reg_t *)PORTF = mode;
+	*(reg_t *)(PORTF + offset) = conf;
 #if (SOC == stm32f4)
-	*(volatile unsigned int *)PORTG = mode;
-	*(volatile unsigned int *)(PORTG + offset) = conf;
-	*(volatile unsigned int *)PORTH = mode;
-	*(volatile unsigned int *)(PORTH + offset) = conf;
-	*(volatile unsigned int *)PORTI = mode;
-	*(volatile unsigned int *)(PORTI + offset) = conf;
+	*(reg_t *)PORTG = mode;
+	*(reg_t *)(PORTG + offset) = conf;
+	*(reg_t *)PORTH = mode;
+	*(reg_t *)(PORTH + offset) = conf;
+	*(reg_t *)PORTI = mode;
+	*(reg_t *)(PORTI + offset) = conf;
 
 	SET_PORT_CLOCK(DISABLE, PORTG);
 	SET_PORT_CLOCK(DISABLE, PORTH);

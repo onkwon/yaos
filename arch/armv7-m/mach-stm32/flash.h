@@ -52,7 +52,7 @@
 #define BSY			16
 
 #define FLASH_WRITE_WORD(addr, data)	{ \
-	*(volatile unsigned int *)(addr) = (unsigned int)(data); \
+	*(reg_t *)(addr) = (unsigned int)(data); \
 	while (FLASH_SR & (1 << BSY)); /* Check BSY bit, need timeout */ \
 }
 #define FLASH_LOCK()			(FLASH_CR |= 0x80000000)

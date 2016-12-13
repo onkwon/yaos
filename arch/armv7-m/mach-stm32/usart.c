@@ -131,22 +131,23 @@ static int usart_open(unsigned int channel, struct usart arg)
 		SET_PORT_PIN(port, pin+1, PIN_ALT); /* rx */
 
 	/* TODO: FOR TEST, use rx pin as wake-up source */
+	/* FIXME: the port number here must be 0 ~ N, not the address */
 	link_exti_to_nvic(port, pin+1);
 
-	nvic_set(exc2irq(get_usart_vector(channel)), ON);
+	nvic_set(vec2irq(get_usart_vector(channel)), ON);
 
 #if (SOC == stm32f3)
-	*(volatile unsigned int *)(channel + 0x00) = arg.cr1;
-	*(volatile unsigned int *)(channel + 0x04) = arg.cr2;
-	*(volatile unsigned int *)(channel + 0x08) = arg.cr3;
-	*(volatile unsigned int *)(channel + 0x0c) = arg.brr;
-	*(volatile unsigned int *)(channel + 0x10) = arg.gtpr;
+	*(reg_t *)(channel + 0x00) = arg.cr1;
+	*(reg_t *)(channel + 0x04) = arg.cr2;
+	*(reg_t *)(channel + 0x08) = arg.cr3;
+	*(reg_t *)(channel + 0x0c) = arg.brr;
+	*(reg_t *)(channel + 0x10) = arg.gtpr;
 #else
-	*(volatile unsigned int *)(channel + 0x08) = arg.brr;
-	*(volatile unsigned int *)(channel + 0x0c) = arg.cr1;
-	*(volatile unsigned int *)(channel + 0x10) = arg.cr2;
-	*(volatile unsigned int *)(channel + 0x14) = arg.cr3;
-	*(volatile unsigned int *)(channel + 0x18) = arg.gtpr;
+	*(reg_t *)(channel + 0x08) = arg.brr;
+	*(reg_t *)(channel + 0x0c) = arg.cr1;
+	*(reg_t *)(channel + 0x10) = arg.cr2;
+	*(reg_t *)(channel + 0x14) = arg.cr3;
+	*(reg_t *)(channel + 0x18) = arg.gtpr;
 #endif
 
 	return get_usart_vector(channel);
@@ -156,9 +157,9 @@ static void usart_close(unsigned int channel)
 {
 	/* check if still in transmission. */
 #if (SOC == stm32f3)
-	while (!gbi(*(volatile unsigned int *)(channel+0x1c), 7));
+	while (!gbi(*(reg_t *)(channel+0x1c), 7));
 #else
-	while (!gbi(*(volatile unsigned int *)channel, 7)); /* wait until TXE bit set */
+	while (!gbi(*(reg_t *)channel, 7)); /* wait until TXE bit set */
 #endif
 
 	/* Use APB2 peripheral reset register (RCC_APB2RSTR),
@@ -167,17 +168,18 @@ static void usart_close(unsigned int channel)
 	/* Turn off enable bit of transmitter, receiver, and clock.
 	 * It leaves port clock, pin, irq, and configuration as set */
 #if (SOC == stm32f3)
-	*(volatile unsigned int *)channel &= ~(
+	*(reg_t *)channel &= ~(
 			(1 << 0) 	/* UE: USART enable */
 			| (1 << 5)	/* RXNEIE: RXNE interrupt enable */
 			| (1 << 3) 	/* TE: Transmitter enable */
 			| (1 << 2));	/* RE: Receiver enable */
 #else
-	*(volatile unsigned int *)(channel + 0x0c) &= ~(
+	*(reg_t *)(channel + 0x0c) &= ~(
 			(1 << 13) 	/* UE: USART enable */
 			| (1 << 5)	/* RXNEIE: RXNE interrupt enable */
 			| (1 << 3) 	/* TE: Transmitter enable */
 			| (1 << 2));	/* RE: Receiver enable */
+#endif
 
 	if (channel == USART1) {
 #if (SOC == stm32f1 || SOC == stm32f3)
@@ -190,7 +192,7 @@ static void usart_close(unsigned int channel)
 		SET_CLOCK_APB1(DISABLE, (((channel >> 8) & 0x1f) >> 2) + 16);
 	}
 
-	nvic_set(exc2irq(get_usart_vector(channel)), OFF);
+	nvic_set(vec2irq(get_usart_vector(channel)), OFF);
 }
 
 /* to get buf index from register address */
@@ -199,17 +201,17 @@ static void usart_close(unsigned int channel)
 static int usart_putc(unsigned int channel, int c)
 {
 #if (SOC == stm32f3)
-	if (!gbi(*(volatile unsigned int *)(channel+0x1c), TXE))
+	if (!gbi(*(reg_t *)(channel+0x1c), TXE))
 		return 0;
 #else
-	if (!gbi(*(volatile unsigned int *)channel, TXE))
+	if (!gbi(*(reg_t *)channel, TXE))
 		return 0;
 #endif
 
 #if (SOC == stm32f3)
-	*(volatile unsigned int *)(channel + 0x28) = (unsigned int)c;
+	*(reg_t *)(channel + 0x28) = (unsigned int)c;
 #else
-	*(volatile unsigned int *)(channel + 0x04) = (unsigned int)c;
+	*(reg_t *)(channel + 0x04) = (unsigned int)c;
 #endif
 
 	return 1;
@@ -279,10 +281,10 @@ int __usart_check_rx(unsigned int channel)
 	channel = conv_channel(channel);
 
 #if (SOC == stm32f3)
-	if (*(volatile unsigned int *)(channel+0x1c) & (1 << RXNE))
+	if (*(reg_t *)(channel+0x1c) & (1 << RXNE))
 		return 1;
 #else
-	if (*(volatile unsigned int *)channel & (1 << RXNE))
+	if (*(reg_t *)channel & (1 << RXNE))
 		return 1;
 #endif
 
@@ -294,10 +296,10 @@ int __usart_check_tx(unsigned int channel)
 	channel = conv_channel(channel);
 
 #if (SOC == stm32f3)
-	if (*(volatile unsigned int *)(channel+0x1c) & (1 << TXE))
+	if (*(reg_t *)(channel+0x1c) & (1 << TXE))
 		return 1;
 #else
-	if (*(volatile unsigned int *)channel & (1 << TXE))
+	if (*(reg_t *)channel & (1 << TXE))
 		return 1;
 #endif
 
@@ -309,9 +311,9 @@ int __usart_getc(unsigned int channel)
 	channel = conv_channel(channel);
 
 #if (SOC == stm32f3)
-	return *(volatile unsigned int *)(channel + 0x24);
+	return *(reg_t *)(channel + 0x24);
 #else
-	return *(volatile unsigned int *)(channel + 0x04);
+	return *(reg_t *)(channel + 0x04);
 #endif
 }
 
@@ -321,9 +323,9 @@ void __usart_tx_irq_reset(unsigned int channel)
 
 	/* TXE interrupt disable */
 #if (SOC == stm32f3)
-	*(volatile unsigned int *)channel &= ~(1 << 7); /* TXEIE */
+	*(reg_t *)channel &= ~(1 << 7); /* TXEIE */
 #else
-	*(volatile unsigned int *)(channel + 0x0c) &= ~(1 << TXE); /* TXEIE */
+	*(reg_t *)(channel + 0x0c) &= ~(1 << TXE); /* TXEIE */
 #endif
 }
 
@@ -333,9 +335,9 @@ void __usart_tx_irq_raise(unsigned int channel)
 
 	/* TXE interrupt enable */
 #if (SOC == stm32f3)
-	*(volatile unsigned int *)channel |= 1 << 7; /* TXEIE */
+	*(reg_t *)channel |= 1 << 7; /* TXEIE */
 #else
-	*(volatile unsigned int *)(channel + 0x0c) |= 1 << TXE; /* TXEIE */
+	*(reg_t *)(channel + 0x0c) |= 1 << TXE; /* TXEIE */
 #endif
 }
 
@@ -343,9 +345,9 @@ void __usart_flush(unsigned int channel)
 {
 	/* wait until transmission complete */
 #if (SOC == stm32f3)
-	while (!gbi(*(volatile unsigned int *)(conv_channel(channel)+0x1c), 6));
+	while (!gbi(*(reg_t *)(conv_channel(channel)+0x1c), 6));
 #else
-	while (!gbi(*(volatile unsigned int *)conv_channel(channel), 6));
+	while (!gbi(*(reg_t *)conv_channel(channel), 6));
 #endif
 }
 
@@ -365,9 +367,9 @@ int __usart_set_baudrate(unsigned int channel, unsigned int baudrate)
 		baudrate = brr2reg(baudrate, get_pclk1());
 
 #if (SOC == stm32f3)
-	*(volatile unsigned int *)(channel + 0x0c) = baudrate;
+	*(reg_t *)(channel + 0x0c) = baudrate;
 #else
-	*(volatile unsigned int *)(channel + 0x08) = baudrate;
+	*(reg_t *)(channel + 0x08) = baudrate;
 #endif
 
 	return 0;

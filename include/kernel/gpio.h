@@ -13,6 +13,11 @@
 #define GPIO_INT_FALLING		0x0100
 #define GPIO_INT_RISING			0x0200
 
+#define GPIO_ALT_SHIFT			16
+
+#define gpio_altfunc(n)			\
+	(GPIO_MODE_ALT | ((n) << GPIO_ALT_SHIFT))
+
 int gpio_init(unsigned int index, unsigned int flags);
 void gpio_close(unsigned int index);
 void gpio_put(unsigned int index, int v);

@@ -24,6 +24,7 @@ typedef unsigned int size_t;
 typedef unsigned long long uint64_t;
 struct links;
 typedef struct links buf_t;
+typedef volatile unsigned int reg_t;
 
 #define WORD_SIZE			sizeof(int)
 #define WORD_BITS			(WORD_SIZE << 3)

@@ -19,105 +19,105 @@
 #define UART_BASE		(AUX_BASE + 0x40)
 
 struct gpio {
-	volatile unsigned int fs0;
-	volatile unsigned int fs1;
-	volatile unsigned int fs2;
-	volatile unsigned int fs3;
-	volatile unsigned int fs4;
-	volatile unsigned int fs5;
-	volatile unsigned int reserved0;
-	volatile unsigned int set0;
-	volatile unsigned int set1;
-	volatile unsigned int reserved1;
-	volatile unsigned int clr0;
-	volatile unsigned int clr1;
-	volatile unsigned int reserved2;
-	volatile unsigned int lev0;
-	volatile unsigned int lev1;
-	volatile unsigned int reserved3;
-	volatile unsigned int event0;
-	volatile unsigned int event1;
-	volatile unsigned int reserved4;
-	volatile unsigned int r_edge0;
-	volatile unsigned int r_edge1;
-	volatile unsigned int resetved5;
-	volatile unsigned int f_edge0;
-	volatile unsigned int f_edge1;
-	volatile unsigned int reserved6;
-	volatile unsigned int lev_high0;
-	volatile unsigned int lev_high1;
-	volatile unsigned int reserved7;
-	volatile unsigned int lev_low0;
-	volatile unsigned int lev_low1;
-	volatile unsigned int reserved8;
-	volatile unsigned int r_edge_async0;
-	volatile unsigned int r_edge_async1;
-	volatile unsigned int reserved9;
-	volatile unsigned int f_edge_async0;
-	volatile unsigned int f_edge_async1;
-	volatile unsigned int reserved10;
-	volatile unsigned int pud;
-	volatile unsigned int pudclk0;
-	volatile unsigned int pudclk1;
+	reg_t fs0;
+	reg_t fs1;
+	reg_t fs2;
+	reg_t fs3;
+	reg_t fs4;
+	reg_t fs5;
+	reg_t reserved0;
+	reg_t set0;
+	reg_t set1;
+	reg_t reserved1;
+	reg_t clr0;
+	reg_t clr1;
+	reg_t reserved2;
+	reg_t lev0;
+	reg_t lev1;
+	reg_t reserved3;
+	reg_t event0;
+	reg_t event1;
+	reg_t reserved4;
+	reg_t r_edge0;
+	reg_t r_edge1;
+	reg_t resetved5;
+	reg_t f_edge0;
+	reg_t f_edge1;
+	reg_t reserved6;
+	reg_t lev_high0;
+	reg_t lev_high1;
+	reg_t reserved7;
+	reg_t lev_low0;
+	reg_t lev_low1;
+	reg_t reserved8;
+	reg_t r_edge_async0;
+	reg_t r_edge_async1;
+	reg_t reserved9;
+	reg_t f_edge_async0;
+	reg_t f_edge_async1;
+	reg_t reserved10;
+	reg_t pud;
+	reg_t pudclk0;
+	reg_t pudclk1;
 } __attribute__((packed));
 
 struct interrupt_controller {
-	volatile unsigned int basic_pending;
-	volatile unsigned int pending1;
-	volatile unsigned int pending2;
-	volatile unsigned int fiq_control;
-	volatile unsigned int irq1_enable;
-	volatile unsigned int irq2_enable;
-	volatile unsigned int basic_enable;
-	volatile unsigned int irq1_disable;
-	volatile unsigned int irq2_disable;
-	volatile unsigned int basic_disable;
+	reg_t basic_pending;
+	reg_t pending1;
+	reg_t pending2;
+	reg_t fiq_control;
+	reg_t irq1_enable;
+	reg_t irq2_enable;
+	reg_t basic_enable;
+	reg_t irq1_disable;
+	reg_t irq2_disable;
+	reg_t basic_disable;
 } __attribute__((packed));
 
 struct system_timer {
-	volatile unsigned int status;
+	reg_t status;
 	union {
 		struct {
-			volatile unsigned int counter_h;
-			volatile unsigned int counter_l;
+			reg_t counter_h;
+			reg_t counter_l;
 		};
 		volatile unsigned long long counter;
 	};
-	volatile unsigned int compare0;
-	volatile unsigned int compare1;
-	volatile unsigned int compare2;
-	volatile unsigned int compare3;
+	reg_t compare0;
+	reg_t compare1;
+	reg_t compare2;
+	reg_t compare3;
 } __attribute__((packed));
 
 struct general_timer {
-	volatile unsigned int load;
-	volatile unsigned int value;
-	volatile unsigned int control;
-	volatile unsigned int irq_clear;
-	volatile unsigned int irq_raw;
-	volatile unsigned int irq_masked;
-	volatile unsigned int reload;
-	volatile unsigned int divider;
-	volatile unsigned int counter;
+	reg_t load;
+	reg_t value;
+	reg_t control;
+	reg_t irq_clear;
+	reg_t irq_raw;
+	reg_t irq_masked;
+	reg_t reload;
+	reg_t divider;
+	reg_t counter;
 } __attribute__((packed));
 
 struct aux {
-	volatile unsigned int irq;
-	volatile unsigned int enable;
+	reg_t irq;
+	reg_t enable;
 } __attribute__((packed));
 
 struct mini_uart {
-	volatile unsigned int dr;
-	volatile unsigned int ier;
-	volatile unsigned int iir;
-	volatile unsigned int lcr;
-	volatile unsigned int mcr;
-	volatile unsigned int lsr;
-	volatile unsigned int msr;
-	volatile unsigned int scratch;
-	volatile unsigned int cntl;
-	volatile unsigned int status;
-	volatile unsigned int baudrate;
+	reg_t dr;
+	reg_t ier;
+	reg_t iir;
+	reg_t lcr;
+	reg_t mcr;
+	reg_t lsr;
+	reg_t msr;
+	reg_t scratch;
+	reg_t cntl;
+	reg_t status;
+	reg_t baudrate;
 } __attribute__((packed));
 
 #endif /* __RPI_IO_H__ */

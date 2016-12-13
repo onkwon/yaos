@@ -6,7 +6,7 @@ static DEFINE_SPINLOCK(gpio_init_lock);
 
 void gpio_pull(unsigned int pin, unsigned int mode)
 {
-	volatile unsigned int *reg;
+	reg_t *reg;
 	unsigned int i;
 	struct gpio *gpio = (struct gpio *)GPIO_BASE;
 
@@ -26,16 +26,16 @@ void gpio_pull(unsigned int pin, unsigned int mode)
 
 unsigned int gpio_get(unsigned int index)
 {
-	volatile unsigned int *base;
+	reg_t *base;
 	unsigned int port, pin;
 
 	port = index / 32;
 	pin  = index % 32;
 
 	if (port)
-		base = (volatile unsigned int *)(GPIO_BASE + 0x38);
+		base = (reg_t *)(GPIO_BASE + 0x38);
 	else
-		base = (volatile unsigned int *)(GPIO_BASE + 0x34);
+		base = (reg_t *)(GPIO_BASE + 0x34);
 
 	return (*base & (1 << pin)) >> pin;
 }

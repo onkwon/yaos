@@ -17,13 +17,13 @@ static DEFINE_SPINLOCK(nvic_lock);
 
 void nvic_set(unsigned int nirq, int on)
 {
-	volatile unsigned int *reg;
+	reg_t *reg;
 	unsigned int bit, base;
 
 	bit  = nirq % 32;
 	nirq = nirq / 32 * 4;
 	base = on? NVIC_BASE : NVIC_BASE + 0x80;
-	reg  = (volatile unsigned int *)(base + nirq);
+	reg  = (reg_t *)(base + nirq);
 
 	spin_lock(&nvic_lock);
 	*reg = 1 << bit;
@@ -34,11 +34,11 @@ void nvic_set(unsigned int nirq, int on)
 
 void nvic_set_pri(unsigned int nirq, unsigned int pri)
 {
-	volatile unsigned int *reg;
+	reg_t *reg;
 	unsigned int bit;
 
 	bit  = nirq % 4 * 8;
-	reg  = (volatile unsigned int *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
+	reg  = (reg_t *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
 	*reg &= ~(0xff << bit);
 	*reg |= ((pri & 0xf) << 4) << bit;
 

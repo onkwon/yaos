@@ -9,7 +9,7 @@
 			+ 0x02000000, \
 			((unsigned int)(addr) & 0xfffff), bit)
 #define BITBAND(addr, bit, on) \
-	(*(volatile unsigned int *)GET_BITBAND(addr, bit) = on)
+	(*(reg_t *)GET_BITBAND(addr, bit) = on)
 
 #define __nop()			__asm__ __volatile__("nop")
 
