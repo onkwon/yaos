@@ -12,19 +12,18 @@
 
 #define PAD_RIGHT			(1 << (WORD_SIZE * 8 - 1))
 #define PAD_ZERO			(1 << (WORD_SIZE * 8 - 2))
+#define PAD_FLOAT			(1 << (WORD_SIZE * 8 - 3))
+#define PAD_HEX				(1 << (WORD_SIZE * 8 - 4))
 
-#define NR_BITS_WLEN			7
-#define WLAN_MASK			((1 << NR_BITS_WLEN) - 1)
-#define TLAN_MASK			\
-	(((1 << NR_BITS_WLEN) - 1) << NR_BITS_WLEN)
+#define NR_BITS_ALIGN			7
+#define ALIGN_MASK			((1 << NR_BITS_ALIGN) - 1)
+#define FLEN_MASK			\
+	(((1 << NR_BITS_ALIGN) - 1) << NR_BITS_ALIGN)
 
-#define set_padding_dir(x, dir)		(x |= dir)
-#define get_padding_dir(x)		((x) & PAD_RIGHT)
-#define fill_padding_zero(x)		(x |= PAD_ZERO)
-#define get_padding_type(x)		((x) & PAD_ZERO)
-#define get_padding_wlen(x)		((x) & WLAN_MASK)
-#define get_padding_tlen(x)		(((x) & TLAN_MASK) >> NR_BITS_WLEN)
-#define combine(tlen, wlen)		(((tlen) << NR_BITS_WLEN) | wlen)
+#define set_padding(y, x)		(y |= x)
+#define get_padding(y, x)		((y) & (x))
+#define get_padding_flen(x)		(((x) & FLEN_MASK) >> NR_BITS_ALIGN)
+#define combine(flen, align)		(((flen) << NR_BITS_ALIGN) | (align))
 
 #define tok2base(x)			\
 	((x == 'd')? 10 : (x == 'x')? 16 : (x == 'b')? 2 : (x == 'p')? 16 : 10)
@@ -46,19 +45,23 @@ static size_t prints(int fd, void **to, const char *s, int opt, size_t maxlen)
 	bool is_right = false;
 
 	len = strnlen(s, maxlen);
-	padding = get_padding_wlen(opt);
+	padding = get_padding(opt, ALIGN_MASK);
 	i = 0;
 
+	if (get_padding(opt, PAD_HEX)) {
+		printc(fd, to, '0');
+		printc(fd, to, 'x');
+	}
+
 	if (padding) {
-		is_right = get_padding_dir(opt)? true : false;
-		padchar = get_padding_type(opt)? '0' : ' ';
+		is_right = get_padding(opt, PAD_RIGHT)? true : false;
+		padchar = get_padding(opt, PAD_ZERO)? '0' : ' ';
 		padding = ((padding - len) < 0)? 0 : padding - len;
-		len = min(get_padding_wlen(opt), maxlen);
+		len = min(len + padding, maxlen);
 
 		if (*s == '-' && padchar == '0') {
 			printc(fd, to, *s++);
-			padding++;
-			i++;
+			len--;
 		}
 	}
 
@@ -77,7 +80,7 @@ static size_t prints(int fd, void **to, const char *s, int opt, size_t maxlen)
 static size_t print(int fd, void **to, size_t limit, void *args)
 {
 	const char *fmt;
-	size_t printed, maxlen, wlen, tlen;
+	size_t printed, maxlen, align, flen;
 	int padding;
 	bool op;
 	char buf[BUFSIZE];
@@ -95,37 +98,39 @@ static size_t print(int fd, void **to, size_t limit, void *args)
 			}
 
 			op = true;
-			padding = wlen = tlen = 0;
+			padding = align = flen = 0;
 			fmt++;
 		}
 
 		switch (*fmt) {
 		case '0' ... '9':
-			wlen *= 10;
-			wlen += *fmt - '0';
-			if (!wlen) /* if the leading zero */
-				fill_padding_zero(padding);
+			align *= 10;
+			align += *fmt - '0';
+			if (!align) /* if the leading zero */
+				set_padding(padding, PAD_ZERO);
 			continue;
-		case '#': /* TODO: add "0x" prefix */
-			break;
+		case '#':
+			set_padding(padding, PAD_HEX);
+			continue;
 		case 'd':
 		case 'x':
 		case 'p':
 		case 'b':
 			itos(getarg(args, int), buf, tok2base(*fmt), BUFSIZE);
-			printed = prints(fd, to, buf, padding | wlen, limit);
+			printed = prints(fd, to, buf, padding | align, limit);
 			break;
 #ifdef CONFIG_FLOAT
 		case 'f':
-			ftos(getarg(args, double), buf, wlen, BUFSIZE);
+			set_padding(padding, PAD_FLOAT);
+			ftos(getarg(args, double), buf, align, BUFSIZE);
 			printed = prints(fd, to, buf,
-					padding | ((tlen)? tlen : wlen),
+					padding | combine(flen, align),
 					limit);
 			break;
 #endif
 		case 's':
 			printed = prints(fd, to, getarg(args, char *),
-					padding | wlen, limit);
+					padding | align, limit);
 			break;
 		case 'c':
 			printc(fd, to, getarg(args, char));
@@ -136,16 +141,16 @@ static size_t print(int fd, void **to, size_t limit, void *args)
 			printed = 1;
 			break;
 		case '.':
-			if (fmt[-1] == '-' || fmt[-1] == '%' || wlen) {
-				tlen = wlen;
-				wlen = 0;
+			if (fmt[-1] == '-' || fmt[-1] == '%' || align) {
+				flen = align;
+				align = 0;
 				continue;
 			}
 			fmt--;
 			break;
 		case '-':
 			if (fmt[-1] == '%') {
-				set_padding_dir(padding, PAD_RIGHT);
+				set_padding(padding, PAD_RIGHT);
 				continue;
 			}
 			/* fall through */

@@ -80,6 +80,9 @@ size_t ftos(double v, char *buf, int flen, size_t maxlen)
 		buf[off++] = '0';
 	*/
 
+	if (buf[off-1] == '.')
+		off--;
+
 	buf[off] = '\0';
 
 	return off;
