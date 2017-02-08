@@ -18,6 +18,8 @@
 #define AUX_BASE		(PERI_BASE + 0x00215000)
 #define UART_BASE		(AUX_BASE + 0x40)
 
+#include <types.h>
+
 struct gpio {
 	reg_t fs0;
 	reg_t fs1;
