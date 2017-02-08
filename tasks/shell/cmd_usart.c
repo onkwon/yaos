@@ -10,10 +10,10 @@ static int usart(int argc, char **argv)
 
 	if (argc < 3) goto out;
 
-	if        (!strcmp(argv[1], "setbrr")) { req = USART_SET_BAUDRATE;
-	} else if (!strcmp(argv[1], "getbrr")) { req = USART_GET_BAUDRATE;
-	} else if (!strcmp(argv[1], "flush"))  { req = USART_FLUSH;
-	} else if (!strcmp(argv[1], "kbhit"))  { req = USART_KBHIT;
+	if        (!strcmp(argv[1], "setbrr")) { req = C_BAUDRATE;
+	} else if (!strcmp(argv[1], "getbrr")) { req = C_GET_BAUDRATE;
+	} else if (!strcmp(argv[1], "flush"))  { req = C_FLUSH;
+	} else if (!strcmp(argv[1], "kbhit"))  { req = C_KBHIT;
 	} else {
 		printf("wrong request %s\n", argv[1]);
 		goto out;

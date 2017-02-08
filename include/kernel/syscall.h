@@ -28,6 +28,7 @@
 int sys_open(char *filename, int mode, void *opt);
 int sys_read(int fd, void *buf, size_t len);
 int sys_write(int fd, void *buf, size_t len);
+int sys_ioctl(int fd, int request, void *data);
 int sys_close(int fd);
 int sys_shutdown(int option);
 
@@ -60,9 +61,9 @@ static inline int fork()
 #define write(fd, buf, len)	sys_write(fd, buf, len)
 #endif /* CONFIG_SYSCALL */
 
-int open(char *filename, ...);
+int open(char *filename, int mode, ...);
 int close(int fd);
-int ioctl(int fd, ...);
+int ioctl(int fd, int request, ...);
 int shutdown(int option);
 
 #endif /* __SYSCALL_H__ */

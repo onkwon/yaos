@@ -33,10 +33,4 @@ extern void puts(const char *s);
 #include <kernel/interrupt.h>
 #include <kernel/gpio.h>
 
-/* usart ioctl */
-#define USART_FLUSH			1
-#define USART_KBHIT			2
-#define USART_GET_BAUDRATE		3
-#define USART_SET_BAUDRATE		4
-
 #endif /* __IO_H__ */

@@ -49,20 +49,24 @@ static void usart_flush(struct file *file)
 	 */
 }
 
-static int usart_ioctl(struct file *file, unsigned int request, void *args)
+static int usart_ioctl(struct file *file, int request, void *data)
 {
 	switch (request) {
-	case USART_FLUSH:
+	case C_FLUSH:
 		usart_flush(file);
 		return 0;
-	case USART_KBHIT:
+	case C_KBHIT:
 		return usart_kbhit(file);
-	case USART_GET_BAUDRATE:
+	case C_GET_BAUDRATE:
 		return __usart_get_baudrate(CHANNEL(file->inode->dev));
 		break;
-	case USART_SET_BAUDRATE:
+	case C_BAUDRATE:
 		return __usart_set_baudrate(CHANNEL(file->inode->dev),
-				(unsigned int)args);
+				(unsigned int)data);
+		break;
+	case C_BUFSIZE:
+	case C_WBUFSIZE:
+	case C_RBUFSIZE:
 		break;
 	default:
 		break;
@@ -316,8 +320,13 @@ static int usart_open(struct inode *inode, struct file *file)
 		int nr_irq;
 		unsigned int baudrate;
 
-		if (file->option) baudrate = (unsigned int)file->option;
-		else baudrate = 115200; /* default */
+		baudrate = 115200; /* default */
+#if 0
+		/* FIXME: file->option may have any value when not passed in
+		 * variable arguments list by user */
+		if (file->option)
+			baudrate = (unsigned int)file->option;
+#endif
 
 		debug(MSG_DEBUG, "baudrate %d", baudrate);
 

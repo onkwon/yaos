@@ -174,14 +174,14 @@ int sys_seek(int fd, unsigned int offset, int whence)
 	return file->op->seek(file, offset, whence);
 }
 
-int sys_ioctl(int fd, unsigned int request, void *args)
+int sys_ioctl(int fd, int request, void *data)
 {
 	struct file *file = getfile(fd);
 
 	if (!file || !file->op->ioctl)
 		return -ERR_UNDEF;
 
-	return file->op->ioctl(file, request, args);
+	return file->op->ioctl(file, request, data);
 }
 
 #include <asm/power.h>
@@ -244,21 +244,21 @@ void *syscall_table[] = {
 #define BACKWARD(addr)		((int *)(addr)--)
 #define getarg(args, type)	(*(type *)FORWARD(args))
 
-int open(char *filename, ...)
+int open(char *filename, int mode, ...)
 {
 	void *option;
-	int *base, mode;
-	char *fmt;
+	int *base;
+	char *path;
 
 	base   = (int *)&filename;
-	fmt    = getarg(base, char *);
+	path   = getarg(base, char *);
 	mode   = getarg(base, int);
 	option = getarg(base, void *);
 
 #ifdef CONFIG_SYSCALL
-	return syscall(SYSCALL_OPEN, fmt, mode, option);
+	return syscall(SYSCALL_OPEN, path, mode, option);
 #else
-	sys_open(fmt, mode, option);
+	sys_open(path, mode, option);
 #endif
 }
 
@@ -271,21 +271,20 @@ int close(int fd)
 #endif
 }
 
-int ioctl(int fd, ...)
+int ioctl(int fd, int request, ...)
 {
-	void *args;
-	unsigned int request;
 	int *base;
+	void *data;
 
 	base    = (int *)&fd;
 	fd      = getarg(base, int);
-	request = getarg(base, unsigned int);
-	args    = getarg(base, void *);
+	request = getarg(base, int);
+	data    = getarg(base, void *);
 
 #ifdef CONFIG_SYSCALL
-	return syscall(SYSCALL_IOCTL, fd, request, args);
+	return syscall(SYSCALL_IOCTL, fd, request, data);
 #else
-	sys_ioctl(fd, request, args);
+	sys_ioctl(fd, request, data);
 #endif
 }
 

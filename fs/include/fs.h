@@ -89,12 +89,22 @@ enum file_type {
 	FT_DEV		= 0x04,
 };
 
-enum file_flag {
+enum file_oflag {
 	O_RDONLY	= 0x01,
 	O_WRONLY	= 0x02,
 	O_RDWR		= (O_RDONLY | O_WRONLY),
 	O_NONBLOCK	= 0x04,
 	O_CREATE	= 0x08,
+};
+
+enum file_cflag {
+	C_FLUSH		= 0x01,
+	C_KBHIT		= 0x02,
+	C_GET_BAUDRATE	= 0x03,
+	C_BAUDRATE	= 0x04,
+	C_BUFSIZE	= 0x05,
+	C_RBUFSIZE	= 0x06,
+	C_WBUFSIZE	= 0x07,
 };
 
 enum whence {
@@ -121,7 +131,7 @@ struct file_operations {
 	size_t (*write)(struct file *file, void *buf, size_t len);
 	int    (*close)(struct file *file);
 	int    (*seek) (struct file *file, unsigned int offset, int whence);
-	int    (*ioctl)(struct file *file, unsigned int request, void *args);
+	int    (*ioctl)(struct file *file, int request, void *data);
 };
 
 unsigned int mkfile(struct file *file);
