@@ -91,11 +91,10 @@ void schedule_core()
 	if ((current->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
 			(current->mm.kernel.base[0] != STACK_SENTINEL))
 	{
-		debug(MSG_SYSTEM, "stack overflow %x(%x)"
-				, current, current->addr);
+		error("stack overflow %x(%x)", current, current->addr);
 		unsigned int i;
 		for (i = 0; i < NR_CONTEXT; i++)
-			debug(MSG_SYSTEM, "%08x", current->mm.sp[i]);
+			error("%08x", current->mm.sp[i]);
 		return;
 	}
 #endif

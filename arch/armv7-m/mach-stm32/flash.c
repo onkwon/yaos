@@ -190,7 +190,7 @@ out:
 #elif (SOC == stm32f4)
 		FLASH_SR |= 0xf1; /* clear flags */
 #endif
-		debug(MSG_ERROR, "embedfs: can not write %x", errcode);
+		error("embedfs: can not write %x", errcode);
 
 		return errcode;
 	}
@@ -273,7 +273,7 @@ void flash_protect()
 		return;
 #endif
 
-	debug(MSG_SYSTEM, "Protect flash memory from externel accesses");
+	warn("Protect flash memory from externel accesses");
 
 	while (FLASH_SR & (1 << BSY));
 
@@ -299,7 +299,7 @@ void flash_protect()
 	FLASH_LOCK_OPTPG();
 	FLASH_LOCK();
 
-	debug(MSG_SYSTEM, "Rebooting...");
+	warn("Rebooting...");
 
 	__reboot();
 }

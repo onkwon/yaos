@@ -83,34 +83,34 @@ static inline void print_user_status(unsigned int *sp)
 static inline void busfault()
 {
 	if (SCB_CFSR & IBUSERR)
-		debug(MSG_ERROR, "  Instruction bus error");
+		error("  Instruction bus error");
 	if (SCB_CFSR & PRECISERR)
-		debug(MSG_ERROR, "  Precise data bus error");
+		error("  Precise data bus error");
 	if (SCB_CFSR & IMPRECISERR)
-		debug(MSG_ERROR, "  Imprecise data bus error");
+		error("  Imprecise data bus error");
 	if (SCB_CFSR & UNSTKERR)
-		debug(MSG_ERROR, "  on unstacking for a return from exception");
+		error("  on unstacking for a return from exception");
 	if (SCB_CFSR & STKERR)
-		debug(MSG_ERROR, "  on stacking for exception");
+		error("  on stacking for exception");
 
 	if (SCB_CFSR & BFARVALID)
-		debug(MSG_ERROR, "Fault address:\n  0x%08x", SCB_BFAR);
+		error("Fault address:\n  0x%08x", SCB_BFAR);
 }
 
 static inline void usagefault()
 {
 	if (SCB_CFSR & UNDEFINSTR)
-		debug(MSG_ERROR, "  Undefined instruction");
+		error("  Undefined instruction");
 	if (SCB_CFSR & INVSTATE)
-		debug(MSG_ERROR, "  Invalid state of EPSR");
+		error("  Invalid state of EPSR");
 	if (SCB_CFSR & INVPC)
-		debug(MSG_ERROR, "  Invalid PC load by EXC_RETURN");
+		error("  Invalid PC load by EXC_RETURN");
 	if (SCB_CFSR & NOCP)
-		debug(MSG_ERROR, "  No coprocessor");
+		error("  No coprocessor");
 	if (SCB_CFSR & UNALIGNED)
-		debug(MSG_ERROR, "  Unalignd access");
+		error("  Unalignd access");
 	if (SCB_CFSR & DIVBYZERO)
-		debug(MSG_ERROR, "  Divide by zero");
+		error("  Divide by zero");
 }
 
 void __attribute__((naked)) isr_fault()
@@ -125,11 +125,11 @@ void __attribute__((naked)) isr_fault()
 	lr  = __get_lr();
 	usp = __get_usp();
 
-	debug(MSG_ERROR, "\nFault type: %x <%08x>\n"
+	error("\nFault type: %x <%08x>\n"
 		"  (%x=Usage fault, %x=Bus fault, %x=Memory management fault)",
 		SCB_SHCSR & 0xfff, SCB_SHCSR, USAGE_FAULT, BUS_FAULT, MM_FAULT);
 
-	debug(MSG_ERROR, "Fault source: ");
+	error("Fault source: ");
 	busfault();
 	usagefault();
 

@@ -495,7 +495,7 @@ static unsigned int make_node(mode_t mode, struct device *dev)
 
 	if (!(inode = alloc_free_inode(dev))) {
 		if (GET_FILE_TYPE(mode) != FT_ROOT) {
-			debug(MSG_ERROR, "embedfs: out of inode!!");
+			error("embedfs: out of inode!!");
 			return 0;
 		}
 	}
@@ -599,7 +599,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 
 	curr->addr = 0; /* start searching from root */
 	if (read_inode(curr, dev)) {
-		debug(MSG_ERROR, "embedfs: can not read root inode");
+		error("embedfs: can not read root inode");
 		goto out_free_inode;
 	}
 
@@ -635,7 +635,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		/* or move on */
 		curr->addr = dir->inode;
 		if (read_inode(curr, dev)) {
-			debug(MSG_ERROR, "embedfs: can not read inode, %x",
+			error("embedfs: can not read inode, %x",
 					curr->addr);
 		}
 
@@ -736,7 +736,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 
 		return 0;
 	} else if (tid < 0) { /* error */
-		debug(MSG_ERROR, "embedfs: failed cloning");
+		error("embedfs: failed cloning");
 
 		return -ERR_RETRY;
 	}
@@ -785,13 +785,13 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 	file->offset += inode->size - file->offset;
 
 	if (file->offset > inode->size)
-		debug(MSG_ERROR, "embedfs: file offset exceeds file size");
+		error("embedfs: file offset exceeds file size");
 
 	if (inode->size > size)
 		file->inode->size = inode->size;
 
 	if (!ret)
-		debug(MSG_ERROR, "embedfs: disk full!\n");
+		error("embedfs: disk full!\n");
 
 out_free_inode:
 	kfree(inode);
@@ -815,7 +815,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 
 		return 0;
 	} else if (tid < 0) {
-		debug(MSG_ERROR, "embedfs: failed cloning");
+		error("embedfs: failed cloning");
 
 		return -ERR_RETRY;
 	}
@@ -953,7 +953,7 @@ static int embed_close(struct file *file)
 
 		return SYSCALL_DEFERRED_WORK;
 	} else if (tid < 0) { /* error */
-		debug(MSG_ERROR, "embedfs: failed cloning");
+		error("embedfs: failed cloning");
 
 		return -ERR_RETRY;
 	}
@@ -1032,10 +1032,6 @@ static int build_file_system(struct device *dev)
 	else if (nr_inodes > NR_INODE_MAX)
 		nr_inodes = NR_INODE_MAX;
 
-	debug(MSG_SYSTEM, "# Building embedded file system\n"
-			"disk size %d",
-			disk_size);
-
 	unsigned int nr_blocks;
 	unsigned int data_bitmap_size; /* by byte */
 	unsigned int inode_table_size_by_block;
@@ -1053,12 +1049,17 @@ static int build_file_system(struct device *dev)
 
 	data_block = inode_table + inode_table_size_by_block;
 
-	debug(MSG_SYSTEM, "the number of blocks %d\n"
-			"the number of inodes %d\n"
-			"data bitmap size %d\n"
-			"inode table size %d",
-			nr_blocks, nr_inodes, data_bitmap_size,
-			inode_table_size_by_block);
+	notice("# Building embedded file system\n"
+	       "disk size %d\n"
+	       "the number of blocks %d\n"
+	       "the number of inodes %d\n"
+	       "data bitmap size %d\n"
+	       "inode table size %d",
+	       disk_size,
+	       nr_blocks,
+	       nr_inodes,
+	       data_bitmap_size,
+	       inode_table_size_by_block);
 
 	struct embed_superblock *sb;
 	char *buf, *data_bitmap;
@@ -1114,7 +1115,7 @@ static int build_file_system(struct device *dev)
 
 	/* make the root node. root inode is always 0. */
 	if (make_node(FT_ROOT, dev) != 0) {
-		debug(MSG_ERROR, "embedfs: wrong root inode");
+		error("embedfs: wrong root inode");
 		ret = -ERR_UNDEF;
 		goto out_free_bitmap;
 	}
@@ -1128,18 +1129,18 @@ static int build_file_system(struct device *dev)
 	read_inode(root_inode, dev);
 	create_file("dev", FT_DIR, root_inode, dev);
 
-	debug(MSG_SYSTEM, "block_size %d\n"
-			"free_blocks_count %d\n"
-			"the first block of inode_table %d\n"
-			"the first block of data_block %d\n"
-			"base address of device %x\n"
-			"magic %x",
-			sb->block_size,
-			sb->free_blocks_count,
-			sb->inode_table,
-			sb->data_block,
-			sb->first_block,
-			sb->magic);
+	notice("block_size %d\n"
+	       "free_blocks_count %d\n"
+	       "the first block of inode_table %d\n"
+	       "the first block of data_block %d\n"
+	       "base address of device %x\n"
+	       "magic %x",
+	       sb->block_size,
+	       sb->free_blocks_count,
+	       sb->inode_table,
+	       sb->data_block,
+	       sb->first_block,
+	       sb->magic);
 
 	__sync(dev);
 	ret = 0;
@@ -1159,7 +1160,7 @@ int embedfs_mount(struct device *dev)
 {
 	unsigned int end;
 	end = dev->block_size * dev->nr_blocks + dev->base_addr - 1;
-	debug(MSG_SYSTEM, "embedfs addr %08x - %08x", dev->base_addr, end);
+	notice("embedfs addr %08x - %08x", dev->base_addr, end);
 
 	struct embed_superblock *sb;
 
@@ -1199,7 +1200,7 @@ int embedfs_mount(struct device *dev)
 	kfree(sb);
 
 	if (err)
-		debug(MSG_ERROR, "can't build root file system");
+		error("can't build root file system");
 
 	return err;
 }

@@ -134,7 +134,7 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */
-		debug(MSG_SYSTEM, "failed cloning");
+		error("failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -220,7 +220,7 @@ static size_t usart_write(struct file *file, void *buf, size_t len)
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */
-		debug(MSG_SYSTEM, "failed cloning");
+		error("failed cloning");
 		return -ERR_RETRY;
 	}
 
@@ -328,7 +328,7 @@ static int usart_open(struct inode *inode, struct file *file)
 			baudrate = (unsigned int)file->option;
 #endif
 
-		debug(MSG_DEBUG, "baudrate %d", baudrate);
+		debug("baudrate %d", baudrate);
 
 		if (CHANNEL(dev->id) >= USART_CHANNEL_MAX) {
 			err = -ERR_RANGE;

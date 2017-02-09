@@ -100,7 +100,7 @@ int sys_open(char *filename, int mode, void *option)
 		return 0;
 	} else if (tid < 0) { /* error */
 		/* use errno */
-		debug(MSG_SYSTEM, "failed cloning");
+		error("failed cloning");
 		return -ERR_RETRY;
 	}
 

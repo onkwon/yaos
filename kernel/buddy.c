@@ -127,9 +127,8 @@ static void buddy_freelist_init(struct buddy *node, size_t nr_pages,
 	idx = PAGE_NR(ALIGN_PAGE(&mem_map[nr_pages]) -
 			(unsigned int)&_ram_start);
 	nr_free = preserved - idx;
-	debug(MSG_DEBUG, "The first free page(idx:%d) - %x",
-			idx, &mem_map[nr_pages]);
-	debug(MSG_DEBUG, "The number of free pages %d", nr_free);
+	debug("The first free page(idx:%d) - %x", idx, &mem_map[nr_pages]);
+	debug("The number of free pages %d", nr_free);
 
 	struct page *page;
 
@@ -144,17 +143,16 @@ static void buddy_freelist_init(struct buddy *node, size_t nr_pages,
 		links_add(&page->list, &node->freelist[order].list);
 
 		node->freelist[order].nr_pageblocks++;
-		debug(MSG_DEBUG, "%02d %x added to %x", order, &page->list,
+		debug("%02d %x added to %x", order, &page->list,
 				&node->freelist[order].list);
 
 		n = 1U << order;
-		debug(MSG_DEBUG, "%04d: idx %d buddy %d head %d",
+		debug("%04d: idx %d buddy %d head %d",
 				n, idx, idx ^ n, idx & ~n);
 		idx += n;
 		nr_free -= n;
 		node->nr_free += n; /* total pages being managed by buddy */
-		debug(MSG_DEBUG, "order %d, nr_free %d, next %d\n",
-				order, nr_free, idx);
+		debug("order %d, nr_free %d, next %d\n", order, nr_free, idx);
 	}
 }
 

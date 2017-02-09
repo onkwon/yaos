@@ -14,7 +14,7 @@ void sleep_in_waitqueue(struct waitqueue_head *q)
 	local_irq_disable();
 
 	if (!links_empty(&new.list)) {
-		debug(MSG_ERROR, "already linked to 0x%x - 0x%x",
+		error("already linked to 0x%x - 0x%x",
 				new.list.prev, new.list.next);
 		goto out;
 	}

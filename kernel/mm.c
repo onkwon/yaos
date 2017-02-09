@@ -37,12 +37,12 @@ retry:
 	if (page)
 		return page->addr;
 
-	debug(MSG_DEBUG, "Low memory");
+	warn("Low memory");
 
 	if (kill_zombie())
 		goto retry;
 
-	debug(MSG_ERROR, "Out of memory");
+	error("Out of memory");
 
 	return NULL;
 }
@@ -99,12 +99,12 @@ retry:
 	spin_unlock_irqrestore(&mem_lock, irqflag);
 
 	if (p == NULL) {
-		debug(MSG_DEBUG, "Low memory");
+		warn("Low memory");
 
 		if (kill_zombie())
 			goto retry;
 
-		debug(MSG_ERROR, "Out of memory");
+		error("Out of memory");
 	}
 
 	return p;
@@ -151,11 +151,15 @@ void __init mm_init()
 
 	struct page *page = (struct page *)ALIGN_PAGE(&_ebss);
 
-	debug(MSG_SYSTEM, "# Initializing memory");
-	debug(MSG_SYSTEM, "page size %d bytes", PAGESIZE);
-	debug(MSG_SYSTEM, "page struct size %d bytes", sizeof(struct page));
-	debug(MSG_SYSTEM, "ram range 0x%08x - 0x%08x", start, end);
-	debug(MSG_SYSTEM, "total %d pages", nr_pages);
+	notice("# Initializing memory\n"
+	       "page size %d bytes\n"
+	       "page struct size %d bytes\n"
+	       "ram range 0x%08x - 0x%08x\n"
+	       "total %d pages",
+	       PAGESIZE,
+	       sizeof(struct page),
+	       start, end,
+	       nr_pages);
 
 	buddy.mem_map = page;
 
@@ -168,14 +172,12 @@ void __init mm_init()
 		page++;
 	}
 
-	debug(MSG_SYSTEM, "0x%08x - mem_map first entry, page[%d]",
-			(unsigned int)buddy.mem_map,
-			addr2idx(buddy.mem_map, &buddy));
-	debug(MSG_SYSTEM, "0x%08x - mem_map last entry, page[%d]",
-			(unsigned int)page - 1,
-			addr2idx((page-1)->addr, &buddy));
-	debug(MSG_SYSTEM, "mem_map size : %d bytes",
-			(unsigned int)page - (unsigned int)buddy.mem_map);
+	notice("0x%08x - mem_map first entry, page[%d]\n"
+	       "0x%08x - mem_map last entry, page[%d]\n"
+	       "mem_map size : %d bytes",
+	       (unsigned int)buddy.mem_map, addr2idx(buddy.mem_map, &buddy),
+	       (unsigned int)page - 1, addr2idx((page-1)->addr, &buddy),
+	       (unsigned int)page - (unsigned int)buddy.mem_map);
 
 	buddy_init(&buddy, nr_pages, buddy.mem_map);
 #else
