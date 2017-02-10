@@ -14,6 +14,7 @@ static void cleanup()
 void idle()
 {
 	unsigned int irqflag;
+	unsigned long long stamp;
 
 	cleanup();
 
@@ -46,10 +47,16 @@ void idle()
 			 * done when the timer expires or free to enter stop
 			 * mode which disable most peripherals off even the
 			 * system clock. */
-			if (get_timer_nr())
+			if (get_timer_nr()) {
 				enter_sleep_mode();
-			else
+			} else {
+				stamp = get_systick64();
+				notice("[%08x%08x] entering stop mode",
+						(unsigned int)(stamp >> 32),
+						(unsigned int)stamp);
+
 				enter_stop_mode();
+			}
 
 			/* post-dos(); */
 		}
