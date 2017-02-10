@@ -42,7 +42,7 @@ static int ls(int argc, char **argv)
 	if (!(file->inode->mode & FT_DIR)) {
 		printf("%02x %d %d\n",
 				file->inode->mode, file->inode->size,
-				file->inode->count);
+				file->inode->refcount);
 		goto out;
 	}
 

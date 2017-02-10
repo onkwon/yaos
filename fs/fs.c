@@ -33,7 +33,7 @@ void rmfile(struct file *file)
 	spin_unlock_irqrestore(&fdtable_lock, irqflag);
 
 	mutex_lock_atomic(&file->inode->lock);
-	if (--file->inode->count <= 0) {
+	if (--file->inode->refcount <= 0) {
 		links_del(&file->inode->list);
 		kfree(file->inode);
 		/* no need to unlock as it's gone */

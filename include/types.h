@@ -16,7 +16,6 @@
 #define UNLOCKED			1
 
 typedef enum {false = 0, true = 1} bool;
-typedef unsigned short int refcnt_t;
 typedef unsigned short int mode_t;
 typedef volatile int lock_t;
 typedef unsigned int dev_t;

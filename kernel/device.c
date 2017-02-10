@@ -85,7 +85,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 		goto err;
 
 	dev->id = id;
-	dev->count = 0;
+	dev->refcount = 0;
 	dev->op = ops;
 	links_init(&dev->list);
 	INIT_MUTEX(dev->mutex);

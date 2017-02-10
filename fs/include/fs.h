@@ -61,7 +61,7 @@ struct inode {
 		size_t size;
 		dev_t dev;
 	};
-	refcnt_t count;
+	int refcount;
 
 	struct inode_operations *iop;
 	struct file_operations *fop;

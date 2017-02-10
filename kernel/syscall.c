@@ -48,14 +48,14 @@ int sys_open_core(char *filename, int mode, void *option)
 	if ((inode = iget(new->sb, new->addr)) == NULL) {
 		iput(new);
 		inode = new;
-		inode->count = 0;
+		inode->refcount = 0;
 		INIT_MUTEX(inode->lock);
 	} else {
 		kfree(new);
 	}
 
 	mutex_lock(&inode->lock);
-	inode->count++;
+	inode->refcount++;
 	mutex_unlock(&inode->lock);
 
 	if (GET_FILE_TYPE(inode->mode) == FT_DEV)

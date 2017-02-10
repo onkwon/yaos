@@ -82,7 +82,7 @@ static int usart_close(struct file *file)
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
-	if (--dev->count == 0) {
+	if (--dev->refcount == 0) {
 		__usart_close(CHANNEL(dev->id));
 
 		kfree(rxq[CHANNEL(dev->id)].buf);
@@ -315,7 +315,7 @@ static int usart_open(struct inode *inode, struct file *file)
 
 	spin_lock(&dev->mutex.count);
 
-	if (dev->count++ == 0) {
+	if (dev->refcount++ == 0) {
 		void *buf;
 		int nvector;
 		unsigned int baudrate;
