@@ -313,7 +313,7 @@ static int usart_open(struct inode *inode, struct file *file)
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
-	spin_lock(&dev->mutex.count);
+	spin_lock(&dev->mutex.counter);
 
 	if (dev->refcount++ == 0) {
 		void *buf;
@@ -368,7 +368,7 @@ static int usart_open(struct inode *inode, struct file *file)
 	}
 
 out:
-	spin_unlock(&dev->mutex.count);
+	spin_unlock(&dev->mutex.counter);
 	return err;
 }
 
