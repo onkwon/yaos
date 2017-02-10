@@ -317,7 +317,7 @@ static int usart_open(struct inode *inode, struct file *file)
 
 	if (dev->count++ == 0) {
 		void *buf;
-		int nr_irq;
+		int nvector;
 		unsigned int baudrate;
 
 		baudrate = 115200; /* default */
@@ -335,7 +335,7 @@ static int usart_open(struct inode *inode, struct file *file)
 			goto out;
 		}
 
-		if ((nr_irq = __usart_open(CHANNEL(dev->id), baudrate)) <= 0) {
+		if ((nvector = __usart_open(CHANNEL(dev->id), baudrate)) <= 0) {
 			err = -ERR_UNDEF;
 			goto out;
 		}
@@ -360,7 +360,7 @@ static int usart_open(struct inode *inode, struct file *file)
 
 		WQ_INIT(wq[CHANNEL(dev->id)]);
 
-		register_isr(nr_irq, isr_usart);
+		register_isr(nvector, isr_usart);
 
 #ifdef CONFIG_DEBUG
 		bufover[CHANNEL(dev->id)] = 0;
