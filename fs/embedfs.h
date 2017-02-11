@@ -18,7 +18,7 @@ struct embed_superblock {
 } __attribute__((packed));
 
 struct embed_inode {
-	unsigned short int addr;
+	unsigned short int id;
 	unsigned short int mode;
 	size_t size;
 	unsigned int data[NR_DATA_BLOCK];

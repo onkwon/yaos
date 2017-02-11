@@ -41,6 +41,8 @@
 static DEFINE_MUTEX(sb_lock);
 static DEFINE_MUTEX(cr_lock);
 
+static char *cached_bitmap;
+
 static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 {
 	unsigned int fs_block;
@@ -147,6 +149,21 @@ static void write_inode_bitmap(char *bitmap, struct device *dev)
 	write_block(I_BMAP_BLK, bitmap, BLOCK_SIZE, dev);
 }
 
+static inline bool is_inode_free(unsigned int id)
+{
+	unsigned int i, bit;
+
+	assert(cached_bitmap != NULL);
+
+	i = id / 8;
+	bit = id % 8;
+
+	if (cached_bitmap[i] & (1 << bit))
+		return false;
+
+	return true;
+}
+
 static unsigned int alloc_free_inode(struct device *dev)
 {
 	struct embed_superblock *sb;
@@ -155,10 +172,10 @@ static unsigned int alloc_free_inode(struct device *dev)
 
 	n = 0;
 
-	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
-		goto out;
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		goto out_free_bitmap;
+		goto out;
+	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
+		goto out_free_sb;
 
 	mutex_lock(&sb_lock);
 
@@ -170,8 +187,10 @@ static unsigned int alloc_free_inode(struct device *dev)
 	bit = fls(bitmap[i]);
 
 	if (bit >= 8 || i >= len ||
-			((i == (len - 1)) && (bit > (sb->nr_inodes % 8))))
-		goto out_unlock;
+			((i == (len - 1)) && (bit > (sb->nr_inodes % 8)))) {
+		cached_bitmap = bitmap;
+		goto out_update_cache;
+	}
 
 	n = i * 8 + bit;
 
@@ -180,12 +199,15 @@ static unsigned int alloc_free_inode(struct device *dev)
 	write_superblock(sb, dev);
 	write_inode_bitmap(bitmap, dev);
 
-out_unlock:
+out_update_cache:
+	if (cached_bitmap)
+		kfree(cached_bitmap);
+	cached_bitmap = bitmap;
+
 	mutex_unlock(&sb_lock);
 
+out_free_sb:
 	kfree(sb);
-out_free_bitmap:
-	kfree(bitmap);
 out:
 	return n; /* if zero, it failed to alloc an inode */
 }
@@ -258,8 +280,8 @@ static int update_inode_table(struct embed_inode *inode,
 
 	read_superblock(sb, dev);
 
-	nblock = get_inode_table(inode->addr, sb->inode_table);
-	offset = get_inode_table_offset(inode->addr);
+	nblock = get_inode_table(inode->id, sb->inode_table);
+	offset = get_inode_table_offset(inode->id);
 
 	unsigned int diff = sizeof(struct embed_inode);
 
@@ -503,7 +525,7 @@ static unsigned int make_node(mode_t mode, struct device *dev)
 	if ((new = kmalloc(sizeof(struct embed_inode))) == NULL)
 		return 0;
 
-	new->addr = inode;
+	new->id = inode;
 	new->mode = mode;
 	new->size = 0;
 	for (i = 0; i < NR_DATA_BLOCK; i++) new->data[i] = 0;
@@ -537,9 +559,9 @@ static int read_inode(struct embed_inode *inode, struct device *dev)
 
 	inode_size = sizeof(struct embed_inode);
 
-	nblock = inode->addr * inode_size / BLOCK_SIZE;
+	nblock = inode->id * inode_size / BLOCK_SIZE;
 	nblock += sb->inode_table;
-	offset = inode->addr * inode_size % BLOCK_SIZE;
+	offset = inode->id * inode_size % BLOCK_SIZE;
 
 	unsigned int diff = inode_size;
 
@@ -597,9 +619,9 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	/* skip '/'s if exist */
 	for (i = 0; pathname[i] == '/'; i++) ;
 
-	curr->addr = 0; /* start searching from root */
+	curr->id = 0; /* start searching from root */
 	if (read_inode(curr, dev)) {
-		error("embedfs: can not read root inode");
+		error("can not read root inode");
 		goto out_free_inode;
 	}
 
@@ -612,6 +634,9 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 
 		for (offset = 0; offset < curr->size; offset += dir->rec_len) {
 			read_data_block(curr, offset, dir, dir_size, dev);
+
+			if (is_inode_free(dir->inode)) /* not valid data */
+				break;
 
 			if ((name = kmalloc(dir->name_len)) == NULL)
 				goto out_free_inode;
@@ -633,10 +658,9 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 			break;
 
 		/* or move on */
-		curr->addr = dir->inode;
+		curr->id = dir->inode;
 		if (read_inode(curr, dev)) {
-			error("embedfs: can not read inode, %x",
-					curr->addr);
+			error("can not read inode, %x", curr->id);
 		}
 
 		i += len;
@@ -702,7 +726,7 @@ static size_t embed_read_core(struct file *file, void *buf, size_t len)
 		goto out;
 	}
 
-	inode->addr = file->inode->addr;
+	inode->id = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
 		ret = 0;
 		goto out_free_inode;
@@ -741,18 +765,23 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 		return -ERR_RETRY;
 	}
 
+	unsigned int irqflag;
+	size_t ret;
+
 	mutex_lock(&file->inode->lock);
-	__set_retval(parent, embed_read_core(file, buf, len));
+	ret = embed_read_core(file, buf, len);
 	mutex_unlock(&file->inode->lock);
 
+	spin_lock_irqsave(&parent->lock, irqflag);
+
+	__set_retval(parent, ret);
 	sum_curr_stat(parent);
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
 		runqueue_add(parent);
 	}
+
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
@@ -772,7 +801,7 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		goto out;
 	}
 
-	inode->addr = file->inode->addr;
+	inode->id = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
 		ret = 0;
 		goto out_free_inode;
@@ -820,18 +849,23 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 		return -ERR_RETRY;
 	}
 
+	unsigned int irqflag;
+	size_t ret;
+
 	mutex_lock(&file->inode->lock);
-	__set_retval(parent, embed_write_core(file, buf, len));
+	ret = embed_write_core(file, buf, len);
 	mutex_unlock(&file->inode->lock);
 
+	spin_lock_irqsave(&parent->lock, irqflag);
+
+	__set_retval(parent, ret);
 	sum_curr_stat(parent);
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
 		runqueue_add(parent);
 	}
+
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
@@ -885,7 +919,7 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 	}
 
 	mutex_lock(&inode->lock);
-	inode->addr = embed_inode->addr;
+	inode->addr = embed_inode->id;
 	inode->mode = embed_inode->mode;
 	inode->size = embed_inode->size;
 	mutex_unlock(&inode->lock);
@@ -961,15 +995,17 @@ static int embed_close(struct file *file)
 	__sync(file->inode->sb->dev);
 	rmfile(file);
 
+	unsigned int irqflag;
+	spin_lock_irqsave(&parent->lock, irqflag);
+
 	__set_retval(parent, 0);
 	sum_curr_stat(parent);
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
 		runqueue_add(parent);
 	}
+
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
@@ -999,10 +1035,10 @@ static void embed_read_inode(struct inode *inode)
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL)
 		goto out;
 
-	embed_inode->addr = inode->addr;
+	embed_inode->id = inode->addr;
 
 	if (read_inode(embed_inode, inode->sb->dev) ||
-			(inode->addr != embed_inode->addr)) {
+			(inode->addr != embed_inode->id)) {
 		kfree(embed_inode);
 		goto out;
 	}
@@ -1125,7 +1161,7 @@ static int build_file_system(struct device *dev)
 	if ((root_inode = kmalloc(sizeof(struct embed_inode))) == NULL)
 		goto out_free_bitmap;
 
-	root_inode->addr = 0;
+	root_inode->id = 0;
 	read_inode(root_inode, dev);
 	create_file("dev", FT_DIR, root_inode, dev);
 
