@@ -24,7 +24,7 @@ static void __init load_user_task()
 
 		/* make it runnable, and add into runqueue */
 		set_task_state(p, TASK_RUNNING);
-		runqueue_add(p);
+		runqueue_add_core(p);
 	}
 }
 

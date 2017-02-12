@@ -45,7 +45,7 @@ static inline void update_curr()
 	}
 }
 
-static inline void runqueue_add_core(struct task *new)
+static void runqueue_add_core(struct task *new)
 {
 	if (is_task_realtime(new)) {
 #ifdef CONFIG_REALTIME
@@ -53,6 +53,16 @@ static inline void runqueue_add_core(struct task *new)
 #endif
 	} else
 		cfs_rq_add(&cfs, new);
+}
+
+static void runqueue_del_core(struct task *task)
+{
+	if (is_task_realtime(task)) {
+#ifdef CONFIG_REALTIME
+		rts_rq_del(&rts, task);
+#endif
+	} else
+		cfs_rq_del(&cfs, task);
 }
 
 /* As each processor has its own scheduler and it runs in an interrupt context,
@@ -157,7 +167,14 @@ void runqueue_add(struct task *new)
 	unsigned int irqflag;
 	irq_save(irqflag);
 	local_irq_disable();
-	runqueue_add_core(new);
+
+	if (is_task_realtime(new)) {
+#ifdef CONFIG_REALTIME
+		rts_rq_add(&rts, new);
+#endif
+	} else
+		cfs_rq_add(&cfs, new);
+
 	irq_restore(irqflag);
 }
 
@@ -180,15 +197,8 @@ void runqueue_del(struct task *task)
 void sum_curr_stat(struct task *to)
 {
 	/* make sure task `to` is still alive not to access stale address */
-
-	unsigned int irqflag;
-	irq_save(irqflag);
-	local_irq_disable();
-
 	update_curr();
 	to->se.sum_exec_runtime += current->se.sum_exec_runtime;
-
-	irq_restore(irqflag);
 }
 
 #ifdef CONFIG_DEBUG_SCHED

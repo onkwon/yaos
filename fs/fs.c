@@ -55,6 +55,7 @@ struct file *getfile(int fd)
 	unsigned int irqflag;
 	spin_lock_irqsave(&fdtable_lock, irqflag);
 
+	/* TODO: make O(1) or run with not interrupt disabled */
 	for (p = fdtable.next; p != &fdtable; p = p->next) {
 		file = get_container_of(p, struct file, list);
 

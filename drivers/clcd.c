@@ -181,6 +181,7 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 	struct task *parent;
 	size_t ret;
 	int tid;
+	unsigned int irqflag;
 
 	parent = current;
 	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
@@ -189,15 +190,17 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 			  nomore in handler mode */
 		ret = clcd_write_core(file, buf, len);
 
+		spin_lock_irqsave(&parent->lock, irqflag);
+
 		__set_retval(parent, ret);
 		sum_curr_stat(parent);
 
-		spin_lock(&current->lock);
 		if (get_task_state(parent)) {
 			set_task_state(parent, TASK_RUNNING);
-			runqueue_add(parent);
+			runqueue_add_core(parent);
 		}
-		spin_unlock(&current->lock);
+
+		spin_unlock_irqrestore(&parent->lock, irqflag);
 
 		sys_kill((unsigned int)current);
 		freeze(); /* never reaches here */

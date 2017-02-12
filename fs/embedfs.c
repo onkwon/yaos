@@ -779,7 +779,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
+		runqueue_add_core(parent);
 	}
 
 	spin_unlock_irqrestore(&parent->lock, irqflag);
@@ -863,7 +863,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
+		runqueue_add_core(parent);
 	}
 
 	spin_unlock_irqrestore(&parent->lock, irqflag);
@@ -1003,7 +1003,7 @@ static int embed_close(struct file *file)
 
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
+		runqueue_add_core(parent);
 	}
 
 	spin_unlock_irqrestore(&parent->lock, irqflag);

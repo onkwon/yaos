@@ -36,6 +36,8 @@ void scheduler_init();
 
 #include <kernel/task.h>
 struct task;
+void runqueue_add_core(struct task *new);
+void runqueue_del_core(struct task *task);
 void runqueue_add(struct task *new);
 void runqueue_del(struct task *task);
 void sum_curr_stat(struct task *to);

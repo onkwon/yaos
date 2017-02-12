@@ -93,18 +93,21 @@ static void unlink_task(struct task *task)
 		error("stack overflow %x(%x)" , current, current->addr);
 
 	unsigned int irqflag;
-	irq_save(irqflag);
-	local_irq_disable();
 
 	assert(!is_locked(task->lock));
 	spin_lock(&task->lock);
 
+	set_task_state(task, TASK_ZOMBIE);
+
+	irq_save(irqflag);
+	local_irq_disable();
+
 	/* safe to unlink again even if it's already removed from the runqueue
 	 * since its links become empty on once unlinked */
-	runqueue_del(task);
+	runqueue_del_core(task);
 
-	/* Clean its relationship. Hand its own children to the grand parents
-	 * if it has */
+	/* FIXME: hand its own children to the grand parents if it has any */
+	/* Clean its relationship. */
 	if (!links_empty(&task->children)) {
 		links_del(&task->children);
 	}
@@ -116,8 +119,6 @@ static void unlink_task(struct task *task)
 	zombie = (unsigned int *)task;
 	spin_unlock(&zombie_lock);
 
-	set_task_state(task, TASK_ZOMBIE);
-
 	/* wake init() up to do the rest of job destroying a task */
 	if (current == &init)
 		goto out;
@@ -126,11 +127,11 @@ static void unlink_task(struct task *task)
 	 * used by it can be free as soon as possible */
 	spin_lock(&init.lock);
 	if (get_task_state(&init) == TASK_RUNNING)
-		runqueue_del(&init);
+		runqueue_del_core(&init);
 
 	set_task_pri(&init, get_task_pri(current));
 	set_task_state(&init, TASK_RUNNING);
-	runqueue_add(&init);
+	runqueue_add_core(&init);
 	spin_unlock(&init.lock);
 
 	resched();
@@ -163,8 +164,8 @@ unsigned int kill_zombie()
 		spin_lock_irqsave(&zombie_lock, irqflag);
 		task = (struct task *)zombie;
 		zombie = task->addr;
-		destroy(task);
 		spin_unlock_irqrestore(&zombie_lock, irqflag);
+		destroy(task);
 	}
 
 	return cnt;

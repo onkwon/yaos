@@ -104,18 +104,23 @@ int sys_open(char *filename, int mode, void *option)
 		return -ERR_RETRY;
 	}
 
+	unsigned int irqflag;
+	int ret;
+
 	/* child takes place from here turning to kernel task,
 	 * nomore in handler mode */
-	__set_retval(parent, sys_open_core(filename, mode, option));
+	ret = sys_open_core(filename, mode, option);
 
+	spin_lock_irqsave(&parent->lock, irqflag);
+
+	__set_retval(parent, ret);
 	sum_curr_stat(parent);
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
+		runqueue_add_core(parent);
 	}
+
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);

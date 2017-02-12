@@ -99,7 +99,7 @@ void wq_wake(struct waitqueue_head *q, int nr_task)
 
 		spin_lock(&task->lock);
 		set_task_state(task, TASK_RUNNING);
-		runqueue_add(task);
+		runqueue_add_core(task);
 		links_del(p);
 		spin_unlock(&task->lock);
 

@@ -149,15 +149,17 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		ret += cnt;
 	}
 
+	unsigned int irqflag;
+	spin_lock_irqsave(&parent->lock, irqflag);
+
 	__set_retval(parent, ret);
 	sum_curr_stat(parent);
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
+		runqueue_add_core(parent);
 	}
+
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
@@ -239,15 +241,17 @@ static size_t usart_write(struct file *file, void *buf, size_t len)
 	for (ret = 0; ret < len && file->offset < file->inode->size;)
 		if (f(file, buf + ret) >= 1) ret++;
 
+	unsigned int irqflag;
+	spin_lock_irqsave(&parent->lock, irqflag);
+
 	__set_retval(parent, ret);
 	sum_curr_stat(parent);
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
 	if (get_task_state(parent)) {
 		set_task_state(parent, TASK_RUNNING);
-		runqueue_add(parent);
+		runqueue_add_core(parent);
 	}
+
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
 	sys_kill((unsigned int)current);
