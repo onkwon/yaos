@@ -2,6 +2,7 @@
 #include <kernel/page.h>
 #include <kernel/timer.h>
 #include <asm/power.h>
+#include <kernel/systick.h>
 
 static void cleanup()
 {
