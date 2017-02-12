@@ -20,9 +20,9 @@ static inline int __add_timer(struct timer *new)
 
 	new->task = current;
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&timerq.lock, irqflag);
+	spin_lock(&timerq.lock);
 
+	/* TODO: make search O(1) or clone() not to run in interrupt context */
 	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
 		if (((int)new->expires - stamp) <
 				((int)((struct timer *)curr)->expires - stamp))
@@ -35,7 +35,7 @@ static inline int __add_timer(struct timer *new)
 	links_add(&new->list, curr->prev);
 	timerq.nr++;
 
-	spin_unlock_irqrestore(&timerq.lock, irqflag);
+	spin_unlock(&timerq.lock);
 
 	return 0;
 }
@@ -47,7 +47,8 @@ static inline int __add_timer(struct timer *new)
  * doesn't have the right permission.
  *
  * Typically a timer instance is tied to its own task only. So I take the risk
- * at the moment, but will get back soon. */
+ * at the moment because can't stay long with being interrupt disabled, but
+ * will get back soon. */
 
 static void run_timer()
 {
@@ -88,7 +89,9 @@ infinite:
 				schedule();
 			}
 
+			spin_lock_irqsave(&timer->task->lock, irqflag);
 			sum_curr_stat(timer->task);
+			spin_unlock_irqrestore(&timer->task->lock, irqflag);
 
 			kill((unsigned int)current);
 			freeze();
