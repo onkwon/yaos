@@ -45,7 +45,7 @@ static inline void update_curr()
 	}
 }
 
-static void runqueue_add_core(struct task *new)
+void runqueue_add_core(struct task *new)
 {
 	if (is_task_realtime(new)) {
 #ifdef CONFIG_REALTIME
@@ -55,7 +55,7 @@ static void runqueue_add_core(struct task *new)
 		cfs_rq_add(&cfs, new);
 }
 
-static void runqueue_del_core(struct task *task)
+void runqueue_del_core(struct task *task)
 {
 	if (is_task_realtime(task)) {
 #ifdef CONFIG_REALTIME
