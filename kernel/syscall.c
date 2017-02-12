@@ -245,25 +245,36 @@ void *syscall_table[] = {
 	//sys_mkdir,
 };
 
-#define FORWARD(addr)		((int *)(addr)++)
-#define BACKWARD(addr)		((int *)(addr)--)
-#define getarg(args, type)	(*(type *)FORWARD(args))
+#define getarg(args, type)	({ \
+	args = (char *)ALIGN_BLOCK(args, sizeof(type)); \
+	args = (char *)((unsigned int)(args) + sizeof(type)); \
+	*(type *)((unsigned int)(args) - sizeof(type)); \
+})
 
-int open(char *filename, int mode, ...)
+int __open(const char *filename, ...)
 {
-	void *option;
-	int *base;
-	char *path;
+	const char *base, *path;
+	int mode;
+	void *opt;
 
-	base   = (int *)&filename;
-	path   = getarg(base, char *);
-	mode   = getarg(base, int);
-	option = getarg(base, void *);
+	base = (const char *)&filename;
+	path = getarg(base, char *);
+	mode = getarg(base, int);
+	opt = getarg(base, void *);
 
 #ifdef CONFIG_SYSCALL
-	return syscall(SYSCALL_OPEN, path, mode, option);
+	return syscall(SYSCALL_OPEN, path, mode, opt);
 #else
-	sys_open(path, mode, option);
+	sys_open(path, mode, opt);
+#endif
+}
+
+int __open2(const char *filename, int mode)
+{
+#ifdef CONFIG_SYSCALL
+	return syscall(SYSCALL_OPEN, filename, mode);
+#else
+	sys_open(filename, mode, NULL);
 #endif
 }
 
@@ -276,12 +287,13 @@ int close(int fd)
 #endif
 }
 
-int ioctl(int fd, int request, ...)
+int ioctl(int fd, ...)
 {
-	int *base;
+	int request;
 	void *data;
+	char *base;
 
-	base    = (int *)&fd;
+	base    = (char *)&fd;
 	fd      = getarg(base, int);
 	request = getarg(base, int);
 	data    = getarg(base, void *);

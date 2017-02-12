@@ -61,9 +61,21 @@ static inline int fork()
 #define write(fd, buf, len)	sys_write(fd, buf, len)
 #endif /* CONFIG_SYSCALL */
 
-int open(char *filename, int mode, ...);
+int __open(const char *filename, ...);
+int __open2(const char *filename, int mode);
+
+extern int open(const char *filename, int mode, ...);
+extern inline __attribute__((__gnu_inline__)) int
+open(const char *filename, int mode, ...)
+{
+	if (__builtin_va_arg_pack_len() < 1)
+		return __open2(filename, mode);
+
+	return __open(filename, mode, __builtin_va_arg_pack());
+}
+
 int close(int fd);
-int ioctl(int fd, int request, ...);
+int ioctl(int fd, ...);
 int shutdown(int option);
 
 #endif /* __SYSCALL_H__ */
