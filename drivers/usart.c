@@ -82,12 +82,16 @@ static int usart_close(struct file *file)
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
+	spin_lock(&dev->mutex.counter);
+
 	if (--dev->refcount == 0) {
 		__usart_close(CHANNEL(dev->id));
 
 		kfree(rxq[CHANNEL(dev->id)].buf);
 		kfree(txq[CHANNEL(dev->id)].buf);
 	}
+
+	spin_unlock(&dev->mutex.counter);
 
 	return 0;
 }

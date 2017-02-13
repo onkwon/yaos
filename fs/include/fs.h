@@ -105,6 +105,9 @@ enum file_cflag {
 	C_BUFSIZE	= 0x05,
 	C_RBUFSIZE	= 0x06,
 	C_WBUFSIZE	= 0x07,
+	C_MODE		= 0x08,
+	C_INT_EDGE	= 0x09,
+	C_INT_FUNC	= 0x0a,
 };
 
 enum whence {

@@ -100,6 +100,6 @@ int gpio_init(unsigned int index, unsigned int flags)
 	return vector;
 }
 
-void gpio_close(unsigned int index)
+void gpio_reset(unsigned int index)
 {
 }

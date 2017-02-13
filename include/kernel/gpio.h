@@ -19,7 +19,7 @@
 	(GPIO_MODE_ALT | ((n) << GPIO_ALT_SHIFT))
 
 int gpio_init(unsigned int index, unsigned int flags);
-void gpio_close(unsigned int index);
+void gpio_reset(unsigned int index);
 void gpio_put(unsigned int index, int v);
 unsigned int gpio_get(unsigned int index);
 

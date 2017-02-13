@@ -1,9 +1,15 @@
 include $(BASEDIR)/CONFIGURE
 
 SRCS_ASM = $(wildcard *.S)
-SRCS     = led.c
+SRCS     = led.c # for testing
 ifdef MODULE_USART
 	SRCS += usart.c
+endif
+ifdef MODULE_TIMER
+	SRCS += timer.c
+endif
+ifdef MODULE_GPIO
+	SRCS += gpio.c
 endif
 ifdef MODULE_IR
 	SRCS += ir.c
