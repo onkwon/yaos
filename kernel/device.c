@@ -100,10 +100,14 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 	if (name && strcmp(name, "/"))
 		sys_mknod(name, FT_DEV, dev->id);
 
+	debug("%s registerd at %d:%d", name, major, minor);
+
 	return dev;
 
 err:
 	kfree(dev);
+	error("failed to register the device, %s at %d:%d", name, major, minor);
+
 	return NULL;
 }
 

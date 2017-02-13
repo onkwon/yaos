@@ -17,27 +17,13 @@
 	} \
 	DEVICE_INIT(__register_##module_##name_##minor)
 
-#include <error.h>
-
 /* This function must be called at boot-time only. Otherwise you would need a
  * lock for synchronization of major and minor */
-static inline struct device *register_device_core(const char *name,
-		int major, int minor, struct file_operations *ops)
-{
-	struct device *dev;
-
-	if ((dev = mkdev(major, minor, ops, name))) {
-		major = MAJOR(dev->id);
-		debug("%s device registered at %d:%d", name, major, minor);
-
-		return dev;
-	}
-
-	error("failed to register the device, %s at %d:%d",
-			name, major, minor);
-
-	return NULL;
-}
+#define macro_register_device(name, major, minor, ops) do { \
+	struct device *dev; \
+	dev = mkdev(major, minor, ops, name); \
+	major = MAJOR(dev->id); \
+} while (0); \
 
 extern void register_timer(const char *name, int minor);
 extern void register_led(const char *name, int minor);

@@ -58,5 +58,5 @@ static struct file_operations ops = {
 
 void register_led(const char *name, int minor)
 {
-	register_device_core(name, major, minor, &ops);
+	macro_register_device(name, major, minor, &ops);
 }
