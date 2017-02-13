@@ -10,23 +10,14 @@ CFLAGS  += $(INC) $(LIBS)
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o
 
-all: board $(OBJS)
-ifdef BOARD
-	$(LD) -o $(BOARD).o -r boards/$(BOARD)/*.o
-endif
-
-board:
-ifdef BOARD
-	@$(MAKE) --print-directory -C boards/$(BOARD)
-endif
+all: $(OBJS)
 
 depend dep:
 	echo $(CC)
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
 clean:
-	@rm -f $(OBJS) $(BOARD).o .depend
-	@$(MAKE) clean -C boards/$(BOARD)
+	@rm -f $(OBJS) .depend
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)
