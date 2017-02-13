@@ -40,7 +40,7 @@ static int gpio_open(struct inode *inode, struct file *file)
 	spin_lock(&dev->mutex.counter);
 
 	if (dev->refcount == 0) {
-		if (!(get_task_flags(current) & TASK_PRIVILEGED)) {
+		if (!(get_task_flags(current->parent) & TASK_PRIVILEGED)) {
 			ret = -ERR_PERM;
 			goto out_unlock;
 		}
