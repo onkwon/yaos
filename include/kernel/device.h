@@ -37,6 +37,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 		struct file_operations *ops, const char *name);
 struct device *getdev(dev_t id);
 void linkdev(dev_t id, struct device *dev);
+void driver_init();
 void device_init();
 void device_sync_all();
 

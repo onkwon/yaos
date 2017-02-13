@@ -84,6 +84,7 @@ int __init kernel_init()
 	sys_init();
 	mm_init();
 	fs_init();
+	driver_init();
 	device_init();
 	systick_init();
 	scheduler_init();

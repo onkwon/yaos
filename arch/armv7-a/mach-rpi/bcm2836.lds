@@ -36,6 +36,10 @@ SECTIONS
 		*(.rodata.*)
 
 		. = ALIGN(4);
+		_driver_list = .;
+		*(.driver_list)
+		LONG(0);
+		. = ALIGN(4);
 		_device_list = .;
 		*(.device_list)
 		LONG(0);

@@ -114,6 +114,15 @@ int remove_device(struct device *dev)
 
 #include <kernel/init.h>
 
+void __init driver_init()
+{
+	extern char _driver_list;
+	unsigned int *p = (unsigned int *)&_driver_list;
+
+	while (*p)
+		((unsigned int (*)())*p++)();
+}
+
 void __init device_init()
 {
 	extern char _device_list;
