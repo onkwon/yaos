@@ -1238,6 +1238,13 @@ int embedfs_mount(struct device *dev)
 	if (err)
 		error("can't build root file system");
 
+	char *bitmap;
+	if (!cached_bitmap) {
+		if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
+			error("failed loading the inode bitmap");
+		cached_bitmap = bitmap;
+	}
+
 	return err;
 }
 
