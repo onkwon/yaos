@@ -8,7 +8,7 @@
 #define NEC_HIGH_THRESHOLD	20000
 #define NEC_LOW_THRESHOLD	3000
 
-unsigned int ir_get_nec(const unsigned int *buf)
+static unsigned int ir_get_nec(const unsigned int *buf)
 {
 	unsigned int val = 0;
 	int i;
