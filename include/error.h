@@ -47,16 +47,18 @@
 } while (0)
 
 #ifdef CONFIG_DEBUG
-#define debug(fmt...)	do {					\
-	printk("%s:%s():%d: ", __FILE__, __func__, __LINE__);	\
-	printk(fmt);						\
-	printk("\n");						\
+#define debug(fmt...)	do { \
+	printk("%p:%s():%d: ", \
+			__builtin_return_address(0), __func__, __LINE__); \
+	printk(fmt); \
+	printk("\n"); \
 } while (0)
 
 #define assert(exp)	do {						\
 	if (!(exp)) {							\
-		printk("%s:%s():%d: Assertion `%s` failed.\n",		\
-				__FILE__, __func__, __LINE__, #exp);	\
+		printk("%p:%s():%d: Assertion `%s` failed.\n",		\
+				__builtin_return_address(0),		\
+				__func__, __LINE__, #exp);		\
 		freeze();						\
 	}								\
 } while (0)
