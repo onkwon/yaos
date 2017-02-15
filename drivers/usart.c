@@ -51,22 +51,24 @@ static void usart_flush(struct file *file)
 
 static int usart_ioctl(struct file *file, int request, void *data)
 {
+	unsigned int *brr;
+
 	switch (request) {
 	case C_FLUSH:
 		usart_flush(file);
 		return 0;
-	case C_KBHIT:
-		return usart_kbhit(file);
-	case C_GET_BAUDRATE:
-		return __usart_get_baudrate(CHANNEL(file->inode->dev));
-		break;
-	case C_BAUDRATE:
-		return __usart_set_baudrate(CHANNEL(file->inode->dev),
-				(unsigned int)data);
-		break;
+	case C_EVENT:
+		*(int *)data = usart_kbhit(file)? 1 : 0;
+		return 0;
+	case C_FREQ:
+		brr = (unsigned int *)data;
+		if (*brr)
+			return __usart_set_baudrate(CHANNEL(file->inode->dev),
+					*brr);
+		else
+			*brr = __usart_get_baudrate(CHANNEL(file->inode->dev));
+		return 0;
 	case C_BUFSIZE:
-	case C_WBUFSIZE:
-	case C_RBUFSIZE:
 		break;
 	default:
 		break;
@@ -344,7 +346,7 @@ static int usart_open(struct inode *inode, struct file *file)
 		}
 
 		if ((nvector = __usart_open(CHANNEL(dev->id), baudrate)) <= 0) {
-			err = -ERR_UNDEF;
+			err = -ERR_OPEN;
 			goto out;
 		}
 

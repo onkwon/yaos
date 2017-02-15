@@ -95,19 +95,17 @@ enum file_oflag {
 	O_RDWR		= (O_RDONLY | O_WRONLY),
 	O_NONBLOCK	= 0x04,
 	O_CREATE	= 0x08,
+	O_MANUAL	= 0x10,
 };
 
 enum file_cflag {
 	C_FLUSH		= 0x01,
-	C_KBHIT		= 0x02,
-	C_GET_BAUDRATE	= 0x03,
-	C_BAUDRATE	= 0x04,
-	C_BUFSIZE	= 0x05,
-	C_RBUFSIZE	= 0x06,
-	C_WBUFSIZE	= 0x07,
-	C_MODE		= 0x08,
-	C_INT_EDGE	= 0x09,
-	C_INT_FUNC	= 0x0a,
+	C_SET		= 0x02,
+	C_GET		= 0x03,
+	C_EVENT		= 0x04,
+	C_BUFSIZE	= 0x05, /* getter when the next argument value is 0 */
+	C_FREQ		= 0x06, /* getter when the next argument value is 0 */
+	C_RUN		= 0x07,
 };
 
 enum whence {

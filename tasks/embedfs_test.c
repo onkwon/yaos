@@ -17,11 +17,13 @@ static void test_write()
 	sleep(3);
 	notice("start write test #2 %x %x", current, current->addr);
 	if ((fd = open(FILENAME1, O_RDWR)) == -ERR_PATH) {
+		debug("create %s", FILENAME1);
 		if ((fd = open(FILENAME1, O_CREATE | O_RDWR)) < 0) {
 			error("FAILED to create #2");
 			goto out;
 		}
 
+		debug("writing in %s", FILENAME1);
 		int i;
 		for (i = 0; i < REPEAT; i++) {
 			if (!write(fd, buf, BUFSIZE))
@@ -48,11 +50,13 @@ static void test_task()
 	sleep(3);
 	notice("start write test %x %x", current, current->addr);
 	if ((fd = open(FILENAME1, O_RDWR)) == -ERR_PATH) {
+		debug("create2 %s", FILENAME1);
 		if ((fd = open(FILENAME1, O_CREATE | O_RDWR)) < 0) {
 			error("FAILED to create");
 			goto out;
 		}
 
+		debug("writing2 in %s", FILENAME1);
 		int i;
 		for (i = 0; i < REPEAT; i++) {
 			if (write(fd, buf, BUFSIZE) <= 0)

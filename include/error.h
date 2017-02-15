@@ -12,6 +12,7 @@
 #define ERR_PATH		8
 #define ERR_ATTR		9
 #define ERR_CREATE		10
+#define ERR_OPEN		11
 
 #define MSG_ERROR		0
 #define MSG_SYSTEM		1

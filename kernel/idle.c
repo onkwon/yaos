@@ -14,7 +14,7 @@ static void cleanup()
  * do some power savings */
 void idle()
 {
-	unsigned int irqflag;
+	unsigned int irqflag, tout;
 	unsigned long long stamp;
 
 	cleanup();
@@ -31,8 +31,11 @@ void idle()
 			/* check if there is any peripherals enabled that is
 			 * actually doing nothing but only consuming power.
 			 * turn it off if so */
-			extern void disp_sysinfo();
-			disp_sysinfo();
+			if (is_timeout(tout)) {
+				extern void disp_sysinfo();
+				disp_sysinfo();
+				set_timeout(&tout, 10000);
+			}
 #endif
 			/* pre-dos();
 			 *

@@ -8,7 +8,7 @@
 struct timer_queue timerq;
 struct task *timerd;
 
-static inline int __add_timer(struct timer *new)
+static inline int __add_timer(struct ktimer *new)
 {
 	struct links *curr;
 	int stamp = (int)systick;
@@ -25,7 +25,7 @@ static inline int __add_timer(struct timer *new)
 	/* TODO: make search O(1) or clone() not to run in interrupt context */
 	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
 		if (((int)new->expires - stamp) <
-				((int)((struct timer *)curr)->expires - stamp))
+				((int)((struct ktimer *)curr)->expires - stamp))
 			break;
 	}
 
@@ -52,14 +52,14 @@ static inline int __add_timer(struct timer *new)
 
 static void run_timer()
 {
-	struct timer *timer;
+	struct ktimer *timer;
 	struct links *curr;
 	unsigned int irqflag;
 	int tid;
 
 infinite:
 	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
-		timer = (struct timer *)curr;
+		timer = (struct ktimer *)curr;
 
 		if (time_before(timer->expires, systick)) {
 			timerq.next = timer->expires;
@@ -158,7 +158,7 @@ unsigned int get_timer_nr()
 #endif
 }
 
-int add_timer(struct timer *new)
+int add_timer(struct ktimer *new)
 {
 	return syscall(SYSCALL_TIMER_CREATE, new);
 }
@@ -168,7 +168,7 @@ int add_timer(struct timer *new)
 void sleep(unsigned int sec)
 {
 #ifdef CONFIG_TIMER
-	struct timer tm;
+	struct ktimer tm;
 
 	tm.expires = systick + sec_to_ticks(sec);
 	tm.event = sleep_callback;
@@ -186,7 +186,7 @@ void sleep(unsigned int sec)
 void msleep(unsigned int ms)
 {
 #ifdef CONFIG_TIMER
-	struct timer tm;
+	struct ktimer tm;
 
 	tm.expires = systick + msec_to_ticks(ms);
 	tm.event = sleep_callback;
@@ -201,7 +201,7 @@ void msleep(unsigned int ms)
 #endif
 }
 
-int sys_timer_create(struct timer *new)
+int sys_timer_create(struct ktimer *new)
 {
 #ifdef CONFIG_TIMER
 	return __add_timer(new);

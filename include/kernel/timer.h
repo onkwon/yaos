@@ -1,9 +1,9 @@
-#ifndef __TIMER_H__
-#define __TIMER_H__
+#ifndef __KERNEL_TIMER_H__
+#define __KERNEL_TIMER_H__
 
 #include <types.h>
 
-struct timer {
+struct ktimer {
 	struct links list; /* keep this first */
 
 	unsigned int expires;
@@ -24,11 +24,11 @@ struct timer_queue {
 	lock_t lock;
 };
 
-int add_timer(struct timer *new);
+int add_timer(struct ktimer *new);
 int timer_init();
 unsigned int get_timer_nr();
 
-int sys_timer_create(struct timer *new);
+int sys_timer_create(struct ktimer *new);
 
 void sleep(unsigned int sec);
 void msleep(unsigned int ms);
@@ -39,4 +39,4 @@ int is_timeout(unsigned int goal);
 void udelay(unsigned int us);
 void mdelay(unsigned int ms);
 
-#endif /* __TIMER_H__ */
+#endif /* __KERNEL_TIMER_H__ */

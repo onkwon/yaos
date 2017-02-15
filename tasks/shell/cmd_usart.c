@@ -8,15 +8,15 @@ static int usart(int argc, char **argv)
 	int fd, req;
 	unsigned int brr;
 
-	if (argc < 3) goto out;
+	if (argc < 3) goto err;
 
-	if        (!strcmp(argv[1], "setbrr")) { req = C_BAUDRATE;
-	} else if (!strcmp(argv[1], "getbrr")) { req = C_GET_BAUDRATE;
+	if        (!strcmp(argv[1], "setbrr")) { req = C_FREQ;
+	} else if (!strcmp(argv[1], "getbrr")) { req = C_FREQ;
 	} else if (!strcmp(argv[1], "flush"))  { req = C_FLUSH;
-	} else if (!strcmp(argv[1], "kbhit"))  { req = C_KBHIT;
+	} else if (!strcmp(argv[1], "kbhit"))  { req = C_EVENT;
 	} else {
 		printf("wrong request %s\n", argv[1]);
-		goto out;
+		goto err;
 	}
 
 	if        (!strcmp(argv[2], "com1")) { dev = "/dev/usart1";
@@ -26,7 +26,7 @@ static int usart(int argc, char **argv)
 	} else if (!strcmp(argv[2], "com5")) { dev = "/dev/usart5";
 	} else {
 		printf("unknown port %s\n", argv[2]);
-		goto out;
+		goto err;
 	}
 
 	if (argc == 4) brr = atoi(argv[3]);
@@ -34,14 +34,17 @@ static int usart(int argc, char **argv)
 
 	if ((fd = open(dev, O_RDWR)) <= 0) {
 		printf("open error: %s\n", dev);
-		goto out;
+		goto err;
 	}
 
-	printf("%s\n", (ioctl(fd, req, brr) < 0)? "Error" : "OK");
+	printf("%s\n", (ioctl(fd, req, &brr) < 0)? "Error" : "OK");
+	if (req == C_FREQ)
+		printf("baudrate: %d\n", brr);
 
 	close(fd);
 
-out:
 	return 0;
+err:
+	return -1;
 }
 REGISTER_CMD(usart, usart, "usart <setbrr|getbrr|flush|kbhit> <comN> <baudrate>");

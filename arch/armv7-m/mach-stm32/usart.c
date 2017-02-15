@@ -1,6 +1,5 @@
 #include <usart.h>
 #include <stdlib.h>
-#include <io.h>
 #include "exti.h"
 
 #ifndef stm32f1

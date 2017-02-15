@@ -272,7 +272,7 @@ int __open(const char *filename, ...)
 int __open2(const char *filename, int mode)
 {
 #ifdef CONFIG_SYSCALL
-	return syscall(SYSCALL_OPEN, filename, mode);
+	return syscall(SYSCALL_OPEN, filename, mode, 0);
 #else
 	sys_open(filename, mode, NULL);
 #endif
@@ -314,4 +314,11 @@ int shutdown(int option)
 
 	return 0;
 #endif
+}
+
+bool has_event(int fd)
+{
+	int byte = 0;
+	ioctl(fd, C_EVENT, &byte);
+	return (bool)byte;
 }

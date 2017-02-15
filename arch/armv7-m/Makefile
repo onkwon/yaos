@@ -28,6 +28,7 @@ include:
 	-cp -R mach-$(MACH)/include include/mach-$(MACH)
 	-cp mach-$(MACH)/include/pinmap.h include/pinmap.h
 	-cp mach-$(MACH)/include/usart.h include/usart.h
+	-cp mach-$(MACH)/include/timer.h include/timer.h
 ifdef BOARD
 	-cp -f mach-$(MACH)/boards/$(BOARD)/include/pinmap.h include/pinmap.h
 endif
@@ -40,6 +41,7 @@ clean:
 	@rm -rf include/mach-$(MACH)
 	@rm -f include/pinmap.h
 	@rm -f include/usart.h
+	@rm -f include/timer.h
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

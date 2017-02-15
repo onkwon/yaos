@@ -54,7 +54,6 @@ static int gpio_open(struct inode *inode, struct file *file)
 		case O_WRONLY:
 			gpio_init(MINOR(file->inode->dev), GPIO_MODE_OUTPUT);
 			break;
-		case O_RDWR:
 		default:
 			ret = -ERR_UNDEF;
 			goto out_unlock;

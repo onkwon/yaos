@@ -156,6 +156,9 @@
 #define TIM3_CCR3		(*(reg_t *)(TIM3_BASE + 0x3c))
 #define TIM3_CCR4		(*(reg_t *)(TIM3_BASE + 0x40))
 
+#define TIM4_BASE		(0x40000800)
+#define TIM5_BASE		(0x40000c00)
+
 /* ADC */
 #define ADC1_BASE		(0x40012400)
 #define ADC1_SR			(*(reg_t *)ADC1_BASE)

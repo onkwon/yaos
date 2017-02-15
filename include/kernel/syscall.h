@@ -78,4 +78,6 @@ int close(int fd);
 int ioctl(int fd, ...);
 int shutdown(int option);
 
+extern bool has_event(int fd);
+
 #endif /* __SYSCALL_H__ */
