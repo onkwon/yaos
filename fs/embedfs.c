@@ -635,8 +635,10 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		for (offset = 0; offset < curr->size; offset += dir->rec_len) {
 			read_data_block(curr, offset, dir, dir_size, dev);
 
-			if (is_inode_free(dir->inode)) /* not valid data */
-				break;
+			if (is_inode_free(dir->inode)) { /* not valid data */
+				debug("not valid inode %x", dir->inode);
+				goto out_free_inode;
+			}
 
 			if ((name = kmalloc(dir->name_len)) == NULL)
 				goto out_free_inode;
@@ -936,10 +938,10 @@ static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 	const char *s;
 	int ret;
 
-	/* Avoid to be run simultaneously by multiple tasks which may try to
-	 * create the same file. And lock first before allocating. This is
-	 * less efficient but more avoidable from memory shortage. */
+	/* Lock first before allocating. This is less efficient but more
+	 * avoidable from memory shortage. */
 	mutex_lock(&cr_lock);
+	/* FIXME: check again if the pathname still doesn't exist */
 
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
 		ret = -ERR_ALLOC;
