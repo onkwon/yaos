@@ -29,9 +29,8 @@ static DEFINE_SPINLOCK(wlock);
 
 static inline int __attribute__((section(".iap"))) flash_erase(void *addr)
 {
-	/* FIXME:
-	 * Flush I/D cache before erase, noting that I/D cache should be
-	 * flushed only when it is disabled. */
+	/* FIXME: Flush I/D cache before erase
+	 * Note that I/D cache should be flushed only when it is disabled. */
 	FLASH_CR |= (1 << PER);
 #if (SOC == stm32f1 || SOC == stm32f3)
 	FLASH_AR = (unsigned int)addr;

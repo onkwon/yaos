@@ -14,10 +14,6 @@ static int myisr(int flags)
 	return 0;
 }
 
-/* TODO: Reduce system call overhead
- * the sound was much better when accessing registers directly than via system
- * call. sure, system call must be slower than direct access but it was worse
- * than expected. some improvement needed */
 static void pcm_test()
 {
 	int fd, fd2, i = 0;

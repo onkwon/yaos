@@ -1,7 +1,7 @@
 #ifndef __ARMv7A_LOCK_H__
 #define __ARMv7A_LOCK_H__
 
-/* FIXME:
+/* FIXME: the instructions, ldrex and strex, don't work
  * It seems like the instructions, ldrex and strex, don't work before some
  * condition match? Should MMU be turned on to make it work? */
 #if 0

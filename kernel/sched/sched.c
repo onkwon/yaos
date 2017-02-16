@@ -208,7 +208,7 @@ int sched_overhead;
 void __attribute__((naked, used)) __schedule()
 {
 #ifdef CONFIG_DEBUG_SCHED
-	/* FIXME:
+	/* FIXME: do not use any registers that are not saved yet
 	 * make sure that registers used here must be the ones saved already */
 	sched_overhead = get_sysclk();
 #endif

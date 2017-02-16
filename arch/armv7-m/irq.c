@@ -61,8 +61,7 @@ unsigned int syscall_count = 0;
 void __attribute__((naked)) svc_handler()
 {
 #ifdef CONFIG_DEBUG_SYSCALL
-	/* FIXME:
-	 * Do not use the code below as it will corrupt the context. */
+	/* FIXME: Do not use the code below as it will corrupt the context. */
 	__asm__ __volatile__("add %0, %1, #1"
 			: "=r"(syscall_count)
 			: "0"(syscall_count)
