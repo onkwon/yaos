@@ -25,6 +25,7 @@
 			:: "r"(flag) : "cc", "memory")
 
 #define __get_active_irq()	(__get_psr() & 0x1ff)
+#define __in_interrupt()	__get_active_irq()
 
 int register_isr(unsigned int nvector, void (*func)());
 void nvic_set(unsigned int nirq, int on);

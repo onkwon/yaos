@@ -154,11 +154,11 @@ void __attribute__((naked)) isr_fault()
 
 	/* led for debugging */
 #ifdef LED_DEBUG
-	SET_PORT_CLOCK(ENABLE, PORTD);
+	__turn_port_clock((reg_t *)PORTD, ON);
 	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
 	unsigned int j;
 	while (1) {
-		PUT_PORT(PORTD, GET_PORT(PORTD) ^ 4);
+		write_port((reg_t *)PORTD, scan_port((reg_t *)PORTD) ^ 4);
 
 		for (i = 100; i; i--) {
 			for (j = 10; j; j--) {

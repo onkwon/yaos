@@ -82,7 +82,7 @@ static int gpio_close(struct file *file)
 		if (!(get_task_flags(current) & TASK_PRIVILEGED))
 			return -ERR_PERM;
 
-		//gpio_reset(MINOR(file->inode->dev));
+		gpio_reset(MINOR(file->inode->dev));
 	}
 
 	spin_unlock(&dev->mutex.counter);

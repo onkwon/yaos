@@ -5,17 +5,19 @@
 #define EOF				(-1)
 #define INF				(-1)
 
-#define HIGH				1
-#define ON				1
-#define ENABLE				1
-
-#define LOW				0
-#define OFF				0
-#define DISABLE				0
-
 #define UNLOCKED			1
 
-typedef enum {false = 0, true = 1} bool;
+typedef enum {
+	false	= 0,
+	LOW	= false,
+	OFF	= false,
+	DISABLE	= false,
+	true	= 1,
+	HIGH	= true,
+	ON	= true,
+	ENABLE	= true,
+} bool;
+
 typedef unsigned short int mode_t;
 typedef volatile int lock_t;
 typedef unsigned int dev_t;
@@ -31,17 +33,17 @@ typedef volatile unsigned int reg_t;
 #define max(a, b)			(((a) > (b))? a : b)
 #define min(a, b)			(((a) > (b))? b : a)
 
-#define BASE_WORD(x)			((unsigned int)(x) & ~(WORD_SIZE-1))
+#define BASE_WORD(x)			((unsigned int)(x) & ~(WORD_SIZE - 1))
 #define ALIGN_WORD(x)			\
-	BASE_WORD((unsigned int)(x) + (WORD_SIZE-1))
+	BASE_WORD((unsigned int)(x) + (WORD_SIZE - 1))
 #define BASE_DWORD(x)			\
 	((unsigned int)(x) & ~((WORD_SIZE << 1) - 1))
 #define ALIGN_DWORD(x)			\
 	BASE_DWORD((unsigned int)(x) + ((WORD_SIZE << 1) - 1))
 #define BLOCK_BASE(x, size)		\
-	((unsigned int)(x) & ~((size)-1))
+	((unsigned int)(x) & ~((size) - 1))
 #define ALIGN_BLOCK(x, size)		\
-	BLOCK_BASE((unsigned int)(x) + ((size)-1), size)
+	BLOCK_BASE((unsigned int)(x) + ((size) - 1), size)
 
 #define get_container_of(ptr, type, member) \
 	((type *)((char *)ptr - (char *)&((type *)0)->member))
@@ -50,6 +52,9 @@ static inline bool is_pow2(unsigned int x)
 {
 	return !(x & (x - 1));
 }
+
+#define stringify(x)		#x
+#define def2str(x)		stringify(x)
 
 /* doubly-linked list */
 struct links {

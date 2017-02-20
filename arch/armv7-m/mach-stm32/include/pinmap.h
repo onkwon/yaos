@@ -1,6 +1,8 @@
 #ifndef __PINMAP_H__
 #define __PINMAP_H__
 
+/* TODO: put common pins here and include board specific pins */
+
 #ifndef stm32f1
 #define stm32f1	1
 #define stm32f4	2

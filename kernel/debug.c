@@ -1,7 +1,6 @@
 #if 0
 #ifdef CONFIG_DEBUG
-/* FIXME:
- * return in the context as it was */
+/* TODO: return back in the context as it was */
 #include <foundation.h>
 #include <kernel/task.h>
 #include <asm/pinmap.h>

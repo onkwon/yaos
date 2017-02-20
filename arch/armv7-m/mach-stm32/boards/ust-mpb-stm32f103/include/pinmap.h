@@ -5,6 +5,7 @@
 #define PIN_STATUS_LED			50 /* PORTD.2 */
 
 /* Timer */
+#define PIN_TIM2CH1			0 /* PA.0 */
 #define PIN_TIM2CH2			1 /* PA.1 */
 #define PIN_TIM2CH3			2 /* PA.2 */
 #define PIN_TIM2CH4			3 /* PA.3 */

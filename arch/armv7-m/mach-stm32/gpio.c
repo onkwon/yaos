@@ -1,38 +1,123 @@
 #include <gpio.h>
 #include <types.h>
+#include <error.h>
 #include "exti.h"
-
-#ifndef stm32f1
-#define stm32f1	1
-#define stm32f3	3
-#define stm32f4	4
-#endif
+#include "io.h"
 
 DEFINE_SPINLOCK(gpio_irq_lock);
 static DEFINE_SPINLOCK(gpio_init_lock);
 
-#define calc_port(i)		(i / PINS_PER_PORT)
-#define calc_pin(i)		(i % PINS_PER_PORT)
-#define calc_port_addr(p)	((((p) * WORD_SIZE) << 8) + PORTA)
+#define pin2port(pin)		((pin) / PINS_PER_PORT)
+#define pin2portpin(pin)	((pin) % PINS_PER_PORT)
+#define port2reg(port)		((reg_t *)((((port) * WORD_SIZE) << 8) + PORTA))
+
+static struct gpio {
+	union {
+		struct {
+			unsigned int pin0: 1;
+			unsigned int pin1: 1;
+			unsigned int pin2: 1;
+			unsigned int pin3: 1;
+			unsigned int pin4: 1;
+			unsigned int pin5: 1;
+			unsigned int pin6: 1;
+			unsigned int pin7: 1;
+			unsigned int pin8: 1;
+			unsigned int pin9: 1;
+			unsigned int pin10: 1;
+			unsigned int pin11: 1;
+			unsigned int pin12: 1;
+			unsigned int pin13: 1;
+			unsigned int pin14: 1;
+			unsigned int pin15: 1;
+		};
+
+		unsigned int pins;
+	};
+} state[NR_PORT];
+
+static int nr_active; /* number of active pins */
+
+int reg2port(reg_t *reg)
+{
+	switch ((unsigned int)reg) {
+	case PORTA: return 0;
+	case PORTB: return 1;
+	case PORTC: return 2;
+	case PORTD: return 3;
+	case PORTE: return 4;
+	case PORTF: return 5;
+	case PORTG: return 6;
+	default:
+		break;
+	}
+
+	return -ERR_RANGE;
+}
+
+void set_port_pin_conf(reg_t *reg, int pin, int mode)
+{
+	unsigned int idx, t, shift, mask;
+
+#if (SOC == stm32f1)
+	idx = pin / 8;
+	shift = (pin % 8) * 4;
+	mask = 0xf;
+#else
+	idx = pin / 16;
+	shift = (pin % 16) * 2;
+	mask = 0x3;
+#endif
+
+	t = reg[idx];
+	t = MASK_RESET(t, mask << shift) | (mode << shift);
+	reg[idx] = t;
+}
+
+void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
+{
+	unsigned int idx, t, shift, mask;
+
+	idx = pin / 8;
+	idx += 8; /* port base register + alt register offset(0x20) */
+	shift = (pin % 8) * 4;
+	mask = 0xf;
+
+	t = reg[idx];
+	t = MASK_RESET(t, mask << shift) | (mode << shift);
+	reg[idx] = t;
+}
 
 unsigned int gpio_get(unsigned int index)
 {
 	unsigned int port, pin;
+	reg_t *reg;
 
-	port = calc_port_addr(calc_port(index));
-	pin  = calc_pin(index);
+	if ((port = pin2port(index)) >= NR_PORT) {
+		error("not supported port: %d", port);
+		return -ERR_RANGE;
+	}
 
-	return (GET_PORT(port) >> pin) & 1;
+	reg = port2reg(port);
+	pin = pin2portpin(index);
+
+	return (scan_port(reg) >> pin) & 1;
 }
 
 void gpio_put(unsigned int index, int v)
 {
 	unsigned int port, pin;
+	reg_t *reg;
 
-	port = calc_port_addr(calc_port(index));
-	pin  = calc_pin(index);
+	if ((port = pin2port(index)) >= NR_PORT) {
+		error("not supported port: %d", port);
+		return;
+	}
 
-	PUT_PORT_PIN(port, pin, v & 1);
+	reg = port2reg(port);
+	pin = pin2portpin(index);
+
+	write_port_pin(reg, pin, v & 1);
 }
 
 int gpio_init(unsigned int index, unsigned int flags)
@@ -40,32 +125,43 @@ int gpio_init(unsigned int index, unsigned int flags)
 	unsigned int port, pin, mode;
 	int vector;
 	unsigned int irqflag;
+	reg_t *reg;
+
+	if ((port = pin2port(index)) >= NR_PORT) {
+		error("not supported port: %d", port);
+		return 0;
+	}
 
 	vector = -1;
 	mode = 0;
-	port = calc_port(index);
-	pin  = calc_pin(index);
+	pin = pin2portpin(index);
+	reg = port2reg(port);
+
 
 	spin_lock_irqsave(&gpio_init_lock, irqflag);
 
-#if (SOC == stm32f1)
-	SET_CLOCK_APB2(ENABLE, port + 2);
-#elif (SOC == stm32f3)
-	SET_CLOCK_AHB(ENABLE, port + 17);
-#elif (SOC == stm32f4)
-	SET_CLOCK_AHB1(ENABLE, port);
-#endif
+	if (state[port].pins & (1 << pin)) {
+		error("already taken: %d", index);
+		vector = 0;
+		goto out;
+	}
 
-	port = calc_port_addr(port);
+#if (SOC == stm32f1)
+	__turn_apb2_clock(port + 2, ON);
+#elif (SOC == stm32f3)
+	__turn_ahb1_clock(port + 17, ON);
+#elif (SOC == stm32f4)
+	__turn_ahb1_clock(port, ON);
+#endif
 
 	/* default */
 #if (SOC == stm32f3 || SOC == stm32f4)
 	/* no pull-up, pull-down */
-	*(reg_t *)(port + 0xc) &= ~(3 << (pin * 2));
+	reg[3] &= ~(3 << (pin * 2));
 	/* very high speed I/O output speed */
-	*(reg_t *)(port + 8) |= 3 << (pin * 2);
+	reg[2] |= 3 << (pin * 2);
 	/* push-pull output */
-	*(reg_t *)(port + 4) &= ~(1 << pin);
+	reg[1] &= ~(1 << pin);
 #endif
 
 	if (flags & GPIO_MODE_ALT) {
@@ -78,14 +174,10 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 #if (SOC == stm32f3 || SOC == stm32f4)
 		if (pin / 8) {
-			*(reg_t *)(port + 0x24) =
-				(*(reg_t *)(port + 0x24) &
-				~(0xf << 4 * (pin % 8))) |
+			reg[9] = (reg[9] & ~(0xf << 4 * (pin % 8))) |
 				((flags >> GPIO_ALT_SHIFT) << 4 * (pin % 8));
 		} else {
-			*(reg_t *)(port + 0x20) =
-				(*(reg_t *)(port + 0x20) &
-				~(0xf << 4 * (pin % 8))) |
+			reg[8] = (reg[8] & ~(0xf << 4 * (pin % 8))) |
 				((flags >> GPIO_ALT_SHIFT) << 4 * (pin % 8));
 		}
 #endif
@@ -102,7 +194,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (flags & GPIO_CONF_OPENDRAIN) {
 #if (SOC == stm32f3 || SCO == stm32f4)
-		*(reg_t *)(port + 4) |= 1 << pin;
+		reg[1] |= 1 << pin;
 #elif (SOC == stm32f1)
 		mode &= ~(PIN_FLOATING);
 		if (flags & GPIO_MODE_ALT)
@@ -112,31 +204,31 @@ int gpio_init(unsigned int index, unsigned int flags)
 #endif
 	} else if (flags & GPIO_CONF_PULL_UP) {
 #if (SOC == stm32f3 || SOC == stm32f4)
-		*(reg_t *)(port + 0xc) |= 1 << (pin * 2);
+		reg[3] |= 1 << (pin * 2);
 #elif (SOC == stm32f1)
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
 #endif
-		PUT_PORT_PIN(port, pin, 1);
+		write_port_pin(reg, pin, HIGH);
 	} else if (flags & GPIO_CONF_PULL_DOWN) {
 #if (SOC == stm32f3 || SOC == stm32f4)
-		*(reg_t *)(port + 0xc) |= 2 << (pin * 2);
+		reg[3] |= 2 << (pin * 2);
 #elif (SOC == stm32f1)
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
 #endif
-		PUT_PORT_PIN(port, pin, 0);
+		write_port_pin(reg, pin, LOW);
 	}
 
-	SET_PORT_PIN(port, pin, mode);
+	set_port_pin_conf(reg, pin, mode);
 
 	if (flags & (GPIO_INT_FALLING | GPIO_INT_RISING)) {
 #if (SOC == stm32f1)
 		/* AFIO deals with Pin Remapping and EXTI */
-		SET_CLOCK_APB2(ENABLE, 0);
+		__turn_apb2_clock(0, ON);
 #elif (SOC == stm32f3 || SOC == stm32f4)
 		/* exti <- syscfg <- apb2 */
-		SET_CLOCK_APB2(ENABLE, 14);
+		__turn_apb2_clock(14, ON);
 #endif
 		EXTI_IMR |= 1 << pin;
 
@@ -163,9 +255,13 @@ int gpio_init(unsigned int index, unsigned int flags)
 			break;
 		}
 
-		link_exti_to_nvic(calc_port(index), pin);
+		link_exti_to_nvic(port, pin);
 	}
 
+	state[port].pins |= 1 << pin;
+	nr_active++;
+
+out:
 	spin_unlock_irqrestore(&gpio_init_lock, irqflag);
 
 	return vector;
@@ -173,6 +269,43 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 void gpio_reset(unsigned int index)
 {
+	unsigned int port, pin, irqflag;
+
+	if ((port = pin2port(index)) >= NR_PORT) {
+		error("not supported port: %d", port);
+		return;
+	}
+
+	pin = pin2portpin(index);
+
+	spin_lock_irqsave(&gpio_init_lock, irqflag);
+
+	state[port].pins &= ~(1 << pin);
+	nr_active--;
+	assert(nr_active >= 0);
+
+	barrier();
+	if (!state[port].pins) {
+#if (SOC == stm32f1)
+		__turn_apb2_clock(port + 2, OFF);
+#elif (SOC == stm32f3)
+		__turn_ahb1_clock(port + 17, OFF);
+#elif (SOC == stm32f4)
+		__turn_ahb1_clock(port, OFF);
+#endif
+	}
+
+	spin_unlock_irqrestore(&gpio_init_lock, irqflag);
+}
+
+unsigned int get_gpio_state(int port)
+{
+	if (port >= NR_PORT) {
+		error("not supported port: %d", port);
+		return -ERR_RANGE;
+	}
+
+	return state[port].pins;
 }
 
 #include <kernel/init.h>
@@ -181,20 +314,20 @@ static void __init port_init()
 {
 	/* FIXME: initializing of ports makes JTAG not working */
 	return;
-	SET_PORT_CLOCK(ENABLE, PORTA);
-	SET_PORT_CLOCK(ENABLE, PORTB);
-	SET_PORT_CLOCK(ENABLE, PORTC);
-	SET_PORT_CLOCK(ENABLE, PORTD);
-	SET_PORT_CLOCK(ENABLE, PORTE);
-	SET_PORT_CLOCK(ENABLE, PORTF);
+	__turn_port_clock((reg_t *)PORTA, ON);
+	__turn_port_clock((reg_t *)PORTB, ON);
+	__turn_port_clock((reg_t *)PORTC, ON);
+	__turn_port_clock((reg_t *)PORTD, ON);
+	__turn_port_clock((reg_t *)PORTE, ON);
+	__turn_port_clock((reg_t *)PORTF, ON);
 
 	unsigned int mode   = 0;
 	unsigned int conf   = 0;
 	unsigned int offset = 4;
 #if (SOC == stm32f4)
-	SET_PORT_CLOCK(ENABLE, PORTG);
-	SET_PORT_CLOCK(ENABLE, PORTH);
-	SET_PORT_CLOCK(ENABLE, PORTI);
+	__turn_port_clock((reg_t *)PORTG, ON);
+	__turn_port_clock((reg_t *)PORTH, ON);
+	__turn_port_clock((reg_t *)PORTI, ON);
 
 	mode   = 0xffffffff; /* analog mode */
 	offset = 0xc;
@@ -220,16 +353,16 @@ static void __init port_init()
 	*(reg_t *)PORTI = mode;
 	*(reg_t *)(PORTI + offset) = conf;
 
-	SET_PORT_CLOCK(DISABLE, PORTG);
-	SET_PORT_CLOCK(DISABLE, PORTH);
-	SET_PORT_CLOCK(DISABLE, PORTI);
+	__turn_port_clock((reg_t *)PORTG, OFF);
+	__turn_port_clock((reg_t *)PORTH, OFF);
+	__turn_port_clock((reg_t *)PORTI, OFF);
 #endif
 
-	SET_PORT_CLOCK(DISABLE, PORTA);
-	SET_PORT_CLOCK(DISABLE, PORTB);
-	SET_PORT_CLOCK(DISABLE, PORTC);
-	SET_PORT_CLOCK(DISABLE, PORTD);
-	SET_PORT_CLOCK(DISABLE, PORTE);
-	SET_PORT_CLOCK(DISABLE, PORTF);
+	__turn_port_clock((reg_t *)PORTA, OFF);
+	__turn_port_clock((reg_t *)PORTB, OFF);
+	__turn_port_clock((reg_t *)PORTC, OFF);
+	__turn_port_clock((reg_t *)PORTD, OFF);
+	__turn_port_clock((reg_t *)PORTE, OFF);
+	__turn_port_clock((reg_t *)PORTF, OFF);
 }
 REGISTER_INIT(port_init, 10);

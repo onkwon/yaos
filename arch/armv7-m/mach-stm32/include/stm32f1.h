@@ -3,23 +3,6 @@
 
 #include <types.h>
 
-/* GPIO */
-#define SET_PORT_PIN(port, pin, mode) ( \
-	*(reg_t *)((port) + ((pin) / 8 * 4)) = \
-	MASK_RESET(*(reg_t *)((port) + ((pin) / 8 * 4)), \
-		0xf << (((pin) % 8) * 4)) \
-	| ((mode) << (((pin) % 8) * 4)) \
-)
-#define SET_PORT_CLOCK(on, port)	\
-	SET_CLOCK_APB2(on, (port >> 10) & 0xf)
-#define GET_PORT(port)			\
-	(*(reg_t *)((port) + 8))
-#define PUT_PORT(port, data)		\
-	(*(reg_t *)((port) + 0xc) = data)
-#define PUT_PORT_PIN(port, pin, on) \
-	(*(reg_t *)((port) + 0x10) = \
-		(on)? 1 << (pin) : 1 << ((pin) + 16))
-
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40021000)
 #define RCC_CR			(*(reg_t *)RCC_BASE)
@@ -27,7 +10,7 @@
 #define RCC_CIR 		(*(reg_t *)(RCC_BASE + 8))
 #define RCC_APB2RSTR		(*(reg_t *)(RCC_BASE + 0xc))
 #define RCC_APB1RSTR		(*(reg_t *)(RCC_BASE + 0x10))
-#define RCC_AHBENR		(*(reg_t *)(RCC_BASE + 0x14))
+#define RCC_AHB1ENR		(*(reg_t *)(RCC_BASE + 0x14))
 #define RCC_APB2ENR		(*(reg_t *)(RCC_BASE + 0x18))
 #define RCC_APB1ENR		(*(reg_t *)(RCC_BASE + 0x1c))
 #define RCC_CSR			(*(reg_t *)(RCC_BASE + 0x24))

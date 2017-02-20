@@ -25,8 +25,11 @@ depend dep:
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
 clean:
-	@rm -f $(OBJS) $(BOARD).o .depend
+	@rm -f $(OBJS) .depend
+ifdef BOARD
+	@rm -f $(BOARD).o
 	@$(MAKE) clean -C boards/$(BOARD)
+endif
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

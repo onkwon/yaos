@@ -178,6 +178,62 @@ unsigned int get_sysclk_freq()
 	return get_stkclk();
 }
 
+void __turn_apb1_clock(unsigned int nbit, bool on)
+{
+	SET_CLOCK_APB1(on, nbit);
+}
+
+void __turn_apb2_clock(unsigned int nbit, bool on)
+{
+	SET_CLOCK_APB2(on, nbit);
+}
+
+void __turn_ahb1_clock(unsigned int nbit, bool on)
+{
+	SET_CLOCK_AHB1(on, nbit);
+}
+
+void __turn_port_clock(reg_t *port, bool on)
+{
+	int nbit;
+
+	nbit = (int)(((unsigned int)port >> 10) & 0xf);
+#if (SOC == stm32f3)
+	nbit += 17;
+#endif
+
+#if (SOC == stm32f1)
+	__turn_apb2_clock(nbit, on);
+#else
+	__turn_ahb1_clock(nbit, on);
+#endif
+}
+
+unsigned int __read_apb1_clock()
+{
+	return RCC_APB1ENR;
+}
+
+unsigned int __read_apb2_clock()
+{
+	return RCC_APB2ENR;
+}
+
+unsigned int __read_ahb1_clock()
+{
+	return RCC_AHB1ENR;
+}
+
+void __reset_apb1_device(unsigned int nbit)
+{
+	RESET_PERI_APB1(nbit);
+}
+
+void __reset_apb2_device(unsigned int nbit)
+{
+	RESET_PERI_APB2(nbit);
+}
+
 #include <kernel/init.h>
 
 #if (SOC == stm32f1)	/* 72MHz */

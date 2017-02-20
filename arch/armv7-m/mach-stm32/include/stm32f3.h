@@ -3,31 +3,6 @@
 
 #include <types.h>
 
-/* GPIO */
-#define SET_PORT_PIN(port, pin, mode) ( \
-	*(reg_t *)((port) + ((pin) / 16 * WORD_SIZE)) = \
-		MASK_RESET(*(reg_t *) \
-			((port) + ((pin) / 16 * WORD_SIZE)), \
-			0x3 << (((pin) % 16) * 2)) \
-		| ((mode) << (((pin) % 16) * 2)) \
-)
-#define SET_PORT_ALT(port, pin, alt) ( \
-	*(reg_t *)((port) + 0x20 + ((pin) / 8 * WORD_SIZE)) \
-		= MASK_RESET(*(reg_t *) \
-			((port) + 0x20 + ((pin) / 8 * WORD_SIZE)), \
-			0xf << (((pin) % 8) * 4)) \
-		| ((alt) << (((pin) % 8) * 4)) \
-)
-#define SET_PORT_CLOCK(on, port)	\
-	SET_CLOCK_AHB(on, ((port >> 10) & 0xf) + 17)
-#define GET_PORT(port)			\
-	(*(reg_t *)((port) + 0x10))
-#define PUT_PORT(port, data)		\
-	(*(reg_t *)((port) + 0x14) = data)
-#define PUT_PORT_PIN(port, pin, on) \
-	(*(reg_t *)((port) + 0x18) = \
-		(on)? 1 << (pin) : 1 << ((pin) + 16))
-
 /* Reset and Clock Control */
 #define RCC_BASE		(0x40021000)
 #define RCC_CR			(*(reg_t *)RCC_BASE)

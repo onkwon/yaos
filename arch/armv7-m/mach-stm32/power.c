@@ -9,9 +9,9 @@
 
 static inline void set_power_clock(unsigned int op)
 {
-	SET_CLOCK_APB1(op, 28); /* PWR */
+	__turn_apb1_clock(28, op); /* PWR */
 #if (SOC == stm32f1)
-	SET_CLOCK_APB1(op, 27); /* BKP */
+	__turn_apb1_clock(27, op); /* BKP */
 #endif
 }
 
@@ -130,7 +130,7 @@ static void disp_clkinfo()
 	*/
 	printf("Enabled peripheral clock:\n");
 #if (SOC == stm32f1)
-	printf("AHB  %08x\n", RCC_AHBENR);
+	printf("AHB  %08x\n", RCC_AHB1ENR);
 #endif
 	printf("APB2 %08x\n", RCC_APB2ENR);
 	printf("APB1 %08x\n", RCC_APB1ENR);
@@ -167,7 +167,7 @@ static int getadc(int ch)
 	int v;
 
 	if (!(RCC_APB2ENR & (1 << 9))) {
-		SET_CLOCK_APB2(ENABLE, 9);	/* ADC1 clock enable */
+		__turn_apb2_clock(9, ENABLE);	/* ADC1 */
 		ADC1_CR2   = 1 | 0x800000;	/* ADC1 and TSVREFE power on */
 		udelay(1000);			/* delay */
 		ADC1_CR2  |= 4;			/* calibration */

@@ -98,15 +98,11 @@ int __init kernel_init()
 	timer_init();
 #endif
 
-#ifndef DEFSTR
-#define DEFMKSTR(x)	#x
-#define DEFSTR(x)	DEFMKSTR(x)
-#endif
 	/* a banner */
 	notice("\n\nyaos %s %s\n"
 	       "Running at %dHz\n"
 	       "Reset source : %x",
-	       DEFSTR(VERSION), DEFSTR(MACHINE),
+	       def2str(VERSION), def2str(MACHINE),
 	       get_hclk(),
 	       __read_reset_source());
 

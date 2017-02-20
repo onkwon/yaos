@@ -11,6 +11,6 @@ void link_exti_to_nvic(unsigned int port, unsigned int pin)
 	reg = (reg_t *)((SYSCFG_BASE+8) + pin);
 	*reg = MASK_RESET(*reg, 0xf << bit) | (port << bit);
 
-	if (!(RCC_APB2ENR & (1 << RCC_SYSCFGEN_BIT)))
-		RCC_APB2ENR |= (1 << RCC_SYSCFGEN_BIT);
+	if (!(__read_apb2_clock() & (1 << RCC_SYSCFGEN_BIT)))
+		__turn_apb2_clock(RCC_SYSCFGEN_BIT, ON);
 }

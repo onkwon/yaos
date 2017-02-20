@@ -210,10 +210,8 @@ int __timer_open(int id, bool dir, unsigned int hz)
 	tim = __timer_id2reg(id);
 
 	/* enable and reset the peripheral */
-	/* FIXME: lock the shared resource, RCC */
-	SET_CLOCK_APB1(ENABLE, apb_nbit);
-	RCC_APB1RSTR |= (1 << apb_nbit);
-	RCC_APB1RSTR &= ~(1 << apb_nbit);
+	__turn_apb1_clock(apb_nbit, ENABLE);
+	__reset_apb1_device(apb_nbit);
 
 	/* default: */
 	tim->cr1 = (0 << CMS) | (0 << DIR); /* edge aligned, upcounter */
