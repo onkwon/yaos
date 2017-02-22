@@ -36,13 +36,11 @@ static void lcd_backlight(bool on)
 
 static void lcd_reset_init()
 {
-	// TODO: init as lowest speed(2MHz) for power consumtion
 	gpio_init(PIN_LCD_RESET, GPIO_MODE_OUTPUT);
 }
 
 static void lcd_backlight_init()
 {
-	// init as lowest speed(2MHz)
 	gpio_init(PIN_LCD_BLIGHT, GPIO_MODE_OUTPUT);
 }
 
@@ -98,50 +96,50 @@ static inline void lcd_write_data(int data)
 
 static void lcd_gpio_init()
 {
-	gpio_init(PIN_LCD_D0, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D1, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D2, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D3, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D4, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D5, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D6, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D7, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D8, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D9, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D10, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D11, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D12, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D13, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D14, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_D15, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
+	gpio_init(PIN_LCD_D0, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D1, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D2, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D3, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D4, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D5, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D6, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D7, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D8, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D9, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D10, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D11, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D12, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D13, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D14, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_D15, GPIO_MODE_ALT | GPIO_SPD_FASTER);
 
-	gpio_init(PIN_LCD_RS, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_RD, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_WR, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_CS, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
+	gpio_init(PIN_LCD_RS, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_RD, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_WR, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_CS, GPIO_MODE_ALT | GPIO_SPD_FASTER);
 
 #if 0
-	gpio_init(PIN_LCD_NBL0, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(PIN_LCD_NBL1, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
+	gpio_init(PIN_LCD_NBL0, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(PIN_LCD_NBL1, GPIO_MODE_ALT | GPIO_SPD_FASTER);
 
-	gpio_init(59, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(60, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(80, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(81, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(82, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(83, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(84, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(85, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(92, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(93, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(94, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(95, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(96, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(97, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(98, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(99, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(100, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
-	gpio_init(101, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
+	gpio_init(59, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(60, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(80, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(81, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(82, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(83, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(84, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(85, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(92, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(93, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(94, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(95, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(96, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(97, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(98, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(99, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(100, GPIO_MODE_ALT | GPIO_SPD_FASTER);
+	gpio_init(101, GPIO_MODE_ALT | GPIO_SPD_FASTER);
 #endif
 }
 
@@ -341,6 +339,7 @@ static void test_lcd()
 	while (1) {
 		sprintf(buf, "lcd : %x\n", lcd_read_reg(0));
 		lcd_puts(buf, &pos, &color);
+		puts(buf);
 
 		saved = pos;
 		pos = (pos_t){NR_PIXELS_COL - FONT_COL, 0};

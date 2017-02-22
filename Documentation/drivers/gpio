@@ -15,6 +15,7 @@ open("/dev/gpio2", O_RDONLY, PIN_GPIO_2); /* default: pull-up */
 ioctl("dev/gpio2", C_MODE, GPIO_CONF_PULL_DOWN);
 ioctl("dev/gpio2", C_INT_EDGE, GPIO_INT_FALLING | GPIO_INT_RISING);
 ioctl("dev/gpio2", C_INT_FUNC, user_defined_isr);
+ioctl("dev/gpio2", C_FREQ, GPIO_SPD_FAST);
 
 open("/dev/gpio6", O_RDWR, PIN_GPIO_6); --> ERR_UNDEF(-1)
 ```

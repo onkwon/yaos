@@ -36,7 +36,7 @@ extern void __schedule();
 #ifdef CONFIG_SYSCALL
 extern void svc_handler();
 #endif
-void isr_null() { error("ISR is not registered yet: %x", __get_psr()); }
+void isr_null() { error("ISR is not yet registered: %x", __get_psr()); }
 
 static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4))) = {

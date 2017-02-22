@@ -32,7 +32,7 @@ static size_t gpio_write(struct file *file, void *buf, size_t len)
 static int gpio_open(struct inode *inode, struct file *file)
 {
 	struct device *dev = getdev(file->inode->dev);
-	int ret = 0;
+	int vector, ret = 0;
 
 	if (dev == NULL)
 		return -ERR_UNDEF;
@@ -45,19 +45,24 @@ static int gpio_open(struct inode *inode, struct file *file)
 			goto out_unlock;
 		}
 
-		/* TODO: check if the pin is already being used */
 		switch (file->flags & O_RDWR) {
 		case O_RDONLY:
-			gpio_init(MINOR(file->inode->dev),
+			vector = gpio_init(MINOR(file->inode->dev),
 					GPIO_MODE_INPUT | GPIO_CONF_PULL_UP);
 			break;
 		case O_WRONLY:
-			gpio_init(MINOR(file->inode->dev), GPIO_MODE_OUTPUT);
+			vector = gpio_init(MINOR(file->inode->dev),
+					GPIO_MODE_OUTPUT);
 			break;
 		default:
 			ret = -ERR_UNDEF;
 			goto out_unlock;
 			break;
+		}
+
+		if (!vector) {
+			ret = -ERR_DUP;
+			goto out_unlock;
 		}
 	}
 

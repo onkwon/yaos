@@ -135,7 +135,7 @@ void __timer_channel_set(int id, enum tim_iochannel ch, enum tim_iomode iomode,
 	tim->ccer |= 1 << (ch - 1) * 4;
 
 	if (dir)
-		gpio_init(pin, GPIO_MODE_ALT | GPIO_MODE_OUTPUT);
+		gpio_init(pin, GPIO_MODE_ALT | GPIO_SPD_FASTER);
 	else
 		gpio_init(pin, GPIO_MODE_ALT);
 }

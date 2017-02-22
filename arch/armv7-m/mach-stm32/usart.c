@@ -120,14 +120,10 @@ static inline int usart_open(unsigned int channel, struct usart arg)
 	}
 
 	/* gpio configuration. in case of remapping, check pinout. */
-#if (SOC == stm32f1)
-	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + pin, PIN_ALT | PIN_OUTPUT);
-#else
-	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + pin, PIN_ALT);
-#endif
+	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + pin, GPIO_MODE_ALT | GPIO_SPD_SLOW);
 	/* FIXME: rx pin doesn't match when uart5 */
 	/* TODO: support dynamic pin mapping not fixed */
-	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + pin + 1, PIN_ALT);
+	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + pin + 1, GPIO_MODE_ALT);
 
 	/* TODO: FOR TEST, use rx pin as wake-up source */
 	link_exti_to_nvic(reg2port((reg_t *)port), pin+1);
