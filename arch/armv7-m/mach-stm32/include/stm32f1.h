@@ -164,4 +164,19 @@
 #define PWR_CR			(*(reg_t *)PWR_BASE)
 #define PWR_CSR			(*(reg_t *)(PWR_BASE + 0x04))
 
+/* FSMC */
+#define FSMC_BASE		(0xa0000000)
+#define FSMC1_BCR		(*(reg_t *)FSMC_BASE)
+#define FSMC1_BTR		(*(reg_t *)(FSMC_BASE + 0x04))
+#define FSMC1_BWTR		(*(reg_t *)(FSMC_BASE + 0x104))
+#define FSMC2_BCR		(*(reg_t *)(FSMC_BASE + 0x08))
+#define FSMC2_BTR		(*(reg_t *)(FSMC_BASE + 0x0c))
+#define FSMC2_BWTR		(*(reg_t *)(FSMC_BASE + 0x10c))
+#define FSMC3_BCR		(*(reg_t *)(FSMC_BASE + 0x10))
+#define FSMC3_BTR		(*(reg_t *)(FSMC_BASE + 0x14))
+#define FSMC3_BWTR		(*(reg_t *)(FSMC_BASE + 0x114))
+#define FSMC4_BCR		(*(reg_t *)(FSMC_BASE + 0x18))
+#define FSMC4_BTR		(*(reg_t *)(FSMC_BASE + 0x1c))
+#define FSMC4_BWTR		(*(reg_t *)(FSMC_BASE + 0x11c))
+
 #endif /* __STM32F1_IO_H__ */

@@ -24,7 +24,4 @@ unsigned int toknum(const char *line, const char *const token);
 char *strchr(char *s, const char c);
 char *strstr(const char *string, const char *word);
 
-extern size_t sprintf(char *out, const char *format, ...);
-extern size_t snprintf(char *out, size_t n, const char *format, ...);
-
 #endif /* __STRING_H__ */

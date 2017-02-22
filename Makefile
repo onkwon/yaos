@@ -124,6 +124,9 @@ mycortex-stm32f4: stm32f4
 ust-mpb-stm32f103: stm32f1
 	@echo "BOARD = ust-mpb-stm32f103" >> .config
 
+stm32-lcd: stm32f1
+	@echo "BOARD = stm32-lcd" >> .config
+
 stm32f4:
 	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f4\nCFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" > .config
 stm32f3:

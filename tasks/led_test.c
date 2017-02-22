@@ -4,6 +4,7 @@
 
 #include <asm/pinmap.h>
 
+#ifdef PIN_STATUS_LED
 static void test_led()
 {
 	unsigned int v = 0;
@@ -23,3 +24,4 @@ static void test_led()
 	}
 }
 //REGISTER_TASK(test_led, 0, DEFAULT_PRIORITY);
+#endif
