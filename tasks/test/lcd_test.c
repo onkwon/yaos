@@ -168,6 +168,50 @@ static void lcd_fsmc_init()
 	 */
 }
 
+enum ORIENTATION {
+	PORTRATE	= 0,
+	PORTRATE_REV,
+	LANDSCAPE,
+	LANDSCAPE_REV,
+};
+
+static void lcd_rotate(enum ORIENTATION orientation)
+{
+	int driveout, entrymode, gatescan;
+
+	driveout = 0;
+	entrymode = 0x1000;
+	gatescan = 0x2700;
+
+	switch (orientation) {
+	case LANDSCAPE:
+		driveout = 0x0100;
+		entrymode |= 0x0038;
+		gatescan |= 0x8000;
+		break;
+	case LANDSCAPE_REV:
+		driveout = 0x0000;
+		entrymode |= 0x0038;
+		gatescan |= 0x0000;
+		break;
+	case PORTRATE_REV:
+		driveout = 0x0000;
+		entrymode |= 0x0030;
+		gatescan |= 0x8000;
+		break;
+	case PORTRATE:
+	default:
+		driveout = 0x0100;
+		entrymode |= 0x0030;
+		gatescan |= 0x0000;
+		break;
+	}
+
+	lcd_write_reg(0x0001, driveout);
+	lcd_write_reg(0x0003, entrymode);
+	lcd_write_reg(0x0060, gatescan);
+}
+
 static inline void __lcd_func_init()
 {
 	lcd_write_reg(0, 1); /* Start Oscillation */
@@ -224,7 +268,7 @@ static inline void __lcd_func_init()
 	lcd_write_reg(0x0097, 0x0110);
 	lcd_write_reg(0x0098, 0x0110);
 
-	lcd_write_reg(0x0007, 0x0173); /* display on */
+	lcd_write_reg(0x0007, 0x0133); /* display on */
 }
 
 static void lcd_init()
@@ -245,6 +289,12 @@ static void lcd_init()
 
 	__lcd_func_init();
 	//lcd_backlight(OFF);
+}
+
+static void lcd_terminate()
+{
+	lcd_backlight(OFF);
+	lcd_reset(LOW);
 }
 
 static void clear(int color)
@@ -268,7 +318,7 @@ typedef struct {
 } color_t;
 
 typedef struct {
-	unsigned int x, y;
+	int x, y;
 } pos_t;
 
 static void lcd_putc(char c, pos_t *pos, color_t *color)
@@ -320,36 +370,111 @@ static void lcd_puts(const char *s, pos_t *pos, color_t *color)
 		lcd_putc(*s++, pos, color);
 }
 
+static inline void put_pixel(pos_t *pos, color_t *color)
+{
+	lcd_write_at(pos2pxl(pos->x, pos->y));
+	lcd_write_data(color->fg);
+}
+
+static pos_t draw_line(pos_t p1, pos_t p2, color_t *color)
+{
+	int slope, x, y;
+	pos_t q;
+
+	slope = (int)(p2.y - p1.y) / (p2.x - p1.x);
+
+	for (x = p1.x; x <= p2.x; x++) {
+		y = slope * (x - p2.x) + p2.y;
+		q.x = x;
+		q.y = y;
+		put_pixel(&q, color);
+	}
+
+	return q;
+}
+
+#include <timer.h>
+#include <asm/timer.h>
+#include <stdlib.h>
+#include <string.h>
+
+static int pwm_input_init(int psc)
+{
+	int fd;
+	timer_t tim;
+
+	fd = open("/dev/tim2", O_RDONLY);
+	printf("fd = %x\n", fd);
+
+	memset(&tim, 0, sizeof(tim));
+	tim.channel = TIM_IO_CH2;
+	tim.pin = PIN_TIM2CH2;
+	tim.iomode = TIM_IO_PWM;
+	tim.interrupt = true;
+	tim.prescale = psc - 1;
+	ioctl(fd, C_SET, &tim);
+
+	return fd;
+}
+
+#define xy2pos(x, y)	((pos_t){x, y})
+
 static void test_lcd()
 {
 	lcd_init();
 
-	///////////////////////////////////
-	int i = 0;
-	pos_t pos, saved;
-	color_t color;
-	char buf[80];
-
-	pos = (pos_t){0, 0};
-	color.fg = 0xffff;
-	color.bg = 0x0000;
-
 	clear(0x0000);
 
+	char buf[80];
+	pos_t pos = {0, 0};
+	color_t hz_color = {0xf800, 0x0000};
+	color_t tcolor = {0xaaaa, 0x0000};
+	color_t bcolor = {0x6666, 0x0000};
+	color_t color = {0xffff, 0x0000};
+
+	unsigned int capture[4], prescale, clk;
+	volatile int t1, t2;
+	int fd;
+
+	clk = get_hclk();
+	prescale = 35999;
+	fd = pwm_input_init(prescale);
+
 	while (1) {
-		sprintf(buf, "lcd : %x\n", lcd_read_reg(0));
+		if (!read(fd, capture, sizeof(capture)))
+			continue;
+
+		t1 = capture[0];
+		t2 = capture[1];
+
+		sprintf(buf, "%13dHz", clk / prescale / t2);
+		pos = xy2pos(0, 0);
+		lcd_puts(buf, &pos, &hz_color);
+
+		sprintf(buf, "%08x:%d", systick, systick / HZ);
+		pos = xy2pos(0, NR_PIXELS_ROW - FONT_ROW);
+		lcd_puts(buf, &pos, &tcolor);
+
+		draw_line(xy2pos(0, 50), xy2pos(NR_PIXELS_COL, 50), &bcolor);
+		/* graph here */
+		draw_line(xy2pos(0, 150), xy2pos(NR_PIXELS_COL, 150), &bcolor);
+
+		sprintf(buf, "t1:%-12d\nt2:%-12d\nratio:%d%%  \n",
+				t1, t2, t1 * 100 / t2);
+		pos = xy2pos(0, 180);
 		lcd_puts(buf, &pos, &color);
-		puts(buf);
 
-		saved = pos;
-		pos = (pos_t){NR_PIXELS_COL - FONT_COL, 0};
-		color.fg = 0xf800;
-		lcd_putc(i + '0', &pos, &color);
-		color.fg = 0xffff;
-		if (++i > 9) i = 0;
-		pos = saved;
-
+		sprintf(buf, "scale:%-9d", clk / prescale);
+		lcd_puts(buf, &pos, &color);
+#if 0
+		printf("%d : %d, f=%dHz %3d%%\n",
+				t1, t2,
+				clk / prescale / t2,
+				t1 * 100 / t2);
 		sleep(1);
+#endif
 	}
+
+	close(fd);
 }
 REGISTER_TASK(test_lcd, TASK_KERNEL, DEFAULT_PRIORITY);
