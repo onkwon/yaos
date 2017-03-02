@@ -94,6 +94,8 @@ struct task {
 	struct sched_entity se;
 
 	lock_t lock;
+
+	void *args;
 };
 
 #define REGISTER_TASK(f, t, p) \

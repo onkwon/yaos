@@ -5,6 +5,37 @@
 #include <stdlib.h>
 #include <io.h>
 
+void syscall_delegate_return(struct task *task, int ret)
+{
+	unsigned int irqflag;
+
+	spin_lock_irqsave(&task->lock, irqflag);
+
+	__set_retval(task, ret);
+	sum_curr_stat(task);
+
+	if (get_task_state(task)) {
+		set_task_state(task, TASK_RUNNING);
+		runqueue_add_core(task);
+	}
+
+	spin_unlock_irqrestore(&task->lock, irqflag);
+}
+
+void syscall_delegate(struct task *org, struct task *delegate)
+{
+	spin_lock(&org->lock);
+	set_task_state(org, TASK_WAITING);
+	spin_unlock(&org->lock);
+
+	spin_lock(&delegate->lock);
+	set_task_state(delegate, TASK_RUNNING);
+	runqueue_add_core(delegate);
+	spin_unlock(&delegate->lock);
+
+	resched();
+}
+
 int sys_open_core(char *filename, int mode, void *option)
 {
 	struct superblock *sb;
@@ -46,7 +77,7 @@ int sys_open_core(char *filename, int mode, void *option)
 	}
 
 	if ((inode = iget(new->sb, new->addr)) == NULL) {
-		iput(new);
+		ilink(new);
 		inode = new;
 		inode->refcount = 0;
 		INIT_MUTEX(inode->lock);
@@ -189,6 +220,78 @@ int sys_ioctl(int fd, int request, void *data)
 	return file->op->ioctl(file, request, data);
 }
 
+int sys_remove_core(const char *pathname)
+{
+	struct superblock *sb;
+	struct inode *inode, *found;
+	int err = 0;
+
+	pathname = current->parent->args;
+
+	if ((sb = search_super(pathname)) == NULL) {
+		err = -ERR_PATH;
+		goto out;
+	}
+
+	if ((inode = kmalloc(sizeof(*inode))) == NULL) {
+		err = -ERR_ALLOC;
+		goto out;
+	}
+
+	inode->addr = sb->root_inode;
+	inode->sb = sb;
+	INIT_MUTEX(inode->lock);
+	sb->op->read_inode(inode);
+
+	if (inode->iop == NULL) { /* probably due to failure of memory allocation */
+		err = -ERR_RETRY;
+		goto out_free_inode;
+	}
+
+	if (inode->iop->lookup(inode, pathname + sb->pathname_len)) {
+		err = -ERR_PATH;
+		goto out_free_inode;
+	}
+
+	if ((found = iget(inode->sb, inode->addr)) == NULL)
+		found = inode;
+
+	mutex_lock(&found->lock);
+
+	if ((err = found->iop->delete(found, pathname)) || found == inode)
+		goto out_free_inode;
+
+	while ((volatile typeof(found->refcount))found->refcount) {
+		mutex_unlock(&found->lock);
+		resched();
+		mutex_lock(&found->lock);
+	}
+
+	iunlink(found);
+	kfree(found);
+
+out_free_inode:
+	kfree(inode);
+out:
+	syscall_delegate_return(current->parent, err);
+
+	return err;
+}
+
+int sys_remove(const char *pathname)
+{
+	struct task *thread;
+
+	if ((thread = make(TASK_KERNEL | STACK_SHARED, sys_remove_core,
+					current)) == NULL)
+		return -ERR_ALLOC;
+
+	syscall_delegate(current, thread);
+	current->args = (void *)pathname;
+
+	return 0;
+}
+
 #include <asm/power.h>
 
 int sys_shutdown(int option)
@@ -241,6 +344,7 @@ void *syscall_table[] = {
 	sys_timer_create,
 	sys_shutdown,
 	sys_ioctl,		/* 15 */
+	sys_remove,
 	//sys_create,
 	//sys_mkdir,
 };

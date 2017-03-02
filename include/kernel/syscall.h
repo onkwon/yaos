@@ -26,6 +26,10 @@
 
 #define SYSCALL_DEFERRED_WORK		1
 
+struct task;
+void syscall_delegate_return(struct task *task, int ret);
+void syscall_delegate(struct task *org, struct task *delegate);
+
 int sys_open(char *filename, int mode, void *opt);
 int sys_read(int fd, void *buf, size_t len);
 int sys_write(int fd, void *buf, size_t len);

@@ -84,7 +84,8 @@ static int ls(int argc, char **argv)
 			break;
 		}
 
-		printf("0x%08x 0x%02x %s\n", inode, type, name);
+		if (type != FT_DELETED)
+			printf("0x%08x 0x%02x %s\n", inode, type, name);
 
 		if (fs_type == FS_TYPE_EMBED)
 			free(name);
