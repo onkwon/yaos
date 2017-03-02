@@ -34,7 +34,7 @@ void rmfile(struct file *file)
 
 	mutex_lock_atomic(&file->inode->lock);
 	if (--file->inode->refcount <= 0) {
-		links_del(&file->inode->list);
+		iunlink(file->inode);
 		kfree(file->inode);
 		/* no need to unlock as it's gone */
 		goto out;
@@ -100,12 +100,19 @@ struct inode *iget(struct superblock *sb, unsigned int id)
 	return inode;
 }
 
-void iput(struct inode *inode)
+void ilink(struct inode *inode)
 {
 	struct links *head = &itab[hash(inode->addr, HASH_SHIFT)];
 
 	write_lock(&lock_itab);
 	links_add(&inode->list, head);
+	write_unlock(&lock_itab);
+}
+
+void iunlink(struct inode *inode)
+{
+	write_lock(&lock_itab);
+	links_del(&inode->list);
 	write_unlock(&lock_itab);
 }
 

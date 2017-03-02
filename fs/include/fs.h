@@ -76,10 +76,10 @@ struct inode {
 struct inode_operations {
 	int (*lookup)(struct inode *inode, const char *pathname);
 	int (*create)(struct inode *inode, const char *pathname, mode_t mode);
+	int (*delete)(struct inode *inode, const char *pathname);
 	//mkdir
 	//rmdir
 	//rename
-	//delete
 };
 
 enum file_type {
@@ -87,6 +87,7 @@ enum file_type {
 	FT_FILE		= 0x01,
 	FT_DIR		= 0x02,
 	FT_DEV		= 0x04,
+	FT_DELETED	= 0x08,
 };
 
 enum file_oflag {
@@ -140,7 +141,8 @@ void rmfile(struct file *file);
 struct file *getfile(int fd);
 
 struct inode *iget(struct superblock *sb, unsigned int id);
-void iput(struct inode *inode);
+void ilink(struct inode *inode);
+void iunlink(struct inode *inode);
 
 int mount(struct device *dev, const char *mnt_point, const char *fs_type);
 struct superblock *search_super(const char *pathname);

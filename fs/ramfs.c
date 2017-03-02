@@ -322,6 +322,7 @@ static int ramfs_lookup(struct inode *inode, const char *pathname)
 static struct inode_operations iops = {
 	.lookup = ramfs_lookup,
 	.create = ramfs_create,
+	.delete = NULL,
 };
 
 static struct file_operations fops = {

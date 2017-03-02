@@ -19,9 +19,10 @@
 #define SYSCALL_TIMER_CREATE		13
 #define SYSCALL_SHUTDOWN		14
 #define SYSCALL_IOCTL			15
-#define SYSCALL_CREATE			16
-#define SYSCALL_MKDIR			17
-#define SYSCALL_NR			18
+#define SYSCALL_REMOVE			16
+#define SYSCALL_CREATE			17
+#define SYSCALL_MKDIR			18
+#define SYSCALL_NR			19
 
 #define SYSCALL_DEFERRED_WORK		1
 
@@ -56,9 +57,14 @@ static inline int fork()
 {
 	return syscall(SYSCALL_FORK);
 }
+static inline int remove(const char *pathname)
+{
+	return syscall(SYSCALL_REMOVE, pathname);
+}
 #else
 #define read(fd, buf, len)	sys_read(fd, buf, len)
 #define write(fd, buf, len)	sys_write(fd, buf, len)
+#define remove(pathname)	sys_remove(pathname)
 #endif /* CONFIG_SYSCALL */
 
 int __open(const char *filename, ...);

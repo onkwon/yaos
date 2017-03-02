@@ -21,6 +21,7 @@ struct embed_inode {
 	unsigned short int id;
 	unsigned short int mode;
 	size_t size;
+	size_t hole;
 	unsigned int data[NR_DATA_BLOCK];
 } __attribute__((packed));
 

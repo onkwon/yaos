@@ -1,3 +1,12 @@
+/* TODO: provide to format any attached storage in embedfs and mount it
+ *
+ * The code below works only for the embedded flash at the moment. It would be
+ * useful and convenient to format other storages, like eeprom and sdcard, in
+ * embedfs too.
+ *
+ * 1. remove locks, place it somewhere else where it accesses for each devices
+ * 2. each device can have a different block size
+ */
 #include <fs/fs.h>
 #include <kernel/page.h>
 #include <kernel/lock.h>
@@ -164,6 +173,42 @@ static inline bool is_inode_free(unsigned int id)
 	return true;
 }
 
+static void free_inode(unsigned int id, struct device *dev)
+{
+	struct embed_superblock *sb;
+	char *bitmap;
+
+	if (is_inode_free(id))
+		return;
+
+	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
+		return;
+	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
+		goto out_free_sb;
+
+	mutex_lock(&sb_lock);
+
+	read_superblock(sb, dev);
+	read_inode_bitmap(bitmap, dev);
+
+	reset_bitmap(id, bitmap);
+	sb->free_inodes_count++;
+
+	write_superblock(sb, dev);
+	write_inode_bitmap(bitmap, dev);
+
+	if (cached_bitmap)
+		kfree(cached_bitmap);
+	cached_bitmap = bitmap;
+
+	mutex_unlock(&sb_lock);
+
+	assert(is_inode_free(id) == true);
+
+out_free_sb:
+	kfree(sb);
+}
+
 static unsigned int alloc_free_inode(struct device *dev)
 {
 	struct embed_superblock *sb;
@@ -210,6 +255,40 @@ out_free_sb:
 	kfree(sb);
 out:
 	return n; /* if zero, it failed to alloc an inode */
+}
+
+static int return_free_block(unsigned int nblock, struct device *dev)
+{
+	struct embed_superblock *sb;
+	unsigned int i, j;
+	char *bitmap;
+	int ret = -ERR_ALLOC;
+
+	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
+		goto out;
+	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
+		goto out_free_bitmap;
+
+	read_superblock(sb, dev);
+
+	nblock -= sb->data_block;
+	i = nblock / (BLOCK_SIZE * 8);
+	j = nblock - (i * BLOCK_SIZE);
+
+	read_block(D_BMAP_BLK + i, bitmap, dev);
+	reset_bitmap(j, bitmap);
+	write_block(D_BMAP_BLK + i, bitmap, BLOCK_SIZE, dev);
+
+	sb->free_blocks_count++;
+	write_superblock(sb, dev);
+
+	ret = 0;
+
+	kfree(sb);
+out_free_bitmap:
+	kfree(bitmap);
+out:
+	return ret;
 }
 
 static unsigned int alloc_free_block(struct device *dev)
@@ -416,15 +495,15 @@ out:
 	return nblock;
 }
 
-static int write_data_block(struct embed_inode *inode, const void *data,
-		size_t len, struct device *dev)
+static int write_data_block(struct embed_inode *inode, unsigned int pos,
+		const void *data, size_t len, struct device *dev)
 {
 	unsigned int nblk, pblk, off;
 	size_t left;
 	char *buf, *src;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
-		return -ERR_ALLOC;
+		return 0;
 
 	src = (char *)data;
 	pblk = nblk = 0;
@@ -433,7 +512,7 @@ static int write_data_block(struct embed_inode *inode, const void *data,
 		/* exclusive access guaranteed as its inode is already locked
 		 * and it will take the device lock through buffer-cache. */
 		mutex_lock(&sb_lock);
-		nblk = take_dblock(inode, inode->size, dev);
+		nblk = take_dblock(inode, pos, dev);
 		mutex_unlock(&sb_lock);
 
 		if (!nblk) /* disk full */
@@ -447,7 +526,7 @@ static int write_data_block(struct embed_inode *inode, const void *data,
 			read_block(nblk, buf, dev);
 		}
 
-		off = inode->size % BLOCK_SIZE;
+		off = pos % BLOCK_SIZE;
 		left = BLOCK_SIZE - off;
 		left = min(len, left);
 
@@ -455,17 +534,13 @@ static int write_data_block(struct embed_inode *inode, const void *data,
 
 		src += left;
 		len -= left;
-		inode->size += left;
+		pos += left;
 
 		pblk = nblk;
 	}
 
 	if (nblk)
 		write_block(nblk, buf, BLOCK_SIZE, dev);
-
-	mutex_lock(&sb_lock);
-	update_inode_table(inode, dev);
-	mutex_unlock(&sb_lock);
 
 	kfree(buf);
 
@@ -482,8 +557,8 @@ static int read_data_block(struct embed_inode *inode, unsigned int pos,
 	if ((t = kmalloc(BLOCK_SIZE)) == NULL)
 		return -ERR_ALLOC;
 
-	if (pos + len > inode->size)
-		len -= pos + len - inode->size;
+	if ((pos + len) > (inode->size + inode->hole))
+		len -= (pos + len) - (inode->size + inode->hole);
 
 	d = (char *)buf;
 
@@ -528,6 +603,7 @@ static unsigned int make_node(mode_t mode, struct device *dev)
 	new->id = inode;
 	new->mode = mode;
 	new->size = 0;
+	new->hole = 0;
 	for (i = 0; i < NR_DATA_BLOCK; i++) new->data[i] = 0;
 
 	mutex_lock(&sb_lock);
@@ -600,14 +676,15 @@ static size_t tok_strlen(const char *s, const char token)
 	return p - s;
 }
 
-static const char *lookup(struct embed_inode *inode, const char *pathname,
-		struct device *dev)
+static const char *lookup(const char *pathname, struct embed_inode *inode,
+		unsigned short int *parent_id, struct device *dev)
 {
 	struct embed_dir *dir;
 	struct embed_inode *curr;
-	unsigned int offset, len, i, dir_size;
+	unsigned int pos, len, i, dir_size;
 	const char *pwd;
 	char *name;
+	unsigned short int parent;
 
 	if ((dir = kmalloc(sizeof(struct embed_dir))) == NULL)
 		goto out;
@@ -619,7 +696,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	/* skip '/'s if exist */
 	for (i = 0; pathname[i] == '/'; i++) ;
 
-	curr->id = 0; /* start searching from root */
+	curr->id = parent = 0; /* start searching from root */
 	if (read_inode(curr, dev)) {
 		error("can not read root inode");
 		goto out_free_inode;
@@ -632,8 +709,11 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		if (!(curr->mode & FT_DIR))
 			break;
 
-		for (offset = 0; offset < curr->size; offset += dir->rec_len) {
-			read_data_block(curr, offset, dir, dir_size, dev);
+		for (pos = 0; pos < (curr->size + curr->hole); pos += dir->rec_len) {
+			read_data_block(curr, pos, dir, dir_size, dev);
+
+			if (dir->type == FT_DELETED)
+				continue;
 
 			if (is_inode_free(dir->inode)) { /* not valid data */
 				debug("not valid inode %x", dir->inode);
@@ -643,7 +723,7 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 			if ((name = kmalloc(dir->name_len)) == NULL)
 				goto out_free_inode;
 
-			read_data_block(curr, offset + dir_size, name,
+			read_data_block(curr, pos + dir_size, name,
 					dir->name_len, dev);
 
 			if (len == dir->name_len-1 &&
@@ -656,10 +736,11 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 		}
 
 		/* no such path exist if it reaches at the end of dir list */
-		if (offset >= curr->size)
+		if (pos >= (curr->size + curr->hole))
 			break;
 
 		/* or move on */
+		parent = curr->id;
 		curr->id = dir->inode;
 		if (read_inode(curr, dev)) {
 			error("can not read inode, %x", curr->id);
@@ -669,6 +750,8 @@ static const char *lookup(struct embed_inode *inode, const char *pathname,
 	}
 
 	memcpy(inode, curr, sizeof(struct embed_inode));
+	if (parent_id)
+		*parent_id = parent;
 
 	/* if pwd is null after all, the inode you're looking for is found.
 	 * or remained path indicates broken, no such directory. return the
@@ -687,11 +770,41 @@ out:
 	return (char *)-ERR_ALLOC;
 }
 
+static unsigned int find_hole(struct embed_inode *inode,
+		unsigned short int *size, struct device *dev)
+{
+	struct embed_dir *dir;
+	unsigned int pos, dir_size;
+
+	if (!(inode->mode & FT_DIR))
+		return -ERR_ATTR;
+
+	if ((dir = kmalloc(sizeof(*dir))) == NULL)
+		return -ERR_ALLOC;
+
+	dir_size = sizeof(*dir) - sizeof(char *);
+
+	for (pos = 0; pos < (inode->size + inode->hole); pos += dir->rec_len) {
+		read_data_block(inode, pos, dir, dir_size, dev);
+
+		if (dir->type == FT_DELETED && dir->rec_len >= *size) {
+			/* NOTE: wasted as much as dir->rec_len - *size */
+			*size = dir->rec_len;
+			inode->hole -= *size;
+			break;
+		}
+	}
+
+	kfree(dir);
+
+	return pos;
+}
+
 static int create_file(const char *filename, mode_t mode,
 		struct embed_inode *parent, struct device *dev)
 {
 	struct embed_dir *dir;
-	unsigned int inode_new;
+	unsigned int inode_new, pos_next;
 	int ret = 0;
 
 	if ((dir = kmalloc(sizeof(struct embed_dir))) == NULL)
@@ -708,9 +821,21 @@ static int create_file(const char *filename, mode_t mode,
 	dir->type = GET_FILE_TYPE(mode);
 	dir->name = (char *)filename;
 
-	write_data_block(parent, dir,
+	pos_next = find_hole(parent, &dir->rec_len, dev);
+	if (pos_next > (unsigned int)-ERR_MAX) {
+		free_inode(inode_new, dev);
+		goto out;
+	}
+
+	pos_next += write_data_block(parent, pos_next, dir,
 			sizeof(struct embed_dir) - sizeof(char *), dev);
-	write_data_block(parent, filename, dir->name_len, dev);
+	pos_next += write_data_block(parent, pos_next, filename,
+			dir->name_len, dev);
+
+	mutex_lock(&sb_lock);
+	parent->size += dir->rec_len;
+	update_inode_table(parent, dev);
+	mutex_unlock(&sb_lock);
 
 out:
 	kfree(dir);
@@ -795,7 +920,6 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 static size_t embed_write_core(struct file *file, void *buf, size_t len)
 {
 	struct embed_inode *inode;
-	size_t size;
 	int ret;
 
 	if ((inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
@@ -809,17 +933,18 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		goto out_free_inode;
 	}
 
-	size = inode->size;
-	inode->size = file->offset;
-	ret = write_data_block(inode, buf, len, file->inode->sb->dev);
+	ret = write_data_block(inode, file->offset, buf, len,
+			file->inode->sb->dev);
 
-	file->offset += inode->size - file->offset;
+	file->offset += ret;
 
-	if (file->offset > inode->size)
-		error("embedfs: file offset exceeds file size");
-
-	if (inode->size > size)
+	mutex_lock(&sb_lock);
+	if (file->offset > inode->size) {
+		inode->size = file->offset;
 		file->inode->size = inode->size;
+	}
+	update_inode_table(inode, file->inode->sb->dev);
+	mutex_unlock(&sb_lock);
 
 	if (!ret)
 		error("embedfs: disk full!\n");
@@ -910,7 +1035,7 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 		goto out;
 	}
 
-	if ((int)(s = lookup(embed_inode, pathname, inode->sb->dev)) < 0) {
+	if ((int)(s = lookup(pathname, embed_inode, NULL, inode->sb->dev)) < 0) {
 		ret = (int)s;
 		goto out_free_inode;
 	}
@@ -948,7 +1073,7 @@ static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
 		goto out;
 	}
 
-	if ((int)(s = lookup(embed_inode, pathname, inode->sb->dev)) < 0) {
+	if ((int)(s = lookup(pathname, embed_inode, NULL, inode->sb->dev)) < 0) {
 		ret = (int)s;
 		goto out_free_inode;
 	}
@@ -994,7 +1119,9 @@ static int embed_close(struct file *file)
 		return -ERR_RETRY;
 	}
 
+	mutex_lock(&file->inode->lock);
 	__sync(file->inode->sb->dev);
+	mutex_unlock(&file->inode->lock);
 	rmfile(file);
 
 	unsigned int irqflag;
@@ -1016,9 +1143,210 @@ static int embed_close(struct file *file)
 	return -ERR_UNDEF;
 }
 
+static inline void return_data_blocks(unsigned int *buf, struct device *dev)
+{
+	int i;
+
+	for (i = 0; i < (BLOCK_SIZE / sizeof(*buf)); i++) {
+		if (buf[i])
+			return_free_block(buf[i], dev);
+	}
+}
+
+/* FIXME: remove the recursive */
+static inline void traverse(int depth, unsigned int *table, struct device *dev)
+{
+	unsigned int *buf, i;
+
+	if (!depth) {
+		return_data_blocks(table, dev);
+		return;
+	}
+
+	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
+		return;
+
+	for (i = 0; i < (BLOCK_SIZE / sizeof(*buf)); i++) {
+		if (!table[i] || !read_block(table[i], buf, dev))
+			continue;
+
+		traverse(depth - 1, buf, dev);
+		return_free_block(table[i], dev);
+		table[i] = 0;
+	}
+
+	kfree(buf);
+}
+
+static inline void free_datablk(struct embed_inode *inode, struct device *dev)
+{
+	int i, depth;
+	unsigned int *buf;
+
+	for (i = 0; i < NR_DATA_BLOCK_DIRECT; i++) {
+		if (inode->data[i]) {
+			return_free_block(inode->data[i], dev);
+			inode->data[i] = 0;
+		}
+	}
+
+	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
+		return;
+
+	for (i = NR_DATA_BLOCK_DIRECT; i < NR_DATA_BLOCK; i++) {
+		depth = i - NR_DATA_BLOCK_DIRECT;
+
+		if (!inode->data[i] || !read_block(inode->data[i], buf, dev))
+			continue;
+
+		traverse(depth, buf, dev);
+
+		return_free_block(inode->data[i], dev);
+		inode->data[i] = 0;
+	}
+
+	update_inode_table(inode, dev);
+	kfree(buf);
+}
+
+static int embed_delete_core(struct embed_inode *inode, struct device *dev)
+{
+	struct embed_inode *child;
+	struct embed_dir *dir;
+	unsigned int pos, dir_size;
+
+	if (inode->mode == FT_FILE) {
+		free_datablk(inode, dev);
+		free_inode(inode->id, dev);
+		return 0;
+	} else if (inode->mode != FT_DIR) {
+		return -ERR_PERM;
+	}
+
+	if ((dir = kmalloc(sizeof(*dir))) == NULL)
+		goto out;
+	if ((child = kmalloc(sizeof(*child))) == NULL)
+		goto out_free_dir;
+
+	dir_size = sizeof(*dir) - sizeof(char *);
+
+	for (pos = 0; pos < (inode->size + inode->hole); pos += dir->rec_len) {
+		read_data_block(inode, pos, dir, dir_size, dev);
+
+		child->id = dir->inode;
+		if (read_inode(child, dev)) {
+			error("can not read inode");
+			break;
+		}
+
+		if (dir->type == FT_DIR)
+			/* FIXME: remove the recursive */
+			embed_delete_core(child, dev);
+
+		dir->type = FT_DELETED;
+		free_datablk(child, dev);
+		free_inode(child->id, dev);
+	}
+
+	free_datablk(inode, dev);
+	free_inode(inode->id, dev);
+
+	kfree(child);
+	kfree(dir);
+
+	return 0;
+
+out_free_dir:
+	kfree(dir);
+out:
+	return -ERR_ALLOC;
+}
+
+static inline void delete_dir_entry(unsigned short int target,
+		unsigned short int parent, struct device *dev)
+{
+	struct embed_inode *inode;
+	struct embed_dir *dir;
+	unsigned int pos, dir_size;
+
+	if ((inode = kmalloc(sizeof(*inode))) == NULL)
+		goto out_err_alloc;
+	if ((dir = kmalloc(sizeof(*dir))) == NULL)
+		goto out_free_inode;
+
+	inode->id = parent;
+	if (read_inode(inode, dev))
+		goto out_err_read;
+
+	dir_size = sizeof(*dir) - sizeof(char *);
+
+	for (pos = 0; pos < (inode->size + inode->hole); pos += dir->rec_len) {
+		read_data_block(inode, pos, dir, dir_size, dev);
+
+		if (dir->inode != target)
+			continue;
+
+		dir->type = FT_DELETED;
+		write_data_block(inode, pos, dir, sizeof(*dir), dev);
+
+		mutex_lock(&sb_lock);
+		inode->hole += dir->rec_len;
+		inode->size -= dir->rec_len;
+		update_inode_table(inode, dev);
+		mutex_unlock(&sb_lock);
+		break;
+	}
+
+	kfree(dir);
+	kfree(inode);
+	return;
+
+out_err_read:
+	error("can not read inode %x", inode->id);
+out_free_inode:
+	kfree(inode);
+out_err_alloc:
+	error("failed allocating");
+}
+
+static int embed_delete(struct inode *inode, const char *pathname)
+{
+	struct embed_inode *embed_inode;
+	const char *s;
+	unsigned short int parent_id = 0;
+	int ret = 0;
+
+	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
+		ret = -ERR_ALLOC;
+		goto out;
+	}
+
+	if ((int)(s = lookup(pathname, embed_inode, &parent_id,
+					inode->sb->dev)) < 0) {
+		ret = (int)s;
+		goto out_free_inode;
+	}
+
+	if (*s) {
+		ret = -ERR_PATH;
+		goto out_free_inode;
+	}
+
+	embed_delete_core(embed_inode, inode->sb->dev);
+	delete_dir_entry(embed_inode->id, parent_id, inode->sb->dev);
+
+out_free_inode:
+	kfree(embed_inode);
+out:
+	__sync(inode->sb->dev);
+
+	return ret;
+}
+
 static struct inode_operations iops = {
 	.lookup = embed_lookup,
 	.create = embed_create,
+	.delete = embed_delete,
 };
 
 static struct file_operations fops = {
