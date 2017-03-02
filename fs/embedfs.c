@@ -585,7 +585,7 @@ static int read_data_block(struct embed_inode *inode, unsigned int pos,
 	return (int)((unsigned int)d - (unsigned int)buf);
 }
 
-static unsigned int make_node(mode_t mode, struct device *dev)
+static unsigned int make_node(int mode, struct device *dev)
 {
 	unsigned int inode, i;
 	struct embed_inode *new;
@@ -800,7 +800,7 @@ static unsigned int find_hole(struct embed_inode *inode,
 	return pos;
 }
 
-static int create_file(const char *filename, mode_t mode,
+static int create_file(const char *filename, int mode,
 		struct embed_inode *parent, struct device *dev)
 {
 	struct embed_dir *dir;
@@ -1057,7 +1057,7 @@ out:
 	return ret;
 }
 
-static int embed_create(struct inode *inode, const char *pathname, mode_t mode)
+static int embed_create(struct inode *inode, const char *pathname, int mode)
 {
 	struct embed_inode *embed_inode;
 	const char *s;

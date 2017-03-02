@@ -56,7 +56,7 @@ struct file_operations;
 
 struct inode {
 	unsigned int addr; /* or block number or ID */
-	mode_t mode;
+	int mode;
 	union {
 		size_t size;
 		dev_t dev;
@@ -75,7 +75,7 @@ struct inode {
 
 struct inode_operations {
 	int (*lookup)(struct inode *inode, const char *pathname);
-	int (*create)(struct inode *inode, const char *pathname, mode_t mode);
+	int (*create)(struct inode *inode, const char *pathname, int mode);
 	int (*delete)(struct inode *inode, const char *pathname);
 	//mkdir
 	//rmdir
@@ -117,7 +117,7 @@ enum whence {
 
 struct file {
 	unsigned int offset; /* keep this first */
-	mode_t flags;
+	int flags;
 	struct inode *inode;
 
 	struct file_operations *op;

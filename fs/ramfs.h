@@ -9,7 +9,7 @@ struct ramfs_superblock {
 } __attribute__((packed));
 
 struct ramfs_inode {
-	mode_t mode;
+	unsigned short int mode;
 	char __pad[2];
 	size_t size;
 	unsigned int *data[NR_DATA_BLOCK];

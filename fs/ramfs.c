@@ -64,7 +64,7 @@ static void ramfs_free(void *addr, struct device *dev)
 	/* unlock superblock */
 }
 
-static struct ramfs_inode *ramfs_mknod(mode_t mode, struct device *dev)
+static struct ramfs_inode *ramfs_mknod(int mode, struct device *dev)
 {
 	struct ramfs_inode *new;
 	unsigned int i;
@@ -248,7 +248,7 @@ static const char *lookup(struct ramfs_inode **inode, const char *pathname,
 	return pathname + i;
 }
 
-static int create_file(const char *pathname, mode_t mode, struct device *dev)
+static int create_file(const char *pathname, int mode, struct device *dev)
 {
 	struct ramfs_inode *new, *parent;
 	struct ramfs_dir dir;
@@ -282,7 +282,7 @@ static int create_file(const char *pathname, mode_t mode, struct device *dev)
 	return 0;
 }
 
-static int ramfs_create(struct inode *inode, const char *pathname, mode_t mode)
+static int ramfs_create(struct inode *inode, const char *pathname, int mode)
 {
 	return create_file(pathname, mode, inode->sb->dev);
 }

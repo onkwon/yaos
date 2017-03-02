@@ -18,7 +18,6 @@ typedef enum {
 	ENABLE	= true,
 } bool;
 
-typedef unsigned short int mode_t;
 typedef volatile int lock_t;
 typedef unsigned int dev_t;
 typedef unsigned int size_t;
