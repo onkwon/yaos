@@ -19,7 +19,6 @@ sizeof(int)를 기본 word 타입으로 결정했다. 위키피디아의 다음 
 이외에 일관(호환)성을 유지하기 위해 지정한 데이터 타입은 다음과 같다:
 
 	bool         false or true         - enum
-	refcnt_t     reference count       - unsigned short int
 	mode_t       mode(flags)           - unsigned short int
 	lock_t       lock                  - volatile int
 	size_t       size(len)             - unsigned int
@@ -28,6 +27,7 @@ sizeof(int)를 기본 word 타입으로 결정했다. 위키피디아의 다음 
 	uint64_t     64 bit unsigned       - unsigned long long
 
 	struct links doubly linked list
+	struct link  singly linked list
 	struct fifo  first in first out
 
 	buf_t        buffer cache          - struct links
