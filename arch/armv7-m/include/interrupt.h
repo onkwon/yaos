@@ -4,6 +4,14 @@
 #define irq2vec(nirq)		((nirq) + 16)
 #define vec2irq(nvec)		((nvec) - 16)
 
+/* isb should be used after cpsie/cpsid to catch the pended interrupt. Or it
+ * may execute up to two instructions before catching the interrupt. Refer to:
+ * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHBFEIB.html
+ *
+ * the situation that entering a critical section while an interrupt is pending
+ * is prevented as isb is put after cpsie. so we doesn't need another barrier
+ * after cpsid.
+ */
 #define __sei()								\
 	__asm__ __volatile__(						\
 			"cpsie i	\n\t"				\

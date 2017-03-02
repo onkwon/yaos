@@ -19,6 +19,8 @@ void __enter_sleep_mode()
 {
 	set_power_clock(ON);
 
+	/*  drain any pending memory activity before suspending execution to
+	 *  enter a sleep mode */
 	dsb();
 	__wfi();
 
@@ -44,6 +46,8 @@ void __enter_stop_mode()
 	PWR_CR |= 1; /* configure LPDS bit in PWR_CR */
 
 	stop_scheduler();
+	/*  drain any pending memory activity before suspending execution to
+	 *  enter a sleep mode */
 	dsb();
 	__wfi();
 	clock_init();

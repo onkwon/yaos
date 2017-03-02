@@ -16,7 +16,7 @@ static void __init mem_init()
 	for (i = 0; (&_bss + i) < &_ebss; i++)
 		*((char *)&_bss + i) = 0;
 
-	dmb();
+	dsb();
 }
 REGISTER_INIT(mem_init, 1);
 

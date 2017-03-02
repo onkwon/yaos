@@ -9,6 +9,10 @@ static void __init __attribute__((naked, used)) reset()
 {
 	cli();
 
+	/* isb() following dsb() should be put if changing a priority with
+	 * interrupt enabled. Refer to:
+	 * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHJICIE.html
+	 */
 	SCB_SHPR3 |= 0x00f00000; /* PendSV : the lowest priority, 15 */
 	SCB_SHPR2 |= 0xf0000000; /* SVCall : the lowest priority, 15 */
 	SCB_SHCSR |= 0x00070000; /* enable faults */
@@ -24,6 +28,7 @@ static void __init __attribute__((naked, used)) reset()
 		nvic_set_pri(i, NVIC_DEFAULT_PRIORITY);
 
 	dsb();
+	isb();
 
 	kernel_init();
 }
