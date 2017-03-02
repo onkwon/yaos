@@ -12,10 +12,10 @@
 	__attribute__((section(".device_list"), used)) = func
 
 #define REGISTER_DEVICE(module, name, minor) \
-	void __register_##module_##name_##minor() { \
+	void register_##module##minor() { \
 		register_##module(name, minor); \
 	} \
-	DEVICE_INIT(__register_##module_##name_##minor)
+	DEVICE_INIT(register_##module##minor)
 
 /* This function must be called at boot-time only. Otherwise you would need a
  * lock for synchronization of major and minor */
