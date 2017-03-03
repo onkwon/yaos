@@ -7,6 +7,27 @@
 #include <io.h>
 #include <kernel/lock.h>
 
+/* FIXME: simultaneously generated interrupts between EXTI5~15 will be missed
+ * those interrupts share an interrupt vector and we clear all that bits at
+ * once below, we will miss except the first one. */
+static inline void ret_from_exti(unsigned int n)
+{
+	int mask = 1;
+
+	n -= 22; /* EXTI0~4 */
+
+	if (n > 21) { /* EXTI10~15 */
+		n = 10;
+		mask = 0x3f;
+	} else if (n > 4) { /* EXTI5~9 */
+		n = 5;
+		mask = 0x1f;
+	}
+
+	/* FIXME: handle EXTI in an isolated func considering sync, lock */
+	EXTI_PR |= mask << n;
+}
+
 static inline void ret_from_gpio_int(unsigned int n)
 {
 #ifdef CONFIG_SMP

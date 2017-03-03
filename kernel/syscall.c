@@ -226,7 +226,7 @@ int sys_remove_core(const char *pathname)
 	struct inode *inode, *found;
 	int err = 0;
 
-	pathname = current->parent->args;
+	pathname = current->args;
 
 	if ((sb = search_super(pathname)) == NULL) {
 		err = -ERR_PATH;
@@ -282,12 +282,12 @@ int sys_remove(const char *pathname)
 {
 	struct task *thread;
 
-	if ((thread = make(TASK_KERNEL | STACK_SHARED, sys_remove_core,
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, sys_remove_core,
 					current)) == NULL)
 		return -ERR_ALLOC;
 
+	thread->args = (void *)pathname;
 	syscall_delegate(current, thread);
-	current->args = (void *)pathname;
 
 	return 0;
 }

@@ -3,13 +3,40 @@
 #include <kernel/gpio.h>
 #include <asm/pinmap.h>
 
-/* TODO: support interrupt mode
- *   1. register the interrupt service routine
- *   2. call a user defined function passed by ioctl() in ISR
- *   3. provide edge configuration through ioctl(),
- *      GPIO_INT_FALLING and GPIO_INT_RISING */
-
 static unsigned int major;
+static struct task *daemon;
+static volatile bool pending;
+static DEFINE_LINK_HEAD(q_user_isr);
+static DEFINE_MUTEX(q_lock);
+
+struct uisr {
+	struct link list; /* keep it in the first place */
+	unsigned int id;
+	int vector;
+	int (*func)(void *arg);
+	struct task *task;
+};
+
+static void isr()
+{
+	if (daemon && (get_task_state(daemon) == TASK_SLEEPING)) {
+		spin_lock(&daemon->lock);
+
+		daemon->args = (void *)get_active_irq();
+		set_task_state(daemon, TASK_RUNNING);
+		runqueue_add_core(daemon);
+
+		spin_unlock(&daemon->lock);
+	} else {
+		spin_lock(&daemon->lock);
+		daemon->args = (void *)get_active_irq();
+		spin_unlock(&daemon->lock);
+
+		pending = true;
+	}
+
+	ret_from_exti(get_active_irq());
+}
 
 static size_t gpio_read(struct file *file, void *buf, size_t len)
 {
@@ -29,10 +56,29 @@ static size_t gpio_write(struct file *file, void *buf, size_t len)
 	return 1;
 }
 
+static inline int getmode(int flags)
+{
+	switch (flags & O_RDWR) {
+	case O_RDONLY:
+		return GPIO_MODE_INPUT;
+	case O_WRONLY:
+		return GPIO_MODE_OUTPUT;
+	default:
+		break;
+	}
+
+	return -ERR_UNDEF;
+}
+
+static inline int getconf(int opt)
+{
+	return opt & (GPIO_CONF_MASK | GPIO_INT_MASK | GPIO_SPD_MASK);
+}
+
 static int gpio_open(struct inode *inode, struct file *file)
 {
 	struct device *dev = getdev(file->inode->dev);
-	int vector, ret = 0;
+	int vector, mode = 0;
 
 	if (dev == NULL)
 		return -ERR_UNDEF;
@@ -40,29 +86,26 @@ static int gpio_open(struct inode *inode, struct file *file)
 	spin_lock(&dev->mutex.counter);
 
 	if (dev->refcount == 0) {
-		if (!(get_task_flags(current->parent) & TASK_PRIVILEGED)) {
-			ret = -ERR_PERM;
+		if (!(get_task_flags(current->parent) & TF_PRIVILEGED)) {
+			mode = -ERR_PERM;
 			goto out_unlock;
 		}
 
-		switch (file->flags & O_RDWR) {
-		case O_RDONLY:
-			vector = gpio_init(MINOR(file->inode->dev),
-					GPIO_MODE_INPUT | GPIO_CONF_PULL_UP);
-			break;
-		case O_WRONLY:
-			vector = gpio_init(MINOR(file->inode->dev),
-					GPIO_MODE_OUTPUT);
-			break;
-		default:
-			ret = -ERR_UNDEF;
+		if ((mode = getmode(file->flags)) < 0)
 			goto out_unlock;
-			break;
+
+		mode |= getconf((int)file->option);
+
+		if (!(vector = gpio_init(MINOR(file->inode->dev), mode))) {
+			mode = -ERR_DUP;
+			goto out_unlock;
 		}
 
-		if (!vector) {
-			ret = -ERR_DUP;
-			goto out_unlock;
+		if (vector > 0) {
+			register_isr(vector, isr);
+			/* we do not use file->offset nor seek() for gpio
+			 * driver so safe to keep the vector number in it */
+			file->offset = vector;
 		}
 	}
 
@@ -71,34 +114,123 @@ static int gpio_open(struct inode *inode, struct file *file)
 out_unlock:
 	spin_unlock(&dev->mutex.counter);
 
+	return mode;
+}
+
+static int gpio_close_core(struct file *file)
+{
+	struct link *curr, *prev;
+	struct uisr *uisr;
+	int ret = 0;
+
+	file = current->args;
+
+	mutex_lock(&q_lock);
+
+	prev = &q_user_isr;
+	for (curr = prev->next; curr; curr = curr->next) {
+		uisr = (struct uisr *)curr;
+
+		if (uisr->id != (unsigned int)file) {
+			prev = curr;
+			continue;
+		}
+
+		link_del(curr, prev);
+		kfree(uisr);
+		prev = curr;
+	}
+
+	mutex_unlock(&q_lock);
+
+	unsigned int irqflag;
+	struct device *dev = file->inode->sb->dev;
+
+	spin_lock_irqsave(&dev->mutex.counter, irqflag);
+
+	if (--dev->refcount == 0) {
+		gpio_reset(MINOR(file->inode->dev));
+
+		assert(!link_empty(&q_user_isr));
+	}
+
+	spin_unlock_irqrestore(&dev->mutex.counter, irqflag);
+
+	syscall_delegate_return(current->parent, ret);
+
 	return ret;
 }
 
 static int gpio_close(struct file *file)
 {
+	struct task *thread;
 	struct device *dev = getdev(file->inode->dev);
 
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
-	spin_lock(&dev->mutex.counter);
+	if (!(get_task_flags(current) & TF_PRIVILEGED))
+		return -ERR_PERM;
 
-	if (--dev->refcount == 0) {
-		if (!(get_task_flags(current) & TASK_PRIVILEGED))
-			return -ERR_PERM;
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, gpio_close_core,
+					current)) == NULL)
+		return -ERR_ALLOC;
 
-		gpio_reset(MINOR(file->inode->dev));
-	}
-
-	spin_unlock(&dev->mutex.counter);
+	thread->args = (void *)file;
+	syscall_delegate(current, thread);
 
 	return 0;
 }
 
+static int gpio_isr_add(struct file *file, void *data)
+{
+	struct uisr *uisr;
+	int ret = 0;
+
+	if (!(uisr = kmalloc(sizeof(*uisr))))
+		return -ERR_ALLOC;
+
+	file = current->args;
+	data = file->option;
+
+	/* save the file descriptor's address for later identification when
+	 * close() to remove the isr and free memory. And keep track on the
+	 * owner task's privilege level to run user-define-isr in its own
+	 * context in secure. */
+	uisr->id = (unsigned int)file;
+	uisr->vector = file->offset;
+	uisr->func = data;
+	uisr->task = current->parent;
+
+	mutex_lock(&q_lock);
+	link_add(&uisr->list, &q_user_isr);
+	mutex_unlock(&q_lock);
+
+	syscall_delegate_return(current->parent, ret);
+
+	return ret;
+}
+
 static int gpio_ioctl(struct file *file, int request, void *data)
 {
-	if (!(get_task_flags(current) & TASK_PRIVILEGED))
+	struct task *thread;
+
+	if (!(get_task_flags(current) & TF_PRIVILEGED))
 		return -ERR_PERM;
+
+	if (request != C_EVENT)
+		return -ERR_UNDEF;
+
+	if (getmode(file->flags) != GPIO_MODE_INPUT)
+		return -ERR_ATTR;
+
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, gpio_isr_add,
+					current)) == NULL)
+		return -ERR_ALLOC;
+
+	file->option = data;
+	thread->args = (void *)file;
+	syscall_delegate(current, thread);
 
 	return 0;
 }
@@ -116,3 +248,52 @@ void register_gpio(const char *name, int minor)
 {
 	macro_register_device(name, major, minor, &ops);
 }
+
+static void gpio_daemon()
+{
+	struct link *curr;
+	struct uisr *uisr;
+	struct task *thread;
+	unsigned int mode;
+	int vector;
+
+	/* register daemon to be notified to isr */
+	daemon = current;
+
+endless:
+	vector = (int)daemon->args;
+
+	mutex_lock(&q_lock);
+
+	for (curr = q_user_isr.next; curr; curr = curr->next) {
+		uisr = (struct uisr *)curr;
+
+		if (uisr->vector != vector)
+			continue;
+
+		mode = (get_task_flags(uisr->task) & TASK_PRIVILEGED) |
+			STACK_SHARED;
+
+		if ((thread = make(mode, uisr->func, uisr->task))) {
+			set_task_state(thread, TASK_RUNNING);
+			runqueue_add(thread);
+			/* NOTE: you will not be able to service all the
+			 * interrupts if you do reschedule here. even if not
+			 * reschedule here, there is still chance to miss,
+			 * pending more than once. */
+			//resched();
+		}
+	}
+
+	mutex_unlock(&q_lock);
+
+	if (pending) {
+		pending = false;
+		goto endless;
+	}
+
+	yield();
+
+	goto endless;
+}
+REGISTER_TASK(gpio_daemon, TASK_KERNEL, DEFAULT_PRIORITY);
