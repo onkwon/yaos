@@ -5,7 +5,7 @@
 /* TODO: Make the runqueue's head to point to the init task
  * The cost of turning to the idle task when no task running could be reduced
  * in the way, I guess. think about it */
-static DEFINE_LIST_HEAD(cfs_rq);
+static DEFINE_LINKS_HEAD(cfs_rq);
 
 struct task *cfs_pick_next(struct scheduler *cfs)
 {

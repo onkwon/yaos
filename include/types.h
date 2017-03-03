@@ -60,9 +60,9 @@ struct links {
 	struct links *next, *prev;
 };
 
-#define INIT_LIST_HEAD(name) 		{ &(name), &(name) }
-#define DEFINE_LIST_HEAD(name)		\
-	struct links name = INIT_LIST_HEAD(name)
+#define INIT_LINKS_HEAD(name) 		{ &(name), &(name) }
+#define DEFINE_LINKS_HEAD(name)		\
+	struct links name = INIT_LINKS_HEAD(name)
 
 static inline void links_init(struct links *node)
 {
@@ -84,7 +84,7 @@ static inline void links_del(struct links *node)
 	node->next->prev = node->prev;
 }
 
-static inline int links_empty(const struct links *node)
+static inline bool links_empty(const struct links *node)
 {
 	return (node->next == node) && (node->prev == node);
 }
@@ -94,9 +94,12 @@ struct link {
 	struct link *next;
 };
 
-#define INIT_SLIST_HEAD(name)		{ NULL }
-#define DEFINE_SLIST_HEAD(name)		\
-	struct link name = INIT_SLIST_HEAD(name)
+#define DEFINE_LINK_HEAD(name)		struct link name = { NULL }
+
+static inline void link_init(struct link *node)
+{
+	node->next = NULL;
+}
 
 static inline void link_add(struct link *new, struct link *ref)
 {
@@ -112,6 +115,11 @@ static inline void link_del(struct link *node, struct link *ref)
 		curr = &(*curr)->next;
 
 	*curr = node->next;
+}
+
+static inline bool link_empty(const struct link *node)
+{
+	return node->next == NULL;
 }
 
 /* fifo */

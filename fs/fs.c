@@ -5,7 +5,7 @@
 #include <string.h>
 #include <error.h>
 
-static DEFINE_LIST_HEAD(fdtable);
+static DEFINE_LINKS_HEAD(fdtable);
 static DEFINE_SPINLOCK(fdtable_lock);
 
 unsigned int mkfile(struct file *file)
@@ -158,7 +158,7 @@ struct file_system_type *get_file_system(const char *name)
 	return p;
 }
 
-static DEFINE_LIST_HEAD(sblist);
+static DEFINE_LINKS_HEAD(sblist);
 
 int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 {
