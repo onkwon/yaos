@@ -253,13 +253,12 @@ int sys_remove_core(const char *pathname)
 		goto out_free_inode;
 	}
 
-	if ((found = iget(inode->sb, inode->addr)) == NULL)
+	if ((found = iget(inode->sb, inode->addr)) == NULL) {
+		inode->refcount = 0;
 		found = inode;
+	}
 
 	mutex_lock(&found->lock);
-
-	if ((err = found->iop->delete(found, pathname)) || found == inode)
-		goto out_free_inode;
 
 	while ((volatile typeof(found->refcount))found->refcount) {
 		mutex_unlock(&found->lock);
@@ -267,8 +266,10 @@ int sys_remove_core(const char *pathname)
 		mutex_lock(&found->lock);
 	}
 
-	iunlink(found);
-	kfree(found);
+	if (!(err = found->iop->delete(found, pathname)) && found != inode) {
+		iunlink(found);
+		kfree(found);
+	}
 
 out_free_inode:
 	kfree(inode);
