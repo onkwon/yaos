@@ -84,6 +84,9 @@ struct task *make(unsigned int flags, void *addr, void *ref)
 static volatile unsigned int *zombie = NULL;
 static DEFINE_SPINLOCK(zombie_lock);
 
+/* NOTE: A task can kill only itself. Otherwise a task would be destroyed while
+ * it is in a waitqueue somewhere else. Others only can send a signal to
+ * request to be killed by itself. */
 static void unlink_task(struct task *task)
 {
 	if (task == &init)
@@ -199,18 +202,18 @@ struct task *find_task(unsigned int addr, struct task *head)
 	return NULL;
 }
 
+#include <kernel/systick.h>
+
 void wrapper()
 {
-	debug("addr %x\n"
-	      "type %08x, state %08x, pri %08x\n"
-	      "control %08x, sp %08x, msp %08x, psp %08x",
-	      current->addr,
-	      get_task_type(current),
-	      get_task_state(current),
-	      get_task_pri(current),
-	      __get_cntl(), __get_sp(), __get_ksp(), __get_usp());
+	debug("[%08x] New task %x started, type:%x state:%x pri:%x",
+	      systick, current->addr, get_task_type(current),
+	      get_task_state(current), get_task_pri(current));
 
 	((void (*)())current->addr)();
+
+	debug("[%08x] The task %x done", systick, current->addr);
+
 	kill((unsigned int)current);
 	freeze(); /* never reaches here */
 }
@@ -239,21 +242,21 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 
 	/* A user task starts from the next instruction of `fork()` in the user
 	 * context, not from `clone()` in the handler mode. */
-	if (flags & TASK_SYSCALL)
+	if (flags & TF_SYSCALL)
 		sp = __get_usp();
 	else
-		flags |= TASK_CLONED;
+		flags |= TF_CLONED;
 
 	base = (unsigned int)&current->mm.base[HEAP_SIZE / WORD_SIZE];
 	top  = base + USER_STACK_SIZE;
 
-	if (flags & TASK_HANDLER) { /* if handler mode */
+	if (flags & TF_HANDLER) { /* if handler mode */
 		base = (unsigned int)current->mm.kernel.base;
 		top  = base + STACK_SIZE;
 	}
 
 #ifdef ARMv7A
-	if (!(flags & TASK_HANDLER))
+	if (!(flags & TF_HANDLER))
 		sp  -= NR_CONTEXT * WORD_SIZE;
 #endif
 	size = top - sp;
@@ -263,9 +266,9 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 
 	child->mm.sp = dst; /* update stack pointer */
 
-	if (!(flags & TASK_SYSCALL)) { /* if not syscall */
+	if (!(flags & TF_SYSCALL)) { /* if not syscall */
 #ifdef ARMv7A
-		if (!(flags & TASK_HANDLER)) {
+		if (!(flags & TF_HANDLER)) {
 			child->mm.sp += NR_CONTEXT;
 			size         -= NR_CONTEXT * WORD_SIZE;
 		}
@@ -320,8 +323,8 @@ int clone(unsigned int flags, void *ref)
 
 	__save_curr_context((unsigned int *)&regs);
 
-	if (get_task_flags(current) & TASK_CLONED) {
-		set_task_flags(current, get_task_flags(current) & ~TASK_CLONED);
+	if (get_task_flags(current) & TF_CLONED) {
+		set_task_flags(current, get_task_flags(current) & ~TF_CLONED);
 		return get_task_tid(current);
 	}
 
@@ -390,6 +393,11 @@ int __attribute__((naked)) sys_fork()
 
 int sys_kill(unsigned int tid)
 {
+	if ((struct task *)tid != current) {
+		warn("no permission");
+		return -ERR_PERM;
+	}
+
 	unlink_task((struct task *)tid);
 	return 0;
 }

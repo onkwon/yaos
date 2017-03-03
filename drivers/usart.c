@@ -127,7 +127,7 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
 	if (tid == 0) { /* parent */
 		/* it goes TASK_WAITING state as soon as exiting from system
@@ -215,7 +215,7 @@ static size_t usart_write(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
 	if (tid == 0) { /* parent */
 		/* it goes TASK_WAITING state as soon as exiting from system

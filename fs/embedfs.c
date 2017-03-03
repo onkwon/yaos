@@ -877,7 +877,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
 	if (tid == 0) { /* parent */
 		spin_lock(&current->lock);
@@ -961,7 +961,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
 	if (tid == 0) {
 		spin_lock(&current->lock);
@@ -1104,7 +1104,7 @@ static int embed_close(struct file *file)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
 	if (tid == 0) { /* parent */
 		spin_lock(&current->lock);

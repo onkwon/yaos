@@ -118,7 +118,7 @@ int sys_open(char *filename, int mode, void *option)
 	int tid;
 
 	parent = current;
-	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
 	if (tid == 0) { /* parent */
 		/* it goes TASK_WAITING state as soon as exiting from system
@@ -296,7 +296,7 @@ int sys_remove(const char *pathname)
 
 int sys_shutdown(int option)
 {
-	if (!(get_task_type(current) & TASK_PRIVILEGED))
+	if (!(get_task_type(current) & TF_PRIVILEGED))
 		return -ERR_PERM;
 
 	/* FIXME: Clone here otherwise it causes a fault since sync() needs

@@ -184,7 +184,7 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 	unsigned int irqflag;
 
 	parent = current;
-	tid = clone(TASK_HANDLER | TASK_KERNEL | STACK_SHARED, &init);
+	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
 	if (tid > 0) { /* child turning to kernel task,
 			  nomore in handler mode */

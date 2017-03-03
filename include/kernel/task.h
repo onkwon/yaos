@@ -25,14 +25,23 @@ struct mm {
 };
 
 /* type & flag */
-#define TASK_USER			0x00
-#define TASK_KERNEL			0x01
-#define TASK_PRIVILEGED			TASK_KERNEL
-#define TASK_STATIC			0x02
-#define TASK_SYSCALL			0x04
-#define TASK_CLONED			0x08
-#define TASK_HANDLER			0x10
-#define STACK_SHARED			0x80
+#define TF_USER				0x00
+#define TF_KERNEL			0x01
+#define TF_STATIC			0x02
+#define TF_SYSCALL			0x04
+#define TF_CLONED			0x08
+#define TF_HANDLER			0x10
+#define TF_PRIVILEGED			0x20
+#define TF_SHARED			0x80 /* share stack */
+
+#define TASK_USER			(TF_USER)
+#define TASK_KERNEL			(TF_KERNEL | TF_PRIVILEGED)
+#define TASK_STATIC			(TF_STATIC)
+#define TASK_SYSCALL			(TF_SYSCALL)
+#define TASK_CLONED			(TF_CLONED)
+#define TASK_PRIVILEGED			(TF_PRIVILEGED)
+#define STACK_SHARED			(TF_SHARED)
+#define TASK_HANDLER			(TF_HANDLER | TASK_KERNEL)
 
 #define set_task_flags(p, v)		((p)->flags = v)
 #define get_task_flags(p)		((p)->flags)

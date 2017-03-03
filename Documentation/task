@@ -1,3 +1,19 @@
+	TASK_USER {| TASK_PRIVILEGED}
+	TASK_KERNEL
+
+	TASK_STATIC
+	TASK_CLONED
+
+	TASK_HANDLER - call by handler
+	TASK_SYSCALL - call by user, actually it is called by handler since it
+		       has already entered in handler mode by syscall. but the
+		       context that we are interested in is the user's. it is
+		       set only when fork() called at the moment
+
+	STACK_SHARED
+
+	use TF_* when masking or use TASK_* when requsting
+
 # Task Management
 
 ~~관련 리소스가 아직 정리되지 않은 좀비 태스크는 init 태스크에서 마무리
