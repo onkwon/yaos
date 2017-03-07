@@ -14,7 +14,7 @@ static void cleanup()
  * do some power savings */
 void idle()
 {
-	unsigned int irqflag, tout;
+	unsigned int irqflag, tout = 0;
 	unsigned long long stamp;
 
 	cleanup();
@@ -35,7 +35,6 @@ void idle()
 				extern void disp_sysinfo();
 				disp_sysinfo();
 				set_timeout(&tout, 10000);
-			}
 #endif
 			/* pre-dos();
 			 *

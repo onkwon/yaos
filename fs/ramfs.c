@@ -28,17 +28,12 @@ static void write_superblock(struct ramfs_superblock *sb, struct device *dev)
 static void *ramfs_malloc(size_t size, struct device *dev)
 {
 	struct ramfs_superblock sb;
-	unsigned int *head;
 	void *addr;
 
 	/* lock superblock */
 
 	read_superblock(&sb, dev);
-
-	head = (unsigned int *)sb.addr_next;
-	addr = ff_alloc(&head, size);
-	sb.addr_next = (unsigned int)head;
-
+	addr = ff_alloc(&sb.freelist, size);
 	write_superblock(&sb, dev);
 
 	/* unlock superblock */
@@ -49,16 +44,11 @@ static void *ramfs_malloc(size_t size, struct device *dev)
 static void ramfs_free(void *addr, struct device *dev)
 {
 	struct ramfs_superblock sb;
-	unsigned int *head;
 
 	/* lock superblock */
 
 	read_superblock(&sb, dev);
-
-	head = (unsigned int *)sb.addr_next;
-	ff_free(&head, addr);
-	sb.addr_next = (unsigned int)head;
-
+	ff_free(&sb.freelist, addr);
 	write_superblock(&sb, dev);
 
 	/* unlock superblock */
@@ -376,11 +366,10 @@ struct device *ramfs_build(size_t size, const char *name)
 	dev->nr_blocks = size / RAMFS_BLOCKSIZE;
 
 	struct ramfs_superblock new;
-	new.addr_next =
-		ALIGN_WORD(dev->base_addr + sizeof(struct ramfs_superblock));
-	new.addr_next = (unsigned int)ff_freelist_init((void *)new.addr_next,
-			(void *)(dev->base_addr +
-				dev->block_size * dev->nr_blocks - 1));
+	unsigned int *start, *end;
+	start = (unsigned int *)ALIGN_WORD(dev->base_addr + sizeof(new));
+	end = (unsigned int *)(dev->base_addr + dev->block_size * dev->nr_blocks - 1);
+	heap_init(&new.freelist, start, end);
 	write_superblock(&new, dev);
 
 	root_inode = (unsigned int)ramfs_mknod(FT_DIR, dev);

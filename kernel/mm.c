@@ -85,7 +85,7 @@ size_t getfree()
 #else
 #include <lib/firstfit.h>
 
-static struct ff_freelist *mem_map;
+static heap_t mem_map;
 static DEFINE_SPINLOCK(mem_lock);
 
 void *kmalloc(size_t size)
@@ -128,10 +128,9 @@ void __init free_bootmem()
 
 	ram_end = (unsigned int)&_ram_start + (unsigned int)&_ram_size - 1;
 
-	p = (void *)ALIGN_WORD(ram_end -
-			(STACK_SIZE + sizeof(struct ff_freelist)));
+	p = (void *)ALIGN_WORD(ram_end - (STACK_SIZE + FF_METASIZE));
 
-	kfree(p->addr);
+	kfree((char *)p + FF_DATA_OFFSET);
 }
 
 size_t getfree()
@@ -142,10 +141,11 @@ size_t getfree()
 
 void __init mm_init()
 {
-	unsigned int start = ALIGN_WORD(&_ram_start);
-	unsigned int end   =
+	unsigned int end =
 		(unsigned int)&_ram_start + (unsigned int)&_ram_size - 1;
 #ifdef CONFIG_PAGING
+	unsigned int start = ALIGN_WORD(&_ram_start);
+
 	/* assume flat memory */
 	unsigned int nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
 
@@ -184,19 +184,19 @@ void __init mm_init()
 	struct ff_freelist *p;
 
 	/* preserve initial kernel stack to be free later */
-	p = (struct ff_freelist *)ALIGN_WORD(end -
-			(STACK_SIZE + sizeof(struct ff_freelist)));
-	p->addr = (void *)((unsigned int)p + sizeof(struct ff_freelist));
+	p = (struct ff_freelist *)ALIGN_WORD(end - (STACK_SIZE + FF_METASIZE));
 	p->size = ALIGN_WORD(STACK_SIZE);
+	FF_LINK_HEAD(p);
+	FF_MARK_ALLOCATED(p);
 
 	/* mark kernel .data and .bss sections as used */
-	mem_map = (struct ff_freelist *)&_ebss;
-	mem_map->size = (unsigned int)p -
-		((unsigned int)&_ebss + sizeof(struct ff_freelist));
-	mem_map->addr = (void *)((unsigned int)mem_map +
-			sizeof(struct ff_freelist));
-	links_init(&mem_map->list);
+	heap_init(&mem_map, &_ebss, p);
 #endif
+}
+
+int heap_init(void *pool, void *start, void *end)
+{
+	return ff_freelist_init(pool, start, end);
 }
 
 void *sys_brk(size_t size)

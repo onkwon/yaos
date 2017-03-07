@@ -5,7 +5,7 @@
 
 struct ramfs_superblock {
 	unsigned int root_inode;
-	unsigned int addr_next;
+	heap_t freelist;
 } __attribute__((packed));
 
 struct ramfs_inode {

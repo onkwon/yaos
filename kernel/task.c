@@ -17,7 +17,7 @@ int alloc_mm(struct task *new, void *ref, unsigned int flags)
 	new->mm.sp = new->mm.base + (USER_SPACE_SIZE / WORD_SIZE);
 
 	/* initialize heap for malloc() */
-	new->mm.heap = (unsigned int *)ff_freelist_init(new->mm.base,
+	heap_init(&new->mm.heaphead, new->mm.base,
 			&new->mm.base[HEAP_SIZE / WORD_SIZE]);
 
 	new->mm.base[HEAP_SIZE / WORD_SIZE] = STACK_SENTINEL;

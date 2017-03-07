@@ -8,10 +8,16 @@
 
 #define STACK_SENTINEL			0xdeafc0de
 
+#include <types.h>
+#include <lib/firstfit.h>
+
 struct mm {
 	unsigned int *base;
 	unsigned int *sp;
-	unsigned int *heap;
+	union {
+		unsigned int *heap;
+		heap_t heaphead;
+	};
 	/* heap is located in the bottom of stack memory and expands up to brk.
 	 * and to obtain stack bottom, "bottom = sp & ~(stack size - 1)" while
 	 * "top = bottom + stack size - 1". so "heap size = brk - bottom". but
@@ -79,7 +85,6 @@ struct mm {
 #define get_task_pri(p)			((p)->pri)
 #define is_task_realtime(p)		(get_task_pri(p) <= RT_PRIORITY)
 
-#include <types.h>
 #include <kernel/sched.h>
 #include <kernel/lock.h>
 

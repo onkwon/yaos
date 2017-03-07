@@ -25,6 +25,7 @@ typedef unsigned long long uint64_t;
 struct links;
 typedef struct links buf_t;
 typedef volatile unsigned int reg_t;
+typedef struct ff_freelist_head heap_t;
 
 #define WORD_SIZE			sizeof(int)
 #define WORD_BITS			(WORD_SIZE << 3)
@@ -45,7 +46,7 @@ typedef volatile unsigned int reg_t;
 	BLOCK_BASE((unsigned int)(x) + ((size) - 1), size)
 
 #define get_container_of(ptr, type, member) \
-	((type *)((char *)ptr - (char *)&((type *)0)->member))
+	((type *)((char *)(ptr) - (char *)&((type *)0)->member))
 
 static inline bool is_pow2(unsigned int x)
 {

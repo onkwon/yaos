@@ -4,12 +4,12 @@
 
 void *malloc(size_t size)
 {
-	return ff_alloc(&current->mm.heap, size);
+	return ff_alloc(&current->mm.heaphead, size);
 
 	//return (void *)syscall(SYSCALL_BRK, size);
 }
 
 void free(void *addr)
 {
-	ff_free(&current->mm.heap, addr);
+	ff_free(&current->mm.heaphead, addr);
 }

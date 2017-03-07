@@ -17,7 +17,7 @@
 
 struct page {
 	unsigned int flags;
-	void *addr;
+	void *addr; /* TODO: remove unnecessary addr field */
 	struct links list;
 };
 
@@ -50,6 +50,7 @@ void kfree(void *addr);
 void mm_init();
 void free_bootmem();
 size_t getfree();
+int heap_init(void *pool, void *start, void *end);
 
 void *sys_brk(size_t size);
 
