@@ -108,6 +108,17 @@ static inline void link_add(struct link *new, struct link *ref)
 	ref->next = new;
 }
 
+static inline void link_add_tail(struct link *new, struct link *ref)
+{
+	struct link **curr = &ref;
+
+	while ((*curr) && (*curr)->next)
+		curr = &(*curr)->next;
+
+	new->next = (*curr)->next;
+	(*curr)->next = new;
+}
+
 static inline void link_del(struct link *node, struct link *ref)
 {
 	struct link **curr = &ref;

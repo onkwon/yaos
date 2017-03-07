@@ -15,9 +15,72 @@
 
 #define CHANNEL(n)		(MINOR(n) - 1)
 
+static unsigned int major;
+
 static struct fifo rxq[USART_CHANNEL_MAX], txq[USART_CHANNEL_MAX];
 static lock_t rx_lock[USART_CHANNEL_MAX], tx_lock[USART_CHANNEL_MAX];
 static struct waitqueue_head wq[USART_CHANNEL_MAX];
+
+static DEFINE_LINK_HEAD(wr_work_list_head);
+static struct task *wr_uartd;
+
+struct work_list {
+	struct link list;
+	struct task *task;
+	struct file *file;
+	void *buf;
+	size_t size;
+};
+
+static size_t usart_write_polling(struct file *file, void *data);
+static size_t usart_write_int(struct file *file, void *data);
+
+static void uart_wr_daemon(struct file *file, void *buf, size_t len)
+{
+	struct work_list *work;
+	struct task *task;
+	size_t (*f)(struct file *file, void *data), ret;
+	unsigned int irqflag;
+
+	wr_uartd = current;
+
+loop:
+	while (!link_empty(&wr_work_list_head)) {
+		work = (struct work_list *)wr_work_list_head.next;
+		wr_work_list_head.next = work->list.next;
+
+		file = work->file;
+		buf = work->buf;
+		len = work->size;
+		task = work->task;
+
+		kfree(work);
+
+#if ((SOC == bcm2835) || (SOC == bcm2836))
+		f = usart_write_polling;
+#else
+		if (file->flags & O_NONBLOCK)
+			f = usart_write_polling;
+		else
+			f = usart_write_int;
+#endif
+
+		for (ret = 0; ret < len && file->offset < file->inode->size;)
+			if (f(file, buf + ret) >= 1)
+				ret++;
+
+		__set_retval(task, ret);
+		//sum_curr_stat(task); /* FIXME: it works for only clone() */
+
+		spin_lock_irqsave(&task->lock, irqflag);
+		go_run_atomic(task);
+		spin_unlock_irqrestore(&task->lock, irqflag);
+	}
+
+	yield();
+	goto loop;
+}
+REGISTER_TASK(uart_wr_daemon, TASK_KERNEL, DEFAULT_PRIORITY);
 
 static int usart_kbhit(struct file *file)
 {
@@ -117,35 +180,18 @@ static size_t usart_read_core(struct file *file, void *buf, size_t len)
 	return 1;
 }
 
-static size_t usart_read(struct file *file, void *buf, size_t len)
+static void do_uart_read(struct file *file, void *buf, size_t len)
 {
-	if (file->flags & O_NONBLOCK)
-		return usart_read_core(file, buf, len);
-
-	struct task *parent;
+	struct work_list *work;
 	size_t ret, cnt;
-	int tid;
 
-	parent = current;
-	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
+	work = current->args;
+	file = work->file;
+	buf = work->buf;
+	len = work->size;
 
-	if (tid == 0) { /* parent */
-		/* it goes TASK_WAITING state as soon as exiting from system
-		 * call to wait for its child's job to be done that returns the
-		 * result. */
-		spin_lock(&current->lock);
-		set_task_state(current, TASK_WAITING);
-		spin_unlock(&current->lock);
-		resched();
-		return 0;
-	} else if (tid < 0) { /* error */
-		/* use errno */
-		error("failed cloning");
-		return -ERR_RETRY;
-	}
+	kfree(work);
 
-	/* child takes place from here turning to kernel task,
-	 * nomore in handler mode */
 	for (ret = 0; ret < len && file->offset < file->inode->size;) {
 		if ((cnt = usart_read_core(file, buf + ret, len - ret))
 				<= 0) {
@@ -155,23 +201,33 @@ static size_t usart_read(struct file *file, void *buf, size_t len)
 		ret += cnt;
 	}
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
+	syscall_delegate_return(current->parent, ret);
+}
 
-	__set_retval(parent, ret);
-	sum_curr_stat(parent);
+static size_t usart_read(struct file *file, void *buf, size_t len)
+{
+	struct task *thread;
+	struct work_list *work;
 
-	if (get_task_state(parent)) {
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add_core(parent);
-	}
+	if (file->flags & O_NONBLOCK)
+		return usart_read_core(file, buf, len);
 
-	spin_unlock_irqrestore(&parent->lock, irqflag);
+	if ((work = kmalloc(sizeof(*work))) == NULL)
+		return -ERR_ALLOC;
 
-	sys_kill((unsigned int)current);
-	freeze(); /* never reaches here */
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, do_uart_read,
+					current)) == NULL)
+		return -ERR_ALLOC;
 
-	return -ERR_UNDEF;
+	work->task = current;
+	work->file = file;
+	work->buf = buf;
+	work->size = len;
+
+	thread->args = (void *)work;
+	syscall_delegate(current, thread);
+
+	return 0;
 }
 
 static size_t usart_write_int(struct file *file, void *data)
@@ -210,60 +266,23 @@ static size_t usart_write_polling(struct file *file, void *data)
 
 static size_t usart_write(struct file *file, void *buf, size_t len)
 {
-	struct task *parent;
-	size_t ret;
-	int tid;
+	struct work_list *work;
 
-	parent = current;
-	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
+	if ((work = kmalloc(sizeof(*work))) == NULL)
+		return -ERR_ALLOC;
 
-	if (tid == 0) { /* parent */
-		/* it goes TASK_WAITING state as soon as exiting from system
-		 * call to wait for its child's job to be done that returns the
-		 * result. */
-		spin_lock(&current->lock);
-		set_task_state(current, TASK_WAITING);
-		spin_unlock(&current->lock);
-		resched();
-		return 0;
-	} else if (tid < 0) { /* error */
-		/* use errno */
-		error("failed cloning");
-		return -ERR_RETRY;
-	}
+	work->task = current;
+	work->file = file;
+	work->buf = buf;
+	work->size = len;
 
-	size_t (*f)(struct file *file, void *data);
-#if ((SOC == bcm2835) || (SOC == bcm2836))
-	f = usart_write_polling;
-#else
-	if (file->flags & O_NONBLOCK)
-		f = usart_write_polling;
-	else
-		f = usart_write_int;
-#endif
+	link_add_tail(&work->list, &wr_work_list_head);
+	go_run_atomic(wr_uartd);
 
-	/* child takes place from here turning to kernel task,
-	 * nomore in handler mode */
-	for (ret = 0; ret < len && file->offset < file->inode->size;)
-		if (f(file, buf + ret) >= 1) ret++;
+	set_task_state(current, TASK_WAITING);
+	resched();
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
-
-	__set_retval(parent, ret);
-	sum_curr_stat(parent);
-
-	if (get_task_state(parent)) {
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add_core(parent);
-	}
-
-	spin_unlock_irqrestore(&parent->lock, irqflag);
-
-	sys_kill((unsigned int)current);
-	freeze(); /* never reaches here */
-
-	return -ERR_UNDEF;
+	return 0;
 }
 
 #ifdef CONFIG_DEBUG
@@ -391,19 +410,10 @@ static struct file_operations ops = {
 	.ioctl = usart_ioctl,
 };
 
-#include <kernel/init.h>
-
-static void __init usart_init()
+void register_usart(const char *name, int minor)
 {
-	struct device *dev;
-	unsigned int major, i;
-
-	for (major = i = 0; i < USART_CHANNEL_MAX; i++) {
-		if ((dev = mkdev(major, i+1, &ops, "usart")))
-			major = MAJOR(dev->id);
-	}
+	macro_register_device(name, major, minor, &ops);
 }
-MODULE_INIT(usart_init);
 
 void __putc_debug(int c)
 {

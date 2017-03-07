@@ -28,5 +28,6 @@
 extern void register_timer(const char *name, int minor);
 extern void register_led(const char *name, int minor);
 extern void register_gpio(const char *name, int minor);
+extern void register_usart(const char *name, int minor);
 
 #endif /* __MODULE_H__ */

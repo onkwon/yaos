@@ -218,6 +218,14 @@ void wrapper()
 	freeze(); /* never reaches here */
 }
 
+void go_run_atomic(struct task *task)
+{
+	if (get_task_state(task)) {
+		set_task_state(task, TASK_RUNNING);
+		runqueue_add_core(task);
+	}
+}
+
 #include <stdlib.h>
 
 /* It must be kept as noinline function because of inline assembler placed in

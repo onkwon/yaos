@@ -12,12 +12,9 @@ void syscall_delegate_return(struct task *task, int ret)
 	spin_lock_irqsave(&task->lock, irqflag);
 
 	__set_retval(task, ret);
-	sum_curr_stat(task);
-
-	if (get_task_state(task)) {
-		set_task_state(task, TASK_RUNNING);
-		runqueue_add_core(task);
-	}
+	/* FIXME: it messes up calling sum_curr_stat() when make() */
+	//sum_curr_stat(task);
+	go_run_atomic(task);
 
 	spin_unlock_irqrestore(&task->lock, irqflag);
 }
