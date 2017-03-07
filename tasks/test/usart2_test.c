@@ -1,12 +1,12 @@
 #include <foundation.h>
 #include <kernel/task.h>
 
-static void test_usart2()
+static void test_uart2()
 {
 	int fd;
 
-	if ((fd = open("/dev/usart2", O_RDWR | O_NONBLOCK)) <= 0) {
-		printf("usart2: open error %x\n", fd);
+	if ((fd = open("/dev/uart2", O_RDWR | O_NONBLOCK)) <= 0) {
+		printf("uart2: open error %x\n", fd);
 		return;
 	}
 
@@ -17,4 +17,4 @@ static void test_usart2()
 			putchar(buf);
 	}
 }
-//REGISTER_TASK(test_usart2, 0, DEFAULT_PRIORITY);
+//REGISTER_TASK(test_uart2, 0, DEFAULT_PRIORITY);

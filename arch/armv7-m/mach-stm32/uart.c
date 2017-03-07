@@ -1,4 +1,4 @@
-#include <usart.h>
+#include <uart.h>
 #include <stdlib.h>
 #include "exti.h"
 #include "clock.h"
@@ -62,7 +62,7 @@ static inline reg_t *ch2reg(unsigned int channel)
 	return reg;
 }
 
-static inline int usart_open(unsigned int channel, struct usart arg)
+static inline int uart_open(unsigned int channel, struct uart arg)
 {
 	unsigned int port, pin, apb_nbit;
 #if (SOC == stm32f3 || SOC == stm32f4)
@@ -147,7 +147,7 @@ static inline int usart_open(unsigned int channel, struct usart arg)
 	return ch2vec(channel);
 }
 
-static inline void usart_close(unsigned int channel)
+static inline void uart_close(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -193,7 +193,7 @@ static inline void usart_close(unsigned int channel)
 /* to get buf index from register address */
 #define GET_USART_NR(from)     (from == USART1? 0 : (((from >> 8) & 0xff) - 0x40) / 4)
 
-static inline int usart_putc(unsigned int channel, int c)
+static inline int uart_putc(unsigned int channel, int c)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -214,10 +214,10 @@ static inline int usart_putc(unsigned int channel, int c)
 	return 1;
 }
 
-int __usart_open(unsigned int channel, unsigned int baudrate)
+int __uart_open(unsigned int channel, unsigned int baudrate)
 {
 #if (SOC == stm32f3)
-	return usart_open(channel, (struct usart) {
+	return uart_open(channel, (struct uart) {
 		.brr  = baudrate,
 		.gtpr = 0,
 		.cr3  = 0,
@@ -228,7 +228,7 @@ int __usart_open(unsigned int channel, unsigned int baudrate)
 			| (1 << 2)	/* RE    : Receiver enable */
 	});
 #else
-	return usart_open(channel, (struct usart) {
+	return uart_open(channel, (struct uart) {
 		.brr  = baudrate,
 		.gtpr = 0,
 		.cr3  = 0,
@@ -241,17 +241,17 @@ int __usart_open(unsigned int channel, unsigned int baudrate)
 #endif
 }
 
-void __usart_close(unsigned int channel)
+void __uart_close(unsigned int channel)
 {
-	usart_close(channel);
+	uart_close(channel);
 }
 
-int __usart_putc(unsigned int channel, int c)
+int __uart_putc(unsigned int channel, int c)
 {
-	return usart_putc(channel, c);
+	return uart_putc(channel, c);
 }
 
-int __usart_check_rx(unsigned int channel)
+int __uart_check_rx(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -266,7 +266,7 @@ int __usart_check_rx(unsigned int channel)
 	return 0;
 }
 
-int __usart_check_tx(unsigned int channel)
+int __uart_check_tx(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -281,7 +281,7 @@ int __usart_check_tx(unsigned int channel)
 	return 0;
 }
 
-int __usart_getc(unsigned int channel)
+int __uart_getc(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -292,7 +292,7 @@ int __usart_getc(unsigned int channel)
 #endif
 }
 
-void __usart_tx_irq_reset(unsigned int channel)
+void __uart_tx_irq_reset(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -304,7 +304,7 @@ void __usart_tx_irq_reset(unsigned int channel)
 #endif
 }
 
-void __usart_tx_irq_raise(unsigned int channel)
+void __uart_tx_irq_raise(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -316,7 +316,7 @@ void __usart_tx_irq_raise(unsigned int channel)
 #endif
 }
 
-void __usart_flush(unsigned int channel)
+void __uart_flush(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -328,12 +328,12 @@ void __usart_flush(unsigned int channel)
 #endif
 }
 
-unsigned int __usart_get_baudrate(unsigned int channel)
+unsigned int __uart_get_baudrate(unsigned int channel)
 {
 	return 0;
 }
 
-int __usart_set_baudrate(unsigned int channel, unsigned int baudrate)
+int __uart_set_baudrate(unsigned int channel, unsigned int baudrate)
 {
 	reg_t *reg = ch2reg(channel);
 

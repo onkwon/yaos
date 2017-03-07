@@ -1,4 +1,4 @@
-#include <usart.h>
+#include <uart.h>
 #include <stdlib.h>
 #include <foundation.h>
 #include <gpio.h>
@@ -7,7 +7,7 @@
 
 #define SYSTEM_CLOCK		250000000 /* 250MHz */
 
-int __usart_open(unsigned int channel, unsigned int baudrate)
+int __uart_open(unsigned int channel, unsigned int baudrate)
 {
 	if (channel)
 		return -ERR_RANGE;
@@ -37,11 +37,11 @@ int __usart_open(unsigned int channel, unsigned int baudrate)
 	return IRQ_AUX; /* aux int */
 }
 
-void __usart_close(unsigned int channel)
+void __uart_close(unsigned int channel)
 {
 }
 
-int __usart_putc(unsigned int channel, int c)
+int __uart_putc(unsigned int channel, int c)
 {
 	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
 
@@ -52,7 +52,7 @@ int __usart_putc(unsigned int channel, int c)
 	return 1;
 }
 
-int __usart_check_rx(unsigned int channel)
+int __uart_check_rx(unsigned int channel)
 {
 	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
 
@@ -66,36 +66,36 @@ out:
 	return 0;
 }
 
-int __usart_check_tx(unsigned int channel)
+int __uart_check_tx(unsigned int channel)
 {
 	return 0;
 }
 
-int __usart_getc(unsigned int channel)
+int __uart_getc(unsigned int channel)
 {
 	struct mini_uart *uart = (struct mini_uart *)UART_BASE;
 
 	return uart->dr;
 }
 
-void __usart_tx_irq_reset(unsigned int channel)
+void __uart_tx_irq_reset(unsigned int channel)
 {
 }
 
-void __usart_tx_irq_raise(unsigned int channel)
+void __uart_tx_irq_raise(unsigned int channel)
 {
 }
 
-void __usart_flush(unsigned int channel)
+void __uart_flush(unsigned int channel)
 {
 }
 
-unsigned int __usart_get_baudrate(unsigned int channel)
+unsigned int __uart_get_baudrate(unsigned int channel)
 {
 	return 0;
 }
 
-int __usart_set_baudrate(unsigned int channel, unsigned int baudrate)
+int __uart_set_baudrate(unsigned int channel, unsigned int baudrate)
 {
 	return 0;
 }

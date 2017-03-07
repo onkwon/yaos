@@ -5,7 +5,7 @@
 
 #define USART_CHANNEL_MAX	3
 
-struct usart {
+struct uart {
 	/*unsigned int sr;*/
 	/*unsigned int dr;*/
 	unsigned int brr;
@@ -17,7 +17,7 @@ struct usart {
 
 /* 8N1 57600, make a default set of USART registers. */
 	//.brr = (39 << 4) + 1,	/* 57600, PCLK1 36MHz */
-#define USART_DEFAULT_SET()	((struct usart) {			\
+#define USART_DEFAULT_SET()	((struct uart) {			\
 	.brr = (78 << 4) + 2,						\
 	.gtpr = 0,							\
 	.cr3 = 0,							\
@@ -28,20 +28,20 @@ struct usart {
 		| (1 << 2)	/* RE    : Receiver enable */		\
 })
 
-#define __get_usart_active_irq()					\
+#define __get_uart_active_irq()					\
 	((get_active_irq() < (53 + 12))? get_active_irq() - 53		\
 		: get_active_irq() - 53 - 12)
 
-int  __usart_open(unsigned int channel, unsigned int baudrate);
-void __usart_close(unsigned int channel);
-int __usart_putc(unsigned int channel, int c);
-int __usart_getc(unsigned int channel);
-int __usart_check_rx(unsigned int channel);
-int __usart_check_tx(unsigned int channel);
-void __usart_tx_irq_raise(unsigned int channel);
-void __usart_tx_irq_reset(unsigned int channel);
-void __usart_flush(unsigned int channel);
-unsigned int __usart_get_baudrate(unsigned int channel);
-int __usart_set_baudrate(unsigned int channel, unsigned int baudrate);
+int  __uart_open(unsigned int channel, unsigned int baudrate);
+void __uart_close(unsigned int channel);
+int __uart_putc(unsigned int channel, int c);
+int __uart_getc(unsigned int channel);
+int __uart_check_rx(unsigned int channel);
+int __uart_check_tx(unsigned int channel);
+void __uart_tx_irq_raise(unsigned int channel);
+void __uart_tx_irq_reset(unsigned int channel);
+void __uart_flush(unsigned int channel);
+unsigned int __uart_get_baudrate(unsigned int channel);
+int __uart_set_baudrate(unsigned int channel, unsigned int baudrate);
 
 #endif /* __STM32_USART_H__ */

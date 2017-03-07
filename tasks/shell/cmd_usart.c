@@ -2,7 +2,7 @@
 #include <foundation.h>
 #include <string.h>
 
-static int usart(int argc, char **argv)
+static int uart(int argc, char **argv)
 {
 	char *dev;
 	int fd, req;
@@ -19,11 +19,11 @@ static int usart(int argc, char **argv)
 		goto err;
 	}
 
-	if        (!strcmp(argv[2], "com1")) { dev = "/dev/usart1";
-	} else if (!strcmp(argv[2], "com2")) { dev = "/dev/usart2";
-	} else if (!strcmp(argv[2], "com3")) { dev = "/dev/usart3";
-	} else if (!strcmp(argv[2], "com4")) { dev = "/dev/usart4";
-	} else if (!strcmp(argv[2], "com5")) { dev = "/dev/usart5";
+	if        (!strcmp(argv[2], "com1")) { dev = "/dev/uart1";
+	} else if (!strcmp(argv[2], "com2")) { dev = "/dev/uart2";
+	} else if (!strcmp(argv[2], "com3")) { dev = "/dev/uart3";
+	} else if (!strcmp(argv[2], "com4")) { dev = "/dev/uart4";
+	} else if (!strcmp(argv[2], "com5")) { dev = "/dev/uart5";
 	} else {
 		printf("unknown port %s\n", argv[2]);
 		goto err;
@@ -47,4 +47,4 @@ static int usart(int argc, char **argv)
 err:
 	return -1;
 }
-REGISTER_CMD(usart, usart, "usart <setbrr|getbrr|flush|kbhit> <comN> <baudrate>");
+REGISTER_CMD(uart, uart, "uart <setbrr|getbrr|flush|kbhit> <comN> <baudrate>");

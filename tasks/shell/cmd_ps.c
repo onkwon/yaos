@@ -90,18 +90,20 @@ static int ps(int argc, char **argv)
 			__get_cntl(), __get_sp(), __get_ksp(), __get_usp());
 #endif
 
+#if 0
 	extern void print_rq();
 	printf("\nRun queue list:\n");
 	print_rq();
+#endif
 
 #ifdef CONFIG_DEBUG
-	extern unsigned int get_usart_bufover();
+	extern unsigned int get_uart_bufover();
 	printf("\nUSART buffer overflow: %d, %d, %d, %d, %d\n",
-			get_usart_bufover(0),
-			get_usart_bufover(1),
-			get_usart_bufover(2),
-			get_usart_bufover(3),
-			get_usart_bufover(4));
+			get_uart_bufover(0),
+			get_uart_bufover(1),
+			get_uart_bufover(2),
+			get_uart_bufover(3),
+			get_uart_bufover(4));
 #endif
 
 	return 0;

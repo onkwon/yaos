@@ -27,7 +27,7 @@ depend dep:
 include:
 	-cp -R mach-$(MACH)/include include/mach-$(MACH)
 	-cp -R mach-$(MACH)/include/pinmap.h include/pinmap.h
-	-cp -R mach-$(MACH)/include/usart.h include/usart.h
+	-cp -R mach-$(MACH)/include/uart.h include/uart.h
 
 clean:
 	@rm -f $(OBJS) .depend
@@ -37,7 +37,7 @@ clean:
 	@$(MAKE) clean -C mach-$(MACH)
 	@rm -rf include/mach-$(MACH)
 	@rm -f include/pinmap.h
-	@rm -f include/usart.h
+	@rm -f include/uart.h
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)
