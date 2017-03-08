@@ -45,7 +45,8 @@ static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4))) = {
 				/* NUM(IRQ): ADDR - DESC */
 				/* -------------------- */
-	&_ram_end,		/* 00     :       - Stack pointer */
+	/* save a word for allocator's link to the head */
+	&_ram_end - WORD_SIZE,	/* 00     :       - Stack pointer */
 	reset,			/* 01     : 0x04  - Reset */
 	isr_fault,		/* 02     : 0x08  - NMI */
 	isr_fault,		/* 03     : 0x0c  - HardFault */
