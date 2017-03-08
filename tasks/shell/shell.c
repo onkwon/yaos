@@ -119,4 +119,4 @@ void shell()
 
 	free(argv);
 }
-REGISTER_TASK(shell, 0, DEFAULT_PRIORITY);
+REGISTER_TASK(shell, 0, DEFAULT_PRIORITY, STACK_SIZE_DEFAULT);

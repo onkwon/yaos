@@ -2,7 +2,7 @@
 
 Put a user task under /tasks directory. Code what you want in general way using
 provided API and any other libraries. And simply register the task by
-`REGISTER_TASK(function, type, priority)`.
+`REGISTER_TASK(function, type, priority, stack_size)`.
 
 Change `/mach/your-target/include/pinmap.h` corresponding to your board pin
 assignment.

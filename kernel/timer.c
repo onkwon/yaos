@@ -137,7 +137,8 @@ int __init timer_init()
 	links_init(&timerq.list);
 	lock_init(&timerq.lock);
 
-	if ((timerd = make(TASK_KERNEL | STACK_SHARED, run_timer, &init))
+	if ((timerd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_MIN,
+					run_timer, &init))
 			== NULL)
 		return -ERR_ALLOC;
 

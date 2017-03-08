@@ -172,8 +172,8 @@ static int gpio_close(struct file *file)
 	if (!(get_task_flags(current) & TF_PRIVILEGED))
 		return -ERR_PERM;
 
-	if ((thread = make(TASK_HANDLER | STACK_SHARED, gpio_close_core,
-					current)) == NULL)
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
+					gpio_close_core, current)) == NULL)
 		return -ERR_ALLOC;
 
 	thread->args = (void *)file;
@@ -224,8 +224,8 @@ static int gpio_ioctl(struct file *file, int request, void *data)
 	if (getmode(file->flags) != GPIO_MODE_INPUT)
 		return -ERR_ATTR;
 
-	if ((thread = make(TASK_HANDLER | STACK_SHARED, gpio_isr_add,
-					current)) == NULL)
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
+					gpio_isr_add, current)) == NULL)
 		return -ERR_ALLOC;
 
 	file->option = data;
@@ -274,7 +274,7 @@ endless:
 		mode = (get_task_flags(uisr->task) & TASK_PRIVILEGED) |
 			STACK_SHARED;
 
-		if ((thread = make(mode, uisr->func, uisr->task))) {
+		if ((thread = make(mode, STACK_SIZE_MIN, uisr->func, uisr->task))) {
 			set_task_state(thread, TASK_RUNNING);
 			runqueue_add(thread);
 			/* NOTE: you will not be able to service all the
@@ -296,4 +296,4 @@ endless:
 
 	goto endless;
 }
-REGISTER_TASK(gpio_daemon, TASK_KERNEL, DEFAULT_PRIORITY);
+REGISTER_TASK(gpio_daemon, TASK_KERNEL, DEFAULT_PRIORITY, STACK_SIZE_MIN);

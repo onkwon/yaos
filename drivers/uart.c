@@ -80,7 +80,7 @@ loop:
 	yield();
 	goto loop;
 }
-REGISTER_TASK(uart_wr_daemon, TASK_KERNEL, DEFAULT_PRIORITY);
+REGISTER_TASK(uart_wr_daemon, TASK_KERNEL, DEFAULT_PRIORITY, STACK_SIZE_MIN);
 
 static int uart_kbhit(struct file *file)
 {
@@ -215,8 +215,8 @@ static size_t uart_read(struct file *file, void *buf, size_t len)
 	if ((work = kmalloc(sizeof(*work))) == NULL)
 		return -ERR_ALLOC;
 
-	if ((thread = make(TASK_HANDLER | STACK_SHARED, do_uart_read,
-					current)) == NULL)
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
+					do_uart_read, current)) == NULL)
 		return -ERR_ALLOC;
 
 	work->task = current;

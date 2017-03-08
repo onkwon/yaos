@@ -73,8 +73,8 @@ int __init softirq_init()
 	softirq.bitmap = 0;
 	lock_init(&softirq.wlock);
 
-	if ((softirqd = make(TASK_KERNEL | STACK_SHARED, softirq_handler,
-					&init)) == NULL)
+	if ((softirqd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_DEFAULT,
+					softirq_handler, &init)) == NULL)
 		return -ERR_ALLOC;
 
 	set_task_pri(softirqd, HIGHEST_PRIORITY);

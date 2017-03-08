@@ -7,20 +7,21 @@
 struct task init;
 struct task *current = &init;
 
-int alloc_mm(struct task *new, void *ref, unsigned int flags)
+int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 {
-	if ((new->mm.base = kmalloc(USER_SPACE_SIZE)) == NULL)
+	if ((new->mm.base = kmalloc(size)) == NULL)
 		return -ERR_ALLOC;
 
 	/* make its stack pointer to point out the highest memory address.
 	 * full descending stack */
-	new->mm.sp = new->mm.base + (USER_SPACE_SIZE / WORD_SIZE);
+	new->mm.sp = new->mm.base + (size / WORD_SIZE);
 
 	/* initialize heap for malloc() */
+	size_t heap_size = size >> 2; /* one fourth */
 	heap_init(&new->mm.heaphead, new->mm.base,
-			&new->mm.base[HEAP_SIZE / WORD_SIZE]);
+			&new->mm.base[heap_size / WORD_SIZE]);
 
-	new->mm.base[HEAP_SIZE / WORD_SIZE] = STACK_SENTINEL;
+	new->mm.base[heap_size / WORD_SIZE] = STACK_SENTINEL;
 
 	if (flags & STACK_SHARED) {
 		new->mm.kernel.sp = ((struct task *)ref)->mm.kernel.sp;
@@ -61,12 +62,12 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 	lock_init(&task->lock);
 }
 
-struct task *make(unsigned int flags, void *addr, void *ref)
+struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
 {
 	struct task *new;
 
 	if ((new = kmalloc(sizeof(struct task)))) {
-		if (alloc_mm(new, ref, flags)) {
+		if (alloc_mm(new, size, flags, ref)) {
 			kfree(new);
 			new = NULL;
 		} else {
@@ -239,7 +240,7 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	if ((child = kmalloc(sizeof(struct task))) == NULL)
 		return -ERR_ALLOC;
 
-	if (alloc_mm(child, ref, flags)) {
+	if (alloc_mm(child, STACK_SIZE_DEFAULT, flags, ref)) {
 		kfree(child);
 		return -ERR_ALLOC;
 	}

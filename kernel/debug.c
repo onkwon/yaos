@@ -56,6 +56,6 @@ static void inspect()
 
 	register_isr(nvector, isr_break);
 }
-REGISTER_TASK(inspect, TASK_PRIVILEGED, HIGHEST_PRIORITY);
+REGISTER_TASK(inspect, TASK_PRIVILEGED, HIGHEST_PRIORITY, STACK_SIZE_MIN);
 #endif
 #endif

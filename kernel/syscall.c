@@ -280,8 +280,8 @@ int sys_remove(const char *pathname)
 {
 	struct task *thread;
 
-	if ((thread = make(TASK_HANDLER | STACK_SHARED, sys_remove_core,
-					current)) == NULL)
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
+					sys_remove_core, current)) == NULL)
 		return -ERR_ALLOC;
 
 	thread->args = (void *)pathname;

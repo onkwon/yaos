@@ -8,13 +8,17 @@ static void __init load_user_task()
 	extern char _user_task_list;
 	struct task *p;
 	unsigned int pri;
+	size_t stack_size;
 
 	for (p = (struct task *)&_user_task_list; *(unsigned int *)p; p++) {
 		if (p->addr == NULL)
 			continue;
 
+		/* task size including heap and stack */
+		stack_size = (size_t)p->size;
+
 		/* share the init kernel stack to save memory */
-		if (alloc_mm(p, &init, STACK_SHARED))
+		if (alloc_mm(p, stack_size, STACK_SHARED, &init))
 			continue;
 
 		pri = get_task_pri(p);
@@ -36,7 +40,7 @@ static int __init make_init_task()
 	 * properly `current` must be set to `init`. */
 	current = &init;
 
-	if (alloc_mm(&init, NULL, 0))
+	if (alloc_mm(&init, STACK_SIZE_MIN, 0, NULL))
 		return -ERR_ALLOC;
 
 	set_task_dressed(&init, TASK_STATIC | TASK_KERNEL, idle);
@@ -105,11 +109,6 @@ int __init kernel_init()
 	       def2str(VERSION), def2str(MACHINE),
 	       get_hclk(),
 	       __read_reset_source());
-
-	debug("&current 0x%08x\n"
-	      "User stack size : %d, Heap size : %d",
-	      &current,
-	      USER_STACK_SIZE, HEAP_SIZE);
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);

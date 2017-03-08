@@ -189,6 +189,8 @@ void __init mm_init()
 	FF_LINK_HEAD(p);
 	FF_MARK_ALLOCATED(p);
 
+	/* TODO: preserve the staic user tasks to be free later */
+
 	/* mark kernel .data and .bss sections as used */
 	heap_init(&mem_map, &_ebss, p);
 #endif

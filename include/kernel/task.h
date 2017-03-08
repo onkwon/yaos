@@ -1,6 +1,12 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#define STACK_SIZE_DEFAULT		1024
+#define STACK_SIZE_MIN			1024
+
+/* TODO: separate heap from stack */
+#define HEAP_SIZE_DEFAULT		256
+
 #define STACK_SIZE			1024 /* bytes, kernel stack */
 #define USER_SPACE_SIZE			1024 /* bytes */
 #define HEAP_SIZE			(USER_SPACE_SIZE >> 2) /* one fourth */
@@ -95,7 +101,11 @@ struct task {
 	unsigned int flags;
 	unsigned int pri;
 	void *addr;
-	unsigned int irqflag;
+
+	union {
+		unsigned int irqflag;
+		size_t size; /* initial stack size */
+	};
 
 	struct mm mm;
 
@@ -112,22 +122,23 @@ struct task {
 	void *args;
 };
 
-#define REGISTER_TASK(f, t, p) \
-	static struct task task_##f \
-	__attribute__((section(".user_task_list"), aligned(8), used)) = { \
+#define REGISTER_TASK(func, f, p, s) \
+	static struct task task_##func \
+	__attribute__((section(".user_task_list"), aligned(4), used)) = { \
 		.state = TASK_ZOMBIE, \
-		.flags = TASK_STATIC | t, \
+		.flags = TASK_STATIC | f, \
 		.pri   = p, \
-		.addr  = f, \
+		.addr  = func, \
+		.size  = s, \
 	}
 
 extern struct task *current;
 extern struct task init;
 
-struct task *make(unsigned int flags, void *addr, void *ref);
+struct task *make(unsigned int flags, size_t size, void *addr, void *ref);
 int clone(unsigned int flags, void *ref);
 void set_task_dressed(struct task *task, unsigned int flags, void *addr);
-int alloc_mm(struct task *new, void *ref, unsigned int flags);
+int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref);
 void wrapper();
 void go_run_atomic(struct task *task);
 unsigned int kill_zombie();
