@@ -202,12 +202,16 @@ void __attribute__((naked, used)) __schedule()
 	 * make sure that registers used here must be the ones saved already */
 	sched_overhead = get_sysclk();
 #endif
-	/* schedule_prepare() saves the current context and
-	 * guarantees not to be preempted while schedule_finish()
-	 * does the opposite. */
-	schedule_prepare();
+
+	dsb();
+	__context_save(current);
+
 	schedule_core();
-	schedule_finish();
+
+	__context_restore(current);
+	dsb();
+	isb();
+
 #ifdef CONFIG_DEBUG_SCHED
 	sched_overhead -= get_sysclk();
 #endif

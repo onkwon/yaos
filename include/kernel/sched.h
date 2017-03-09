@@ -20,17 +20,6 @@ struct scheduler {
 	void *rq;
 };
 
-#define schedule_prepare() { \
-	__context_prepare(); \
-	dsb(); \
-	__context_save(current); \
-}
-#define schedule_finish() { \
-	__context_restore(current); \
-	dsb(); \
-	__context_finish(); /* isb() executed here after enabling interrupts */ \
-}
-
 void schedule_core();
 void scheduler_init();
 
