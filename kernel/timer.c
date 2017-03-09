@@ -84,8 +84,6 @@ static void run_timer()
 	struct task *thread;
 	unsigned int flags;
 
-	set_task_pri(timerd, HIGHEST_PRIORITY);
-
 infinite:
 	mutex_lock(&timerq.mutex);
 
@@ -146,6 +144,7 @@ int __init timer_init()
 					run_timer, &init)) == NULL)
 		return -ERR_ALLOC;
 
+	set_task_pri(timerd, HIGHEST_PRIORITY);
 	go_run_atomic(timerd);
 
 	return 0;
@@ -211,7 +210,7 @@ int sys_timer_create(struct ktimer *new)
 #ifdef CONFIG_TIMER
 	struct worklist *work;
 
-	if ((work = kmalloc(sizeof(*work))) == NULL)
+	if (!add_timerd || (work = kmalloc(sizeof(*work))) == NULL)
 		return -ERR_ALLOC;
 
 	new->task = current;
