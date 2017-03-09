@@ -19,8 +19,8 @@ static unsigned int visit(struct task *p, unsigned int nr)
 			(unsigned)p->se.sum_exec_runtime,
 			(unsigned)p->se.sum_exec_runtime / HZ);
 	print_tab();
-	printf("|   /sp 0x%08x /base 0x%08x /heap 0x%08x /size %d\n",
-			p->mm.sp, p->mm.base, p->mm.heap, STACK_SIZE);
+	printf("|   /sp 0x%08x /base 0x%08x /heap 0x%08x\n",
+			p->mm.sp, p->mm.base, p->mm.heap);
 	print_tab();
 	printf("|   /kernel stack 0x%08x base 0x%08x\n", p->mm.kernel.sp, p->mm.kernel.base);
 	print_tab();

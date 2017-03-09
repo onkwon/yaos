@@ -1,4 +1,7 @@
 /*
+ * 8-byte meta data per a allocated block is required, meaning not to alloc a
+ * small size dynamically but use a local variable in stack.
+ *
  * The latest freed object gets added to the head. And new object gets from
  * the head for cache efficiency.
  *
@@ -140,7 +143,7 @@ retry:
 	head->next = &p->list;
 }
 
-int ff_freelist_init(struct ff_freelist_head *pool, void *start, void *end)
+size_t ff_freelist_init(struct ff_freelist_head *pool, void *start, void *end)
 {
 	struct ff_freelist *first;
 
@@ -156,7 +159,7 @@ int ff_freelist_init(struct ff_freelist_head *pool, void *start, void *end)
 	pool->limit = end;
 	pool->list_head.next = &first->list;
 
-	return 0;
+	return first->size;
 }
 
 #ifdef CONFIG_DEBUG

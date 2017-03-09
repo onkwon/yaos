@@ -2,26 +2,23 @@
 #define __KERNEL_TIMER_H__
 
 #include <types.h>
+#include <kernel/lock.h>
 
 struct ktimer {
-	struct links list; /* keep this first */
+	struct link list; /* keep this first */
 
 	unsigned int expires;
-	unsigned int data; /* reference to argument of event() */
-	void (*event)(unsigned int data);
+	void *data;
+	void (*event)(void *data);
 
-	/* security issue can be arise manupulating the element of task
-	 * in time between add_timer() and run_timer()
-	 * because the data is owned by user while kernel accepts
-	 * any address of task without verification */
 	struct task *task;
 };
 
 struct timer_queue {
 	unsigned int nr;
 	unsigned int next;
-	struct links list;
-	lock_t lock;
+	struct link list;
+	mutex_t mutex;
 };
 
 int add_timer(struct ktimer *new);

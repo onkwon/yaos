@@ -100,6 +100,7 @@ struct inode *iget(struct superblock *sb, unsigned int id)
 	return inode;
 }
 
+/* TODO: remove old inodes if there are more than enough in the list */
 void ilink(struct inode *inode)
 {
 	struct links *head = &itab[hash(inode->addr, HASH_SHIFT)];

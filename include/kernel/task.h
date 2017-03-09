@@ -1,16 +1,11 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-#define STACK_SIZE_DEFAULT		1024
-#define STACK_SIZE_MIN			1024
+#define STACK_SIZE_DEFAULT		1024 /* bytes */
+#define STACK_SIZE_MIN			384 /* bytes */
 
-/* TODO: separate heap from stack */
-#define HEAP_SIZE_DEFAULT		256
-
-#define STACK_SIZE			1024 /* bytes, kernel stack */
-#define USER_SPACE_SIZE			1024 /* bytes */
-#define HEAP_SIZE			(USER_SPACE_SIZE >> 2) /* one fourth */
-#define USER_STACK_SIZE			(USER_SPACE_SIZE - HEAP_SIZE)
+/* TODO: add the functionality of resizing heap size dynamically */
+#define HEAP_SIZE_DEFAULT		128 /* bytes */
 
 #define STACK_SENTINEL			0xdeafc0de
 
@@ -18,16 +13,13 @@
 #include <lib/firstfit.h>
 
 struct mm {
+	/* stack */
 	unsigned int *base;
 	unsigned int *sp;
-	union {
-		unsigned int *heap;
-		heap_t heaphead;
-	};
-	/* heap is located in the bottom of stack memory and expands up to brk.
-	 * and to obtain stack bottom, "bottom = sp & ~(stack size - 1)" while
-	 * "top = bottom + stack size - 1". so "heap size = brk - bottom". but
-	 * be aware that both of heap and brk can be changed dynamically. */
+
+	/* heap */
+	unsigned int *heap;
+	heap_t heaphead;
 
 	/* kernel stack */
 	struct {
@@ -44,7 +36,8 @@ struct mm {
 #define TF_CLONED			0x08
 #define TF_HANDLER			0x10
 #define TF_PRIVILEGED			0x20
-#define TF_SHARED			0x80 /* share stack */
+#define TF_ATOMIC			0x40
+#define TF_SHARED			0x80 /* share the kernel stack */
 
 #define TASK_USER			(TF_USER)
 #define TASK_KERNEL			(TF_KERNEL | TF_PRIVILEGED)
@@ -53,7 +46,7 @@ struct mm {
 #define TASK_CLONED			(TF_CLONED)
 #define TASK_PRIVILEGED			(TF_PRIVILEGED)
 #define STACK_SHARED			(TF_SHARED)
-#define TASK_HANDLER			(TF_HANDLER | TASK_KERNEL)
+#define TASK_HANDLER			(TF_HANDLER | TASK_KERNEL | TF_ATOMIC)
 
 #define set_task_flags(p, v)		((p)->flags = v)
 #define get_task_flags(p)		((p)->flags)
@@ -140,13 +133,60 @@ int clone(unsigned int flags, void *ref);
 void set_task_dressed(struct task *task, unsigned int flags, void *addr);
 int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref);
 void wrapper();
-void go_run_atomic(struct task *task);
 unsigned int kill_zombie();
 
 struct task *find_task(unsigned int addr, struct task *head);
 
-int sys_kill(unsigned int tid);
+int sys_kill(void *task);
 int sys_fork();
+
+extern void runqueue_add_core(struct task *new);
+extern void runqueue_del_core(struct task *task);
+extern void runqueue_add(struct task *new);
+extern void runqueue_del(struct task *task);
+
+static inline void go_run_atomic(struct task *task)
+{
+	if (get_task_state(task)) {
+		set_task_state(task, TASK_RUNNING);
+		runqueue_add_core(task);
+	}
+}
+
+static inline void go_run_atomic_if(struct task *task, unsigned int flag)
+{
+	if (get_task_state(task) == flag) {
+		set_task_state(task, TASK_RUNNING);
+		runqueue_add_core(task);
+	}
+}
+
+static inline void go_run(struct task *task)
+{
+	if (get_task_state(task)) {
+		set_task_state(task, TASK_RUNNING);
+		runqueue_add(task);
+	}
+}
+
+static inline void go_run_if(struct task *task, unsigned int flag)
+{
+	if (get_task_state(task) == flag) {
+		set_task_state(task, TASK_RUNNING);
+		runqueue_add(task);
+	}
+}
+
+void syscall_delegate_return(struct task *task, int ret);
+
+static inline void syscall_delegate(struct task *org, struct task *delegate)
+{
+	set_task_state(org, TASK_WAITING);
+	go_run_atomic(delegate);
+
+	extern void resched();
+	resched();
+}
 
 /* It used to return `(int)(p)`, task address, but it could probably lead
  * problem when the address is higher than 0x80000000 resulting in negative

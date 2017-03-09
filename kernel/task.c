@@ -12,31 +12,36 @@ int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 	if ((new->mm.base = kmalloc(size)) == NULL)
 		return -ERR_ALLOC;
 
+	if ((new->mm.heap = kmalloc(HEAP_SIZE_DEFAULT)) == NULL) {
+		kfree(new->mm.base);
+		return -ERR_ALLOC;
+	}
+
 	/* make its stack pointer to point out the highest memory address.
 	 * full descending stack */
 	new->mm.sp = new->mm.base + (size / WORD_SIZE);
+	new->mm.base[0] = STACK_SENTINEL;
 
 	/* initialize heap for malloc() */
-	size_t heap_size = size >> 2; /* one fourth */
-	heap_init(&new->mm.heaphead, new->mm.base,
-			&new->mm.base[heap_size / WORD_SIZE]);
-
-	new->mm.base[heap_size / WORD_SIZE] = STACK_SENTINEL;
+	heap_init(&new->mm.heaphead, new->mm.heap,
+			&new->mm.heap[HEAP_SIZE_DEFAULT / WORD_SIZE]);
 
 	if (flags & STACK_SHARED) {
 		new->mm.kernel.sp = ((struct task *)ref)->mm.kernel.sp;
 		new->mm.kernel.base = ((struct task *)ref)->mm.kernel.base;
 	} else {
-		if ((new->mm.kernel.sp = kmalloc(STACK_SIZE))) {
+		if ((new->mm.kernel.sp = kmalloc(size))) {
 			new->mm.kernel.base = new->mm.kernel.sp;
 			new->mm.kernel.base[0] = STACK_SENTINEL;
-			new->mm.kernel.sp = &new->mm.kernel.base[STACK_SIZE /
+			new->mm.kernel.sp = &new->mm.kernel.base[size /
 				WORD_SIZE];
 		}
 	}
 
 	if (new->mm.kernel.sp == NULL) {
 		kfree(new->mm.base);
+		kfree(new->mm.heap);
+
 		return -ERR_ALLOC;
 	}
 
@@ -65,6 +70,12 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
 {
 	struct task *new;
+	void *entry = wrapper;
+
+	if (flags & TF_ATOMIC) {
+		entry = addr;
+		flags &= ~TF_ATOMIC;
+	}
 
 	if ((new = kmalloc(sizeof(struct task)))) {
 		if (alloc_mm(new, size, flags, ref)) {
@@ -72,7 +83,7 @@ struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
 			new = NULL;
 		} else {
 			set_task_dressed(new, flags, addr);
-			set_task_context(new, wrapper); /* get dressed first */
+			set_task_context(new, entry); /* get dressed first */
 		}
 	}
 
@@ -93,7 +104,7 @@ static void unlink_task(struct task *task)
 	if (task == &init)
 		return;
 
-	if (current->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL)
+	if (current->mm.base[0] != STACK_SENTINEL)
 		error("stack overflow %x(%x)" , current, current->addr);
 
 	unsigned int irqflag;
@@ -149,6 +160,8 @@ static void destroy(struct task *task)
 		return;
 
 	kfree(task->mm.base);
+	kfree(task->mm.heap);
+
 	if (!(get_task_flags(task) & STACK_SHARED))
 		kfree(task->mm.kernel.base);
 
@@ -215,16 +228,25 @@ void wrapper()
 
 	debug("[%08x] The task %x done", systick, current->addr);
 
-	kill((unsigned int)current);
+	kill(current);
 	freeze(); /* never reaches here */
 }
 
-void go_run_atomic(struct task *task)
+void syscall_delegate_return(struct task *task, int ret)
 {
-	if (get_task_state(task)) {
-		set_task_state(task, TASK_RUNNING);
-		runqueue_add_core(task);
-	}
+	unsigned int irqflag;
+
+	spin_lock_irqsave(&task->lock, irqflag);
+
+	__set_retval(task, ret);
+	/* FIXME: it messes up calling sum_curr_stat() when make() */
+	//sum_curr_stat(task);
+	go_run_atomic(task);
+
+	spin_unlock_irqrestore(&task->lock, irqflag);
+
+	kill(current);
+	freeze(); /* never reaches here */
 }
 
 #include <stdlib.h>
@@ -256,12 +278,12 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	else
 		flags |= TF_CLONED;
 
-	base = (unsigned int)&current->mm.base[HEAP_SIZE / WORD_SIZE];
-	top  = base + USER_STACK_SIZE;
+	base = (unsigned int)current->mm.base;
+	top  = base + STACK_SIZE_DEFAULT;
 
 	if (flags & TF_HANDLER) { /* if handler mode */
 		base = (unsigned int)current->mm.kernel.base;
-		top  = base + STACK_SIZE;
+		top  = base + STACK_SIZE_DEFAULT;
 	}
 
 #ifdef ARMv7A
@@ -304,7 +326,7 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	 * the original(its parent) address space. this way doesn't seem
 	 * charming and probably leads problems or bugs in the future. */
 	unsigned int i;
-	unsigned int limit = (unsigned int)child->mm.base + USER_SPACE_SIZE;
+	unsigned int limit = (unsigned int)child->mm.base + STACK_SIZE_DEFAULT;
 	for (i = 0; (i < size / WORD_SIZE) &&
 			((unsigned int)(child->mm.sp+i) < limit); i++) {
 		if ((child->mm.sp[i] > base) && (child->mm.sp[i] < top))
@@ -354,7 +376,7 @@ int sys_fork()
 	int tid = clone(TASK_SYSCALL | STACK_SHARED |
 			(get_task_flags(current) & TASK_PRIVILEGED), &init);
 	if (tid > 0) /* the newly forked task never gets back here */
-		sys_kill((unsigned int)current);
+		sys_kill(current);
 
 	/* schedule to give chance for child to run first */
 	resched();
@@ -400,13 +422,13 @@ int __attribute__((naked)) sys_fork()
 }
 #endif
 
-int sys_kill(unsigned int tid)
+int sys_kill(void *task)
 {
-	if ((struct task *)tid != current) {
+	if ((struct task *)task != current) {
 		warn("no permission");
 		return -ERR_PERM;
 	}
 
-	unlink_task((struct task *)tid);
+	unlink_task(task);
 	return 0;
 }

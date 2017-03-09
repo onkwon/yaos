@@ -5,55 +5,31 @@
 #include <stdlib.h>
 #include <io.h>
 
-void syscall_delegate_return(struct task *task, int ret)
-{
-	unsigned int irqflag;
-
-	spin_lock_irqsave(&task->lock, irqflag);
-
-	__set_retval(task, ret);
-	/* FIXME: it messes up calling sum_curr_stat() when make() */
-	//sum_curr_stat(task);
-	go_run_atomic(task);
-
-	spin_unlock_irqrestore(&task->lock, irqflag);
-}
-
-void syscall_delegate(struct task *org, struct task *delegate)
-{
-	spin_lock(&org->lock);
-	set_task_state(org, TASK_WAITING);
-	spin_unlock(&org->lock);
-
-	spin_lock(&delegate->lock);
-	set_task_state(delegate, TASK_RUNNING);
-	runqueue_add_core(delegate);
-	spin_unlock(&delegate->lock);
-
-	resched();
-}
-
 int sys_open_core(char *filename, int mode, void *option)
 {
 	struct superblock *sb;
 	struct inode *inode, *new;
 	struct file file;
 	struct file_operations *ops;
-	int err;
+	int err = -ERR_PATH;
 
 	if ((sb = search_super(filename)) == NULL)
-		return -ERR_PATH;
+		goto out;
 
-	if ((new = kmalloc(sizeof(struct inode))) == NULL)
-		return -ERR_ALLOC;
+	if ((new = kmalloc(sizeof(struct inode))) == NULL) {
+		err = -ERR_ALLOC;
+		goto out;
+	}
 
 	new->addr = sb->root_inode;
 	new->sb = sb;
 	INIT_MUTEX(new->lock);
 	sb->op->read_inode(new);
 
-	if (new->iop == NULL) /* probably due to failure of memory allocation */
-		return -ERR_RETRY;
+	if (new->iop == NULL) { /* probably due to failure of memory allocation */
+		err = -ERR_RETRY;
+		goto out_free;
+	}
 
 	if ((ops = kmalloc(sizeof(struct file_operations))) == NULL) {
 		err = -ERR_ALLOC;
@@ -63,13 +39,13 @@ int sys_open_core(char *filename, int mode, void *option)
 	if (new->iop->lookup(new, filename + sb->pathname_len)) {
 		if (!(mode & O_CREATE)) {
 			err = -ERR_PATH;
-			goto out_free;
+			goto out_free_ops;
 		}
 
 		if (!new->iop->create || new->iop->create(new,
 					filename + sb->pathname_len, FT_FILE)) {
 			err = -ERR_CREATE;
-			goto out_free;
+			goto out_free_ops;
 		}
 	}
 
@@ -103,58 +79,34 @@ int sys_open_core(char *filename, int mode, void *option)
 
 	return mkfile(&file);
 
+out_free_ops:
+	kfree(ops);
 out_free:
 	kfree(new);
 
+out:
 	return err;
+}
+
+void do_sys_open(char *filename, int mode, void *option)
+{
+	int ret = sys_open_core(filename, mode, option);
+
+	syscall_delegate_return(current->parent, ret);
 }
 
 int sys_open(char *filename, int mode, void *option)
 {
-	struct task *parent;
-	int tid;
+	struct task *thread;
 
-	parent = current;
-	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
+					do_sys_open, current)) == NULL)
+		return -ERR_ALLOC;
 
-	if (tid == 0) { /* parent */
-		/* it goes TASK_WAITING state as soon as exiting from system
-		 * call to wait for its child's job to be done that returns the
-		 * result. */
-		spin_lock(&current->lock);
-		set_task_state(current, TASK_WAITING);
-		spin_unlock(&current->lock);
-		resched();
-		return 0;
-	} else if (tid < 0) { /* error */
-		/* use errno */
-		error("failed cloning");
-		return -ERR_RETRY;
-	}
+	syscall_put_arguments(thread, filename, mode, option, NULL);
+	syscall_delegate(current, thread);
 
-	unsigned int irqflag;
-	int ret;
-
-	/* child takes place from here turning to kernel task,
-	 * nomore in handler mode */
-	ret = sys_open_core(filename, mode, option);
-
-	spin_lock_irqsave(&parent->lock, irqflag);
-
-	__set_retval(parent, ret);
-	sum_curr_stat(parent);
-
-	if (get_task_state(parent)) {
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add_core(parent);
-	}
-
-	spin_unlock_irqrestore(&parent->lock, irqflag);
-
-	sys_kill((unsigned int)current);
-	freeze(); /* never reaches here */
-
-	return -ERR_UNDEF;
+	return 0;
 }
 
 int sys_read(int fd, void *buf, size_t len)
@@ -223,8 +175,6 @@ int sys_remove_core(const char *pathname)
 	struct inode *inode, *found;
 	int err = 0;
 
-	pathname = current->args;
-
 	if ((sb = search_super(pathname)) == NULL) {
 		err = -ERR_PATH;
 		goto out;
@@ -284,7 +234,7 @@ int sys_remove(const char *pathname)
 					sys_remove_core, current)) == NULL)
 		return -ERR_ALLOC;
 
-	thread->args = (void *)pathname;
+	syscall_put_arguments(thread, pathname, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
 
 	return 0;

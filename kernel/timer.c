@@ -3,62 +3,96 @@
 #include <kernel/task.h>
 #include <kernel/lock.h>
 #include <error.h>
+#include "worklist.h"
 
 #ifdef CONFIG_TIMER
 struct timer_queue timerq;
 struct task *timerd;
 
-static inline int __add_timer(struct ktimer *new)
+static DEFINE_WORKLIST_HEAD(work_list_head);
+static struct task *add_timerd;
+
+static void add_timer_core(struct ktimer *tm)
 {
-	struct links *curr;
-	int stamp = (int)systick;
+	struct worklist *work;
+	struct link *curr, *prev;
+	struct ktimer *ref;
+	int stamp, ret, new;
 
-	new->expires -= 1; /* as it uses time_after() not time_equal */
+	add_timerd = current;
 
-	if (time_after(new->expires, stamp))
-		return -ERR_RANGE;
+loop:
+	while (!worklist_empty(&work_list_head)) {
+		work = getwork(&work_list_head);
+		tm = work->data;
+		kfree(work);
 
-	new->task = current;
+		ret = 0;
+		stamp = (int)systick;
+		tm->expires -= 1; /* as it uses time_after() not time_equal */
 
-	spin_lock(&timerq.lock);
+		if (time_after(tm->expires, stamp)) {
+			ret = -ERR_RANGE;
+		} else {
+			mutex_lock(&timerq.mutex);
 
-	/* TODO: make search O(1) or clone() not to run in interrupt context */
-	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
-		if (((int)new->expires - stamp) <
-				((int)((struct ktimer *)curr)->expires - stamp))
-			break;
+			new = (int)tm->expires - stamp;
+			prev = &timerq.list;
+			curr = prev->next;
+
+			while (curr) {
+				ref = (struct ktimer *)curr;
+				if (new < ((int)ref->expires - stamp))
+					break;
+
+				prev = curr;
+				curr = curr->next;
+			}
+
+			if (new < ((int)timerq.next - stamp))
+				timerq.next = tm->expires;
+
+			link_add(&tm->list, prev);
+			timerq.nr++;
+
+			mutex_unlock(&timerq.mutex);
+		}
+
+		__set_retval(tm->task, ret);
+		//sum_curr_stat(tm->task);
+		go_run(tm->task);
 	}
 
-	if (((int)new->expires - stamp) < ((int)timerq.next - stamp))
-		timerq.next = new->expires;
-
-	links_add(&new->list, curr->prev);
-	timerq.nr++;
-
-	spin_unlock(&timerq.lock);
-
-	return 0;
+	yield();
+	goto loop;
 }
+REGISTER_TASK(add_timer_core, TASK_KERNEL, DEFAULT_PRIORITY, STACK_SIZE_MIN);
 
-/* FIXME: Remove the need of controlling interrupts in a timer instance
- * To avoid the race condition, interrupts must be disabled before getting the
- * lock of task to change its state or/and priority. And a timer instance runs
- * in the mode it is invoked by which means that can be called by a task
- * doesn't have the right permission.
- *
- * Typically a timer instance is tied to its own task only. So I take the risk
- * at the moment because can't stay long with being interrupt disabled, but
- * will get back soon. */
+static void do_run_timer(struct ktimer *timer)
+{
+	timer->event(timer->data);
+	//TODO: sum_curr_stat(timer->task);
+
+	kill(current);
+	freeze(); /* never reaches here */
+}
 
 static void run_timer()
 {
 	struct ktimer *timer;
-	struct links *curr;
-	unsigned int irqflag;
-	int tid;
+	struct link *curr, *prev;
+	struct task *thread;
+	unsigned int flags;
+
+	set_task_pri(timerd, HIGHEST_PRIORITY);
 
 infinite:
-	for (curr = timerq.list.next; curr != &timerq.list; curr = curr->next) {
+	mutex_lock(&timerq.mutex);
+
+	prev = &timerq.list;
+	curr = prev->next;
+
+	while (curr) {
 		timer = (struct ktimer *)curr;
 
 		if (time_before(timer->expires, systick)) {
@@ -66,67 +100,38 @@ infinite:
 			break;
 		}
 
-		tid = clone(STACK_SHARED | (get_task_flags(timer->task) &
-						TASK_PRIVILEGED), &init);
-		if (tid > 0) {
-			/* Note that it is running at HIGHEST_PRIORITY just
-			 * like its parent, run_timer(). Change the priority to
-			 * its own tasks' to do job at the right priority. */
-			spin_lock(&current->lock);
-			set_task_pri(current, get_task_pri(timer->task));
-			spin_unlock(&current->lock);
-			schedule();
+		flags = (get_task_flags(timer->task) & ~TASK_STATIC) | TF_ATOMIC;
 
-			if (timer->event)
-				timer->event(timer->data);
-
-			/* A trick to enter privileged mode */
-			if (!(get_task_flags(current) & TASK_PRIVILEGED)) {
-				spin_lock(&current->lock);
-				set_task_flags(current, get_task_flags(current)
-						| TASK_PRIVILEGED);
-				spin_unlock(&current->lock);
-				schedule();
-			}
-
-			spin_lock_irqsave(&timer->task->lock, irqflag);
-			sum_curr_stat(timer->task);
-			spin_unlock_irqrestore(&timer->task->lock, irqflag);
-
-			kill((unsigned int)current);
-			freeze();
-		} else if (tid != 0) /* error if not parent */
+		if ((thread = make(flags, STACK_SIZE_DEFAULT, do_run_timer,
+						timer->task)) == NULL)
 			break;
 
-		spin_lock_irqsave(&timerq.lock, irqflag);
-		links_del(curr);
+		put_arguments(thread, timer, NULL, NULL, NULL);
+		go_run(thread);
+
+		link_del(curr, prev);
 		timerq.nr--;
-		spin_unlock_irqrestore(&timerq.lock, irqflag);
+
+		curr = prev->next;
 	}
+
+	mutex_unlock(&timerq.mutex);
 
 	yield();
 	goto infinite;
 }
 
-static void sleep_callback(unsigned int data)
+static void sleep_callback(void *data)
 {
-	struct task *task = (struct task *)data;
+	struct task *task = data;
 
 	/* A trick to enter privileged mode */
 	if (!(get_task_flags(current) & TASK_PRIVILEGED)) {
-		spin_lock(&current->lock);
-		set_task_flags(current, get_task_flags(current)
-				| TASK_PRIVILEGED);
-		spin_unlock(&current->lock);
+		set_task_flags(current, get_task_flags(current) | TASK_PRIVILEGED);
 		schedule();
 	}
 
-	if (get_task_state(task) == TASK_SLEEPING) {
-		spin_lock(&task->lock);
-		set_task_state(task, TASK_RUNNING);
-		runqueue_add(task);
-		spin_unlock(&task->lock);
-	}
+	go_run_if(task, TASK_SLEEPING);
 }
 
 #include <kernel/init.h>
@@ -134,15 +139,14 @@ static void sleep_callback(unsigned int data)
 int __init timer_init()
 {
 	timerq.nr = 0;
-	links_init(&timerq.list);
-	lock_init(&timerq.lock);
+	link_init(&timerq.list);
+	mutex_init(&timerq.mutex);
 
 	if ((timerd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_MIN,
-					run_timer, &init))
-			== NULL)
+					run_timer, &init)) == NULL)
 		return -ERR_ALLOC;
 
-	set_task_pri(timerd, HIGHEST_PRIORITY);
+	go_run_atomic(timerd);
 
 	return 0;
 }
@@ -173,7 +177,7 @@ void sleep(unsigned int sec)
 
 	tm.expires = systick + sec_to_ticks(sec);
 	tm.event = sleep_callback;
-	tm.data = (unsigned int)current;
+	tm.data = current;
 	if (!add_timer(&tm))
 		yield();
 #else
@@ -191,7 +195,7 @@ void msleep(unsigned int ms)
 
 	tm.expires = systick + msec_to_ticks(ms);
 	tm.event = sleep_callback;
-	tm.data = (unsigned int)current;
+	tm.data = current;
 	if (!add_timer(&tm))
 		yield();
 #else
@@ -205,7 +209,18 @@ void msleep(unsigned int ms)
 int sys_timer_create(struct ktimer *new)
 {
 #ifdef CONFIG_TIMER
-	return __add_timer(new);
+	struct worklist *work;
+
+	if ((work = kmalloc(sizeof(*work))) == NULL)
+		return -ERR_ALLOC;
+
+	new->task = current;
+	work->data = new;
+
+	worklist_add(work, &work_list_head);
+	syscall_delegate(current, add_timerd);
+
+	return 0;
 #else
 	return -ERR_UNDEF;
 #endif

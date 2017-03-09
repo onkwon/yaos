@@ -67,7 +67,7 @@ void __init free_bootmem()
 	unsigned int idx;
 	struct page *page;
 
-	idx = buddy.nr_pages - PAGE_NR(ALIGN_PAGE(STACK_SIZE));
+	idx = buddy.nr_pages - PAGE_NR(ALIGN_PAGE(STACK_SIZE_DEFAULT));
 	page = &buddy.mem_map[idx];
 
 	kfree(page->addr);
@@ -87,6 +87,7 @@ size_t getfree()
 
 static heap_t mem_map;
 static DEFINE_SPINLOCK(mem_lock);
+static size_t nr_mfree;
 
 void *kmalloc(size_t size)
 {
@@ -107,6 +108,7 @@ retry:
 		error("Out of memory");
 	}
 
+	nr_mfree -= size;
 	return p;
 }
 
@@ -115,6 +117,8 @@ void kfree(void *addr)
 	unsigned int irqflag;
 
 	if (!addr) return;
+
+	nr_mfree += *(size_t *)(addr - WORD_SIZE) - 1;
 
 	spin_lock_irqsave(&mem_lock, irqflag);
 	ff_free(&mem_map, addr);
@@ -128,13 +132,14 @@ void __init free_bootmem()
 
 	ram_end = (unsigned int)&_ram_start + (unsigned int)&_ram_size - 1;
 
-	p = (void *)ALIGN_WORD(ram_end - (STACK_SIZE + FF_METASIZE));
+	p = (void *)ALIGN_WORD(ram_end - (STACK_SIZE_DEFAULT + FF_METASIZE));
 
 	kfree((char *)p + FF_DATA_OFFSET);
 }
 
 size_t getfree()
 {
+	return nr_mfree;
 	return show_freelist(&mem_map);
 }
 #endif
@@ -184,19 +189,20 @@ void __init mm_init()
 	struct ff_freelist *p;
 
 	/* preserve initial kernel stack to be free later */
-	p = (struct ff_freelist *)ALIGN_WORD(end - (STACK_SIZE + FF_METASIZE));
-	p->size = ALIGN_WORD(STACK_SIZE);
+	p = (struct ff_freelist *)
+		ALIGN_WORD(end - (STACK_SIZE_DEFAULT + FF_METASIZE));
+	p->size = ALIGN_WORD(STACK_SIZE_DEFAULT);
 	FF_LINK_HEAD(p);
 	FF_MARK_ALLOCATED(p);
 
 	/* TODO: preserve the staic user tasks to be free later */
 
 	/* mark kernel .data and .bss sections as used */
-	heap_init(&mem_map, &_ebss, p);
+	nr_mfree = heap_init(&mem_map, &_ebss, p);
 #endif
 }
 
-int heap_init(void *pool, void *start, void *end)
+size_t heap_init(void *pool, void *start, void *end)
 {
 	return ff_freelist_init(pool, start, end);
 }

@@ -72,25 +72,15 @@ void runqueue_del_core(struct task *task)
 
 static inline void run_softirq()
 {
-	if (softirq.pending) {
-		if (get_task_state(softirqd)) {
-			set_task_state(softirqd, TASK_RUNNING);
-			if (current != softirqd)
-				runqueue_add_core(softirqd);
-		}
-	}
+	if (softirq.pending && current != softirqd)
+		go_run_atomic(softirqd);
 
 #ifdef CONFIG_TIMER
 	extern struct timer_queue timerq;
 	extern struct task *timerd;
 
-	if (timerq.nr && time_after(timerq.next, systick)) {
-		if (get_task_state(timerd)) {
-			set_task_state(timerd, TASK_RUNNING);
-			if (current != timerd)
-				runqueue_add_core(timerd);
-		}
-	}
+	if (timerq.nr && time_after(timerq.next, systick) && current != timerd)
+		go_run_atomic_if(timerd, TASK_SLEEPING);
 #endif
 }
 
@@ -98,7 +88,7 @@ void schedule_core()
 {
 #ifdef CONFIG_DEBUG
 	/* stack overflow */
-	if ((current->mm.base[HEAP_SIZE / WORD_SIZE] != STACK_SENTINEL) ||
+	if ((current->mm.base[0] != STACK_SENTINEL) ||
 			(current->mm.kernel.base[0] != STACK_SENTINEL))
 	{
 		error("stack overflow %x(%x)", current, current->addr);

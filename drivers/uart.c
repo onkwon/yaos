@@ -2,11 +2,12 @@
 #include <kernel/page.h>
 #include <asm/uart.h>
 #include <error.h>
+#include "worklist.h"
 
 #ifdef CONFIG_PAGING
-#define BUFSIZE		PAGESIZE
+#define BUFSIZE			PAGESIZE
 #else
-#define BUFSIZE		32
+#define BUFSIZE			32
 #endif
 
 #ifndef USART_CHANNEL_MAX
@@ -21,23 +22,15 @@ static struct fifo rxq[USART_CHANNEL_MAX], txq[USART_CHANNEL_MAX];
 static lock_t rx_lock[USART_CHANNEL_MAX], tx_lock[USART_CHANNEL_MAX];
 static struct waitqueue_head wq[USART_CHANNEL_MAX];
 
-static DEFINE_LINK_HEAD(wr_work_list_head);
+static DEFINE_WORKLIST_HEAD(wr_work_list_head);
 static struct task *wr_uartd;
-
-struct work_list {
-	struct link list;
-	struct task *task;
-	struct file *file;
-	void *buf;
-	size_t size;
-};
 
 static size_t uart_write_polling(struct file *file, void *data);
 static size_t uart_write_int(struct file *file, void *data);
 
 static void uart_wr_daemon(struct file *file, void *buf, size_t len)
 {
-	struct work_list *work;
+	struct worklist *work;
 	struct task *task;
 	size_t (*f)(struct file *file, void *data), ret;
 	unsigned int irqflag;
@@ -45,12 +38,11 @@ static void uart_wr_daemon(struct file *file, void *buf, size_t len)
 	wr_uartd = current;
 
 loop:
-	while (!link_empty(&wr_work_list_head)) {
-		work = (struct work_list *)wr_work_list_head.next;
-		wr_work_list_head.next = work->list.next;
+	while (!worklist_empty(&wr_work_list_head)) {
+		work = getwork(&wr_work_list_head);
 
 		file = work->file;
-		buf = work->buf;
+		buf = work->data;
 		len = work->size;
 		task = work->task;
 
@@ -182,15 +174,7 @@ static size_t uart_read_core(struct file *file, void *buf, size_t len)
 
 static void do_uart_read(struct file *file, void *buf, size_t len)
 {
-	struct work_list *work;
 	size_t ret, cnt;
-
-	work = current->args;
-	file = work->file;
-	buf = work->buf;
-	len = work->size;
-
-	kfree(work);
 
 	for (ret = 0; ret < len && file->offset < file->inode->size;) {
 		if ((cnt = uart_read_core(file, buf + ret, len - ret))
@@ -207,24 +191,15 @@ static void do_uart_read(struct file *file, void *buf, size_t len)
 static size_t uart_read(struct file *file, void *buf, size_t len)
 {
 	struct task *thread;
-	struct work_list *work;
 
 	if (file->flags & O_NONBLOCK)
 		return uart_read_core(file, buf, len);
-
-	if ((work = kmalloc(sizeof(*work))) == NULL)
-		return -ERR_ALLOC;
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_uart_read, current)) == NULL)
 		return -ERR_ALLOC;
 
-	work->task = current;
-	work->file = file;
-	work->buf = buf;
-	work->size = len;
-
-	thread->args = (void *)work;
+	syscall_put_arguments(thread, file, buf, len, NULL);
 	syscall_delegate(current, thread);
 
 	return 0;
@@ -266,21 +241,18 @@ static size_t uart_write_polling(struct file *file, void *data)
 
 static size_t uart_write(struct file *file, void *buf, size_t len)
 {
-	struct work_list *work;
+	struct worklist *work;
 
 	if ((work = kmalloc(sizeof(*work))) == NULL)
 		return -ERR_ALLOC;
 
 	work->task = current;
 	work->file = file;
-	work->buf = buf;
+	work->data = buf;
 	work->size = len;
 
-	link_add_tail(&work->list, &wr_work_list_head);
-	go_run_atomic(wr_uartd);
-
-	set_task_state(current, TASK_WAITING);
-	resched();
+	worklist_add(work, &wr_work_list_head);
+	syscall_delegate(current, wr_uartd);
 
 	return 0;
 }

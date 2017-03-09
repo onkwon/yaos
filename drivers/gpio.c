@@ -20,18 +20,10 @@ struct uisr {
 static void isr()
 {
 	if (daemon && (get_task_state(daemon) == TASK_SLEEPING)) {
-		spin_lock(&daemon->lock);
-
 		daemon->args = (void *)get_active_irq();
-		set_task_state(daemon, TASK_RUNNING);
-		runqueue_add_core(daemon);
-
-		spin_unlock(&daemon->lock);
+		go_run_atomic_if(daemon, TASK_SLEEPING);
 	} else {
-		spin_lock(&daemon->lock);
 		daemon->args = (void *)get_active_irq();
-		spin_unlock(&daemon->lock);
-
 		pending = true;
 	}
 
@@ -123,8 +115,6 @@ static int gpio_close_core(struct file *file)
 	struct uisr *uisr;
 	int ret = 0;
 
-	file = current->args;
-
 	mutex_lock(&q_lock);
 
 	prev = &q_user_isr;
@@ -176,7 +166,7 @@ static int gpio_close(struct file *file)
 					gpio_close_core, current)) == NULL)
 		return -ERR_ALLOC;
 
-	thread->args = (void *)file;
+	syscall_put_arguments(thread, file, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
 
 	return 0;
@@ -189,9 +179,6 @@ static int gpio_isr_add(struct file *file, void *data)
 
 	if (!(uisr = kmalloc(sizeof(*uisr))))
 		return -ERR_ALLOC;
-
-	file = current->args;
-	data = file->option;
 
 	/* save the file descriptor's address for later identification when
 	 * close() to remove the isr and free memory. And keep track on the
@@ -228,8 +215,7 @@ static int gpio_ioctl(struct file *file, int request, void *data)
 					gpio_isr_add, current)) == NULL)
 		return -ERR_ALLOC;
 
-	file->option = data;
-	thread->args = (void *)file;
+	syscall_put_arguments(thread, file, data, NULL, NULL);
 	syscall_delegate(current, thread);
 
 	return 0;
@@ -275,8 +261,7 @@ endless:
 			STACK_SHARED;
 
 		if ((thread = make(mode, STACK_SIZE_MIN, uisr->func, uisr->task))) {
-			set_task_state(thread, TASK_RUNNING);
-			runqueue_add(thread);
+			go_run(thread);
 			/* NOTE: you will not be able to service all the
 			 * interrupts if you do reschedule here. even if not
 			 * reschedule here, there is still chance to miss,

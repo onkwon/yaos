@@ -108,9 +108,9 @@ static inline void link_add(struct link *new, struct link *ref)
 	ref->next = new;
 }
 
-static inline void link_add_tail(struct link *new, struct link *ref)
+static inline void link_add_tail(struct link *new, struct link *head)
 {
-	struct link **curr = &ref;
+	struct link **curr = &head;
 
 	while ((*curr) && (*curr)->next)
 		curr = &(*curr)->next;

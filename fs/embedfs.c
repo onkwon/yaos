@@ -911,7 +911,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
-	sys_kill((unsigned int)current);
+	sys_kill(current);
 	freeze(); /* never reaches here */
 
 	return -ERR_UNDEF;
@@ -995,7 +995,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
-	sys_kill((unsigned int)current);
+	sys_kill(current);
 	freeze(); /* never reaches here */
 
 	return -ERR_UNDEF;
@@ -1137,7 +1137,7 @@ static int embed_close(struct file *file)
 
 	spin_unlock_irqrestore(&parent->lock, irqflag);
 
-	sys_kill((unsigned int)current);
+	sys_kill(current);
 	freeze(); /* never reaches here */
 
 	return -ERR_UNDEF;

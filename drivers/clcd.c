@@ -179,41 +179,43 @@ static size_t clcd_write_core(struct file *file, void *buf, size_t len)
 static size_t clcd_write(struct file *file, void *buf, size_t len)
 {
 	struct task *parent;
-	size_t ret;
 	int tid;
-	unsigned int irqflag;
 
 	parent = current;
 	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
 
-	if (tid > 0) { /* child turning to kernel task,
-			  nomore in handler mode */
-		ret = clcd_write_core(file, buf, len);
-
-		spin_lock_irqsave(&parent->lock, irqflag);
-
-		__set_retval(parent, ret);
-		sum_curr_stat(parent);
-
-		if (get_task_state(parent)) {
-			set_task_state(parent, TASK_RUNNING);
-			runqueue_add_core(parent);
-		}
-
-		spin_unlock_irqrestore(&parent->lock, irqflag);
-
-		sys_kill((unsigned int)current);
-		freeze(); /* never reaches here */
-	} else if (tid == 0) { /* parent */
+	if (tid == 0) { /* parent */
 		sys_yield(); /* it goes sleep as soon as exiting from system
 				call to wait for its child's job to be done
 				that returns the result. */
-		ret = 0;
-	} else { /* error */
+		return 0;
+	} else if (tid < 0) { /* error */
 		/* use errno */
 		error("failed cloning");
-		ret = -ERR_RETRY;
+		return -ERR_RETRY;
 	}
+
+	int ret;
+	unsigned int irqflag;
+
+	/* child takes place from here turning to kernel task,
+	 * nomore in handler mode */
+	ret = clcd_write_core(file, buf, len);
+
+	spin_lock_irqsave(&parent->lock, irqflag);
+
+	__set_retval(parent, ret);
+	sum_curr_stat(parent);
+
+	if (get_task_state(parent)) {
+		set_task_state(parent, TASK_RUNNING);
+		runqueue_add_core(parent);
+	}
+
+	spin_unlock_irqrestore(&parent->lock, irqflag);
+
+	sys_kill(current);
+	freeze(); /* never reaches here */
 
 	return ret;
 }

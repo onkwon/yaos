@@ -25,7 +25,7 @@ struct ff_freelist {
 	struct ff_freelist *head; /* keep at the end */
 } __attribute__((packed));
 
-int ff_freelist_init(struct ff_freelist_head *pool, void *start, void *end);
+size_t ff_freelist_init(struct ff_freelist_head *pool, void *start, void *end);
 
 void *ff_alloc(struct ff_freelist_head *pool, size_t size);
 void ff_free(struct ff_freelist_head *pool, void *addr);

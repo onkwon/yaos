@@ -26,9 +26,8 @@
 
 #define SYSCALL_DEFERRED_WORK		1
 
-struct task;
-void syscall_delegate_return(struct task *task, int ret);
-void syscall_delegate(struct task *org, struct task *delegate);
+#define syscall_put_arguments(task, a, b, c, d)	__set_args(task, a, b, c, d)
+#define put_arguments(task, a, b, c, d)		__set_args(task, a, b, c, d)
 
 int sys_open(char *filename, int mode, void *opt);
 int sys_read(int fd, void *buf, size_t len);
@@ -53,9 +52,9 @@ static inline int seek(int fd, unsigned int offset, int whence)
 {
 	return syscall(SYSCALL_SEEK, fd, offset, whence);
 }
-static inline int kill(unsigned int tid)
+static inline int kill(void *task)
 {
-	return syscall(SYSCALL_KILL, tid);
+	return syscall(SYSCALL_KILL, task);
 }
 static inline int fork()
 {

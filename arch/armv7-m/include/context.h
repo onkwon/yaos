@@ -107,4 +107,13 @@ struct regs {
 	__asm__ __volatile__("str %0, [%1]" :				\
 			: "r"(value), "r"(task->mm.sp + INDEX_R0))
 
+#define __set_args(task, r0, r1, r2, r3)				\
+	__asm__ __volatile__(						\
+			"str %1, [%0]			\n\t"		\
+			"str %2, [%0, #4]		\n\t"		\
+			"str %3, [%0, #8]		\n\t"		\
+			"str %4, [%0, #12]		\n\t"		\
+			:: "r"(task->mm.sp + INDEX_R0),			\
+			"r"(r0), "r"(r1), "r"(r2), "r"(r3))		\
+
 #endif /* __CONTEXT_H__ */
