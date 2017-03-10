@@ -1,6 +1,7 @@
 #include <foundation.h>
 #include "shell.h"
 #include <kernel/task.h>
+#include <kernel/systick.h>
 
 static unsigned int visit(struct task *p, unsigned int nr)
 {
@@ -17,7 +18,7 @@ static unsigned int visit(struct task *p, unsigned int nr)
 	printf("|   /vruntime %d /exec_runtime %d (%d sec)\n",
 			(unsigned)p->se.vruntime,
 			(unsigned)p->se.sum_exec_runtime,
-			(unsigned)p->se.sum_exec_runtime / HZ);
+			(unsigned)p->se.sum_exec_runtime / sysfreq);
 	print_tab();
 	printf("|   /sp 0x%08x /base 0x%08x /heap 0x%08x\n",
 			p->mm.sp, p->mm.base, p->mm.heap);
@@ -68,7 +69,7 @@ static int ps(int argc, char **argv)
 #define FREQ	9 /* (get_systick_max() * HZ / MHZ) --> privileged */
 	extern int sched_overhead;
 	printf("scheduling overhead %dus / %dus (%d)\n",
-			sched_overhead / FREQ, MHZ / HZ, sched_overhead);
+			sched_overhead / FREQ, MHZ / sysfreq, sched_overhead);
 #endif
 
 #ifdef CONFIG_DEBUG_CLONE
@@ -76,12 +77,12 @@ static int ps(int argc, char **argv)
 #define FREQ	9 /* (get_systick_max() * HZ / MHZ) --> privileged */
 	extern int clone_overhead;
 	printf("cloning overhead %dus / %dus (%d)\n",
-			clone_overhead / FREQ, MHZ / HZ, clone_overhead);
+			clone_overhead / FREQ, MHZ / sysfreq, clone_overhead);
 #endif
 
 	unsigned long long uptime = get_systick64();
 	printf("uptime: %d minutes (0x%08x%08x)\n"
-			, systick / HZ / 60
+			, systick / sysfreq / 60
 			, (unsigned int)(uptime >> 32)
 			, (unsigned int)uptime);
 

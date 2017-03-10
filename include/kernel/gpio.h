@@ -28,6 +28,7 @@ enum gpio_mode {
 
 #define gpio_altfunc(n)			\
 	(GPIO_MODE_ALT | ((n) << GPIO_ALT_SHIFT))
+#define gpio_altfunc_get(flags)		((flags) >> GPIO_ALT_SHIFT)
 
 int gpio_init(unsigned int index, unsigned int flags);
 void gpio_reset(unsigned int index);

@@ -1,5 +1,7 @@
 #include <kernel/lock.h>
 
+unsigned int sysfreq;
+
 volatile unsigned int __attribute__((section(".data"))) systick;
 uint64_t __attribute__((section(".data"))) systick64;
 

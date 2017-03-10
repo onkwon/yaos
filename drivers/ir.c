@@ -3,6 +3,7 @@
 #include <kernel/softirq.h>
 #include <asm/pinmap.h>
 #include <foundation.h>
+#include <kernel/systick.h>
 
 #define QUEUE_SIZE	(128 * WORD_SIZE) /* 128 entries of WORD_SIZE */
 #define MHZ		1000000
@@ -25,7 +26,7 @@ static void isr_ir()
 		elapsed -= stamp;
 
 	/* make it micro second time base */
-	elapsed /= (ir_count_max * HZ) / MHZ;
+	elapsed /= (ir_count_max * sysfreq) / MHZ;
 
 	fifo_put(&ir_queue, elapsed, sizeof(elapsed));
 

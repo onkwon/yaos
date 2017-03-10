@@ -22,7 +22,7 @@ static inline void update_curr()
 	uint64_t clock = get_systick64();
 	unsigned int delta_exec;
 
-	/* if delta_exec zero, runtime is finer than clock(HZ) granularity */
+	/* if delta_exec zero, runtime is finer than `sysfreq` granularity */
 	delta_exec = clock - current->se.exec_start;
 	current->se.vruntime += delta_exec;
 	current->se.sum_exec_runtime += delta_exec;
@@ -263,7 +263,7 @@ void print_rq()
 				p->parent, p->parent->addr,
 				(unsigned int)p->se.vruntime,
 				(unsigned int)p->se.sum_exec_runtime,
-				(unsigned int)p->se.sum_exec_runtime / HZ);
+				(unsigned int)p->se.sum_exec_runtime / sysfreq);
 
 //		for (i = 0; i < NR_CONTEXT; i++)
 //			printf(("%x : %x", p->sp + i, *(p->sp + i));
