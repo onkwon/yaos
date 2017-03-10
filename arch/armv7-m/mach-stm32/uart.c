@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "exti.h"
 #include "clock.h"
+#include <asm/pinmap.h>
 
 #ifndef stm32f1
 #define stm32f1	1
@@ -11,6 +12,16 @@
 
 #define RXNE		5
 #define TXE		7
+
+struct uart {
+	/*unsigned int sr;*/
+	/*unsigned int dr;*/
+	unsigned int brr;
+	unsigned int cr1;
+	unsigned int cr2;
+	unsigned int cr3;
+	unsigned int gtpr;
+};
 
 static unsigned int brr2reg(unsigned int baudrate, unsigned int clk)
 {
@@ -47,12 +58,6 @@ static inline reg_t *ch2reg(unsigned int channel)
 		break;
 	case 2: reg = (reg_t *)USART3;
 		break;
-#ifdef ADDITIONAL_UART
-	case 3: reg = (reg_t *)UART4;
-		break;
-	case 4: reg = (reg_t *)UART5;
-		break;
-#endif
 	case 0: reg = (reg_t *)USART1;
 		break;
 	default:
@@ -64,69 +69,56 @@ static inline reg_t *ch2reg(unsigned int channel)
 
 static inline int uart_open(unsigned int channel, struct uart arg)
 {
-	unsigned int port, pin, apb_nbit;
-#if (SOC == stm32f3 || SOC == stm32f4)
-	unsigned int alt = 7;
-#endif
+	unsigned int port, rx, tx, apb;
 	reg_t *reg = ch2reg(channel);
 
-	/* USART signal can be remapped to some other port pins. */
 	switch ((unsigned int)reg) {
 	case USART1:
-		port     = PORTA;
-		pin      = 9;  /* PA9: TX, PA10: RX */
+		port = PORTA;
+		tx = PIN_UART1_TX;
+		rx = PIN_UART1_RX;
 #if (SOC == stm32f1 || SOC == stm32f3)
-		apb_nbit = 14;
+		apb = 14;
 #elif (SOC == stm32f4)
-		apb_nbit = 4;
+		apb = 4;
 #endif
 		break;
 	case USART2:
-		port     = PORTA;
-		pin      = 2;  /* PA2: TX, PA3: RX */
-		apb_nbit = 17;
+		port = PORTA;
+		tx = PIN_UART2_TX;
+		rx = PIN_UART2_RX;
+		apb = 17;
 		break;
 	case USART3:
-		port     = PORTB;
-		pin      = 10; /* PB10: TX, PB11: RX */
-		apb_nbit = 18;
+		port = PORTB;
+		tx = PIN_UART3_TX;
+		rx = PIN_UART3_RX;
+		apb = 18;
 		break;
-#ifdef ADDITIONAL_UART
-	case UART4:
-		port     = PORTC;
-		pin      = 10; /* PC10: TX, PC11: RX */
-		apb_nbit = 19;
-		break;
-	case UART5:
-		port     = PORTC;
-		pin      = 12; /* PC12: TX, PD2: RX */
-		apb_nbit = 20;
-		break;
-#endif
 	default:
 		return -1;
 	}
 
 	if ((unsigned int)reg == USART1) {
-		__turn_apb2_clock(apb_nbit, ON);
-		__reset_apb2_device(apb_nbit);
+		__turn_apb2_clock(apb, ON);
+		__reset_apb2_device(apb);
 
 		arg.brr = brr2reg(arg.brr, get_pclk2());
 	} else {
-		__turn_apb1_clock(apb_nbit, ON);
-		__reset_apb1_device(apb_nbit);
+		__turn_apb1_clock(apb, ON);
+		__reset_apb1_device(apb);
 
 		arg.brr = brr2reg(arg.brr, get_pclk1());
 	}
 
 	/* gpio configuration. in case of remapping, check pinout. */
-	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + pin, GPIO_MODE_ALT | GPIO_SPD_SLOW);
-	/* FIXME: rx pin doesn't match when uart5 */
-	/* TODO: support dynamic pin mapping not fixed */
-	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + pin + 1, GPIO_MODE_ALT);
+	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + tx,
+			gpio_altfunc(7) | GPIO_SPD_SLOW);
+	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + rx,
+			gpio_altfunc(7));
 
 	/* TODO: FOR TEST, use rx pin as wake-up source */
-	link_exti_to_nvic(reg2port((reg_t *)port), pin+1);
+	link_exti_to_nvic(reg2port((reg_t *)port), rx);
 
 	nvic_set(vec2irq(ch2vec(channel)), ON);
 
@@ -197,6 +189,8 @@ static inline int uart_putc(unsigned int channel, int c)
 {
 	reg_t *reg = ch2reg(channel);
 
+	/* FIXME: Disable interrupt between checking and writing
+	 * to make sure nothing interrupts in the mean time. */
 #if (SOC == stm32f3)
 	if (!gbi(reg[7], TXE))
 		return 0;

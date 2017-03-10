@@ -23,13 +23,14 @@ struct device {
 
 	struct file_operations *op; /* remove this!! */
 
+	/* TODO: change to singly linked list */
 	struct links list; /* for device hash list */
 
 	/* block device only */
 	unsigned short int block_size;
 	unsigned int nr_blocks;
 	unsigned int base_addr; /* or base block number */
-	buf_t *buffer;
+	void *buffer;
 };
 
 int remove_device(struct device *dev);
