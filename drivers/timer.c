@@ -105,32 +105,48 @@ static inline void timer_ioctl_get(int id, void *data)
 #endif
 }
 
-static int timer_ioctl(struct file *file, int request, void *data)
+static void do_timer_ioctl(struct file *file, int request, void *data)
 {
+	struct device *dev = getdev(file->inode->dev);
 	int id = MINOR(file->inode->dev);
 	bool dir = !!(file->flags & O_WRONLY);
+	int ret = 0;
+
+	mutex_lock(&dev->mutex);
 
 	switch (request) {
 	case C_GET:
 		timer_ioctl_get(id, data);
 		break;
 	case C_SET:
-		spin_lock(&dev->mutex.counter);
 		timer_ioctl_set(id, data, dir);
-		spin_unlock(&dev->mutex.counter);
 		break;
 	case C_RUN:
-		spin_lock(&dev->mutex.counter);
 		timer_ioctl_run(id, data);
-		spin_unlock(&dev->mutex.counter);
 		break;
 	case C_EVENT:
 		*(int *)data = (new & (1 << id))? 1 : 0;
 		break;
 	default:
-		return -ERR_RANGE;
+		ret = -ERR_RANGE;
 		break;
 	}
+
+	mutex_unlock(&dev->mutex);
+
+	syscall_delegate_return(current->parent, ret);
+}
+
+static int timer_ioctl(struct file *file, int request, void *data)
+{
+	struct task *thread;
+
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
+					do_timer_ioctl, current)) == NULL)
+		return -ERR_ALLOC;
+
+	syscall_put_arguments(thread, file, request, data, NULL);
+	syscall_delegate(current, thread);
 
 	return 0;
 }
@@ -156,21 +172,32 @@ static size_t timer_read(struct file *file, void *buf, size_t len)
 	return i;
 }
 
-static int timer_close(struct file *file)
+static void do_timer_close(struct file *file)
 {
 	struct device *dev = getdev(file->inode->dev);
 
-	if (dev == NULL)
-		return -ERR_UNDEF;
-
-	spin_lock(&dev->mutex.counter);
+	mutex_lock(&dev->mutex);
 
 	if (--dev->refcount == 0) {
 		/* TODO: reset the timer and disable the corresponding clock
 		 * reset pin as well if set */
 	}
 
-	spin_unlock(&dev->mutex.counter);
+	mutex_unlock(&dev->mutex);
+
+	syscall_delegate_return(current->parent, 0);
+}
+
+static int timer_close(struct file *file)
+{
+	struct task *thread;
+
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
+					do_timer_close, current)) == NULL)
+		return -ERR_ALLOC;
+
+	syscall_put_arguments(thread, file, NULL, NULL, NULL);
+	syscall_delegate(current, thread);
 
 	return 0;
 }
@@ -183,7 +210,7 @@ static int timer_open(struct inode *inode, struct file *file)
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
-	spin_lock(&dev->mutex.counter);
+	mutex_lock(&dev->mutex);
 
 	if (dev->refcount == 0) {
 		int nvector, dir, id;
@@ -191,7 +218,7 @@ static int timer_open(struct inode *inode, struct file *file)
 
 		if (!(get_task_flags(current->parent) & TASK_PRIVILEGED)) {
 			debug("no permission");
-			spin_unlock(&dev->mutex.counter);
+			mutex_unlock(&dev->mutex);
 			return -ERR_PERM;
 		}
 
@@ -217,7 +244,7 @@ static int timer_open(struct inode *inode, struct file *file)
 	dev->refcount++;
 
 out_unlock:
-	spin_unlock(&dev->mutex.counter);
+	mutex_unlock(&dev->mutex);
 
 	return ret;
 }

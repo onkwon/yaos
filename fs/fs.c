@@ -6,7 +6,6 @@
 #include <error.h>
 
 static DEFINE_LINKS_HEAD(fdtable);
-static DEFINE_SPINLOCK(fdtable_lock);
 
 unsigned int mkfile(struct file *file)
 {
@@ -18,9 +17,9 @@ unsigned int mkfile(struct file *file)
 	memcpy(new, file, sizeof(struct file));
 
 	unsigned int irqflag;
-	spin_lock_irqsave(&fdtable_lock, irqflag);
+	spin_lock_irqsave(nospin, irqflag);
 	links_add(&new->list, &fdtable);
-	spin_unlock_irqrestore(&fdtable_lock, irqflag);
+	spin_unlock_irqrestore(nospin, irqflag);
 
 	return (unsigned int)new;
 }
@@ -28,9 +27,9 @@ unsigned int mkfile(struct file *file)
 void rmfile(struct file *file)
 {
 	unsigned int irqflag;
-	spin_lock_irqsave(&fdtable_lock, irqflag);
+	spin_lock_irqsave(nospin, irqflag);
 	links_del(&file->list);
-	spin_unlock_irqrestore(&fdtable_lock, irqflag);
+	spin_unlock_irqrestore(nospin, irqflag);
 
 	mutex_lock_atomic(&file->inode->lock);
 	if (--file->inode->refcount <= 0) {
@@ -53,7 +52,7 @@ struct file *getfile(int fd)
 	unsigned int *addr = (unsigned int *)fd;
 
 	unsigned int irqflag;
-	spin_lock_irqsave(&fdtable_lock, irqflag);
+	spin_lock_irqsave(nospin, irqflag);
 
 	/* TODO: make O(1) or run with not interrupt disabled */
 	for (p = fdtable.next; p != &fdtable; p = p->next) {
@@ -63,7 +62,7 @@ struct file *getfile(int fd)
 		else file = NULL;
 	}
 
-	spin_unlock_irqrestore(&fdtable_lock, irqflag);
+	spin_unlock_irqrestore(nospin, irqflag);
 
 	return file;
 }

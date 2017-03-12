@@ -19,7 +19,10 @@ struct uisr {
 
 static void isr()
 {
-	if (daemon && (get_task_state(daemon) == TASK_SLEEPING)) {
+	if (!daemon)
+		goto out;
+
+	if (get_task_state(daemon) == TASK_SLEEPING) {
 		daemon->args = (void *)get_active_irq();
 		go_run_atomic_if(daemon, TASK_SLEEPING);
 	} else {
@@ -27,6 +30,7 @@ static void isr()
 		pending = true;
 	}
 
+out:
 	ret_from_exti(get_active_irq());
 }
 
@@ -75,7 +79,7 @@ static int gpio_open(struct inode *inode, struct file *file)
 	if (dev == NULL)
 		return -ERR_UNDEF;
 
-	spin_lock(&dev->mutex.counter);
+	mutex_lock(&dev->mutex);
 
 	if (dev->refcount == 0) {
 		if (!(get_task_flags(current->parent) & TF_PRIVILEGED)) {
@@ -104,7 +108,7 @@ static int gpio_open(struct inode *inode, struct file *file)
 	dev->refcount++;
 
 out_unlock:
-	spin_unlock(&dev->mutex.counter);
+	mutex_unlock(&dev->mutex);
 
 	return mode;
 }
@@ -133,10 +137,9 @@ static int gpio_close_core(struct file *file)
 
 	mutex_unlock(&q_lock);
 
-	unsigned int irqflag;
-	struct device *dev = file->inode->sb->dev;
+	struct device *dev = getdev(file->inode->dev);
 
-	spin_lock_irqsave(&dev->mutex.counter, irqflag);
+	mutex_lock(&dev->mutex);
 
 	if (--dev->refcount == 0) {
 		gpio_reset(MINOR(file->inode->dev));
@@ -144,7 +147,7 @@ static int gpio_close_core(struct file *file)
 		assert(!link_empty(&q_user_isr));
 	}
 
-	spin_unlock_irqrestore(&dev->mutex.counter, irqflag);
+	mutex_unlock(&dev->mutex);
 
 	syscall_delegate_return(current->parent, ret);
 

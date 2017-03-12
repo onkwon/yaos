@@ -12,8 +12,9 @@ static unsigned int visit(struct task *p, unsigned int nr)
 #define print_tab() for (i = 0; i < tab; i++) puts("|\t");
 
 	print_tab();
-	printf("+-- 0x%08x(0x%08x) 0x%02x 0x%02x %d\n", p, p->addr,
-			get_task_type(p), get_task_state(p), get_task_pri(p));
+	printf("+-- 0x%08x(0x%08x) 0x%02x 0x%02x %d %s\n",
+			p, p->addr, get_task_type(p), get_task_state(p),
+			get_task_pri(p), p->name);
 	print_tab();
 	printf("|   /vruntime %d /exec_runtime %d (%d sec)\n",
 			(unsigned)p->se.vruntime,
@@ -54,7 +55,7 @@ static unsigned int visit(struct task *p, unsigned int nr)
 
 static int ps(int argc, char **argv)
 {
-	printf("    ADDR                   TYPE STAT PRI\n");
+	printf("    ADDR                   TYPE STAT PRI NAME\n");
 
 	printf("%d tasks running out of %d\n",
 			get_nr_running() + 1, /* including the current task */
@@ -95,16 +96,6 @@ static int ps(int argc, char **argv)
 	extern void print_rq();
 	printf("\nRun queue list:\n");
 	print_rq();
-#endif
-
-#ifdef CONFIG_DEBUG
-	extern unsigned int get_uart_bufover();
-	printf("\nUSART buffer overflow: %d, %d, %d, %d, %d\n",
-			get_uart_bufover(0),
-			get_uart_bufover(1),
-			get_uart_bufover(2),
-			get_uart_bufover(3),
-			get_uart_bufover(4));
 #endif
 
 	return 0;

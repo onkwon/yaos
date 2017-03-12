@@ -25,8 +25,6 @@ static inline unsigned int get_sector(unsigned int addr)
 }
 #endif
 
-static DEFINE_SPINLOCK(wlock);
-
 static inline int __attribute__((section(".iap"))) flash_erase(void *addr)
 {
 	/* FIXME: Flush I/D cache before erase
@@ -118,7 +116,6 @@ __flash_write(void *addr, void *buf, size_t len)
 	to   = (unsigned int *)addr;
 	sentinel = 0;
 
-	spin_lock(&wlock);
 	FLASH_UNLOCK();
 	FLASH_WRITE_START();
 
@@ -176,7 +173,6 @@ __flash_write(void *addr, void *buf, size_t len)
 out:
 	FLASH_WRITE_END();
 	FLASH_LOCK();
-	spin_unlock(&wlock);
 
 	kfree(tmp);
 

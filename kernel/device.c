@@ -10,7 +10,6 @@
 static struct links devtab[TABLE_SIZE];
 static int nr_device;
 static DEFINE_RWLOCK(lock_devtab);
-static DEFINE_SPINLOCK(nr_lock);
 
 struct device *getdev(dev_t id)
 {
@@ -60,11 +59,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 		if (nr_device >= MAJOR_MAX)
 			goto err;
 
-		unsigned int irqflag;
-		spin_lock_irqsave(&nr_lock, irqflag);
 		nr_device += 1;
-		spin_unlock_irqrestore(&nr_lock, irqflag);
-
 		major = nr_device;
 	}
 

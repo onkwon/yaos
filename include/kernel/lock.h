@@ -27,8 +27,8 @@ typedef struct semaphore mutex_t;
 /* spinlock */
 #ifdef CONFIG_SMP
 #define DEFINE_SPINLOCK(name)		DEFINE_LOCK(name)
-#define spin_lock(counter)		atomic_sub(1, counter)
-#define spin_unlock(counter)		atomic_add(1, counter)
+#define spin_lock(counter)		lock_atomic(counter)
+#define spin_unlock(counter)		unlock_atomic(counter)
 #else
 #define DEFINE_SPINLOCK(name)
 #define spin_lock(counter)
@@ -69,9 +69,9 @@ typedef struct semaphore mutex_t;
 #define mutex_lock(sem)			semaphore_dec(sem)
 #define mutex_unlock(sem)		semaphore_inc(sem)
 #define mutex_lock_atomic(sem)		\
-	atomic_sub(1, &((mutex_t *)(sem))->counter)
+	lock_atomic(&((mutex_t *)(sem))->counter)
 #define mutex_unlock_atomic(sem)	\
-	atomic_add(1, &((mutex_t *)(sem))->counter)
+	unlock_atomic(&((mutex_t *)(sem))->counter)
 #define mutex_init(sem) ({						\
 	((mutex_t *)(sem))->counter = 1;				\
 	((mutex_t *)(sem))->wq = (struct waitqueue_head)		\

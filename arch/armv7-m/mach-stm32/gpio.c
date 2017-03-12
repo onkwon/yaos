@@ -4,8 +4,7 @@
 #include "exti.h"
 #include "io.h"
 
-DEFINE_SPINLOCK(gpio_irq_lock);
-static DEFINE_SPINLOCK(gpio_init_lock);
+static DEFINE_MUTEX(gpio_init_lock);
 
 #define pin2port(pin)		((pin) / PINS_PER_PORT)
 #define pin2portpin(pin)	((pin) % PINS_PER_PORT)
@@ -125,7 +124,6 @@ int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode;
 	int vector;
-	unsigned int irqflag;
 	reg_t *reg;
 
 	if ((port = pin2port(index)) >= NR_PORT) {
@@ -139,7 +137,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 	reg = port2reg(port);
 
 
-	spin_lock_irqsave(&gpio_init_lock, irqflag);
+	mutex_lock(&gpio_init_lock);
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
@@ -229,7 +227,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 	nr_active++;
 
 out:
-	spin_unlock_irqrestore(&gpio_init_lock, irqflag);
+	mutex_unlock(&gpio_init_lock);
 
 	return vector;
 }
@@ -238,7 +236,6 @@ int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode;
 	int vector;
-	unsigned int irqflag;
 	reg_t *reg;
 
 	if ((port = pin2port(index)) >= NR_PORT) {
@@ -252,7 +249,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 	reg = port2reg(port);
 
 
-	spin_lock_irqsave(&gpio_init_lock, irqflag);
+	mutex_lock(&gpio_init_lock);
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
@@ -283,7 +280,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 			reg[2] |= 2 << (pin * 2);
 			break;
 		case GPIO_SPD_FASTER:
-			reg[2] |= 2 << (pin * 2);
+			reg[2] |= 3 << (pin * 2);
 			break;
 		default:
 		case GPIO_SPD_SLOW:
@@ -293,14 +290,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (flags & GPIO_MODE_ALT) {
 		mode |= PIN_ALT;
-
-		if (pin / 8) {
-			reg[9] = (reg[9] & ~(0xf << 4 * (pin % 8))) |
-				((flags >> GPIO_ALT_SHIFT) << 4 * (pin % 8));
-		} else {
-			reg[8] = (reg[8] & ~(0xf << 4 * (pin % 8))) |
-				((flags >> GPIO_ALT_SHIFT) << 4 * (pin % 8));
-		}
+		set_port_pin_conf_alt(reg, pin, gpio_altfunc_get(flags));
 	} else if (flags & GPIO_MODE_ANALOG) {
 		mode |= PIN_ANALOG;
 	} else if (flags & GPIO_MODE_OUTPUT) {
@@ -356,7 +346,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 	nr_active++;
 
 out:
-	spin_unlock_irqrestore(&gpio_init_lock, irqflag);
+	mutex_unlock(&gpio_init_lock);
 
 	return vector;
 }
@@ -364,7 +354,7 @@ out:
 
 void gpio_reset(unsigned int index)
 {
-	unsigned int port, pin, irqflag;
+	unsigned int port, pin;
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
@@ -373,7 +363,7 @@ void gpio_reset(unsigned int index)
 
 	pin = pin2portpin(index);
 
-	spin_lock_irqsave(&gpio_init_lock, irqflag);
+	mutex_lock(&gpio_init_lock);
 
 	state[port].pins &= ~(1 << pin);
 	nr_active--;
@@ -390,7 +380,7 @@ void gpio_reset(unsigned int index)
 #endif
 	}
 
-	spin_unlock_irqrestore(&gpio_init_lock, irqflag);
+	mutex_unlock(&gpio_init_lock);
 }
 
 unsigned int get_gpio_state(int port)

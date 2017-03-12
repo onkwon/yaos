@@ -77,6 +77,7 @@ int __init softirq_init()
 					softirq_handler, &init)) == NULL)
 		return -ERR_ALLOC;
 
+	softirqd->name = "softirqd";
 	set_task_pri(softirqd, HIGHEST_PRIORITY);
 
 	return 0;

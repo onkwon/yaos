@@ -34,6 +34,9 @@ loop:
 		if (time_after(tm->expires, stamp)) {
 			ret = -ERR_RANGE;
 		} else {
+			/* priority inversion as run_timer has the highest
+			 * priority */
+			set_task_pri(current, HIGHEST_PRIORITY);
 			mutex_lock(&timerq.mutex);
 
 			new = (int)tm->expires - stamp;
@@ -56,6 +59,7 @@ loop:
 			timerq.nr++;
 
 			mutex_unlock(&timerq.mutex);
+			set_task_pri(current, DEFAULT_PRIORITY);
 		}
 
 		__set_retval(tm->task, ret);
@@ -144,6 +148,7 @@ int __init timer_init()
 					run_timer, &init)) == NULL)
 		return -ERR_ALLOC;
 
+	timerd->name = "timerd";
 	set_task_pri(timerd, HIGHEST_PRIORITY);
 	go_run_atomic(timerd);
 

@@ -58,6 +58,7 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 
 	task->parent = current;
 	links_init(&task->children);
+	/* FIXME: lock before adding to parent children list */
 	links_add(&task->sibling, &current->children);
 	links_init(&task->rq);
 
@@ -84,6 +85,7 @@ struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
 		} else {
 			set_task_dressed(new, flags, addr);
 			set_task_context(new, entry); /* get dressed first */
+			new->name = NULL;
 		}
 	}
 
@@ -93,65 +95,61 @@ struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
 #include <kernel/interrupt.h>
 #include <kernel/lock.h>
 
-static volatile unsigned int *zombie = NULL;
-static DEFINE_SPINLOCK(zombie_lock);
+static volatile void *zombie;
+static DEFINE_MUTEX(zombie_mutex);
 
 /* NOTE: A task can kill only itself. Otherwise a task would be destroyed while
- * it is in a waitqueue somewhere else. Others only can send a signal to
- * request to be killed by itself. */
-static void unlink_task(struct task *task)
+ * being in a waitqueue or somewhere else. Others only can send a signal to
+ * request to be killed by itself voluntarily. */
+void sys_kill_core(struct task *target, struct task *killer)
 {
-	if (task == &init)
-		return;
-
-	if (current->mm.base[0] != STACK_SENTINEL)
-		error("stack overflow %x(%x)" , current, current->addr);
-
 	unsigned int irqflag;
 
-	assert(!is_locked(task->lock));
-	spin_lock(&task->lock);
+	if (target == &init)
+		return;
 
-	set_task_state(task, TASK_ZOMBIE);
+	if (killer->mm.base[0] != STACK_SENTINEL)
+		error("stack overflow %x(%x)" , killer, killer->addr);
 
 	irq_save(irqflag);
 	local_irq_disable();
 
+	assert(!is_locked(target->lock));
+	set_task_state(target, TASK_ZOMBIE);
 	/* safe to unlink again even if it's already removed from the runqueue
 	 * since its links become empty on once unlinked */
-	runqueue_del_core(task);
+	runqueue_del_core(target);
 
-	/* FIXME: hand its own children to the grand parents if it has any */
 	/* Clean its relationship. */
-	if (!links_empty(&task->children)) {
-		links_del(&task->children);
+	/* FIXME: hand its own children to the grand parents if it has any */
+	/* TODO: is this kind of relationship amongst tasks really needed? */
+	if (!links_empty(&target->children)) {
+		links_del(&target->children);
 	}
-	links_del(&task->sibling);
+	links_del(&target->sibling);
+
+	/* wake init() up to do the rest of job of destroying a task */
+	if (killer != &init) {
+		/* boost the init task priority up to the task's so that the
+		 * memory used by it can be free as soon as possible */
+		assert(!is_locked(init.lock));
+
+		runqueue_del_core(&init);
+		set_task_pri(&init, get_task_pri(killer));
+		set_task_state(&init, TASK_RUNNING);
+		runqueue_add_core(&init);
+	}
+
+	irq_restore(irqflag);
 
 	/* add it to zombie list */
-	spin_lock(&zombie_lock);
-	task->addr = (void *)zombie;
-	zombie = (unsigned int *)task;
-	spin_unlock(&zombie_lock);
+	mutex_lock(&zombie_mutex);
+	target->addr = (void *)zombie;
+	zombie = target;
+	mutex_unlock(&zombie_mutex);
 
-	/* wake init() up to do the rest of job destroying a task */
-	if (current == &init)
-		goto out;
-
-	/* boost the init task priority up to the task's so that the memory
-	 * used by it can be free as soon as possible */
-	spin_lock(&init.lock);
-	if (get_task_state(&init) == TASK_RUNNING)
-		runqueue_del_core(&init);
-
-	set_task_pri(&init, get_task_pri(current));
-	set_task_state(&init, TASK_RUNNING);
-	runqueue_add_core(&init);
-	spin_unlock(&init.lock);
-
-	resched();
-out:
-	irq_restore(irqflag);
+	if (killer == current) /* called directly or called by sys_kill() */
+		resched();
 }
 
 static void destroy(struct task *task)
@@ -175,13 +173,14 @@ static void destroy(struct task *task)
 unsigned int kill_zombie()
 {
 	struct task *task;
-	unsigned int irqflag, cnt;
+	unsigned int cnt;
 
 	for (cnt = 0; zombie; cnt++) {
-		spin_lock_irqsave(&zombie_lock, irqflag);
-		task = (struct task *)zombie;
+		mutex_lock(&zombie_mutex);
+		task = (void *)zombie;
 		zombie = task->addr;
-		spin_unlock_irqrestore(&zombie_lock, irqflag);
+		mutex_unlock(&zombie_mutex);
+
 		destroy(task);
 	}
 
@@ -198,6 +197,7 @@ struct task *find_task(unsigned int addr, struct task *head)
 	if (links_empty(&head->children))
 		return NULL;
 
+	/* FIXME: lock. link can be broken while searching */
 	next = get_container_of(head->children.next, struct task, sibling);
 
 	if ((p = find_task(addr, next)))
@@ -234,18 +234,16 @@ void wrapper()
 
 void syscall_delegate_return(struct task *task, int ret)
 {
-	unsigned int irqflag;
-
-	spin_lock_irqsave(&task->lock, irqflag);
+	assert(!is_locked(task->lock));
 
 	__set_retval(task, ret);
 	/* FIXME: it messes up calling sum_curr_stat() when make() */
 	//sum_curr_stat(task);
-	go_run_atomic(task);
+	go_run(task);
 
-	spin_unlock_irqrestore(&task->lock, irqflag);
+	/* time to die as the delegated job is done. */
+	sys_kill_core(current, current);
 
-	kill(current);
 	freeze(); /* never reaches here */
 }
 
@@ -376,7 +374,7 @@ int sys_fork()
 	int tid = clone(TASK_SYSCALL | STACK_SHARED |
 			(get_task_flags(current) & TASK_PRIVILEGED), &init);
 	if (tid > 0) /* the newly forked task never gets back here */
-		sys_kill(current);
+		sys_kill_core(current, current);
 
 	/* schedule to give chance for child to run first */
 	resched();
@@ -390,9 +388,10 @@ void __attribute__((naked)) sys_fork_finish()
 	__asm__ __volatile__(
 			"push	{r0}		\n\t" /* save return value */
 			"tst	r0, 0		\n\t"
-			"itt	gt		\n\t"
+			"ittt	gt		\n\t"
 			"movgt	r0, %0		\n\t"
-			"blgt	sys_kill	\n\t"
+			"movgt  r1, %0		\n\t"
+			"blgt	sys_kill_core	\n\t"
 			"bl	resched		\n\t"
 			:
 			: "r"(current)
@@ -422,13 +421,28 @@ int __attribute__((naked)) sys_fork()
 }
 #endif
 
+static void do_sys_kill(struct task *task)
+{
+	sys_kill_core(task, current->parent);
+	sys_kill_core(current, current);
+	freeze(); /* never reaches here */
+}
+
 int sys_kill(void *task)
 {
+	struct task *thread;
+
 	if ((struct task *)task != current) {
 		warn("no permission");
 		return -ERR_PERM;
 	}
 
-	unlink_task(task);
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
+					do_sys_kill, current)) == NULL)
+		return -ERR_ALLOC;
+
+	syscall_put_arguments(thread, task, NULL, NULL, NULL);
+	syscall_delegate(current, thread);
+
 	return 0;
 }

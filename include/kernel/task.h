@@ -94,6 +94,7 @@ struct task {
 	unsigned int flags;
 	unsigned int pri;
 	void *addr;
+	const char *name;
 
 	union {
 		unsigned int irqflag;
@@ -123,6 +124,7 @@ struct task {
 		.pri   = p, \
 		.addr  = func, \
 		.size  = s, \
+		.name  = #func, \
 	}
 
 extern struct task *current;
@@ -137,6 +139,7 @@ unsigned int kill_zombie();
 
 struct task *find_task(unsigned int addr, struct task *head);
 
+void sys_kill_core(struct task *target, struct task *killer);
 int sys_kill(void *task);
 int sys_fork();
 

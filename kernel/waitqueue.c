@@ -6,22 +6,23 @@
 
 /* TODO: Replace doubly linked list with singly linked list in waitqueue */
 
+/* NOTE: Do not use sleep_in_waitqeue() and its pair, shake_waitqueue_out(), in
+ * interrupt context to avoid deadlock. Use wq_wait() and its pair, wq_wake(),
+ * instead in interrupt context. */
 void sleep_in_waitqueue(struct waitqueue_head *q)
 {
 	/* its own stack would never change since the task is entering in
 	 * waitqueue. so to use local variable for waitqueue list here
 	 * absolutely fine. */
 	DEFINE_WAIT(new);
-	unsigned int irqflag;
 
 	assert(!is_locked(current->lock));
-	spin_lock(&current->lock);
-	set_task_state(current, TASK_WAITING);
-	spin_unlock(&current->lock);
 
-	spin_lock_irqsave(&q->lock, irqflag);
+	set_task_state(current, TASK_WAITING);
+
+	lock_atomic(&q->lock);
 	links_add(&new.list, q->list.prev);
-	spin_unlock_irqrestore(&q->lock, irqflag);
+	unlock_atomic(&q->lock);
 
 	schedule();
 }
@@ -31,12 +32,11 @@ void shake_waitqueue_out(struct waitqueue_head *q)
 {
 	struct task *task = NULL;
 	struct links *next;
-	unsigned int irqflag;
 
 	if (links_empty(&q->list))
 		return;
 
-	spin_lock_irqsave(&q->lock, irqflag);
+	lock_atomic(&q->lock);
 
 #if 1 /* WQ_EXCLUSIVE */
 	next = q->list.next;
@@ -45,28 +45,26 @@ void shake_waitqueue_out(struct waitqueue_head *q)
 
 	task = get_container_of(next, struct waitqueue, list)->task;
 	assert(get_task_state(task) == TASK_WAITING);
+	assert(!is_locked(task->lock));
 
-	spin_lock(&task->lock);
 	set_task_state(task, TASK_RUNNING);
 	runqueue_add(task);
-	spin_unlock(&task->lock);
 #else /* WQ_ALL */
 	for (next = q->list.next; next != &q->list && nr_task; next = next->next) {
 		links_del(next);
 
 		task = get_container_of(next, struct waitqueue, list)->task;
 		assert(get_task_state(task) == TASK_WAITING);
+		assert(!is_locked(task->lock));
 
-		spin_lock(&task->lock);
 		set_task_state(task, TASK_RUNNING);
 		runqueue_add(task);
-		spin_unlock(&task->lock);
 
 		nr_task--;
 	}
 #endif
 
-	spin_unlock_irqrestore(&q->lock, irqflag);
+	unlock_atomic(&q->lock);
 }
 
 void wq_wait(struct waitqueue_head *q)
@@ -75,12 +73,12 @@ void wq_wait(struct waitqueue_head *q)
 	DEFINE_WAIT(wait);
 
 	spin_lock_irqsave(&q->lock, irqflag);
+
 	if (links_empty(&wait.list))
 		links_add(&wait.list, q->list.prev);
 
-	spin_lock(&current->lock);
+	assert(!is_locked(current->lock));
 	set_task_state(current, TASK_WAITING);
-	spin_unlock(&current->lock);
 
 	spin_unlock_irqrestore(&q->lock, irqflag);
 
@@ -97,11 +95,10 @@ void wq_wake(struct waitqueue_head *q, int nr_task)
 	while (p != &q->list && nr_task) {
 		task = get_container_of(p, struct waitqueue, list)->task;
 
-		spin_lock(&task->lock);
+		assert(!is_locked(task->lock));
 		set_task_state(task, TASK_RUNNING);
 		runqueue_add_core(task);
 		links_del(p);
-		spin_unlock(&task->lock);
 
 		p = q->list.next;
 		nr_task--;

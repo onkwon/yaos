@@ -12,8 +12,6 @@ int register_isr(unsigned int nvector, void (*func)())
 
 #include <kernel/lock.h>
 
-static DEFINE_SPINLOCK(nvic_lock);
-
 void nvic_set(unsigned int nirq, int on)
 {
 	reg_t *reg;
@@ -24,9 +22,7 @@ void nvic_set(unsigned int nirq, int on)
 	base = on? NVIC_BASE : NVIC_BASE + 0x80;
 	reg  = (reg_t *)(base + nirq);
 
-	spin_lock(&nvic_lock);
 	*reg = 1 << bit;
-	spin_unlock(&nvic_lock);
 
 	dsb();
 }

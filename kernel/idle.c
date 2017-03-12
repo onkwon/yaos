@@ -14,7 +14,7 @@ static void cleanup()
  * do some power savings */
 void idle()
 {
-	unsigned int irqflag, tout = 0;
+	unsigned int tout = 0;
 	unsigned long long stamp;
 
 	cleanup();
@@ -35,6 +35,7 @@ void idle()
 				extern void disp_sysinfo();
 				disp_sysinfo();
 				set_timeout(&tout, 10000);
+			}
 #endif
 			/* pre-dos();
 			 *
@@ -64,9 +65,7 @@ void idle()
 			/* post-dos(); */
 		}
 
-		spin_lock_irqsave(&current->lock, irqflag);
 		set_task_pri(current, LOWEST_PRIORITY);
-		spin_unlock_irqrestore(&current->lock, irqflag);
 		yield();
 	}
 }

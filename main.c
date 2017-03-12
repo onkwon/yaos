@@ -46,6 +46,7 @@ static int __init make_init_task()
 	set_task_dressed(&init, TASK_STATIC | TASK_KERNEL, idle);
 	set_task_context_hard(&init, wrapper);
 	set_task_state(&init, TASK_RUNNING);
+	init.name = "idle";
 
 	/* make it the sole */
 	links_init(&init.children);
@@ -62,7 +63,7 @@ static int __init console_init()
 	extern int sys_open_core(char *filename, int mode, void *opt);
 
 	stdin = stdout = stderr =
-		sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR, (void *)115200);
+		sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR, NULL);
 
 	return 0;
 }
@@ -81,6 +82,20 @@ static void __init sys_init()
 #include <kernel/timer.h>
 #include <kernel/systick.h>
 #include <asm/power.h>
+#include <bitops.h>
+
+int f_reset;
+
+static const char *str_reset[] = {
+	"RMVF",
+	"Brownout",
+	"System",
+	"Power",
+	"Software",
+	"Independent watchdog",
+	"Window watchdog",
+	"Low-power",
+};
 
 int __init kernel_init()
 {
@@ -97,18 +112,20 @@ int __init kernel_init()
 	make_init_task();
 	load_user_task(); /* that are registered statically */
 
-	softirq_init();
+	//softirq_init(); /* TODO: Remove softirq. make() is enough */
 #ifdef CONFIG_TIMER
 	timer_init();
 #endif
 
+	f_reset = __read_reset_source();
+
 	/* a banner */
 	notice("\n\nyaos %s %s\n"
-	       "Running at %dHz\n"
-	       "Reset source : %x",
+	       "[%08x] systick:%dHz, sysclk:%dHz, hclk:%dHz\n"
+	       "[%08x] reset by %s(%x)",
 	       def2str(VERSION), def2str(MACHINE),
-	       get_hclk(),
-	       __read_reset_source());
+	       get_sysclk(), sysfreq, get_sysclk_freq(), get_hclk(),
+	       get_sysclk(), str_reset[fls(f_reset)-1], f_reset);
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);

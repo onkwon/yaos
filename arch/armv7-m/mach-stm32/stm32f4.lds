@@ -65,10 +65,9 @@ SECTIONS
 		*(.data)
 		*(.iap)
 
-		. = ALIGN(8);
+		. = ALIGN(4);
 		_user_task_list = .;
 		*(.user_task_list)
-		. = ALIGN(4);
 		LONG(0);
 
 		. = ALIGN(4);
