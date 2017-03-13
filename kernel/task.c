@@ -96,7 +96,6 @@ struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
 #include <kernel/lock.h>
 
 static volatile void *zombie;
-static DEFINE_MUTEX(zombie_mutex);
 
 /* NOTE: A task can kill only itself. Otherwise a task would be destroyed while
  * being in a waitqueue or somewhere else. Others only can send a signal to
@@ -140,13 +139,11 @@ void sys_kill_core(struct task *target, struct task *killer)
 		runqueue_add_core(&init);
 	}
 
-	irq_restore(irqflag);
-
 	/* add it to zombie list */
-	mutex_lock(&zombie_mutex);
 	target->addr = (void *)zombie;
 	zombie = target;
-	mutex_unlock(&zombie_mutex);
+
+	irq_restore(irqflag);
 
 	if (killer == current) /* called directly or called by sys_kill() */
 		resched();
@@ -173,13 +170,14 @@ static void destroy(struct task *task)
 unsigned int kill_zombie()
 {
 	struct task *task;
-	unsigned int cnt;
+	unsigned int cnt, irqflag;
 
 	for (cnt = 0; zombie; cnt++) {
-		mutex_lock(&zombie_mutex);
+		irq_save(irqflag);
+		local_irq_disable();
 		task = (void *)zombie;
 		zombie = task->addr;
-		mutex_unlock(&zombie_mutex);
+		irq_restore(irqflag);
 
 		destroy(task);
 	}
