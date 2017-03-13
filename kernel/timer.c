@@ -19,6 +19,7 @@ static void add_timer_core(struct ktimer *tm)
 	struct ktimer *ref;
 	int stamp, ret, new;
 
+	set_task_pri(current, DEFAULT_PRIORITY);
 	add_timerd = current;
 
 loop:
@@ -70,7 +71,7 @@ loop:
 	yield();
 	goto loop;
 }
-REGISTER_TASK(add_timer_core, TASK_KERNEL, DEFAULT_PRIORITY, STACK_SIZE_MIN);
+REGISTER_TASK(add_timer_core, TASK_KERNEL, HIGHEST_PRIORITY, STACK_SIZE_MIN);
 
 static void do_run_timer(struct ktimer *timer)
 {

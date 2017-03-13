@@ -33,90 +33,91 @@ enum mm_fault_status {
 	MMARVALID	= (1 << 7), /* Address register valid flag */
 };
 
+const char *rname[] = { "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
+		"r0", "r1", "r2", "r3", "r12", "lr", "pc", "psr" };
+
 static inline void print_context(unsigned int *regs)
 {
 	unsigned int i;
 
 	for (i = 0; i < NR_CONTEXT; i++)
-		printk("  0x%08x <%08x>\n", &regs[i], regs[i]);
+		printk("  %s\t 0x%08x <%08x>\n", rname[i], &regs[i], regs[i]);
 }
 
 static inline void print_task_status(struct task *task)
 {
-	printk( "  task->sp         0x%08x\n"
-		"  task->base       0x%08x\n"
-		"  task->heap       0x%08x\n"
-		"  task->kernel     0x%08x\n"
-		"  task->kernel->sp 0x%08x\n"
-		"  task->state      0x%08x\n"
-		"  task->irqflag    0x%08x\n"
-		"  task->addr       0x%08x\n"
-		"  task             0x%08x\n"
-		"  task->parent     0x%08x - 0x%08x\n",
-		task->mm.sp, task->mm.base, task->mm.heap,
-		task->mm.kernel.base, task->mm.kernel.sp, task->state,
-		task->irqflag, task->addr, task,
-		task->parent, task->parent->addr);
+	printk("  task->sp	%08x\n", task->mm.sp);
+	printk("  task->base	%08x\n", task->mm.base);
+	printk("  task->heap	%08x\n", task->mm.heap);
+	printk("  task->kernel	%08x\n", task->mm.kernel.base);
+	printk("  task->ksp	%08x\n", task->mm.kernel.sp);
+	printk("  task->state	%08x\n", task->state);
+	printk("  task->irqflag %08x\n", task->irqflag);
+	printk("  task->addr	%08x\n", task->addr);
+	printk("  task		%08x\n", task);
+	printk("  parent	%08x\n", task->parent);
+	printk("  parent->addr	%08x\n", task->parent->addr);
 }
 
 static inline void print_kernel_status(unsigned int *sp, unsigned int lr,
 		unsigned int psr)
 {
-	printk( "  Kernel SP        0x%08x\n"
-		"  Stacked PSR      0x%08x\n"
-		"  Stacked PC       0x%08x\n"
-		"  Stacked LR       0x%08x\n"
-		"  Current LR       0x%08x\n"
-		"  Current PSR      0x%08x(vector number:%d)\n",
-		sp, sp[7], sp[6], sp[5], lr, psr, psr & 0x1ff);
+	printk("  kernel  SP	%08x\n", sp);
+	printk("  stacked PSR	%08x\n", sp[7]);
+	printk("  stacked PC	%08x\n", sp[6]);
+	printk("  stacked LR	%08x\n", sp[5]);
+	printk("  current LR	%08x\n", lr);
+	printk("  current PSR	%08x(vector number:%d)\n", psr, psr & 0x1ff);
 }
 
 static inline void print_user_status(unsigned int *sp)
 {
-	printk( "  User SP          0x%08x\n"
-		"  Stacked PSR      0x%08x\n"
-		"  Stacked PC       0x%08x\n"
-		"  Stacked LR       0x%08x\n",
+	printk( "  user SP	%08x\n"
+		"  stacked PSR	%08x\n"
+		"  stacked PC	%08x\n"
+		"  stacked LR	%08x\n",
 		sp, sp[7], sp[6], sp[5]);
 }
 
 static inline void busfault()
 {
 	if (SCB_CFSR & IBUSERR)
-		error("  Instruction bus error");
+		printk("Instruction bus error");
 	if (SCB_CFSR & PRECISERR)
-		error("  Precise data bus error");
+		printk("Precise data bus error");
 	if (SCB_CFSR & IMPRECISERR)
-		error("  Imprecise data bus error");
+		printk("Imprecise data bus error");
 	if (SCB_CFSR & UNSTKERR)
-		error("  on unstacking for a return from exception");
+		printk("on unstacking for a return from exception");
 	if (SCB_CFSR & STKERR)
-		error("  on stacking for exception");
+		printk("on stacking for exception");
 
 	if (SCB_CFSR & BFARVALID)
-		error("Fault address:\n  0x%08x", SCB_BFAR);
+		printk("\nFault address: 0x%08x", SCB_BFAR);
 }
 
 static inline void usagefault()
 {
 	if (SCB_CFSR & UNDEFINSTR)
-		error("  Undefined instruction");
+		printk("Undefined instruction");
 	if (SCB_CFSR & INVSTATE)
-		error("  Invalid state of EPSR");
+		printk("Invalid state of EPSR");
 	if (SCB_CFSR & INVPC)
-		error("  Invalid PC load by EXC_RETURN");
+		printk("Invalid PC load by EXC_RETURN");
 	if (SCB_CFSR & NOCP)
-		error("  No coprocessor");
+		printk("No coprocessor");
 	if (SCB_CFSR & UNALIGNED)
-		error("  Unalignd access");
+		printk("Unalignd access");
 	if (SCB_CFSR & DIVBYZERO)
-		error("  Divide by zero");
+		printk("Divide by zero");
 }
+
+#define IS_FROM_THREAD(lr)	!!((lr) & (1 << 3))
 
 void __attribute__((naked)) isr_fault()
 {
-	/* disable interrupts */
-	/* save registers */
+	dsb();
+	__context_save(current);
 
 	unsigned int sp, lr, psr, usp;
 
@@ -125,13 +126,20 @@ void __attribute__((naked)) isr_fault()
 	lr  = __get_lr();
 	usp = __get_usp();
 
-	error("\nFault type: %x <%08x>\n"
+	error("\n\nFault type: %x <%08x>\n"
 		"  (%x=Usage fault, %x=Bus fault, %x=Memory management fault)",
 		SCB_SHCSR & 0xfff, SCB_SHCSR, USAGE_FAULT, BUS_FAULT, MM_FAULT);
 
-	error("Fault source: ");
+	printk("Fault source: ");
 	busfault();
 	usagefault();
+
+	printk("\nSCB_ICSR  0x%08x\n"
+		"SCB_CFSR  0x%08x\n"
+		"SCB_HFSR  0x%08x\n"
+		"SCB_MMFAR 0x%08x\n"
+		"SCB_BFAR  0x%08x\n",
+		SCB_ICSR, SCB_CFSR, SCB_HFSR, SCB_MMFAR, SCB_BFAR);
 
 	printk("\nKernel Space\n");
 	print_kernel_status((unsigned int *)sp, lr, psr);
@@ -143,44 +151,18 @@ void __attribute__((naked)) isr_fault()
 	print_task_status(current);
 
 	printk("\nCurrent Context\n");
-	print_context((unsigned int *)usp);
+	print_context((unsigned int *)current->mm.sp);
 
-	printk("\nSCB_ICSR  0x%08x\n"
-		"SCB_CFSR  0x%08x\n"
-		"SCB_HFSR  0x%08x\n"
-		"SCB_MMFAR 0x%08x\n"
-		"SCB_BFAR  0x%08x\n",
-		SCB_ICSR, SCB_CFSR, SCB_HFSR, SCB_MMFAR, SCB_BFAR);
+	if (IS_FROM_THREAD(lr) && current != &init) {
+		error("Kill current %s(%x)", current->name, current);
 
-	/* led for debugging */
-#ifdef LED_DEBUG
-	__turn_port_clock((reg_t *)PORTD, ON);
-	SET_PORT_PIN(PORTD, 2, PIN_OUTPUT_50MHZ);
-	unsigned int j;
-	while (1) {
-		write_port((reg_t *)PORTD, scan_port((reg_t *)PORTD) ^ 4);
-
-		for (i = 100; i; i--) {
-			for (j = 10; j; j--) {
-				__asm__ __volatile__(
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						"nop		\n\t"
-						::: "memory");
-			}
-		}
+		sys_kill_core(current, current);
+		schedule_core();
+		__context_restore(current);
+		dsb();
+		isb();
+		__ret();
 	}
-#endif
 
-	while (1);
-
-	/* restore registers */
-	/* enable interrupts */
+	freeze();
 }

@@ -195,6 +195,7 @@ static int getadc(int ch)
 
 void disp_sysinfo()
 {
+#if 0
 	printf("Temperature\t\t\t %d(%d)C\n",
 		(TEMP_V25 - getadc(16)) / TEMP_SLOPE / 10 + TEMP_OFFSET,
 		getadc(16));
@@ -202,6 +203,7 @@ void disp_sysinfo()
 		AD2VOL(getadc(17)), AD2VOL_FAC(getadc(17)),
 		getadc(17));
 	printf("\n");
+#endif
 
 	disp_clkinfo();
 }
