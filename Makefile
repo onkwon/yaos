@@ -39,7 +39,7 @@ TARGET  = $(ARCH)
 ifeq ($(SOC),bcm2835)
 TARGET  = armv7-a
 endif
-export TARGET MACH SOC BOARD
+export TARGET MACH SOC BOARD LD_SCRIPT
 
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
 BASEDIR = $(shell pwd)
@@ -120,12 +120,19 @@ endif
 
 mycortex-stm32f4: stm32f4
 	@echo "BOARD = mycortex-stm32f4" >> .config
+	@echo "LD_SCRIPT = $(SOC).lds" >> .config
 
 ust-mpb-stm32f103: stm32f1
 	@echo "BOARD = ust-mpb-stm32f103" >> .config
+	@echo "LD_SCRIPT = $(SOC).lds" >> .config
 
 stm32-lcd: stm32f1
 	@echo "BOARD = stm32-lcd" >> .config
+	@echo "LD_SCRIPT = $(SOC).lds" >> .config
+
+mango-z1: stm32f1
+	@echo "BOARD = mango-z1" >> .config
+	@echo "LD_SCRIPT = boards/$(BOARD)/stm32f1.lds" >> .config
 
 stm32f4:
 	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f4\nCFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" > .config

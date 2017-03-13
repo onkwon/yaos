@@ -18,7 +18,7 @@ depend dep:
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
 lds:
-	-cp mach-$(MACH)/$(SOC).lds ld.script
+	-cp mach-$(MACH)/$(LD_SCRIPT) ld.script
 
 subs:
 	@$(MAKE) --print-directory -C mach-$(MACH)
@@ -29,8 +29,10 @@ include:
 	-cp mach-$(MACH)/include/pinmap.h include/pinmap.h
 	-cp mach-$(MACH)/include/uart.h include/uart.h
 	-cp mach-$(MACH)/include/timer.h include/timer.h
+	-cp mach-$(MACH)/include/hw.h include/hw.h
 ifdef BOARD
 	-cp -f mach-$(MACH)/boards/$(BOARD)/include/pinmap.h include/pinmap.h
+	-cp -f mach-$(MACH)/boards/$(BOARD)/include/hw.h include/hw.h
 endif
 
 clean:
@@ -42,6 +44,7 @@ clean:
 	@rm -f include/pinmap.h
 	@rm -f include/uart.h
 	@rm -f include/timer.h
+	@rm -f include/hw.h
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

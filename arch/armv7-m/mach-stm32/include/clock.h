@@ -6,11 +6,18 @@
 #define stm32f4	2
 #endif
 
+#include <asm/hw.h>
+
+#ifndef HSE
 #define HSE			8000000 /* 8MHz */
+#endif
+
+#ifndef HSI
 #if (SOC == stm32f1 || SOC == stm32f3)
 #define HSI			8000000	/* 8MHz */
 #elif (SOC == stm32f4)
 #define HSI			16000000
+#endif
 #endif
 
 unsigned int get_pllclk();

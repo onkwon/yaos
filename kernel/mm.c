@@ -99,7 +99,7 @@ retry:
 	spin_unlock_irqrestore(nospin, irqflag);
 
 	if (p == NULL) {
-		warn("Low memory");
+		//warn("Low memory");
 
 		if (kill_zombie())
 			goto retry;

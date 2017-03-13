@@ -256,7 +256,8 @@ void clock_init()
 	/* APB1 <= 36MHz <= APB2 <= 72MHz <= AHB <= 72MHz
 	 * ADC <= 14MHz
 	 * USB = 48MHz */
-	RCC_CFGR = (7 << PLLMUL) | (4 << PPRE1) | (2 << ADCPRE) | (1 << PLLSRC);
+	RCC_CFGR = ((72000000 / HSE - 2) << PLLMUL) |
+		(4 << PPRE1) | (2 << ADCPRE) | (1 << PLLSRC);
 
 	/* 5. Turn on PLL. */
 	BITBAND(&RCC_CR, PLLON, ON);
