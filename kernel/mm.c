@@ -86,7 +86,6 @@ size_t getfree()
 #include <lib/firstfit.h>
 
 static heap_t mem_map;
-static DEFINE_SPINLOCK(mem_lock);
 static size_t nr_mfree;
 
 void *kmalloc(size_t size)
@@ -95,9 +94,9 @@ void *kmalloc(size_t size)
 	unsigned int irqflag;
 
 retry:
-	spin_lock_irqsave(&mem_lock, irqflag);
+	spin_lock_irqsave(nospin, irqflag);
 	p = ff_alloc(&mem_map, size);
-	spin_unlock_irqrestore(&mem_lock, irqflag);
+	spin_unlock_irqrestore(nospin, irqflag);
 
 	if (p == NULL) {
 		warn("Low memory");
@@ -120,9 +119,9 @@ void kfree(void *addr)
 
 	nr_mfree += *(size_t *)(addr - WORD_SIZE) - 1;
 
-	spin_lock_irqsave(&mem_lock, irqflag);
+	spin_lock_irqsave(nospin, irqflag);
 	ff_free(&mem_map, addr);
-	spin_unlock_irqrestore(&mem_lock, irqflag);
+	spin_unlock_irqrestore(nospin, irqflag);
 }
 
 void __init free_bootmem()

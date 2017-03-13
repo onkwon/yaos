@@ -45,13 +45,16 @@
  */
 
 #include <firstfit.h>
+#include <kernel/lock.h>
 
 #define MIN_SIZE		(16 - 1) /* bytes */
+#define HEAD_LOCKED		1
 
 void *ff_alloc(struct ff_freelist_head *pool, size_t size)
 {
 	struct ff_freelist *p, *n;
-	struct link *head, *curr, *next;
+	struct link *head, *curr, *next, *prev;
+	unsigned int snap;
 
 	if (!pool || !size)
 		return NULL;
@@ -61,13 +64,24 @@ void *ff_alloc(struct ff_freelist_head *pool, size_t size)
 retry:
 	n = NULL;
 	next = NULL;
-	head = (struct link *)&pool->list_head;
+	head = prev = (struct link *)&pool->list_head;
 
-	for (curr = head->next; curr; head = curr, curr = curr->next) {
+	do {
+		snap = __ldrex(&head->next);
+		if (snap == HEAD_LOCKED)
+			goto retry;
+	} while (__strex(HEAD_LOCKED, &head->next));
+
+	curr = (struct link *)snap;
+
+	while (curr) {
 		p = get_container_of(curr, typeof(*p), list);
 
-		if (p->size < size)
+		if (p->size < size) {
+			prev = curr;
+			curr = curr->next;
 			continue;
+		}
 
 		next = curr->next;
 
@@ -87,11 +101,14 @@ retry:
 		break;
 	}
 
-	if (!curr)
+	if (!curr) {
+		head->next = (struct link *)snap;
 		return NULL;
+	}
 
-	/* TODO: Implement lock-free, if fail goto retry; */
-	head->next = next;
+	prev->next = next;
+	if (&prev->next != &head->next)
+		head->next = (struct link *)snap;
 
 	if (n)
 		p->size = p->size - n->size - FF_METASIZE;
@@ -105,13 +122,23 @@ retry:
 void ff_free(struct ff_freelist_head *pool, void *addr)
 {
 	struct ff_freelist *p, *prev, *next;
-	struct link *head;
+	struct link *head, tmp;
+	unsigned int snap;
 
 	if (!pool || !addr || addr < pool->base)
 		return;
 
 retry:
 	head = (struct link *)&pool->list_head;
+
+	do {
+		snap = __ldrex(&head->next);
+		if (snap == HEAD_LOCKED)
+			goto retry;
+	} while (__strex(HEAD_LOCKED, &head->next));
+
+	tmp.next = (struct link *)snap;
+
 	prev = next = NULL;
 	p = (struct ff_freelist *)((unsigned int)addr - FF_DATA_OFFSET);
 	FF_MARK_FREE(p);
@@ -123,7 +150,7 @@ retry:
 	next = (struct ff_freelist *)((unsigned int)p + p->size + FF_METASIZE);
 
 	if (prev && FF_IS_FREE(prev)) {
-		link_del(&prev->list, head); /* TODO: Implement lock-free */
+		link_del(&prev->list, &tmp);
 
 		prev->size += p->size + FF_METASIZE;
 		p = prev;
@@ -132,14 +159,13 @@ retry:
 	if ((void *)next < pool->limit && FF_IS_FREE(next)) {
 		p->size += next->size + FF_METASIZE;
 
-		link_del(&next->list, head); /* TODO: Implement lock-free */
+		link_del(&next->list, &tmp);
 	}
 
 	p->head = p;
 	FF_LINK_HEAD(p);
-	p->list.next = head->next;
+	p->list.next = tmp.next;
 
-	/* TODO: Implement lock-free, if fail goto retry; */
 	head->next = &p->list;
 }
 
@@ -175,7 +201,10 @@ size_t show_freelist(struct ff_freelist_head *pool)
 
 	nr_free = 0;
 	i = 0;
-	curr = (struct link *)&pool->list_head;
+
+	do {
+		curr = (struct link *)&pool->list_head;
+	} while (curr->next == (struct link *)HEAD_LOCKED);
 
 	debug("  NR     ADDR     SIZE    NEXT");
 
