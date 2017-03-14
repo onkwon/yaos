@@ -853,6 +853,8 @@ static size_t embed_read_core(struct file *file, void *buf, size_t len)
 		goto out;
 	}
 
+	mutex_lock(&file->inode->lock);
+
 	inode->id = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
 		ret = 0;
@@ -867,54 +869,25 @@ static size_t embed_read_core(struct file *file, void *buf, size_t len)
 
 out_free_inode:
 	kfree(inode);
+
+	mutex_unlock(&file->inode->lock);
 out:
+	syscall_delegate_return(current->parent, ret);
 	return ret;
 }
 
 static size_t embed_read(struct file *file, void *buf, size_t len)
 {
-	struct task *parent;
-	int tid;
+	struct task *thread;
 
-	parent = current;
-	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
+					embed_read_core, current)) == NULL)
+		return -ERR_ALLOC;
 
-	if (tid == 0) { /* parent */
-		spin_lock(&current->lock);
-		set_task_state(current, TASK_WAITING);
-		spin_unlock(&current->lock);
-		resched();
+	syscall_put_arguments(thread, file, buf, len, NULL);
+	syscall_delegate(current, thread);
 
-		return 0;
-	} else if (tid < 0) { /* error */
-		error("embedfs: failed cloning");
-
-		return -ERR_RETRY;
-	}
-
-	unsigned int irqflag;
-	size_t ret;
-
-	mutex_lock(&file->inode->lock);
-	ret = embed_read_core(file, buf, len);
-	mutex_unlock(&file->inode->lock);
-
-	spin_lock_irqsave(&parent->lock, irqflag);
-
-	__set_retval(parent, ret);
-	sum_curr_stat(parent);
-
-	if (get_task_state(parent)) {
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add_core(parent);
-	}
-
-	spin_unlock_irqrestore(&parent->lock, irqflag);
-
-	sys_kill(current);
-	freeze(); /* never reaches here */
-
-	return -ERR_UNDEF;
+	return 0;
 }
 
 static size_t embed_write_core(struct file *file, void *buf, size_t len)
@@ -926,6 +899,8 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 		ret = 0;
 		goto out;
 	}
+
+	mutex_lock(&file->inode->lock);
 
 	inode->id = file->inode->addr;
 	if (read_inode(inode, file->inode->sb->dev)) {
@@ -951,54 +926,25 @@ static size_t embed_write_core(struct file *file, void *buf, size_t len)
 
 out_free_inode:
 	kfree(inode);
+
+	mutex_unlock(&file->inode->lock);
 out:
+	syscall_delegate_return(current->parent, ret);
 	return ret;
 }
 
 static size_t embed_write(struct file *file, void *buf, size_t len)
 {
-	struct task *parent;
-	int tid;
+	struct task *thread;
 
-	parent = current;
-	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
+					embed_write_core, current)) == NULL)
+		return -ERR_ALLOC;
 
-	if (tid == 0) {
-		spin_lock(&current->lock);
-		set_task_state(current, TASK_WAITING);
-		spin_unlock(&current->lock);
-		resched();
+	syscall_put_arguments(thread, file, buf, len, NULL);
+	syscall_delegate(current, thread);
 
-		return 0;
-	} else if (tid < 0) {
-		error("embedfs: failed cloning");
-
-		return -ERR_RETRY;
-	}
-
-	unsigned int irqflag;
-	size_t ret;
-
-	mutex_lock(&file->inode->lock);
-	ret = embed_write_core(file, buf, len);
-	mutex_unlock(&file->inode->lock);
-
-	spin_lock_irqsave(&parent->lock, irqflag);
-
-	__set_retval(parent, ret);
-	sum_curr_stat(parent);
-
-	if (get_task_state(parent)) {
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add_core(parent);
-	}
-
-	spin_unlock_irqrestore(&parent->lock, irqflag);
-
-	sys_kill(current);
-	freeze(); /* never reaches here */
-
-	return -ERR_UNDEF;
+	return 0;
 }
 
 static int embed_seek(struct file *file, unsigned int offset, int whence)
@@ -1098,49 +1044,28 @@ out:
 	return ret;
 }
 
-static int embed_close(struct file *file)
+static void do_embed_close(struct file *file)
 {
-	struct task *parent;
-	int tid;
-
-	parent = current;
-	tid = clone(TASK_HANDLER | STACK_SHARED, &init);
-
-	if (tid == 0) { /* parent */
-		spin_lock(&current->lock);
-		set_task_state(current, TASK_WAITING);
-		spin_unlock(&current->lock);
-		resched();
-
-		return SYSCALL_DEFERRED_WORK;
-	} else if (tid < 0) { /* error */
-		error("embedfs: failed cloning");
-
-		return -ERR_RETRY;
-	}
-
 	mutex_lock(&file->inode->lock);
 	__sync(file->inode->sb->dev);
 	mutex_unlock(&file->inode->lock);
 	rmfile(file);
 
-	unsigned int irqflag;
-	spin_lock_irqsave(&parent->lock, irqflag);
+	syscall_delegate_return(current->parent, 0);
+}
 
-	__set_retval(parent, 0);
-	sum_curr_stat(parent);
+static int embed_close(struct file *file)
+{
+	struct task *thread;
 
-	if (get_task_state(parent)) {
-		set_task_state(parent, TASK_RUNNING);
-		runqueue_add_core(parent);
-	}
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
+					do_embed_close, current)) == NULL)
+		return -ERR_ALLOC;
 
-	spin_unlock_irqrestore(&parent->lock, irqflag);
+	syscall_put_arguments(thread, file, NULL, NULL, NULL);
+	syscall_delegate(current, thread);
 
-	sys_kill(current);
-	freeze(); /* never reaches here */
-
-	return -ERR_UNDEF;
+	return SYSCALL_DEFERRED_WORK;
 }
 
 static inline void return_data_blocks(unsigned int *buf, struct device *dev)
@@ -1540,7 +1465,7 @@ int embedfs_mount(struct device *dev)
 	/* request buffer cache */
 	mutex_lock(&dev->mutex);
 	if (!dev->buffer)
-		dev->buffer = request_buffer(32, BLOCK_SIZE);
+		dev->buffer = request_buffer(8, BLOCK_SIZE);
 	mutex_unlock(&dev->mutex);
 
 	mutex_lock(&sb_lock);
@@ -1572,6 +1497,7 @@ int embedfs_mount(struct device *dev)
 	if (!cached_bitmap) {
 		if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
 			error("failed loading the inode bitmap");
+		read_inode_bitmap(bitmap, dev);
 		cached_bitmap = bitmap;
 	}
 
