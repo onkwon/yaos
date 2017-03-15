@@ -2,6 +2,10 @@
 #include <kernel/task.h>
 #include "fair.h"
 
+/* TODO: Implement cfs
+ * It is still just a round robin scheduler though the vruntime notion is
+ * injected */
+
 /* TODO: Make the runqueue's head to point to the init task
  * The cost of turning to the idle task when no task running could be reduced
  * in the way, I guess. think about it */

@@ -21,53 +21,52 @@ Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have on
 #### STM32
 
 	make clean
-	make stm32f1 (or stm32f4)
+	make stm32f1 (or specify your board. e.g. mango-z1)
 	make
 	make burn
 
-> Tested on STM32F103 and STM32F407
+> Supported boards at the moment are :
+>  * [stm32-lcd](https://www.olimex.com/Products/ARM/ST/STM32-LCD/)
+>  * [mango-z1](http://www.mangoboard.com/main/?cate1=9&cate2=26&cate3=36)
+>  * [mycortex-stm32f4](http://www.withrobot.com/mycortex-stm32f4/)
+>  * [ust-mpb-stm32f103](https://www.devicemart.co.kr/1089642)
 
-#### Raspberry Pi(2)
+In case of getting error messages something like `undefined reference to __aeabi_uidiv`, specify library path when you `make` in the way below:
 
-	make clean
-	make rpi (or rpi2)
-	make
-
-That's it. Copy `yaos.bin` file into SD card as name of `kernel.img`, where `bootcode.bin` and `start.elf` files exist. Insert SD card in your RPI, turn it on, and enjoy!
-
-> You can get the GPU firmware and bootloaders [here](https://github.com/raspberrypi/firmware).
-
-You will see shell prompt `>` after some system log if uart rs232 cable connected.
-
-Character LCD is also opened by default. You can change default pin assignment in `/mach/rpi/include/pinmap.h`. Pinout:
-
-	          -----
-	+3V3 ----|1   2|--\
-	         |3   4|---- +5V0
-	         |5   6|---- GND
-	 DB7 ----|7   8|---- TXD0
-	         |9  10|---- RXD0
-	 DB6 ----|11 12|
-	 DB5 ----|13 14|
-	 DB4 ----|15 16|
-	         |17 18|
-	  E  ----|19 20|
-	  RW ----|21 22|
-	  RS ----|23 24|
-	         |25 26| ---- IR
-	          -----
-
-> In case of getting error messages something like `undefined reference to __aeabi_uidiv`, specify library path when you `make` in the way below:
-
-	LD_LIBRARY_PATH=/usr/local/arm/lib/gcc/arm-none-eabi/4.9.2 make
+	make LD_LIBRARY_PATH=/usr/local/arm/lib/gcc/arm-none-eabi/4.9.2
 
 > The path is dependent on your development environment.
+
+## User task example
+
+Let me put an example of blinking a LED for you to take a taste of how the code look like.
+
+User tasks would be placed under /tasks(e.g. tasks/my-first-task.c):
+
+	void main()
+	{
+		int fd, led = 0;
+
+		if ((fd = open("/dev/gpio20", O_WRONLY)) <= 0) {
+			printf("can not open, %x\n", fd);
+			return;
+		}
+
+		while (1) {
+			write(fd, &led, 1);
+			led ^= 1;
+			sleep(1);
+		}
+
+		close(fd);
+	}
+	REGISTER_TASK(main, 0, DEFAULT_PRIORITY, STACK_SIZE_DEFAULT);
 
 ## Features
 
 ### Task management and scheduling
 
-Two types of task are handled: normal and real time tasks. Simplified fair scheduler for normal tasks while FIFO scheduler for real time tasks. Each task is given a priority which can be dynamically changed with `set_task_pri()`. For real time tasks a higher priority task always preempts lower priority tasks while the same priority tasks take place in turn under round-robin scheduling. Scheduler can be stopped to reduce even the scheduling overhead in case of a time critical task. On the other hand nomal tasks get chance to run by simplified fair scheduler, that picks the minimum value of vruntime up for the next task to run.
+Two types of task are handled: normal and real time tasks. Round-robin scheduler for normal tasks while priority scheduler for real time tasks. Each task is given a priority which can be dynamically changed with `set_task_pri()`. For real time tasks a higher priority task always preempts lower priority tasks while the same priority tasks take place in turn under round-robin scheduling. Scheduler can be stopped to reduce even the scheduling overhead in case of a time critical task. On the other hand nomal tasks get chance to run by simplified fair scheduler, that picks the minimum value of vruntime up for the next task to run.
 
 Tasks are always in one of five states: running, stopped, waiting, sleeping, or zombie. And a task can be created both statically and dynamically at run-time.
 
@@ -78,6 +77,8 @@ System resource is accessed by the system call interface entering privileged mod
 ### Virtual file system
 
 The concept of virtual file system(VFS) is implemented. The embedded flash rom in SoC can be mounted as the root file system(embedfs) while a ramfs is mounted as a devfs for a device node.
+
+Empty flash memory is registerd as embedfs so that user can use it just like normal file system.
 
 ### Memory management
 
