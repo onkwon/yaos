@@ -120,7 +120,7 @@ struct task {
 	static struct task task_##func \
 	__attribute__((section(".user_task_list"), aligned(4), used)) = { \
 		.state = TASK_ZOMBIE, \
-		.flags = TASK_STATIC | f, \
+		.flags = TASK_STATIC | (f), \
 		.pri   = p, \
 		.addr  = func, \
 		.size  = s, \

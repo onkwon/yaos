@@ -4,10 +4,6 @@
 #include <error.h>
 #include "worklist.h"
 
-#ifndef USART_CHANNEL_MAX
-#define USART_CHANNEL_MAX	1
-#endif
-
 #define CHANNEL(n)		(MINOR(n) - 1)
 
 static unsigned int major;

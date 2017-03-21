@@ -61,6 +61,14 @@ typedef struct semaphore mutex_t;
 	.wq = INIT_WAIT_HEAD(name.wq),					\
 }
 
+#define sem_init(sem, c) ({						\
+	((struct semaphore *)(sem))->counter = c;			\
+	((struct semaphore *)(sem))->wq = (struct waitqueue_head)	\
+		INIT_WAIT_HEAD(((struct semaphore *)(sem))->wq);	\
+})
+#define sem_dec(sem)			semaphore_dec(sem)
+#define sem_inc(sem)			semaphore_inc(sem)
+
 #include <kernel/sched.h>
 
 /* mutex */
