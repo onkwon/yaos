@@ -144,11 +144,12 @@ unsigned int get_pclk2()
 	return clk;
 }
 
-static unsigned int get_adclk(unsigned int pclk2)
+unsigned int get_adclk()
 {
 #if (SOC == stm32f1 || SOC == stm32f3)
-	unsigned int clk, pre;
+	unsigned int clk, pre, pclk2;
 
+	pclk2 = get_pclk2();
 	pre = (RCC_CFGR >> ADCPRE) & 0x3; /* mask PPRE2[15:14] */
 	pre = (pre + 1) << 1;             /* get prescaler division factor */
 	clk = pclk2 / pre;

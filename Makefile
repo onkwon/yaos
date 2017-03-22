@@ -5,69 +5,75 @@ LD = arm-none-eabi-ld
 OC = arm-none-eabi-objcopy
 OD = arm-none-eabi-objdump
 
+# Common
+
+PROJECT = yaos
+VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
+BASEDIR = $(shell pwd)
+
+# Options
+
+SUBDIRS = lib arch kernel fs drivers tasks
+CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles -DVERSION=$(VERSION)
+OCFLAGS = -O binary
+ODFLAGS = -Dx
+INC	= -I./include
+LIBS	=
+
 # Configuration
 
 include CONFIGURE
+include .config
+
 ifdef CONFIG_SMP
-CFLAGS += -DCONFIG_SMP
+	CFLAGS += -DCONFIG_SMP
 endif
 ifdef CONFIG_REALTIME
-CFLAGS += -DCONFIG_REALTIME
+	CFLAGS += -DCONFIG_REALTIME
 endif
 ifdef CONFIG_PAGING
-CFLAGS += -DCONFIG_PAGING
+	CFLAGS += -DCONFIG_PAGING
 endif
 ifdef CONFIG_SYSCALL
-CFLAGS += -DCONFIG_SYSCALL
+	CFLAGS += -DCONFIG_SYSCALL
 endif
 ifdef CONFIG_FS
-CFLAGS += -DCONFIG_FS
+	CFLAGS += -DCONFIG_FS
 endif
 ifdef CONFIG_TIMER
-CFLAGS += -DCONFIG_TIMER
+	CFLAGS += -DCONFIG_TIMER
 endif
 ifdef CONFIG_FLOAT
-CFLAGS += -DCONFIG_FLOAT
+	CFLAGS += -DCONFIG_FLOAT
 endif
 
-# Common 
+# Build
 
-PROJECT = yaos
-
--include .config
 TARGET  = $(ARCH)
 ifeq ($(SOC),bcm2835)
-TARGET  = armv7-a
+	TARGET  = armv7-a
 endif
-export TARGET MACH SOC BOARD LD_SCRIPT
-
-VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
-BASEDIR = $(shell pwd)
-export BASEDIR
-
-CFLAGS += -march=$(ARCH)
-CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles
-CFLAGS += -DVERSION=$(VERSION) -DMACHINE=$(MACH) -DSOC=$(SOC)
+CFLAGS += -march=$(ARCH) -DMACHINE=$(MACH) -DSOC=$(SOC)
 ifdef CONFIG_DEBUG
-CFLAGS += -g -DCONFIG_DEBUG #-O0
+	CFLAGS += -g -DCONFIG_DEBUG #-O0
 endif
 LDFLAGS = -Tarch/$(TARGET)/ld.script -L$(LD_LIBRARY_PATH) -lgcc
-OCFLAGS = -O binary
-ODFLAGS = -DxS
-export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
 
 SRCS_ASM = $(wildcard *.S)
 SRCS     = $(wildcard *.c)
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
-INC  = -I./include
-LIBS = 
+export BASEDIR
+export TARGET MACH SOC BOARD LD_SCRIPT
+export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
 export INC LIBS
 
-SUBDIRS = lib arch kernel fs drivers tasks
-
 all: include common
-	@echo "Section Size(in bytes):"
+	@echo "\nArchitecture :" $(ARCH)
+	@echo "Vendor       :" $(MACH)
+	@echo "SoC          :" $(SOC)
+	@echo "Board        :" $(BOARD)
+	@echo "\nSection Size(in bytes):"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(PROJECT).map
 
 common: $(OBJS) subdirs
@@ -90,7 +96,7 @@ include:
 	-cp -R fs/include include/fs
 
 .c.o:
-	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $<
+	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $< -o $@
 
 .PHONY: depend dep
 depend dep:
@@ -109,13 +115,13 @@ clean:
 	@rm -rf include/fs
 
 ifneq ($(MAKECMDGOALS), clean)
-ifneq ($(MAKECMDGOALS), depend)
-ifneq ($(MAKECMDGOALS), dep)
-ifneq ($(SRCS),)
--include .depend
-endif
-endif
-endif
+	ifneq ($(MAKECMDGOALS), depend)
+		ifneq ($(MAKECMDGOALS), dep)
+			ifneq ($(SRCS),)
+				-include .depend
+			endif
+		endif
+	endif
 endif
 
 mycortex-stm32f4: stm32f4

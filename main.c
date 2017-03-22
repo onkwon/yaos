@@ -63,7 +63,7 @@ static int __init console_init()
 	extern int sys_open_core(char *filename, int mode, void *opt);
 
 	stdin = stdout = stderr =
-		sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR, NULL);
+		sys_open_core(DEVFS_ROOT CONSOLE, O_RDWR | O_NONBLOCK, NULL);
 
 	return 0;
 }
@@ -121,11 +121,15 @@ int __init kernel_init()
 
 	/* a banner */
 	notice("\n\nyaos %s %s\n"
-	       "[%08x] systick:%dHz, sysclk:%dHz, hclk:%dHz\n"
 	       "[%08x] reset by %s(%x)",
 	       def2str(VERSION), def2str(MACHINE),
-	       get_sysclk(), sysfreq, get_sysclk_freq(), get_hclk(),
 	       get_sysclk(), str_reset[fls(f_reset)-1], f_reset);
+	notice("[%08x] systick: %dHz, sysclk:%dHz\n"
+	       "[%08x] hclk: %dHz, pll: %dHz, pclk1: %dHz, plck2 %dHz\n"
+	       "[%08x] adclk: %dHz",
+	       get_sysclk(), sysfreq, get_sysclk_freq(),
+	       get_sysclk(), get_hclk(), get_pllclk(), get_pclk1(), get_pclk2(),
+	       get_sysclk(), get_adclk());
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);

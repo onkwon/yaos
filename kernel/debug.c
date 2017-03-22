@@ -52,7 +52,7 @@ static void inspect()
 	nvic_set_pri(23, 0); /* make it the most priority */
 
 	nvector = gpio_init(PIN_DEBUG,
-			GPIO_MODE_INPUT | GPIO_CONF_PULL_UP | GPIO_INT_FALLING);
+			GPIO_MODE_INPUT | GPIO_CONF_PULLUP | GPIO_INT_FALLING);
 
 	register_isr(nvector, isr_break);
 }

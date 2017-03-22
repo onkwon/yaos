@@ -26,6 +26,7 @@ unsigned int get_stkclk();
 unsigned int get_pclk2();
 unsigned int get_pclk1();
 unsigned int get_hclk();
+unsigned int get_adclk();
 
 void __turn_apb1_clock(unsigned int nbit, bool on);
 void __turn_apb2_clock(unsigned int nbit, bool on);

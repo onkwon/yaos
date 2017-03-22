@@ -180,11 +180,11 @@ int gpio_init(unsigned int index, unsigned int flags)
 			mode |= PIN_ALT_OPENDRAIN;
 		else
 			mode |= PIN_OPENDRAIN;
-	} else if (flags & GPIO_CONF_PULL_UP) {
+	} else if (flags & GPIO_CONF_PULLUP) {
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
 		write_port_pin(reg, pin, HIGH);
-	} else if (flags & GPIO_CONF_PULL_DOWN) {
+	} else if (flags & GPIO_CONF_PULLDOWN) {
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
 		write_port_pin(reg, pin, LOW);
@@ -301,10 +301,10 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (flags & GPIO_CONF_OPENDRAIN) {
 		reg[1] |= 1 << pin;
-	} else if (flags & GPIO_CONF_PULL_UP) {
+	} else if (flags & GPIO_CONF_PULLUP) {
 		reg[3] |= 1 << (pin * 2);
 		write_port_pin(reg, pin, HIGH);
-	} else if (flags & GPIO_CONF_PULL_DOWN) {
+	} else if (flags & GPIO_CONF_PULLDOWN) {
 		reg[3] |= 2 << (pin * 2);
 		write_port_pin(reg, pin, LOW);
 	}

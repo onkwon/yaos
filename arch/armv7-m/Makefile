@@ -30,6 +30,7 @@ include:
 	-cp mach-$(MACH)/include/uart.h include/uart.h
 	-cp mach-$(MACH)/include/timer.h include/timer.h
 	-cp mach-$(MACH)/include/hw.h include/hw.h
+	-cp mach-$(MACH)/include/adc.h include/adc.h
 ifdef BOARD
 	-cp -f mach-$(MACH)/boards/$(BOARD)/include/pinmap.h include/pinmap.h
 	-cp -f mach-$(MACH)/boards/$(BOARD)/include/hw.h include/hw.h

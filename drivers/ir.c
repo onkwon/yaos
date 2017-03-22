@@ -93,7 +93,7 @@ static int __init ir_init()
 
 	fifo_init(&ir_queue, buf, QUEUE_SIZE);
 
-	vector_nr = gpio_init(PIN_IR, GPIO_MODE_INPUT | GPIO_CONF_PULL_UP |
+	vector_nr = gpio_init(PIN_IR, GPIO_MODE_INPUT | GPIO_CONF_PULLUP |
 			GPIO_INT_FALLING | GPIO_INT_RISING);
 
 	register_isr(vector_nr, isr_ir);
