@@ -23,7 +23,7 @@ int sys_open_core(char *filename, int mode, void *option)
 
 	new->addr = sb->root_inode;
 	new->sb = sb;
-	INIT_MUTEX(new->lock);
+	mutex_init(&new->lock);
 	sb->op->read_inode(new);
 
 	if (new->iop == NULL) { /* probably due to failure of memory allocation */
@@ -53,7 +53,7 @@ int sys_open_core(char *filename, int mode, void *option)
 		ilink(new);
 		inode = new;
 		inode->refcount = 0;
-		INIT_MUTEX(inode->lock);
+		mutex_init(&inode->lock);
 	} else {
 		kfree(new);
 	}
@@ -187,7 +187,7 @@ int sys_remove_core(const char *pathname)
 
 	inode->addr = sb->root_inode;
 	inode->sb = sb;
-	INIT_MUTEX(inode->lock);
+	mutex_init(&inode->lock);
 	sb->op->read_inode(inode);
 
 	if (inode->iop == NULL) { /* probably due to failure of memory allocation */

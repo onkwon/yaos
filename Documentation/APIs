@@ -308,3 +308,23 @@ MMU 가상화 장치의 혜택을 받지 못하므로 새로 생성된 태스크
 `fifo_get(struct fifo, int type_size)`
 
 `fifo_put(struct fifo, int value, type_size)`
+
+## misc
+
+`is_interrupt_disabled()` - if true, disabled or enabled
+`get_current_rank()` - Either TF_PRIVILEGED or TF_USER
+`which_context()` - tells you which context you are in:
+                    0 = Thread mode
+		    1 = Reserved
+		    2 = NMI
+		    3 = HardFault
+		    4 = MemManage
+		    5 = BusFault
+		    6 = UsageFault
+		    7-10 = Reserved
+		    11 = SVCall
+		    12 = Reserved for Debug
+		    13 = Reserved
+		    14 = PendSV
+		    15 = SysTick
+		    16 = IRQ0

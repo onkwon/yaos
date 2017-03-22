@@ -83,7 +83,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 	dev->refcount = 0;
 	dev->op = ops;
 	links_init(&dev->list);
-	INIT_MUTEX(dev->mutex);
+	mutex_init(&dev->mutex);
 
 	dev->block_size = 1;
 	dev->nr_blocks = 0;

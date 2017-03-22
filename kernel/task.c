@@ -66,6 +66,8 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 	task->se.vruntime = current->se.vruntime;
 
 	lock_init(&task->lock);
+
+	link_init(&task->timer);
 }
 
 struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
@@ -113,7 +115,9 @@ void sys_kill_core(struct task *target, struct task *killer)
 	irq_save(irqflag);
 	local_irq_disable();
 
-	assert(!is_locked(target->lock));
+	lock_atomic(&target->lock);
+	assert(is_locked(target->lock));
+
 	set_task_state(target, TASK_ZOMBIE);
 	/* safe to unlink again even if it's already removed from the runqueue
 	 * since its links become empty on once unlinked */
@@ -218,9 +222,10 @@ struct task *find_task(unsigned int addr, struct task *head)
 
 void wrapper()
 {
-	debug("[%08x] New task %x started, type:%x state:%x pri:%x",
+	debug("[%08x] New task %x started, type:%x state:%x pri:%x rank:%s",
 	      systick, current->addr, get_task_type(current),
-	      get_task_state(current), get_task_pri(current));
+	      get_task_state(current), get_task_pri(current),
+	      get_current_rank() == TF_USER? "Unprivileged" : "Privileged");
 
 	((void (*)())current->addr)();
 

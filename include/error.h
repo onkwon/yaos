@@ -13,7 +13,8 @@
 #define ERR_ATTR		9
 #define ERR_CREATE		10
 #define ERR_OPEN		11
-#define ERR_MAX			12
+#define ERR_TIMEOUT		12
+#define ERR_MAX			13
 
 #define MSG_ERROR		0
 #define MSG_SYSTEM		1

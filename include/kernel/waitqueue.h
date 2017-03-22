@@ -30,5 +30,7 @@ struct waitqueue {
 
 void wq_wait(struct waitqueue_head *q);
 void wq_wake(struct waitqueue_head *q, int nr_task);
+int sleep_in_waitqueue(struct waitqueue_head *q, int ms);
+void shake_waitqueue_out(struct waitqueue_head *q);
 
 #endif /* __WAITQUEUE_H__ */

@@ -6,10 +6,11 @@
 
 struct ktimer {
 	struct link list; /* keep this first */
+	struct link link; /* link to task's timer list */
 
 	unsigned int expires;
 	void *data;
-	void (*event)(void *data);
+	void (*event)(struct ktimer *timer);
 
 	struct task *task;
 };
@@ -21,7 +22,9 @@ struct timer_queue {
 	mutex_t mutex;
 };
 
-int add_timer(struct ktimer *new);
+int add_timer(int ms, void (*func)(struct ktimer *timer));
+int __add_timer(struct ktimer *new);
+void __del_timer_if_match(struct task *task, void *addr);
 int timer_init();
 unsigned int get_timer_nr();
 

@@ -140,7 +140,7 @@ static struct buffer_cache *mkbuf(unsigned short int block_size)
 		buffer_cache->dirty = 0;
 		buffer_cache->size = block_size;
 		links_init(&buffer_cache->list);
-		INIT_MUTEX(buffer_cache->mutex);
+		mutex_init(&buffer_cache->mutex);
 
 		if ((buffer_cache->buf = kmalloc(block_size)) == NULL) {
 			kfree(buffer_cache);

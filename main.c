@@ -130,6 +130,8 @@ int __init kernel_init()
 	       get_sysclk(), sysfreq, get_sysclk_freq(),
 	       get_sysclk(), get_hclk(), get_pllclk(), get_pclk1(), get_pclk2(),
 	       get_sysclk(), get_adclk());
+	notice("[%08x] interrupt %s",
+	       get_sysclk(), is_interrupt_disabled()? "disabled" : "enabled");
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);

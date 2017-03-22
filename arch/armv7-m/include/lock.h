@@ -1,12 +1,13 @@
 #ifndef __ARMv7M_LOCK_H__
 #define __ARMv7M_LOCK_H__
 
+#if 1
 #define __ldrex(addr)				({	\
 	unsigned int __result = 0;			\
 	__asm__ __volatile__("ldrex %0, [%1]"		\
 		: "=r"(__result)			\
 		: "r"(addr)				\
-		: "cc");				\
+		: "cc", "memory");			\
 	__result;					\
 })
 
@@ -16,9 +17,13 @@
 	__asm__ __volatile__("strex %0, %2, [%1]"	\
 		: "=r"(__result)			\
 		: "r"(addr), "r"(value)			\
-		: "cc");				\
+		: "cc", "memory");			\
 	__result;					\
 })
+#else
+int __ldrex(void *addr);
+int __strex(int val, void *addr);
+#endif
 
 static inline void atomic_sub(int i, lock_t *counter)
 {
@@ -86,7 +91,10 @@ static inline void write_lock_spinning(lock_t *lock)
 			: "cc", "memory");
 }
 
-void semaphore_dec(struct semaphore *sem);
-void semaphore_inc(struct semaphore *sem);
+void __semaphore_dec(struct semaphore *sem, int ms);
+void __semaphore_dec_wait(struct semaphore *sem, int ms);
+void __semaphore_inc(struct semaphore *sem);
+void __lock_atomic(lock_t *counter);
+void __unlock_atomic(lock_t *counter);
 
 #endif /* __ARMv7M_LOCK_H__ */

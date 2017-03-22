@@ -3,6 +3,7 @@
 #include <kernel/task.h>
 #include <kernel/lock.h>
 #include <error.h>
+#include <stdlib.h>
 #include "worklist.h"
 
 #ifdef CONFIG_TIMER
@@ -59,6 +60,10 @@ loop:
 			link_add(&tm->list, prev);
 			timerq.nr++;
 
+			lock_atomic(&tm->task->lock);
+			link_add(&tm->link, &tm->task->timer);
+			unlock_atomic(&tm->task->lock);
+
 			mutex_unlock(&timerq.mutex);
 			set_task_pri(current, DEFAULT_PRIORITY);
 		}
@@ -73,9 +78,45 @@ loop:
 }
 REGISTER_TASK(add_timer_core, TASK_KERNEL, HIGHEST_PRIORITY, STACK_SIZE_MIN);
 
+void __del_timer_if_match(struct task *task, void *addr)
+{
+	struct ktimer *timer;
+	struct link *curr;
+	unsigned int pri;
+	bool deleted = false;
+
+	/* priority inversion as run_timer has the highest priority */
+	pri = get_task_pri(current);
+	set_task_pri(current, HIGHEST_PRIORITY);
+
+	mutex_lock(&timerq.mutex);
+	lock_atomic(&task->lock);
+
+	for (curr = task->timer.next; curr; curr = curr->next) {
+		timer = get_container_of(curr, struct ktimer, link);
+
+		if (timer->event == addr) {
+			link_del(&timer->list, &timerq.list);
+			timerq.nr--;
+			link_del(&timer->link, &task->timer);
+			deleted = true;
+			break;
+		}
+	}
+
+	mutex_unlock(&timerq.mutex);
+	set_task_pri(current, pri);
+
+	if (deleted)
+		__free(timer, task);
+
+	/* hold lock until free() to avoid the task killed before free */
+	unlock_atomic(&task->lock);
+}
+
 static void do_run_timer(struct ktimer *timer)
 {
-	timer->event(timer->data);
+	timer->event(timer);
 	//TODO: sum_curr_stat(timer->task);
 
 	kill(current);
@@ -103,6 +144,14 @@ infinite:
 			break;
 		}
 
+		link_del(curr, prev);
+		curr = prev->next;
+		timerq.nr--;
+
+		lock_atomic(&timer->task->lock);
+		link_del(&timer->link, &timer->task->timer);
+		unlock_atomic(&timer->task->lock);
+
 		flags = (get_task_flags(timer->task) & ~TASK_STATIC) | TF_ATOMIC;
 
 		if ((thread = make(flags, STACK_SIZE_DEFAULT, do_run_timer,
@@ -111,11 +160,6 @@ infinite:
 
 		put_arguments(thread, timer, NULL, NULL, NULL);
 		go_run(thread);
-
-		link_del(curr, prev);
-		timerq.nr--;
-
-		curr = prev->next;
 	}
 
 	mutex_unlock(&timerq.mutex);
@@ -124,9 +168,9 @@ infinite:
 	goto infinite;
 }
 
-static void sleep_callback(void *data)
+static void sleep_callback(struct ktimer *timer)
 {
-	struct task *task = data;
+	struct task *task = timer->data;
 
 	/* A trick to enter privileged mode */
 	if (!(get_task_flags(current) & TASK_PRIVILEGED)) {
@@ -168,7 +212,24 @@ unsigned int get_timer_nr()
 #endif
 }
 
-int add_timer(struct ktimer *new)
+int add_timer(int ms, void (*func)(struct ktimer *timer))
+{
+	struct ktimer *tm;
+
+	if ((ms == INF) || !ms)
+		return 0;
+
+	if ((tm = malloc(sizeof(*tm))) == NULL)
+		return -ERR_ALLOC;
+
+	tm->expires = systick + msec_to_ticks(ms);
+	tm->event = func;
+	tm->data = current;
+
+	return __add_timer(tm);
+}
+
+int __add_timer(struct ktimer *new)
 {
 	return syscall(SYSCALL_TIMER_CREATE, new);
 }
@@ -183,7 +244,7 @@ void sleep(unsigned int sec)
 	tm.expires = systick + sec_to_ticks(sec);
 	tm.event = sleep_callback;
 	tm.data = current;
-	if (!add_timer(&tm))
+	if (!__add_timer(&tm))
 		yield();
 #else
 	unsigned int timeout = systick + sec_to_ticks(sec);
@@ -201,7 +262,7 @@ void msleep(unsigned int ms)
 	tm.expires = systick + msec_to_ticks(ms);
 	tm.event = sleep_callback;
 	tm.data = current;
-	if (!add_timer(&tm))
+	if (!__add_timer(&tm))
 		yield();
 #else
 	unsigned int timeout = systick + msec_to_ticks(ms);

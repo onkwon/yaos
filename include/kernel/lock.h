@@ -21,8 +21,8 @@ typedef struct semaphore mutex_t;
 #define lock_init(couter)		(*(lock_t *)(couter) = UNLOCKED)
 #define is_locked(count)		((count) <= 0)
 
-#define lock_atomic(counter)		atomic_sub(1, counter)
-#define unlock_atomic(counter)		atomic_add(1, counter)
+#define lock_atomic(counter)		__lock_atomic(counter)
+#define unlock_atomic(counter)		__unlock_atomic(counter)
 
 /* spinlock */
 #ifdef CONFIG_SMP
@@ -66,16 +66,18 @@ typedef struct semaphore mutex_t;
 	((struct semaphore *)(sem))->wq = (struct waitqueue_head)	\
 		INIT_WAIT_HEAD(((struct semaphore *)(sem))->wq);	\
 })
-#define sem_dec(sem)			semaphore_dec(sem)
-#define sem_inc(sem)			semaphore_inc(sem)
+#define sem_dec(sem)			__semaphore_dec(sem, INF)
+#define sem_inc(sem)			__semaphore_inc(sem)
+#define sem_wait(sem, ms)		__semaphore_dec_wait(sem, ms)
+#define sem_wake(sem)			__semaphore_inc(sem)
 
 #include <kernel/sched.h>
 
 /* mutex */
 #define DEFINE_MUTEX(name)		DEFINE_SEMAPHORE(name, 1)
 #define INIT_MUTEX(name)		INIT_SEMAPHORE(name, 1)
-#define mutex_lock(sem)			semaphore_dec(sem)
-#define mutex_unlock(sem)		semaphore_inc(sem)
+#define mutex_lock(sem)			__semaphore_dec(sem, INF)
+#define mutex_unlock(sem)		__semaphore_inc(sem)
 #define mutex_lock_atomic(sem)		\
 	lock_atomic(&((mutex_t *)(sem))->counter)
 #define mutex_unlock_atomic(sem)	\
