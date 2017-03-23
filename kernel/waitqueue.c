@@ -59,13 +59,16 @@ int __attribute__((used)) sleep_in_waitqueue(struct waitqueue_head *q, int ms)
 	DEFINE_WAIT(new);
 
 	if (!ms)
-		return 0;
+		return ERR_TIMEOUT;
 
 	lock_atomic(&q->lock);
 
 	/* keep the pointer of its own queue in temp space of task structure */
 	current->args = q;
-	add_timer(ms, wake_callback);
+	if (add_timer(ms, wake_callback)) {
+		unlock_atomic(&q->lock);
+		return ERR_TIMEOUT;
+	}
 
 	links_add(&new.list, q->list.prev);
 

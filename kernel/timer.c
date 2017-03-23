@@ -5,6 +5,7 @@
 #include <error.h>
 #include <stdlib.h>
 #include "worklist.h"
+#include <asm/sysclk.h>
 
 #ifdef CONFIG_TIMER
 struct timer_queue timerq;
@@ -34,7 +35,7 @@ loop:
 		tm->expires -= 1; /* as it uses time_after() not time_equal */
 
 		if (time_after(tm->expires, stamp)) {
-			ret = -ERR_RANGE;
+			ret = -ERR_TIMEOUT;
 		} else {
 			/* priority inversion as run_timer has the highest
 			 * priority */
@@ -226,7 +227,12 @@ int add_timer(int ms, void (*func)(struct ktimer *timer))
 	tm->event = func;
 	tm->data = current;
 
-	return __add_timer(tm);
+	if (__add_timer(tm)) {
+		free(tm);
+		return -ERR_TIMEOUT;
+	}
+
+	return 0;
 }
 
 int __add_timer(struct ktimer *new)
@@ -292,9 +298,9 @@ int sys_timer_create(struct ktimer *new)
 #endif
 }
 
-void set_timeout(unsigned int *tv, unsigned int ms)
+void set_timeout(unsigned int *tv, unsigned int tick)
 {
-	*tv = systick + msec_to_ticks(ms);
+	*tv = systick + tick;
 }
 
 int is_timeout(unsigned int goal)
@@ -305,29 +311,41 @@ int is_timeout(unsigned int goal)
 	return 0;
 }
 
-#define MHZ		1000000
-void udelay(unsigned int us)
+static inline void set_timeout_ms(unsigned int *tv, unsigned int ms)
 {
-	volatile unsigned int counter;
-	unsigned int goal, stamp;
+	*tv = systick_ms + ms;
+}
 
-	stamp = get_sysclk();
-	goal  = get_sysclk_freq() / MHZ;
-	goal  = goal * us;
+static inline bool is_timeout_ms(unsigned int goal)
+{
+	if (time_after(goal, systick_ms))
+		return true;
 
-	if (goal > get_sysclk_max())
-		return;
-
-	do {
-		counter = stamp - get_sysclk();
-		if ((int)counter < 0)
-			counter = get_sysclk_max() - ((int)counter * -1);
-	} while (counter < goal);
+	return false;
 }
 
 void mdelay(unsigned int ms)
 {
 	unsigned int tout;
-	set_timeout(&tout, ms);
-	while (!is_timeout(tout));
+	set_timeout_ms(&tout, ms);
+	while (!is_timeout_ms(tout));
+}
+
+void udelay(unsigned int us)
+{
+	int goal, stamp, prev, elapsed;
+
+	prev = get_sysclk();
+	goal = get_sysclk_freq() / MHZ;
+	goal = goal * us;
+
+	do {
+		stamp = get_sysclk();
+		elapsed = prev - stamp; /* downcounter */
+		prev = stamp;
+		if (elapsed < 0)
+			goal -= get_sysclk_max() + elapsed;
+		else
+			goal -= elapsed;
+	} while (goal > 0);
 }

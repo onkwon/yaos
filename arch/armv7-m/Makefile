@@ -46,6 +46,7 @@ clean:
 	@rm -f include/uart.h
 	@rm -f include/timer.h
 	@rm -f include/hw.h
+	@rm -f include/adc.h
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), depend)

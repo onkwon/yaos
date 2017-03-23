@@ -34,7 +34,7 @@ void idle()
 			if (is_timeout(tout)) {
 				extern void disp_sysinfo();
 				disp_sysinfo();
-				set_timeout(&tout, 10000);
+				set_timeout(&tout, msec_to_ticks(10000));
 			}
 #endif
 			/* pre-dos();

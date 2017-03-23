@@ -45,13 +45,13 @@ void __enter_stop_mode()
 	/* Clear PDDS bit in Power Control register (PWR_CR) */
 	PWR_CR |= 1; /* configure LPDS bit in PWR_CR */
 
-	stop_scheduler();
+	stop_sysclk();
 	/*  drain any pending memory activity before suspending execution to
 	 *  enter a sleep mode */
 	dsb();
 	__wfi();
 	clock_init();
-	run_scheduler();
+	run_sysclk();
 
 	SCB_SCR &= ~4;
 	PWR_CR &= ~1;

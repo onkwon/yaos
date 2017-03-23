@@ -10,7 +10,7 @@
 #define msec_to_ticks(sec)		(sec_to_ticks(sec) / 1000)
 
 extern unsigned int sysfreq;
-extern volatile unsigned int __attribute__((section(".data"))) systick;
+extern volatile unsigned int __attribute__((section(".data"))) systick, systick_ms;
 
 uint64_t get_systick64();
 

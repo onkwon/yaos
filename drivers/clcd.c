@@ -60,7 +60,7 @@ static inline void wait_while_busy()
 	volatile unsigned int busy;
 	unsigned int tout;
 
-	set_timeout(&tout, 100); /* 100ms */
+	set_timeout(&tout, msec_to_ticks(100)); /* 100ms */
 
 	clcd_dir(INPUT);
 	set_rw();

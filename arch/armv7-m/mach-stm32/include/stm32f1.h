@@ -145,6 +145,7 @@
 /* ADC */
 #define ADC1_BASE		(0x40012400)
 #define ADC2_BASE		(0x40012800)
+#define ADC3_BASE		(0x40013c00)
 #define ADC1_SR			(*(reg_t *)ADC1_BASE)
 #define ADC1_CR1		(*(reg_t *)(ADC1_BASE + 4))
 #define ADC1_CR2		(*(reg_t *)(ADC1_BASE + 8))

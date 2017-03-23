@@ -57,7 +57,6 @@ static inline void yield()
 
 #include <asm/sysclk.h>
 
-#define run_scheduler()			run_sysclk()
-#define stop_scheduler()		stop_sysclk()
+void run_scheduler(bool run);
 
 #endif /* __SCHED_H__ */

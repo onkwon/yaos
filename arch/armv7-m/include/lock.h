@@ -92,7 +92,7 @@ static inline void write_lock_spinning(lock_t *lock)
 }
 
 void __semaphore_dec(struct semaphore *sem, int ms);
-void __semaphore_dec_wait(struct semaphore *sem, int ms);
+int __semaphore_dec_wait(struct semaphore *sem, int ms);
 void __semaphore_inc(struct semaphore *sem);
 void __lock_atomic(lock_t *counter);
 void __unlock_atomic(lock_t *counter);

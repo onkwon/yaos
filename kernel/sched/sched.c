@@ -218,6 +218,33 @@ void __attribute__((naked, used)) __schedule()
 	__ret();
 }
 
+static void __attribute__((naked, used)) __schedule_dummy()
+{
+	__ret();
+}
+
+#include <asm/io.h>
+
+void run_scheduler(bool run)
+{
+	void (*func)();
+
+	if (!is_interrupt_disabled() &&
+			get_current_rank() == TF_USER &&
+			!which_context()) {
+		error("do not have permission");
+		return;
+	}
+
+	if (run)
+		func = __schedule;
+	else
+		func = __schedule_dummy;
+
+	register_isr(NVECTOR_PENDSV, func);
+	isb();
+}
+
 #include <kernel/init.h>
 
 void __init scheduler_init()
@@ -227,7 +254,7 @@ void __init scheduler_init()
 	rts_init(&rts);
 #endif
 
-	run_scheduler();
+	run_scheduler(true);
 }
 
 unsigned int get_nr_running()

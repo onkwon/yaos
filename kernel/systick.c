@@ -2,7 +2,7 @@
 
 unsigned int sysfreq;
 
-volatile unsigned int __attribute__((section(".data"))) systick;
+volatile unsigned int __attribute__((section(".data"))) systick, systick_ms;
 uint64_t __attribute__((section(".data"))) systick64;
 
 static DEFINE_SPINLOCK(lock_systick64);
@@ -34,8 +34,22 @@ static inline void update_tick(unsigned int delta)
 
 static void isr_systick()
 {
+#ifdef CONFIG_TIMER_MS
+	static int ms;
+
+	systick_ms++;
+
+	if (++ms >= KHZ / sysfreq) {
+		ms = 0;
+
+		update_tick(1);
+		resched();
+	}
+#else
+	systick_ms += KHZ / sysfreq;
 	update_tick(1);
 	resched();
+#endif
 }
 
 #include <kernel/init.h>
@@ -44,4 +58,5 @@ static void isr_systick()
 void __init systick_init()
 {
 	register_isr(sysclk_init(), isr_systick);
+	run_sysclk();
 }

@@ -34,7 +34,7 @@ static void test_ir()
 	unsigned int buf[80], i = 0;
 	unsigned int timeout;
 
-	set_timeout(&timeout, 1000);
+	set_timeout(&timeout, msec_to_ticks(1000));
 
 	while (1) {
 		//buf[i] = fifo_get(&ir_buf, sizeof(int));
@@ -49,7 +49,7 @@ static void test_ir()
 				i = 0;
 			}
 
-			set_timeout(&timeout, 1000);
+			set_timeout(&timeout, msec_to_ticks(1000));
 		}
 
 		if (i && is_timeout(timeout)) /* if timeout, flush */

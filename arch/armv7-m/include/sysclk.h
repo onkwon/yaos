@@ -25,4 +25,7 @@ int sysclk_init();
 #define INCPATH			<asm/mach-MACHINE/clock.h>
 #include INCPATH
 
+#define KHZ			1000 /* 1KHz, 1ms */
+#define MHZ			1000000 /* 1MHz, 1us */
+
 #endif /* __ARMv7M_SYSCLK_H__ */

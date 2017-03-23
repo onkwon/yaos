@@ -2,7 +2,7 @@
 #include <foundation.h>
 #include <kernel/systick.h>
 
-#define LIMIT		100000 /* 100KHz, 10us */
+#define LIMIT		KHZ
 
 int sysclk_init()
 {
@@ -19,11 +19,15 @@ int sysclk_init()
 	} else if (!period || hz > LIMIT) {
 		hz = LIMIT;
 
-		error("%dHz required at the minimum", LIMIT);
+		error("can not exceed %dHz", LIMIT);
 	}
 
 	period = sysclk / hz - 1;
 	sysfreq = sysclk / (period + 1);
+#ifdef CONFIG_TIMER_MS
+	period = sysclk / KHZ - 1;
+	debug("systick period = %d", period);
+#endif
 
 	assert(sysfreq == hz);
 	assert(period > 0);

@@ -33,7 +33,7 @@ int sys_timer_create(struct ktimer *new);
 void sleep(unsigned int sec);
 void msleep(unsigned int ms);
 
-void set_timeout(unsigned int *tv, unsigned int ms);
+void set_timeout(unsigned int *tv, unsigned int tick);
 int is_timeout(unsigned int goal);
 
 void udelay(unsigned int us);

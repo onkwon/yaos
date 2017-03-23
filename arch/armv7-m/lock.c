@@ -39,7 +39,7 @@ void __attribute__((naked, noinline)) __semaphore_dec(struct semaphore *sem, int
 			::: "r0", "r1", "r2", "r8", "lr", "cc", "memory");
 }
 
-void __attribute__((naked, noinline)) __semaphore_dec_wait(struct semaphore *sem, int ms)
+int __attribute__((naked, noinline)) __semaphore_dec_wait(struct semaphore *sem, int ms)
 {
 	__asm__ __volatile__(
 			"push	{r8, lr}		\n\t"

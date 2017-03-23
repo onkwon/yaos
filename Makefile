@@ -46,6 +46,21 @@ endif
 ifdef CONFIG_FLOAT
 	CFLAGS += -DCONFIG_FLOAT
 endif
+ifdef CONFIG_TIMER_MS
+	CFLAGS += -DCONFIG_TIMER_MS
+endif
+
+# Module
+
+ifdef MODULE_UGFX
+	GFXLIB = $(BASEDIR)/ugfx
+	export GFXLIB
+	include $(GFXLIB)/boards/base/Olimex-STM32-LCD/board.mk
+	include $(GFXLIB)/gfx.mk
+
+	INC += $(foreach d, $(GFXINC), -I$d)
+	SRCS +=$(GFXSRC)
+endif
 
 # Build
 
@@ -60,7 +75,7 @@ endif
 LDFLAGS = -Tarch/$(TARGET)/ld.script -L$(LD_LIBRARY_PATH) -lgcc
 
 SRCS_ASM = $(wildcard *.S)
-SRCS     = $(wildcard *.c)
+SRCS    += $(wildcard *.c)
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
 export BASEDIR
