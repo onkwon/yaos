@@ -114,7 +114,7 @@ struct task {
 	lock_t lock;
 
 	void *args;
-	struct link timer;
+	struct link timer_head;
 };
 
 #define REGISTER_TASK(func, f, p, s) \
@@ -135,6 +135,7 @@ struct task *make(unsigned int flags, size_t size, void *addr, void *ref);
 int clone(unsigned int flags, void *ref);
 void set_task_dressed(struct task *task, unsigned int flags, void *addr);
 int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref);
+int heap_new(size_t size);
 void wrapper();
 unsigned int kill_zombie();
 

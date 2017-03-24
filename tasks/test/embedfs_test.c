@@ -16,7 +16,7 @@ static void test_write()
 
 	sleep(3);
 	notice("start write test #2 %x %x", current, current->addr);
-	if ((fd = open(FILENAME1, O_RDWR)) == -ERR_PATH) {
+	if ((fd = open(FILENAME1, O_RDWR)) == ENOENT) {
 		debug("create %s", FILENAME1);
 		if ((fd = open(FILENAME1, O_CREATE | O_RDWR)) < 0) {
 			error("FAILED to create #2");
@@ -49,7 +49,7 @@ static void test_task()
 
 	sleep(3);
 	notice("start write test %x %x", current, current->addr);
-	if ((fd = open(FILENAME1, O_RDWR)) == -ERR_PATH) {
+	if ((fd = open(FILENAME1, O_RDWR)) == ENOENT) {
 		debug("create2 %s", FILENAME1);
 		if ((fd = open(FILENAME1, O_CREATE | O_RDWR)) < 0) {
 			error("FAILED to create");

@@ -2,19 +2,23 @@
 #define __ERROR_H__
 
 /* return error code */
-#define ERR_UNDEF		1
-#define ERR_RETRY		2
-#define ERR_ALLOC		3
-#define ERR_RANGE		4
-#define ERR_PARAM		5
-#define ERR_PERM		6
-#define ERR_DUP			7
-#define ERR_PATH		8
-#define ERR_ATTR		9
-#define ERR_CREATE		10
-#define ERR_OPEN		11
-#define ERR_TIMEOUT		12
-#define ERR_MAX			13
+enum {
+	EACCES		= -1,
+	EPERM		= -2,
+	EAGAIN		= -3,
+	EEXIST		= -4,
+	EFAULT		= -5,
+	ENOMEM		= -6,
+	ERANGE		= -7,
+	EINVAL		= -8,
+	ENOENT		= -9,
+	EDOM		= -10,
+	EILSEQ		= -11,
+	EBUSY		= -12,
+	ECANCELED	= -13,
+	ETIMEDOUT	= -14,
+	EMAX,
+};
 
 #define MSG_ERROR		0
 #define MSG_SYSTEM		1

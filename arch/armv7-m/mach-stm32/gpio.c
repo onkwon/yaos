@@ -51,7 +51,7 @@ int reg2port(reg_t *reg)
 		break;
 	}
 
-	return -ERR_RANGE;
+	return ERANGE;
 }
 
 void set_port_pin_conf(reg_t *reg, int pin, int mode)
@@ -94,7 +94,7 @@ unsigned int gpio_get(unsigned int index)
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
-		return -ERR_RANGE;
+		return ERANGE;
 	}
 
 	reg = port2reg(port);
@@ -387,7 +387,7 @@ unsigned int get_gpio_state(int port)
 {
 	if (port >= NR_PORT) {
 		error("not supported port: %d", port);
-		return -ERR_RANGE;
+		return ERANGE;
 	}
 
 	return state[port].pins;

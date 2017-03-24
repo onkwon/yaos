@@ -35,7 +35,7 @@ loop:
 		tm->expires -= 1; /* as it uses time_after() not time_equal */
 
 		if (time_after(tm->expires, stamp)) {
-			ret = -ERR_TIMEOUT;
+			ret = -ETIMEDOUT;
 		} else {
 			/* priority inversion as run_timer has the highest
 			 * priority */
@@ -62,7 +62,7 @@ loop:
 			timerq.nr++;
 
 			lock_atomic(&tm->task->lock);
-			link_add(&tm->link, &tm->task->timer);
+			link_add(&tm->link, &tm->task->timer_head);
 			unlock_atomic(&tm->task->lock);
 
 			mutex_unlock(&timerq.mutex);
@@ -93,13 +93,13 @@ void __del_timer_if_match(struct task *task, void *addr)
 	mutex_lock(&timerq.mutex);
 	lock_atomic(&task->lock);
 
-	for (curr = task->timer.next; curr; curr = curr->next) {
+	for (curr = task->timer_head.next; curr; curr = curr->next) {
 		timer = get_container_of(curr, struct ktimer, link);
 
 		if (timer->event == addr) {
 			link_del(&timer->list, &timerq.list);
 			timerq.nr--;
-			link_del(&timer->link, &task->timer);
+			link_del(&timer->link, &task->timer_head);
 			deleted = true;
 			break;
 		}
@@ -150,7 +150,7 @@ infinite:
 		timerq.nr--;
 
 		lock_atomic(&timer->task->lock);
-		link_del(&timer->link, &timer->task->timer);
+		link_del(&timer->link, &timer->task->timer_head);
 		unlock_atomic(&timer->task->lock);
 
 		flags = (get_task_flags(timer->task) & ~TASK_STATIC) | TF_ATOMIC;
@@ -192,7 +192,7 @@ int __init timer_init()
 
 	if ((timerd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_MIN,
 					run_timer, &init)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	timerd->name = "timerd";
 	set_task_pri(timerd, HIGHEST_PRIORITY);
@@ -221,7 +221,7 @@ int add_timer(int ms, void (*func)(struct ktimer *timer))
 		return 0;
 
 	if ((tm = malloc(sizeof(*tm))) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	tm->expires = systick + msec_to_ticks(ms);
 	tm->event = func;
@@ -229,7 +229,7 @@ int add_timer(int ms, void (*func)(struct ktimer *timer))
 
 	if (__add_timer(tm)) {
 		free(tm);
-		return -ERR_TIMEOUT;
+		return ENOMEM;
 	}
 
 	return 0;
@@ -284,7 +284,7 @@ int sys_timer_create(struct ktimer *new)
 	struct worklist *work;
 
 	if (!add_timerd || (work = kmalloc(sizeof(*work))) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	new->task = current;
 	work->data = new;
@@ -294,7 +294,7 @@ int sys_timer_create(struct ktimer *new)
 
 	return 0;
 #else
-	return -ERR_UNDEF;
+	return EFAULT;
 #endif
 }
 
@@ -331,9 +331,17 @@ void mdelay(unsigned int ms)
 	while (!is_timeout_ms(tout));
 }
 
+/* TODO: make it work for user */
+/* NOTE: be aware that it can be delayed more than requested up to
+ * `HZ * number of tasks` as context switch occurs every HZ. */
 void udelay(unsigned int us)
 {
 	int goal, stamp, prev, elapsed;
+
+	if (get_current_rank() != TF_PRIVILEGED) {
+		error("no permission");
+		return;
+	}
 
 	prev = get_sysclk();
 	goal = get_sysclk_freq() / MHZ;

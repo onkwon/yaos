@@ -232,7 +232,7 @@ void run_scheduler(bool run)
 	if (!is_interrupt_disabled() &&
 			get_current_rank() == TF_USER &&
 			!which_context()) {
-		error("do not have permission");
+		error("no permission");
 		return;
 	}
 

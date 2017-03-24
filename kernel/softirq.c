@@ -10,7 +10,7 @@ static DEFINE_MUTEX(req_lock);
 unsigned int request_softirq(void (*func)())
 {
 	if (func == NULL)
-		return -ERR_PARAM;
+		return EINVAL;
 
 	unsigned int i;
 
@@ -75,7 +75,7 @@ int __init softirq_init()
 
 	if ((softirqd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_DEFAULT,
 					softirq_handler, &init)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	softirqd->name = "softirqd";
 	set_task_pri(softirqd, HIGHEST_PRIORITY);

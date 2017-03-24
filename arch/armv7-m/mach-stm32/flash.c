@@ -79,7 +79,7 @@ static int flash_seek(struct file *file, unsigned int offset, int whence)
 		break;
 	case SEEK_CUR:
 		if (file->offset + offset < file->offset)
-			return -ERR_RANGE;
+			return ERANGE;
 
 		file->offset += offset;
 		break;
@@ -89,7 +89,7 @@ static int flash_seek(struct file *file, unsigned int offset, int whence)
 		end = BASE_WORD(end + dev->base_addr);
 
 		if (end - offset < dev->base_addr)
-			return -ERR_RANGE;
+			return ERANGE;
 
 		file->offset = end - offset;
 		break;
@@ -109,7 +109,7 @@ __flash_write(void *addr, void *buf, size_t len)
 	unsigned int index, sentinel;
 
 	if ((tmp = kmalloc(BLOCK_SIZE)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	len  = BASE_WORD(len); /* to prevent underflow */
 	data = (unsigned int *)buf;
@@ -227,14 +227,14 @@ static int flash_init()
 
 	/* whole disk of embedded flash memory */
 	if (!(dev = mkdev(0, 0, &ops, "efm")))
-		return -ERR_RANGE;
+		return ERANGE;
 
 	dev->block_size = BLOCK_SIZE;
 	dev->nr_blocks = (unsigned int)&_rom_size / BLOCK_SIZE;
 
 	/* partition for file system */
 	if (!(dev = mkdev(MAJOR(dev->id), 1, &ops, "efm")))
-		return -ERR_RANGE;
+		return ERANGE;
 
 	dev->block_size = BLOCK_SIZE;
 	dev->base_addr = (unsigned int)&_etext +

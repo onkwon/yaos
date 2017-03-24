@@ -11,13 +11,13 @@ int sys_open_core(char *filename, int mode, void *option)
 	struct inode *inode, *new;
 	struct file file;
 	struct file_operations *ops;
-	int err = -ERR_PATH;
+	int err = ENOENT;
 
 	if ((sb = search_super(filename)) == NULL)
 		goto out;
 
 	if ((new = kmalloc(sizeof(struct inode))) == NULL) {
-		err = -ERR_ALLOC;
+		err = ENOMEM;
 		goto out;
 	}
 
@@ -27,24 +27,24 @@ int sys_open_core(char *filename, int mode, void *option)
 	sb->op->read_inode(new);
 
 	if (new->iop == NULL) { /* probably due to failure of memory allocation */
-		err = -ERR_RETRY;
+		err = EAGAIN;
 		goto out_free;
 	}
 
 	if ((ops = kmalloc(sizeof(struct file_operations))) == NULL) {
-		err = -ERR_ALLOC;
+		err = ENOMEM;
 		goto out_free;
 	}
 
 	if (new->iop->lookup(new, filename + sb->pathname_len)) {
 		if (!(mode & O_CREATE)) {
-			err = -ERR_PATH;
+			err = ENOENT;
 			goto out_free_ops;
 		}
 
 		if (!new->iop->create || new->iop->create(new,
 					filename + sb->pathname_len, FT_FILE)) {
-			err = -ERR_CREATE;
+			err = EEXIST;
 			goto out_free_ops;
 		}
 	}
@@ -101,7 +101,7 @@ int sys_open(char *filename, int mode, void *option)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
 					do_sys_open, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, filename, mode, option, NULL);
 	syscall_delegate(current, thread);
@@ -114,9 +114,9 @@ int sys_read(int fd, void *buf, size_t len)
 	struct file *file = getfile(fd);
 
 	if (!file || !file->op->read)
-		return -ERR_UNDEF;
+		return EFAULT;
 	if (!(file->flags & O_RDONLY))
-		return -ERR_PERM;
+		return EPERM;
 
 	return file->op->read(file, buf, len);
 }
@@ -126,9 +126,9 @@ int sys_write(int fd, void *buf, size_t len)
 	struct file *file = getfile(fd);
 
 	if (!file || !file->op->write)
-		return -ERR_UNDEF;
+		return EFAULT;
 	if (!(file->flags & O_WRONLY))
-		return -ERR_PERM;
+		return EPERM;
 
 	return file->op->write(file, buf, len);
 }
@@ -138,7 +138,7 @@ int sys_close(int fd)
 	struct file *file = getfile(fd);
 
 	if (!file)
-		return -ERR_UNDEF;
+		return EFAULT;
 
 	if (file->op->close &&
 			(file->op->close(file) == SYSCALL_DEFERRED_WORK))
@@ -154,7 +154,7 @@ int sys_seek(int fd, unsigned int offset, int whence)
 	struct file *file = getfile(fd);
 
 	if (!file || !file->op->seek)
-		return -ERR_UNDEF;
+		return EFAULT;
 
 	return file->op->seek(file, offset, whence);
 }
@@ -164,7 +164,7 @@ int sys_ioctl(int fd, int request, void *data)
 	struct file *file = getfile(fd);
 
 	if (!file || !file->op->ioctl)
-		return -ERR_UNDEF;
+		return EFAULT;
 
 	return file->op->ioctl(file, request, data);
 }
@@ -176,12 +176,12 @@ int sys_remove_core(const char *pathname)
 	int err = 0;
 
 	if ((sb = search_super(pathname)) == NULL) {
-		err = -ERR_PATH;
+		err = ENOENT;
 		goto out;
 	}
 
 	if ((inode = kmalloc(sizeof(*inode))) == NULL) {
-		err = -ERR_ALLOC;
+		err = ENOMEM;
 		goto out;
 	}
 
@@ -191,12 +191,12 @@ int sys_remove_core(const char *pathname)
 	sb->op->read_inode(inode);
 
 	if (inode->iop == NULL) { /* probably due to failure of memory allocation */
-		err = -ERR_RETRY;
+		err = EAGAIN;
 		goto out_free_inode;
 	}
 
 	if (inode->iop->lookup(inode, pathname + sb->pathname_len)) {
-		err = -ERR_PATH;
+		err = ENOENT;
 		goto out_free_inode;
 	}
 
@@ -232,7 +232,7 @@ int sys_remove(const char *pathname)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
 					sys_remove_core, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, pathname, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -245,7 +245,7 @@ int sys_remove(const char *pathname)
 int sys_shutdown(int option)
 {
 	if (!(get_task_type(current) & TF_PRIVILEGED))
-		return -ERR_PERM;
+		return EPERM;
 
 	/* FIXME: Clone here otherwise it causes a fault since sync() needs
 	 * a system call */
@@ -264,7 +264,7 @@ int sys_shutdown(int option)
 
 int sys_reserved()
 {
-	return -ERR_UNDEF;
+	return EFAULT;
 }
 
 int sys_test(int a, int b, int c)

@@ -41,7 +41,7 @@ static int __init make_init_task()
 	current = &init;
 
 	if (alloc_mm(&init, STACK_SIZE_MIN, 0, NULL))
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	set_task_dressed(&init, TASK_STATIC | TASK_KERNEL, idle);
 	set_task_context_hard(&init, wrapper);

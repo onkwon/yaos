@@ -10,7 +10,7 @@
 int __uart_open(unsigned int channel, unsigned int baudrate)
 {
 	if (channel)
-		return -ERR_RANGE;
+		return ERANGE;
 
 	/* Set GPIO first */
 	SET_GPIO_FS(14, GPIO_ALT5);

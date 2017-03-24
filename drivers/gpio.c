@@ -63,7 +63,7 @@ static inline int getmode(int flags)
 		break;
 	}
 
-	return -ERR_UNDEF;
+	return EFAULT;
 }
 
 static inline int getconf(int opt)
@@ -77,13 +77,13 @@ static int gpio_open(struct inode *inode, struct file *file)
 	int vector, mode = 0;
 
 	if (dev == NULL)
-		return -ERR_UNDEF;
+		return EFAULT;
 
 	mutex_lock(&dev->mutex);
 
 	if (dev->refcount == 0) {
 		if (!(get_task_flags(current->parent) & TF_PRIVILEGED)) {
-			mode = -ERR_PERM;
+			mode = EPERM;
 			goto out_unlock;
 		}
 
@@ -93,7 +93,7 @@ static int gpio_open(struct inode *inode, struct file *file)
 		mode |= getconf((int)file->option);
 
 		if (!(vector = gpio_init(MINOR(file->inode->dev), mode))) {
-			mode = -ERR_DUP;
+			mode = EEXIST;
 			goto out_unlock;
 		}
 
@@ -160,14 +160,14 @@ static int gpio_close(struct file *file)
 	struct device *dev = getdev(file->inode->dev);
 
 	if (dev == NULL)
-		return -ERR_UNDEF;
+		return EFAULT;
 
 	if (!(get_task_flags(current) & TF_PRIVILEGED))
-		return -ERR_PERM;
+		return EPERM;
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					gpio_close_core, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -181,7 +181,7 @@ static int gpio_isr_add(struct file *file, void *data)
 	int ret = 0;
 
 	if (!(uisr = kmalloc(sizeof(*uisr))))
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	/* save the file descriptor's address for later identification when
 	 * close() to remove the isr and free memory. And keep track on the
@@ -206,17 +206,17 @@ static int gpio_ioctl(struct file *file, int request, void *data)
 	struct task *thread;
 
 	if (!(get_task_flags(current) & TF_PRIVILEGED))
-		return -ERR_PERM;
+		return EPERM;
 
 	if (request != C_EVENT)
-		return -ERR_UNDEF;
+		return EFAULT;
 
 	if (getmode(file->flags) != GPIO_MODE_INPUT)
-		return -ERR_ATTR;
+		return EINVAL;
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					gpio_isr_add, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, data, NULL, NULL);
 	syscall_delegate(current, thread);

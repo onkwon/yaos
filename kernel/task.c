@@ -10,11 +10,11 @@ struct task *current = &init;
 int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 {
 	if ((new->mm.base = kmalloc(size)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	if ((new->mm.heap = kmalloc(HEAP_SIZE_DEFAULT)) == NULL) {
 		kfree(new->mm.base);
-		return -ERR_ALLOC;
+		return ENOMEM;
 	}
 
 	/* make its stack pointer to point out the highest memory address.
@@ -42,7 +42,7 @@ int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 		kfree(new->mm.base);
 		kfree(new->mm.heap);
 
-		return -ERR_ALLOC;
+		return ENOMEM;
 	}
 
 	return 0;
@@ -67,7 +67,7 @@ void set_task_dressed(struct task *task, unsigned int flags, void *addr)
 
 	lock_init(&task->lock);
 
-	link_init(&task->timer);
+	link_init(&task->timer_head);
 }
 
 struct task *make(unsigned int flags, size_t size, void *addr, void *ref)
@@ -261,11 +261,11 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	struct task *child;
 
 	if ((child = kmalloc(sizeof(struct task))) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	if (alloc_mm(child, STACK_SIZE_DEFAULT, flags, ref)) {
 		kfree(child);
-		return -ERR_ALLOC;
+		return ENOMEM;
 	}
 
 	/* copy stack */
@@ -437,15 +437,31 @@ int sys_kill(void *task)
 
 	if ((struct task *)task != current) {
 		warn("no permission");
-		return -ERR_PERM;
+		return EPERM;
 	}
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_sys_kill, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, task, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
+
+	return 0;
+}
+
+/* NOTE: all the already allocated memory will be lost */
+int heap_new(size_t size)
+{
+	void *new;
+
+	if ((new = kmalloc(size)) == NULL)
+		return ENOMEM;
+
+	kfree(current->mm.heap);
+	current->mm.heap = new;
+	heap_init(&current->mm.heaphead, current->mm.heap,
+			&current->mm.heap[1024 / WORD_SIZE]);
 
 	return 0;
 }

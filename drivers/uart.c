@@ -105,7 +105,7 @@ static int uart_ioctl(struct file *file, int request, void *data)
 		break;
 	}
 
-	return -ERR_RANGE;
+	return ERANGE;
 }
 
 static void do_uart_close(struct file *file)
@@ -134,7 +134,7 @@ static int uart_close(struct file *file)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_uart_close, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -197,7 +197,7 @@ static size_t uart_read(struct file *file, void *buf, size_t len)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_uart_read, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, buf, len, NULL);
 	syscall_delegate(current, thread);
@@ -264,7 +264,7 @@ static size_t uart_write(struct file *file, void *buf, size_t len)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_uart_write, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, buf, len, NULL);
 	syscall_delegate(current, thread);
@@ -282,7 +282,7 @@ static int uart_open(struct inode *inode, struct file *file)
 	void *rx, *tx;
 
 	if (dev == NULL)
-		return -ERR_UNDEF;
+		return EFAULT;
 
 	mutex_lock(&dev->mutex);
 
@@ -302,7 +302,7 @@ static int uart_open(struct inode *inode, struct file *file)
 		assert(conf->baudrate);
 
 		if ((nvector = __uart_open(CHANNEL(dev->id), conf->baudrate)) <= 0) {
-			err = -ERR_OPEN;
+			err = EINVAL;
 			goto out;
 		}
 
@@ -333,7 +333,7 @@ out_free_buf:
 	kfree(buf);
 out_close:
 	__uart_close(CHANNEL(dev->id));
-	err = -ERR_ALLOC;
+	err = ENOMEM;
 out:
 	mutex_unlock(&dev->mutex);
 	return err;

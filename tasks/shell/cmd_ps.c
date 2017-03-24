@@ -12,9 +12,10 @@ static unsigned int visit(struct task *p, unsigned int nr)
 #define print_tab() for (i = 0; i < tab; i++) puts("|\t");
 
 	print_tab();
-	printf("+-- 0x%08x(0x%08x) 0x%02x 0x%02x %d %s\n",
+	printf("+-- 0x%08x(0x%08x) 0x%02x 0x%02x %d %s[%c]\n",
 			p, p->addr, get_task_type(p), get_task_state(p),
-			get_task_pri(p), p->name);
+			get_task_pri(p), p->name,
+			get_task_flags(p) & TF_PRIVILEGED? 'P':'U');
 	print_tab();
 	printf("|   /vruntime %d /exec_runtime %d (%d sec)\n",
 			(unsigned)p->se.vruntime,

@@ -167,8 +167,8 @@ stop mode while works in sleep mode.
 `delay(), mdelay(), udelay(), ndelay()` - relative time based on clock cycle
 that the task is taking, sleepless delay functions
 
-udelay() - as context switch occurs every HZ it can be delayed to extra time
-up to HZ * number of tasks
+udelay() - be aware that it can be delayed more than requested up to `HZ *
+number of tasks` as context switch occurs every HZ.
 
 ## System call
 

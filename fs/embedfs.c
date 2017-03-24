@@ -132,7 +132,7 @@ static int read_superblock(struct embed_superblock *sb,
 	char *buf;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	read_block(SUPERBLOCK, buf, dev);
 	memcpy(sb, buf, sizeof(struct embed_superblock));
@@ -262,7 +262,7 @@ static int return_free_block(unsigned int nblock, struct device *dev)
 	struct embed_superblock *sb;
 	unsigned int i, j;
 	char *bitmap;
-	int ret = -ERR_ALLOC;
+	int ret = ENOMEM;
 
 	if ((bitmap = kmalloc(BLOCK_SIZE)) == NULL)
 		goto out;
@@ -350,7 +350,7 @@ static int update_inode_table(struct embed_inode *inode,
 	struct embed_superblock *sb;
 	char *buf;
 	unsigned int nblock, offset;
-	int ret = -ERR_ALLOC;
+	int ret = ENOMEM;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		goto out;
@@ -555,7 +555,7 @@ static int read_data_block(struct embed_inode *inode, unsigned int pos,
 	char *s, *d, *t;
 
 	if ((t = kmalloc(BLOCK_SIZE)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	if ((pos + len) > (inode->size + inode->hole))
 		len -= (pos + len) - (inode->size + inode->hole);
@@ -565,7 +565,7 @@ static int read_data_block(struct embed_inode *inode, unsigned int pos,
 	while (len) {
 		if (!(blk = take_dblock(inode, pos, dev))) {
 			kfree(t);
-			return -ERR_RANGE;
+			return ERANGE;
 		}
 
 		left = BLOCK_SIZE - pos % BLOCK_SIZE;
@@ -621,7 +621,7 @@ static int read_inode(struct embed_inode *inode, struct device *dev)
 	unsigned int nblock, offset;
 	char *buf;
 	unsigned int inode_size;
-	int ret = -ERR_ALLOC;
+	int ret = ENOMEM;
 
 	if ((buf = kmalloc(BLOCK_SIZE)) == NULL)
 		goto out;
@@ -767,7 +767,7 @@ out_free_inode:
 out_free_dir:
 	kfree(dir);
 out:
-	return (char *)-ERR_ALLOC;
+	return (char *)ENOMEM;
 }
 
 static unsigned int find_hole(struct embed_inode *inode,
@@ -777,10 +777,10 @@ static unsigned int find_hole(struct embed_inode *inode,
 	unsigned int pos, dir_size;
 
 	if (!(inode->mode & FT_DIR))
-		return -ERR_ATTR;
+		return EINVAL;
 
 	if ((dir = kmalloc(sizeof(*dir))) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	dir_size = sizeof(*dir) - sizeof(char *);
 
@@ -808,10 +808,10 @@ static int create_file(const char *filename, int mode,
 	int ret = 0;
 
 	if ((dir = kmalloc(sizeof(struct embed_dir))) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	if (!(inode_new = make_node(mode, dev))) {
-		ret = -ERR_RANGE;
+		ret = ERANGE;
 		goto out;
 	}
 
@@ -822,7 +822,7 @@ static int create_file(const char *filename, int mode,
 	dir->name = (char *)filename;
 
 	pos_next = find_hole(parent, &dir->rec_len, dev);
-	if (pos_next > (unsigned int)-ERR_MAX) {
+	if (pos_next > (unsigned int)EMAX) {
 		free_inode(inode_new, dev);
 		goto out;
 	}
@@ -882,7 +882,7 @@ static size_t embed_read(struct file *file, void *buf, size_t len)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
 					embed_read_core, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, buf, len, NULL);
 	syscall_delegate(current, thread);
@@ -939,7 +939,7 @@ static size_t embed_write(struct file *file, void *buf, size_t len)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
 					embed_write_core, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, buf, len, NULL);
 	syscall_delegate(current, thread);
@@ -955,13 +955,13 @@ static int embed_seek(struct file *file, unsigned int offset, int whence)
 		break;
 	case SEEK_CUR:
 		if (file->offset + offset < file->offset)
-			return -ERR_RANGE;
+			return ERANGE;
 
 		file->offset += offset;
 		break;
 	case SEEK_END:
 		if ((file->inode->size - offset) < 0)
-			return -ERR_RANGE;
+			return ERANGE;
 
 		file->offset = file->inode->size - offset;
 		break;
@@ -977,7 +977,7 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 	int ret = 0;
 
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
-		ret = -ERR_ALLOC;
+		ret = ENOMEM;
 		goto out;
 	}
 
@@ -987,7 +987,7 @@ static int embed_lookup(struct inode *inode, const char *pathname)
 	}
 
 	if (*s) {
-		ret = -ERR_PATH;
+		ret = ENOENT;
 		goto out_free_inode;
 	}
 
@@ -1015,7 +1015,7 @@ static int embed_create(struct inode *inode, const char *pathname, int mode)
 	/* FIXME: check again if the pathname still doesn't exist */
 
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
-		ret = -ERR_ALLOC;
+		ret = ENOMEM;
 		goto out;
 	}
 
@@ -1025,12 +1025,12 @@ static int embed_create(struct inode *inode, const char *pathname, int mode)
 	}
 
 	if (!*s || toknum(s, "/")) {
-		ret = -ERR_DUP;
+		ret = EEXIST;
 		goto out_free_inode;
 	}
 
 	if (create_file(s, mode, embed_inode, inode->sb->dev)) {
-		ret = -ERR_CREATE;
+		ret = EEXIST;
 		goto out_free_inode;
 	}
 
@@ -1060,7 +1060,7 @@ static int embed_close(struct file *file)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_DEFAULT,
 					do_embed_close, current)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	syscall_put_arguments(thread, file, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -1145,7 +1145,7 @@ static int embed_delete_core(struct embed_inode *inode, struct device *dev)
 		free_inode(inode->id, dev);
 		return 0;
 	} else if (inode->mode != FT_DIR) {
-		return -ERR_PERM;
+		return EPERM;
 	}
 
 	if ((dir = kmalloc(sizeof(*dir))) == NULL)
@@ -1184,7 +1184,7 @@ static int embed_delete_core(struct embed_inode *inode, struct device *dev)
 out_free_dir:
 	kfree(dir);
 out:
-	return -ERR_ALLOC;
+	return ENOMEM;
 }
 
 static inline void delete_dir_entry(unsigned short int target,
@@ -1242,7 +1242,7 @@ static int embed_delete(struct inode *inode, const char *pathname)
 	int ret = 0;
 
 	if ((embed_inode = kmalloc(sizeof(struct embed_inode))) == NULL) {
-		ret = -ERR_ALLOC;
+		ret = ENOMEM;
 		goto out;
 	}
 
@@ -1253,7 +1253,7 @@ static int embed_delete(struct inode *inode, const char *pathname)
 	}
 
 	if (*s) {
-		ret = -ERR_PATH;
+		ret = ENOENT;
 		goto out_free_inode;
 	}
 
@@ -1354,7 +1354,7 @@ static int build_file_system(struct device *dev)
 
 	struct embed_superblock *sb;
 	char *buf, *data_bitmap;
-	int ret = -ERR_ALLOC;
+	int ret = ENOMEM;
 
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
 		goto out;
@@ -1407,7 +1407,7 @@ static int build_file_system(struct device *dev)
 	/* make the root node. root inode is always 0. */
 	if (make_node(FT_ROOT, dev) != 0) {
 		error("embedfs: wrong root inode");
-		ret = -ERR_UNDEF;
+		ret = EFAULT;
 		goto out_free_bitmap;
 	}
 
@@ -1456,7 +1456,7 @@ int embedfs_mount(struct device *dev)
 	struct embed_superblock *sb;
 
 	if ((sb = kmalloc(sizeof(struct embed_superblock))) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	/* It doesn't need to get the locks below because nothing can hold the
 	 * locks before the device is mounted. But I'm just doing double check
@@ -1482,11 +1482,11 @@ int embedfs_mount(struct device *dev)
 	int err = 0;
 
 	if (sb->magic != MAGIC)
-		err = -ERR_UNDEF;
+		err = EFAULT;
 	if (sb->block_size != BLOCK_SIZE)
-		err = -ERR_UNDEF;
+		err = EFAULT;
 	if (sb->first_block != dev->base_addr)
-		err = -ERR_UNDEF;
+		err = EFAULT;
 
 	kfree(sb);
 

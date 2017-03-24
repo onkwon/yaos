@@ -36,7 +36,7 @@ static void wake_callback(struct ktimer *timer)
 			schedule();
 		}
 
-		timer->task->args = (void *)ERR_TIMEOUT;
+		timer->task->args = (void *)-ETIMEDOUT;
 		go_run(timer->task);
 		__free(timer, timer->task);
 
@@ -59,7 +59,7 @@ int __attribute__((used)) sleep_in_waitqueue(struct waitqueue_head *q, int ms)
 	DEFINE_WAIT(new);
 
 	if (!ms)
-		return ERR_TIMEOUT;
+		return -ETIMEDOUT;
 
 	lock_atomic(&q->lock);
 
@@ -67,7 +67,7 @@ int __attribute__((used)) sleep_in_waitqueue(struct waitqueue_head *q, int ms)
 	current->args = q;
 	if (add_timer(ms, wake_callback)) {
 		unlock_atomic(&q->lock);
-		return ERR_TIMEOUT;
+		return -ETIMEDOUT;
 	}
 
 	links_add(&new.list, q->list.prev);

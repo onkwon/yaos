@@ -89,7 +89,7 @@ static int __init ir_init()
 	int vector_nr;
 
 	if ((buf = kmalloc(QUEUE_SIZE)) == NULL)
-		return -ERR_ALLOC;
+		return ENOMEM;
 
 	fifo_init(&ir_queue, buf, QUEUE_SIZE);
 
@@ -104,7 +104,7 @@ static int __init ir_init()
 			gpio_close(PIN_IR);
 			remove_device(dev);
 
-			return -ERR_RANGE;
+			return ERANGE;
 		}
 	}
 
