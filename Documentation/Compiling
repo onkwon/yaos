@@ -40,6 +40,14 @@ activate system call functionality
 
 activate software timer functionality
 
+### `CONFIG_FLOAT`
+
+### `CONFIG_TIMER_MS`
+
+to make mili-second-granularity-timer in case HZ is lower than 1 KHz
+
+### `CONFIG_CPU_LOAD`
+
 ## include/foundation.h
 
 ### HZ
@@ -48,4 +56,4 @@ system clock
 
 ### CONSOLE
 
-default console device: usart1
+default console device: uart1

@@ -7,7 +7,7 @@ CONFIG_SYSCALL=y
 CONFIG_FS=y
 CONFIG_TIMER=y
 CONFIG_FLOAT=y
-CONFIG_TIMER_MS=y
+#CONFIG_TIMER_MS=y
 CONFIG_CPU_LOAD=y
 
 # Uncomment a line to add the module
