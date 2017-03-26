@@ -35,7 +35,7 @@ static void isr_ir()
 
 	raise_softirq(nr_softirq);
 
-	ret_from_gpio_int(PIN_IR);
+	ret_from_gpio_int(gpio2exti(PIN_IR));
 }
 
 static size_t ir_read(struct file *file, void *buf, size_t len)

@@ -4,6 +4,10 @@
 #define NR_PORT			7
 #define PINS_PER_PORT		16
 
+#define pin2port(pin)		((pin) / PINS_PER_PORT)
+#define pin2portpin(pin)	((pin) % PINS_PER_PORT)
+#define port2reg(port)		((reg_t *)((((port) * WORD_SIZE) << 8) + PORTA))
+
 #include <io.h>
 #include <kernel/lock.h>
 
@@ -26,6 +30,11 @@ static inline void ret_from_exti(unsigned int n)
 
 	/* FIXME: handle EXTI in an isolated func considering sync, lock */
 	EXTI_PR |= mask << n;
+}
+
+static inline int gpio2exti(int n)
+{
+	return pin2portpin(n);
 }
 
 static inline void ret_from_gpio_int(unsigned int n)

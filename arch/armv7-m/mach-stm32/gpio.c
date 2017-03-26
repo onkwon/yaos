@@ -6,10 +6,6 @@
 
 static DEFINE_MUTEX(gpio_init_lock);
 
-#define pin2port(pin)		((pin) / PINS_PER_PORT)
-#define pin2portpin(pin)	((pin) % PINS_PER_PORT)
-#define port2reg(port)		((reg_t *)((((port) * WORD_SIZE) << 8) + PORTA))
-
 static struct gpio {
 	union {
 		struct {

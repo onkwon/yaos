@@ -1,8 +1,11 @@
 #ifndef __PINMAP_H__
 #define __PINMAP_H__
 
-#define PIN_DEBUG			24 /* PORTB.8 */
-#define PIN_STATUS_LED			20 /* PORTB.4 */
+#define PIN_DEBUG			23 /* PB.7 */
+#define PIN_STATUS_LED			PIN_LED_GREEN
+
+#define PIN_LED_RED			15 /* PA.15 */
+#define PIN_LED_GREEN			20 /* PB.4 */
 
 /* UART */
 #define PIN_UART1_TX			 9 /* PA.9 */

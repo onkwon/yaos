@@ -63,7 +63,6 @@ static void __attribute__((naked)) isr_break()
 	printk("\nKernel Space\n");
 	print_kernel_status((unsigned int *)sp, lr, psr);
 
-	printk("sp %x usp %x\n", sp, usp);
 	printk("\nUser Space\n");
 	print_user_status((unsigned int *)usp);
 
@@ -73,11 +72,11 @@ static void __attribute__((naked)) isr_break()
 	printk("\nCurrent Context\n");
 	print_context((unsigned int *)current->mm.sp);
 
+	ret_from_gpio_int(gpio2exti(PIN_DEBUG));
+
 	__context_restore(current);
 	dsb();
 	isb();
-
-	ret_from_gpio_int(PIN_DEBUG);
 	__ret();
 }
 
@@ -90,7 +89,7 @@ void __init debug_init()
 	//nvic_set_pri(23, 0); /* make it the highest priority */
 
 	nvector = gpio_init(PIN_DEBUG,
-			GPIO_MODE_INPUT | GPIO_CONF_PULLUP | GPIO_INT_FALLING);
+			GPIO_MODE_INPUT | GPIO_CONF_PULLDOWN | GPIO_INT_RISING);
 
 	register_isr(nvector, isr_break);
 }
