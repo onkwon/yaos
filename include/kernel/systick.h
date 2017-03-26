@@ -11,6 +11,7 @@
 
 extern unsigned int sysfreq;
 extern volatile unsigned int __attribute__((section(".data"))) systick, systick_ms;
+extern int cpuload;
 
 uint64_t get_systick64();
 

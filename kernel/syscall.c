@@ -240,7 +240,7 @@ int sys_remove(const char *pathname)
 	return 0;
 }
 
-#include <asm/power.h>
+#include <kernel/power.h>
 
 int sys_shutdown(int option)
 {
@@ -254,7 +254,7 @@ int sys_shutdown(int option)
 		break;
 	case 2: /* reboot */
 		/* sync() */
-		__reboot();
+		reboot();
 	default:
 		break;
 	}

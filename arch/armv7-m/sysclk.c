@@ -2,7 +2,7 @@
 #include <foundation.h>
 #include <kernel/systick.h>
 
-#define LIMIT		KHZ
+#define LIMIT		(100 * KHZ) /* 100KHz */
 
 int sysclk_init()
 {

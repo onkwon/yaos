@@ -59,7 +59,7 @@ static int ps(int argc, char **argv)
 	printf("    ADDR                   TYPE STAT PRI NAME\n");
 
 	printf("%d tasks running out of %d\n",
-			get_nr_running() + 1, /* including the current task */
+			nr_running() + 1, /* including the current task */
 			visit(&init, 1)); /* count from the init task */
 
 	printf("%d bytes free\n", getfree());

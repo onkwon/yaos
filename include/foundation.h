@@ -1,7 +1,7 @@
 #ifndef __FOUNDATION_H__
 #define __FOUNDATION_H__
 
-#define HZ			50
+#define HZ			1000
 
 #define CONSOLE			"uart1"
 

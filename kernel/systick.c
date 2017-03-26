@@ -32,6 +32,8 @@ static inline void update_tick(unsigned int delta)
 	spin_unlock_irqrestore(&lock_systick64, irqflag);
 }
 
+static int nticks_khz;
+
 static void isr_systick()
 {
 #ifdef CONFIG_TIMER_MS
@@ -39,14 +41,13 @@ static void isr_systick()
 
 	systick_ms++;
 
-	if (++ms >= KHZ / sysfreq) {
+	if (++ms >= nticks_khz) {
 		ms = 0;
-
 		update_tick(1);
 		resched();
 	}
 #else
-	systick_ms += KHZ / sysfreq;
+	systick_ms += nticks_khz;
 	update_tick(1);
 	resched();
 #endif
@@ -58,5 +59,8 @@ static void isr_systick()
 void __init systick_init()
 {
 	register_isr(sysclk_init(), isr_systick);
+
+	nticks_khz = KHZ / sysfreq;
+
 	run_sysclk();
 }

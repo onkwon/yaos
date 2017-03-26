@@ -257,7 +257,7 @@ void __init scheduler_init()
 	run_scheduler(true);
 }
 
-unsigned int get_nr_running()
+unsigned int nr_running()
 {
 	unsigned int total = cfs.nr_running;
 #ifdef CONFIG_REALTIME

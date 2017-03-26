@@ -256,7 +256,7 @@ static int flash_init()
 }
 MODULE_INIT(flash_init);
 
-#include <asm/power.h>
+#include <kernel/power.h>
 
 void flash_protect()
 {
@@ -294,7 +294,5 @@ void flash_protect()
 	FLASH_LOCK_OPTPG();
 	FLASH_LOCK();
 
-	warn("Rebooting...");
-
-	__reboot();
+	reboot();
 }

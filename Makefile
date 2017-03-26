@@ -49,6 +49,9 @@ endif
 ifdef CONFIG_TIMER_MS
 	CFLAGS += -DCONFIG_TIMER_MS
 endif
+ifdef CONFIG_CPU_LOAD
+	CFLAGS += -DCONFIG_CPU_LOAD
+endif
 
 # Module
 

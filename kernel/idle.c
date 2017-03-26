@@ -1,8 +1,11 @@
 #include <foundation.h>
 #include <kernel/page.h>
 #include <kernel/timer.h>
-#include <asm/power.h>
+#include <kernel/power.h>
 #include <kernel/systick.h>
+
+unsigned int cpu_idle, cpu_idle_stamp;
+int cpuload;
 
 static void cleanup()
 {
@@ -15,12 +18,24 @@ static void cleanup()
 void idle()
 {
 	unsigned int tout = 0;
+	int cpu_total = 0;
 	unsigned long long stamp;
 
 	cleanup();
 
 	while (1) {
 		kill_zombie();
+
+#ifdef CONFIG_CPU_LOAD
+		cpu_total += systick_ms - cpu_idle_stamp;
+		cpu_idle_stamp = systick_ms;
+		if (cpu_total > KHZ) { /* every second */
+			cpuload = 100 - cpu_idle * 100 / cpu_total;
+
+			cpu_total = 0;
+			cpu_idle = 0;
+		}
+#endif
 
 		/* if not TASK_RUNNING it is the best chance to enter power
 		 * saving mode since the init task gets its turn from scheduler
@@ -35,6 +50,12 @@ void idle()
 				extern void disp_sysinfo();
 				disp_sysinfo();
 				set_timeout(&tout, msec_to_ticks(10000));
+
+				extern unsigned int get_gpio_state(int port);
+				printk("PORTA %x\n", get_gpio_state(0));
+				printk("PORTB %x\n", get_gpio_state(1));
+				printk("PORTC %x\n", get_gpio_state(2));
+				printk("PORTD %x\n", get_gpio_state(3));
 			}
 #endif
 			/* pre-dos();

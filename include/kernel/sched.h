@@ -30,7 +30,7 @@ void runqueue_del_core(struct task *task);
 void runqueue_add(struct task *new);
 void runqueue_del(struct task *task);
 void sum_curr_stat(struct task *to);
-unsigned int get_nr_running();
+unsigned int nr_running();
 
 void sys_yield();
 
