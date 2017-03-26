@@ -36,6 +36,8 @@ static void wake_callback(struct ktimer *timer)
 			schedule();
 		}
 
+		assert(!is_locked(timer->task->lock));
+
 		timer->task->args = (void *)-ETIMEDOUT;
 		go_run(timer->task);
 		__free(timer, timer->task);
@@ -102,32 +104,11 @@ void __attribute__((used)) shake_waitqueue_out(struct waitqueue_head *q)
 		return;
 	}
 
-#if 1 /* WQ_EXCLUSIVE */
 	next = q->list.next;
 	assert(next != &q->list);
 	links_del(next);
 
 	task = get_container_of(next, struct waitqueue, list)->task;
-
-	/* there is only one wake_callback registered at a time if timer
-	 * registered. so if being woken up earlier than timer, remove the
-	 * timer registered prior being executed. */
-	__del_timer_if_match(task, wake_callback);
-
-#else /* WQ_ALL */
-	for (next = q->list.next; next != &q->list && nr_task; next = next->next) {
-		links_del(next);
-
-		task = get_container_of(next, struct waitqueue, list)->task;
-		assert(get_task_state(task) == TASK_WAITING);
-		assert(!is_locked(task->lock));
-
-		set_task_state(task, TASK_RUNNING);
-		runqueue_add(task);
-
-		nr_task--;
-	}
-#endif
 
 	/* NOTE: Lock the task first before releasing queue. Otherwise waking
 	 * job can be done first even before waiting job to be done. */
@@ -136,6 +117,11 @@ void __attribute__((used)) shake_waitqueue_out(struct waitqueue_head *q)
 
 	assert(get_task_state(task) == TASK_WAITING);
 	assert(is_locked(task->lock));
+
+	/* there is only one wake_callback registered at a time if timer
+	 * registered. so if being woken up earlier than timer, remove the
+	 * timer registered prior being executed. */
+	__del_timer_if_match(task, wake_callback);
 
 	/* A trick to enter privileged mode */
 	flags = get_task_flags(current);
