@@ -144,19 +144,19 @@ endif
 
 mycortex-stm32f4: stm32f4
 	@echo "BOARD = mycortex-stm32f4" >> .config
-	@echo "LD_SCRIPT = $(SOC).lds" >> .config
+	@echo "LD_SCRIPT = stm32f4.lds" >> .config
 
 ust-mpb-stm32f103: stm32f1
 	@echo "BOARD = ust-mpb-stm32f103" >> .config
-	@echo "LD_SCRIPT = $(SOC).lds" >> .config
+	@echo "LD_SCRIPT = stm32f1.lds" >> .config
 
 stm32-lcd: stm32f1
 	@echo "BOARD = stm32-lcd" >> .config
-	@echo "LD_SCRIPT = $(SOC).lds" >> .config
+	@echo "LD_SCRIPT = stm32f1.lds" >> .config
 
 mango-z1: stm32f1
 	@echo "BOARD = mango-z1" >> .config
-	@echo "LD_SCRIPT = boards/$(BOARD)/stm32f1.lds" >> .config
+	@echo "LD_SCRIPT = boards/mango-z1/stm32f1.lds" >> .config
 
 stm32f4:
 	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f4\nCFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" > .config

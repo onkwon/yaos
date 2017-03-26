@@ -9,7 +9,12 @@
  * PF base 80
  * PG base 96 */
 
-#define PIN_DEBUG			24 /* PORTB.8 */
+#define PIN_DEBUG			 1 /* PA.1 */
+#define PIN_STATUS_LED			PIN_LED_BLUE
+
+#define PIN_LED_YELLOW			21 /* PB.5 */
+#define PIN_LED_BLUE			24 /* PB.8 */
+#define PIN_LED_RED			25 /* PB.9 */
 
 /* UART */
 #define PIN_UART1_TX			 9 /* PA.9 */

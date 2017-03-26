@@ -13,6 +13,7 @@
 
 #ifdef MACHINE
 #include <asm/io.h>
+#include <asm/pinmap.h>
 #endif
 
 int stdin, stdout, stderr;
