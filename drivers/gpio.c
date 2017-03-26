@@ -82,10 +82,12 @@ static int gpio_open(struct inode *inode, struct file *file)
 	mutex_lock(&dev->mutex);
 
 	if (dev->refcount == 0) {
+#if 0
 		if (!(get_task_flags(current->parent) & TF_PRIVILEGED)) {
 			mode = EPERM;
 			goto out_unlock;
 		}
+#endif
 
 		if ((mode = getmode(file->flags)) < 0)
 			goto out_unlock;
@@ -162,8 +164,10 @@ static int gpio_close(struct file *file)
 	if (dev == NULL)
 		return EFAULT;
 
+#if 0
 	if (!(get_task_flags(current) & TF_PRIVILEGED))
 		return EPERM;
+#endif
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					gpio_close_core, current)) == NULL)

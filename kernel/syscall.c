@@ -74,8 +74,20 @@ int sys_open_core(char *filename, int mode, void *option)
 	file.inode  = inode;
 	file.op     = ops;
 
-	if (file.op->open)
-		file.op->open(inode, &file);
+	if (file.op->open) {
+		if ((err = file.op->open(inode, &file)) < 0) {
+			mutex_lock(&inode->lock);
+			inode->refcount--;
+			mutex_unlock(&inode->lock);
+
+			if (inode == new)
+				goto out_free_ops;
+			else {
+				kfree(ops);
+				goto out;
+			}
+		}
+	}
 
 	return mkfile(&file);
 
