@@ -25,7 +25,6 @@ struct timer_queue {
 int add_timer(int ms, void (*func)(struct ktimer *timer));
 int __add_timer(struct ktimer *new);
 void __del_timer_if_match(struct task *task, void *addr);
-int timer_init();
 unsigned int get_timer_nr();
 
 int sys_timer_create(struct ktimer *new);

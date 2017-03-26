@@ -147,8 +147,6 @@ void iunlink(struct inode *inode);
 int mount(struct device *dev, const char *mnt_point, const char *fs_type);
 struct superblock *search_super(const char *pathname);
 
-void fs_init();
-
 int sys_mknod(const char *name, unsigned int mode, dev_t id); /* ramfs.c */
 
 #endif /* __FS_H__ */

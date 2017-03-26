@@ -97,6 +97,15 @@ static const char *str_reset[] = {
 	"Low-power",
 };
 
+extern void mm_init();
+extern void fs_init();
+extern void driver_init();
+extern void device_init();
+extern void systick_init();
+extern void scheduler_init();
+extern int timer_init();
+extern void debug_init();
+
 int __init kernel_init()
 {
 	/* keep the calling order below because of dependencies */
@@ -116,6 +125,9 @@ int __init kernel_init()
 #ifdef CONFIG_TIMER
 	timer_init();
 #endif
+#ifdef CONFIG_DEBUG
+	debug_init();
+#endif
 
 	f_reset = __read_reset_source();
 
@@ -132,6 +144,9 @@ int __init kernel_init()
 	       get_sysclk(), get_adclk());
 	notice("[%08x] interrupt %s",
 	       get_sysclk(), is_interrupt_disabled()? "disabled" : "enabled");
+	extern char _ram_size, _rom_size;
+	notice("[%08x] ram size: %d, rom size: %d",
+	       get_sysclk(), (int)&_ram_size, (int)&_rom_size);
 
 	/* switch from boot stack memory to new one */
 	set_user_sp(init.mm.sp);

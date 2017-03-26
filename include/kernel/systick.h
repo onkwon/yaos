@@ -15,6 +15,4 @@ extern int cpuload;
 
 uint64_t get_systick64();
 
-void systick_init();
-
 #endif /* __SYSTICK_H__ */

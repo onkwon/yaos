@@ -21,7 +21,6 @@ struct scheduler {
 };
 
 void schedule_core();
-void scheduler_init();
 
 #include <kernel/task.h>
 struct task;

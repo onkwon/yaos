@@ -1,4 +1,3 @@
-/* TODO: return back in the context as it was */
 #include <foundation.h>
 #include <kernel/task.h>
 #include <asm/pinmap.h>
@@ -48,6 +47,7 @@ void print_task_status(struct task *task)
 	printk("  parent->addr	%08x\n", task->parent->addr);
 }
 
+/* externally triggered break point */
 static void __attribute__((naked)) isr_break()
 {
 	dsb();
@@ -63,12 +63,9 @@ static void __attribute__((naked)) isr_break()
 	printk("\nKernel Space\n");
 	print_kernel_status((unsigned int *)sp, lr, psr);
 
-#if 0
-	/* FIXME: unaligned access fault */
 	printk("sp %x usp %x\n", sp, usp);
 	printk("\nUser Space\n");
 	print_user_status((unsigned int *)usp);
-#endif
 
 	printk("\nTask Status\n");
 	print_task_status(current);
@@ -84,15 +81,16 @@ static void __attribute__((naked)) isr_break()
 	__ret();
 }
 
-static void inspect()
+#include <kernel/init.h>
+
+void __init debug_init()
 {
 	int nvector;
 
-	nvic_set_pri(23, 0); /* make it the most priority */
+	//nvic_set_pri(23, 0); /* make it the highest priority */
 
 	nvector = gpio_init(PIN_DEBUG,
 			GPIO_MODE_INPUT | GPIO_CONF_PULLUP | GPIO_INT_FALLING);
 
 	register_isr(nvector, isr_break);
 }
-REGISTER_TASK(inspect, TASK_PRIVILEGED, HIGHEST_PRIORITY, STACK_SIZE_MIN);

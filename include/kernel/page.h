@@ -47,7 +47,6 @@ struct page {
 void *kmalloc(size_t size);
 void kfree(void *addr);
 
-void mm_init();
 void free_bootmem();
 size_t getfree();
 size_t heap_init(void *pool, void *start, void *end);
