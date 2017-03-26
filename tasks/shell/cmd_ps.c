@@ -43,6 +43,9 @@ static unsigned int visit(struct task *p, unsigned int nr)
 				p->sibling.next, struct task, sibling);
 		nr   = visit(next, nr);
 		p    = next;
+
+		if (p->sibling.next == &next->sibling)
+			break;
 	}
 
 	tab--;
