@@ -1,5 +1,6 @@
 #include <foundation.h>
 #include <kernel/task.h>
+#include <kernel/debug.h>
 
 enum fault_type {
 	USAGE_FAULT	= (1 << 3),
@@ -32,52 +33,6 @@ enum mm_fault_status {
 	MSTKERR		= (1 << 4), /* Fault on stacking for exception */
 	MMARVALID	= (1 << 7), /* Address register valid flag */
 };
-
-const char *rname[] = { "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
-		"r0", "r1", "r2", "r3", "r12", "lr", "pc", "psr" };
-
-static inline void print_context(unsigned int *regs)
-{
-	unsigned int i;
-
-	for (i = 0; i < NR_CONTEXT; i++)
-		printk("  %s\t 0x%08x <%08x>\n", rname[i], &regs[i], regs[i]);
-}
-
-static inline void print_task_status(struct task *task)
-{
-	printk("  task->sp	%08x\n", task->mm.sp);
-	printk("  task->base	%08x\n", task->mm.base);
-	printk("  task->heap	%08x\n", task->mm.heap);
-	printk("  task->kernel	%08x\n", task->mm.kernel.base);
-	printk("  task->ksp	%08x\n", task->mm.kernel.sp);
-	printk("  task->state	%08x\n", task->state);
-	printk("  task->irqflag %08x\n", task->irqflag);
-	printk("  task->addr	%08x\n", task->addr);
-	printk("  task		%08x\n", task);
-	printk("  parent	%08x\n", task->parent);
-	printk("  parent->addr	%08x\n", task->parent->addr);
-}
-
-static inline void print_kernel_status(unsigned int *sp, unsigned int lr,
-		unsigned int psr)
-{
-	printk("  kernel  SP	%08x\n", sp);
-	printk("  stacked PSR	%08x\n", sp[7]);
-	printk("  stacked PC	%08x\n", sp[6]);
-	printk("  stacked LR	%08x\n", sp[5]);
-	printk("  current LR	%08x\n", lr);
-	printk("  current PSR	%08x(vector number:%d)\n", psr, psr & 0x1ff);
-}
-
-static inline void print_user_status(unsigned int *sp)
-{
-	printk( "  user SP	%08x\n"
-		"  stacked PSR	%08x\n"
-		"  stacked PC	%08x\n"
-		"  stacked LR	%08x\n",
-		sp, sp[7], sp[6], sp[5]);
-}
 
 static inline void busfault()
 {

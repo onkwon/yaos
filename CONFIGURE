@@ -16,4 +16,5 @@ MODULE_GPIO=y
 #MODULE_IR=y
 #MODULE_CLCD=y
 
+# Third party modules
 #MODULE_UGFX=y

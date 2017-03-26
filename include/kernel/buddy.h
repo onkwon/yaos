@@ -24,4 +24,4 @@ void free_pages(struct buddy *node, struct page *page);
 void buddy_init(struct buddy *node, size_t nr_pages, struct page *array);
 size_t show_buddy_all(struct buddy *node);
 
-#endif /* __PAGE_H__ */
+#endif /* __BUDDY_H__ */
