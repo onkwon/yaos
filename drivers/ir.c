@@ -6,10 +6,9 @@
 #include <kernel/systick.h>
 
 #define QUEUE_SIZE	(128 * WORD_SIZE) /* 128 entries of WORD_SIZE */
-#define MHZ		1000000
 
 static struct fifo ir_queue;
-static unsigned int nr_softirq;
+static unsigned int nsoftirq;
 static int siglevel;
 
 static void isr_ir()
@@ -33,7 +32,7 @@ static void isr_ir()
 	elapsed = stamp;
 	siglevel ^= HIGH;
 
-	raise_softirq(nr_softirq);
+	raise_softirq(nsoftirq, NULL);
 
 	ret_from_gpio_int(gpio2exti(PIN_IR));
 }
@@ -66,7 +65,7 @@ static struct file_operations ops = {
 
 static DEFINE_WAIT_HEAD(wq);
 
-static void daemon()
+static void ird()
 {
 	unsigned int data, len, i = 0;
 	while (1) {
@@ -99,7 +98,8 @@ static int __init ir_init()
 	register_isr(vector_nr, isr_ir);
 
 	if ((dev = mkdev(0, 0, &ops, "ir"))) {
-		if ((nr_softirq = request_softirq(daemon)) >= SOFTIRQ_MAX) {
+		if ((nsoftirq = request_softirq(ird, HIGHEST_PRIORITY))
+				>= SOFTIRQ_MAX) {
 			kfree(buf);
 			gpio_close(PIN_IR);
 			remove_device(dev);

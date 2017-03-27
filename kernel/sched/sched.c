@@ -72,30 +72,35 @@ void runqueue_del_core(struct task *task)
 
 static inline void run_softirq()
 {
-	if (softirq.pending && current != softirqd)
-		go_run_atomic(softirqd);
-
 #ifdef CONFIG_TIMER
 	extern struct timer_queue timerq;
-	extern struct task *timerd;
+	extern int nsoftirq_timerd;
 
-	if (timerq.nr && time_after(timerq.next, systick) && current != timerd)
-		go_run_atomic_if(timerd, TASK_SLEEPING);
+	/* NOTE: there would be undelivered events when overrun occurs but in
+	 * case of timerd it is okay. even if overrun occurs all the timers
+	 * will be delivered. */
+	if (timerq.nr && time_after(timerq.next, systick))
+		raise_softirq_atomic(nsoftirq_timerd, (void *)&timerq);
 #endif
+
+	if (softirq.pending && current != softirqd)
+		go_run_atomic(softirqd);
 }
+
+#include <kernel/debug.h>
 
 void schedule_core()
 {
 #ifdef CONFIG_DEBUG
 	/* stack overflow */
 	if ((current->mm.base[0] != STACK_SENTINEL) ||
-			(current->mm.kernel.base[0] != STACK_SENTINEL))
-	{
+			(current->mm.kernel.base[0] != STACK_SENTINEL)) {
 		error("stack overflow %x(%x)", current, current->addr);
-		unsigned int i;
-		for (i = 0; i < NR_CONTEXT; i++)
-			error("%08x", current->mm.sp[i]);
-		return;
+		error("\nTask Status");
+		print_task_status(current);
+		error("\nCurrent Context");
+		print_context((unsigned int *)current->mm.sp);
+		freeze();
 	}
 #endif
 	update_curr();

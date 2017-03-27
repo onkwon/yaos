@@ -220,16 +220,29 @@ struct task *find_task(unsigned int addr, struct task *head)
 
 #include <kernel/systick.h>
 
-void wrapper()
+static void __attribute__((noinline, used)) wrapper_info()
 {
 	debug("[%08x] New task %x started, type:%x state:%x pri:%x rank:%s",
 	      systick, current->addr, get_task_type(current),
 	      get_task_state(current), get_task_pri(current),
 	      get_current_rank() == TF_USER? "Unprivileged" : "Privileged");
+}
 
-	((void (*)())current->addr)();
-
+static void __attribute__((noinline, used)) wrapper_info_dtor()
+{
 	debug("[%08x] The task %x done", systick, current->addr);
+}
+
+void __attribute__((naked)) wrapper()
+{
+	__wrapper_save_regs();
+#ifdef CONFIG_DEBUG_TASK
+	__wrapper_jump(wrapper_info);
+	__wrapper_restore_regs_and_exec(current->addr);
+	__wrapper_jump(wrapper_info_dtor);
+#else
+	__wrapper_restore_regs_and_exec(current->addr);
+#endif
 
 	kill(current);
 	freeze(); /* never reaches here */

@@ -2,83 +2,64 @@
 #include <kernel/systick.h>
 #include <kernel/task.h>
 #include <kernel/lock.h>
+#include <kernel/softirq.h>
 #include <error.h>
 #include <stdlib.h>
-#include "worklist.h"
 #include <asm/sysclk.h>
 
 #ifdef CONFIG_TIMER
 struct timer_queue timerq;
-struct task *timerd;
+int nsoftirq_timerd;
+static int nsoftirq_add;
 
-static DEFINE_WORKLIST_HEAD(work_list_head);
-static struct task *add_timerd;
-
-static void add_timer_core(struct ktimer *tm)
+static void add_timerd(void *args)
 {
-	struct worklist *work;
+	struct ktimer *tm = args;
 	struct link *curr, *prev;
 	struct ktimer *ref;
 	int stamp, ret, new;
 
-	set_task_pri(current, DEFAULT_PRIORITY);
-	add_timerd = current;
+	ret = 0;
+	stamp = (int)systick;
+	tm->expires -= 1; /* as it uses time_after() not time_equal */
 
-loop:
-	while (!worklist_empty(&work_list_head)) {
-		work = getwork(&work_list_head);
-		tm = work->data;
-		kfree(work);
+	if (time_after(tm->expires, stamp)) {
+		ret = -ETIMEDOUT;
+	} else {
+		mutex_lock(&timerq.mutex);
 
-		ret = 0;
-		stamp = (int)systick;
-		tm->expires -= 1; /* as it uses time_after() not time_equal */
+		new = (int)tm->expires - stamp;
+		prev = &timerq.list;
+		curr = prev->next;
 
-		if (time_after(tm->expires, stamp)) {
-			ret = -ETIMEDOUT;
-		} else {
-			/* priority inversion as run_timer has the highest
-			 * priority */
-			set_task_pri(current, HIGHEST_PRIORITY);
-			mutex_lock(&timerq.mutex);
+		while (curr) {
+			ref = (struct ktimer *)curr;
+			if (new < ((int)ref->expires - stamp))
+				break;
 
-			new = (int)tm->expires - stamp;
-			prev = &timerq.list;
-			curr = prev->next;
-
-			while (curr) {
-				ref = (struct ktimer *)curr;
-				if (new < ((int)ref->expires - stamp))
-					break;
-
-				prev = curr;
-				curr = curr->next;
-			}
-
-			if (new < ((int)timerq.next - stamp))
-				timerq.next = tm->expires;
-
-			link_add(&tm->list, prev);
-			timerq.nr++;
-
-			lock_atomic(&tm->task->lock);
-			link_add(&tm->link, &tm->task->timer_head);
-			unlock_atomic(&tm->task->lock);
-
-			mutex_unlock(&timerq.mutex);
-			set_task_pri(current, DEFAULT_PRIORITY);
+			prev = curr;
+			curr = curr->next;
 		}
 
-		__set_retval(tm->task, ret);
-		//sum_curr_stat(tm->task);
-		go_run(tm->task);
+		if (new < ((int)timerq.next - stamp))
+			timerq.next = tm->expires;
+
+		link_add(&tm->list, prev);
+		timerq.nr++;
+
+		lock_atomic(&tm->task->lock);
+		link_add(&tm->link, &tm->task->timer_head);
+		unlock_atomic(&tm->task->lock);
+
+		mutex_unlock(&timerq.mutex);
 	}
 
-	yield();
-	goto loop;
+	__set_retval(tm->task, ret);
+	//sum_curr_stat(tm->task);
+	go_run(tm->task);
 }
-REGISTER_TASK(add_timer_core, TASK_KERNEL, HIGHEST_PRIORITY, STACK_SIZE_MIN);
 
+/* This function should be called after taking lock for the task */
 void __del_timer_if_match(struct task *task, void *addr)
 {
 	struct ktimer *timer;
@@ -86,12 +67,11 @@ void __del_timer_if_match(struct task *task, void *addr)
 	unsigned int pri;
 	bool deleted = false;
 
-	/* priority inversion as run_timer has the highest priority */
+	/* priority inversion as timerd has the highest priority */
 	pri = get_task_pri(current);
-	set_task_pri(current, HIGHEST_PRIORITY);
+	set_task_pri(current, RT_HIGHEST_PRIORITY);
 
 	mutex_lock(&timerq.mutex);
-	lock_atomic(&task->lock);
 
 	for (curr = task->timer_head.next; curr; curr = curr->next) {
 		timer = get_container_of(curr, struct ktimer, link);
@@ -108,11 +88,9 @@ void __del_timer_if_match(struct task *task, void *addr)
 	mutex_unlock(&timerq.mutex);
 	set_task_pri(current, pri);
 
+	/* hold lock until free() to avoid the task killed before free */
 	if (deleted)
 		__free(timer, task);
-
-	/* hold lock until free() to avoid the task killed before free */
-	unlock_atomic(&task->lock);
 }
 
 static void do_run_timer(struct ktimer *timer)
@@ -124,30 +102,30 @@ static void do_run_timer(struct ktimer *timer)
 	freeze(); /* never reaches here */
 }
 
-static void run_timer()
+static void run_timerd(void *args)
 {
+	struct timer_queue *q = args;
 	struct ktimer *timer;
 	struct link *curr, *prev;
 	struct task *thread;
 	unsigned int flags;
 
-infinite:
-	mutex_lock(&timerq.mutex);
+	mutex_lock(&q->mutex);
 
-	prev = &timerq.list;
+	prev = &q->list;
 	curr = prev->next;
 
 	while (curr) {
 		timer = (struct ktimer *)curr;
 
 		if (time_before(timer->expires, systick)) {
-			timerq.next = timer->expires;
+			q->next = timer->expires;
 			break;
 		}
 
 		link_del(curr, prev);
 		curr = prev->next;
-		timerq.nr--;
+		q->nr--;
 
 		lock_atomic(&timer->task->lock);
 		link_del(&timer->link, &timer->task->timer_head);
@@ -163,10 +141,7 @@ infinite:
 		go_run(thread);
 	}
 
-	mutex_unlock(&timerq.mutex);
-
-	yield();
-	goto infinite;
+	mutex_unlock(&q->mutex);
 }
 
 static void sleep_callback(struct ktimer *timer)
@@ -190,13 +165,17 @@ int __init timer_init()
 	link_init(&timerq.list);
 	mutex_init(&timerq.mutex);
 
-	if ((timerd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_MIN,
-					run_timer, &init)) == NULL)
-		return ENOMEM;
+	if ((nsoftirq_timerd = request_softirq(run_timerd, RT_HIGHEST_PRIORITY))
+			>= SOFTIRQ_MAX) {
+		error("out of softirq");
+		return ERANGE;
+	}
 
-	timerd->name = "timerd";
-	set_task_pri(timerd, HIGHEST_PRIORITY);
-	go_run_atomic(timerd);
+	if ((nsoftirq_add = request_softirq(add_timerd, RT_HIGHEST_PRIORITY))
+			>= SOFTIRQ_MAX) {
+		error("out of softirq");
+		return ERANGE;
+	}
 
 	return 0;
 }
@@ -211,6 +190,45 @@ unsigned int get_timer_nr()
 #else
 	return timer_nr;
 #endif
+}
+
+static void create_timer(struct ktimer *new)
+{
+	new->task = current->parent;
+	while (raise_softirq(nsoftirq_add, new) == false) ;
+
+	sys_kill_core(current, current);
+	freeze();
+}
+
+int sys_timer_create(struct ktimer *new)
+{
+#ifdef CONFIG_TIMER
+#if 1
+	struct task *thread;
+
+	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
+					create_timer, current)) == NULL)
+		return ENOMEM;
+
+	syscall_put_arguments(thread, new, NULL, NULL, NULL);
+	syscall_delegate(current, thread);
+#else
+	new->task = current;
+	raise_softirq(nsoftirq_add, new);
+	set_task_state(current, TASK_WAITING);
+	resched();
+#endif
+
+	return 0;
+#else
+	return EFAULT;
+#endif
+}
+
+int __add_timer(struct ktimer *new)
+{
+	return syscall(SYSCALL_TIMER_CREATE, new);
 }
 
 int add_timer(int ms, void (*func)(struct ktimer *timer))
@@ -233,11 +251,6 @@ int add_timer(int ms, void (*func)(struct ktimer *timer))
 	}
 
 	return 0;
-}
-
-int __add_timer(struct ktimer *new)
-{
-	return syscall(SYSCALL_TIMER_CREATE, new);
 }
 
 #include <foundation.h>
@@ -275,26 +288,6 @@ void msleep(unsigned int ms)
 	timer_nr++;
 	while (time_before(timeout, systick));
 	timer_nr--;
-#endif
-}
-
-int sys_timer_create(struct ktimer *new)
-{
-#ifdef CONFIG_TIMER
-	struct worklist *work;
-
-	if (!add_timerd || (work = kmalloc(sizeof(*work))) == NULL)
-		return ENOMEM;
-
-	new->task = current;
-	work->data = new;
-
-	worklist_add(work, &work_list_head);
-	syscall_delegate(current, add_timerd);
-
-	return 0;
-#else
-	return EFAULT;
 #endif
 }
 

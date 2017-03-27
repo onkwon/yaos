@@ -72,12 +72,13 @@ struct mm {
  *                `-----> 132 = default priority
  */
 #define RT_PRIORITY			10
+#define HIGHEST_PRIORITY		(RT_PRIORITY + 1)
 #define LOWEST_PRIORITY			(RT_PRIORITY + 245)
 #define DEFAULT_PRIORITY		(RT_PRIORITY + 122)
 #ifdef CONFIG_REALTIME
-#define HIGHEST_PRIORITY		0
+#define RT_HIGHEST_PRIORITY		0
 #else
-#define HIGHEST_PRIORITY		(RT_PRIORITY + 1)
+#define RT_HIGHEST_PRIORITY		HIGHEST_PRIORITY
 #endif
 
 #define set_task_pri(p, v)		((p)->pri = v)

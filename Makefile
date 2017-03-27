@@ -52,6 +52,12 @@ endif
 ifdef CONFIG_CPU_LOAD
 	CFLAGS += -DCONFIG_CPU_LOAD
 endif
+ifdef CONFIG_DEBUG
+	CFLAGS += -g -DCONFIG_DEBUG #-O0
+	ifdef CONFIG_DEBUG_TASK
+		CFLAGS += -DCONFIG_DEBUG_TASK
+	endif
+endif
 
 # Module
 
@@ -72,9 +78,6 @@ ifeq ($(SOC),bcm2835)
 	TARGET  = armv7-a
 endif
 CFLAGS += -march=$(ARCH) -DMACHINE=$(MACH) -DSOC=$(SOC)
-ifdef CONFIG_DEBUG
-	CFLAGS += -g -DCONFIG_DEBUG #-O0
-endif
 LDFLAGS = -Tarch/$(TARGET)/ld.script -L$(LD_LIBRARY_PATH) -lgcc
 
 SRCS_ASM = $(wildcard *.S)

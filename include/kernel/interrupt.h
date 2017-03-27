@@ -3,8 +3,8 @@
 
 #include <asm/interrupt.h>
 
-#define irq_save(flag)			__irq_save(flag)
-#define irq_restore(flag)		__irq_restore(flag)
+#define irq_save(val)			__irq_save(val)
+#define irq_restore(val)		__irq_restore(val)
 #define cli()				__cli()
 #define sei()				__sei()
 #define local_irq_disable()		cli()
@@ -15,11 +15,21 @@
 #define preempt_enable()		sei()
 #define preempt_count()
 
+#define disable_irq(val)		do {	\
+	irq_save(val);				\
+	local_irq_disable();			\
+} while (0)
+#define enable_irq(val)			do {	\
+	irq_restore(val);			\
+} while (0)
+#define ENTER_CRITICAL(val)		disable_irq(val)
+#define LEAVE_CRITICAL(val)		enable_irq(val)
+
 #define dmb()				__dmb()
 #define dsb()				__dsb()
 #define isb()				__isb()
 
-#define set_user_sp(sp)			__set_usp(sp)
-#define set_kernel_sp(sp)		__set_ksp(sp)
+#define set_user_sp(val)		__set_usp(val)
+#define set_kernel_sp(val)		__set_ksp(val)
 
 #endif /* __INTERRUPT_H__ */

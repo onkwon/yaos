@@ -42,8 +42,8 @@ void print_task_status(struct task *task)
 	printk("  task->state	%08x\n", task->state);
 	printk("  task->irqflag %08x\n", task->irqflag);
 	printk("  task->addr	%08x\n", task->addr);
-	printk("  task		%08x\n", task);
-	printk("  parent	%08x\n", task->parent);
+	printk("  task		%08x %s\n", task, task->name);
+	printk("  parent	%08x %s\n", task->parent, task->parent->name);
 	printk("  parent->addr	%08x\n", task->parent->addr);
 }
 

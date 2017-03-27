@@ -112,16 +112,18 @@ int __init kernel_init()
 	sys_init();
 	mm_init();
 	fs_init();
+
+	make_init_task();
+	softirq_init();
+
 	driver_init();
 	device_init();
 	systick_init();
 	scheduler_init();
 	console_init();
 
-	make_init_task();
 	load_user_task(); /* that are registered statically */
 
-	//softirq_init(); /* TODO: Remove softirq. make() is enough */
 #ifdef CONFIG_TIMER
 	timer_init();
 #endif

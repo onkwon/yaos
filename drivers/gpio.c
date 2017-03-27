@@ -1,13 +1,13 @@
 #include <error.h>
 #include <kernel/module.h>
 #include <kernel/gpio.h>
+#include <kernel/softirq.h>
 #include <asm/pinmap.h>
 
 static unsigned int major;
-static struct task *daemon;
-static volatile bool pending;
 static DEFINE_LINK_HEAD(q_user_isr);
 static DEFINE_MUTEX(q_lock);
+static int nsoftirq;
 
 struct uisr {
 	struct link list; /* keep it in the first place */
@@ -19,19 +19,11 @@ struct uisr {
 
 static void isr()
 {
-	if (!daemon)
-		goto out;
+	int nirq = get_active_irq();
 
-	if (get_task_state(daemon) == TASK_SLEEPING) {
-		daemon->args = (void *)get_active_irq();
-		go_run_atomic_if(daemon, TASK_SLEEPING);
-	} else {
-		daemon->args = (void *)get_active_irq();
-		pending = true;
-	}
+	raise_softirq(nsoftirq, (void *)nirq);
 
-out:
-	ret_from_exti(get_active_irq());
+	ret_from_exti(nirq);
 }
 
 static size_t gpio_read(struct file *file, void *buf, size_t len)
@@ -209,8 +201,10 @@ static int gpio_ioctl(struct file *file, int request, void *data)
 {
 	struct task *thread;
 
+#if 0
 	if (!(get_task_flags(current) & TF_PRIVILEGED))
 		return EPERM;
+#endif
 
 	if (request != C_EVENT)
 		return EFAULT;
@@ -242,7 +236,7 @@ void register_gpio(const char *name, int minor)
 	macro_register_device(name, major, minor, &ops);
 }
 
-static void gpio_daemon()
+static void gpiod(void *args)
 {
 	struct link *curr;
 	struct uisr *uisr;
@@ -250,11 +244,7 @@ static void gpio_daemon()
 	unsigned int mode;
 	int vector;
 
-	/* register daemon to be notified to isr */
-	daemon = current;
-
-endless:
-	vector = (int)daemon->args;
+	vector = (int)args;
 
 	mutex_lock(&q_lock);
 
@@ -267,25 +257,19 @@ endless:
 		mode = (get_task_flags(uisr->task) & TASK_PRIVILEGED) |
 			STACK_SHARED;
 
-		if ((thread = make(mode, STACK_SIZE_MIN, uisr->func, uisr->task))) {
+		if ((thread = make(mode, STACK_SIZE_DEFAULT, uisr->func,
+						uisr->task)))
 			go_run(thread);
-			/* NOTE: you will not be able to service all the
-			 * interrupts if you do reschedule here. even if not
-			 * reschedule here, there is still chance to miss,
-			 * pending more than once. */
-			//resched();
-		}
 	}
 
 	mutex_unlock(&q_lock);
-
-	if (pending) {
-		pending = false;
-		goto endless;
-	}
-
-	yield();
-
-	goto endless;
 }
-REGISTER_TASK(gpio_daemon, TASK_KERNEL, DEFAULT_PRIORITY, STACK_SIZE_MIN);
+
+#include <kernel/init.h>
+
+static void __init module_gpio_init()
+{
+	if ((nsoftirq = request_softirq(gpiod, HIGHEST_PRIORITY)) >= SOFTIRQ_MAX)
+		error("full of softirq!");
+}
+MODULE_INIT(module_gpio_init);

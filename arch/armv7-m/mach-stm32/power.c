@@ -128,33 +128,33 @@ static void disp_clkinfo()
 	pclk2  = get_pclk2();
 	adclk  = get_adclk();
 
-	printf("System clock frequency\t %d\n"
+	printk("System clock frequency\t %d\n"
 		"(hclk   %d, pclk1  %d, pclk2  %d, adclk  %d)\n\n",
 		pllclk, hclk, pclk1, pclk2, adclk);
 	*/
-	printf("Enabled peripheral clock:\n");
+	printk("Enabled peripheral clock:\n");
 #if (SOC == stm32f1)
-	printf("AHB  %08x\n", RCC_AHB1ENR);
+	printk("AHB  %08x\n", RCC_AHB1ENR);
 #endif
-	printf("APB2 %08x\n", RCC_APB2ENR);
-	printf("APB1 %08x\n", RCC_APB1ENR);
+	printk("APB2 %08x\n", RCC_APB2ENR);
+	printk("APB1 %08x\n", RCC_APB1ENR);
 	/*
 	for (i = 0; i < 3; i++) {
 		for (j = 0; j < 32; j++)  {
-			if (regs[i] & (1 << j)) printf(" %s", desc[i][j]);
+			if (regs[i] & (1 << j)) printk(" %s", desc[i][j]);
 		}
 	}
 	*/
-	printf("\n");
+	printk("\n");
 
-	printf("PORTA %08x %08x\n", *(reg_t *)PORTA, *(reg_t *)(PORTA+4));
-	printf("PORTB %08x %08x\n", *(reg_t *)PORTB, *(reg_t *)(PORTB+4));
-	printf("PORTC %08x %08x\n", *(reg_t *)PORTC, *(reg_t *)(PORTC+4));
-	printf("PORTD %08x %08x\n", *(reg_t *)PORTD, *(reg_t *)(PORTD+4));
-	printf("PORTE %08x %08x\n", *(reg_t *)PORTE, *(reg_t *)(PORTE+4));
-	printf("PORTF %08x %08x\n", *(reg_t *)PORTF, *(reg_t *)(PORTF+4));
-	printf("PORTG %08x %08x\n", *(reg_t *)PORTG, *(reg_t *)(PORTG+4));
-	printf("\n");
+	printk("PORTA %08x %08x\n", *(reg_t *)PORTA, *(reg_t *)(PORTA+4));
+	printk("PORTB %08x %08x\n", *(reg_t *)PORTB, *(reg_t *)(PORTB+4));
+	printk("PORTC %08x %08x\n", *(reg_t *)PORTC, *(reg_t *)(PORTC+4));
+	printk("PORTD %08x %08x\n", *(reg_t *)PORTD, *(reg_t *)(PORTD+4));
+	printk("PORTE %08x %08x\n", *(reg_t *)PORTE, *(reg_t *)(PORTE+4));
+	printk("PORTF %08x %08x\n", *(reg_t *)PORTF, *(reg_t *)(PORTF+4));
+	printk("PORTG %08x %08x\n", *(reg_t *)PORTG, *(reg_t *)(PORTG+4));
+	printk("\n");
 }
 
 #include <kernel/timer.h>
@@ -176,7 +176,7 @@ static int getadc(int ch)
 		udelay(1000);			/* delay */
 		ADC1_CR2  |= 4;			/* calibration */
 		while (ADC1_CR2 & 4);		/* wait until calibration done */
-		printf("ADC calibration offset\t\t %d\n", ADC1_DR);
+		printk("ADC calibration offset\t\t %d\n", ADC1_DR);
 		ADC1_SMPR1 = 0x1c0000;		/* 239.5 sample cycles */
 	}
 
@@ -196,13 +196,13 @@ static int getadc(int ch)
 void disp_sysinfo()
 {
 #if 0
-	printf("Temperature\t\t\t %d(%d)C\n",
+	printk("Temperature\t\t\t %d(%d)C\n",
 		(TEMP_V25 - getadc(16)) / TEMP_SLOPE / 10 + TEMP_OFFSET,
 		getadc(16));
-	printf("Internal reference voltage\t %d.%d(%d)V\n",
+	printk("Internal reference voltage\t %d.%d(%d)V\n",
 		AD2VOL(getadc(17)), AD2VOL_FAC(getadc(17)),
 		getadc(17));
-	printf("\n");
+	printk("\n");
 #endif
 
 	disp_clkinfo();

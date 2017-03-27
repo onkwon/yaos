@@ -16,7 +16,7 @@ open("/dev/gpio2", O_RDONLY);
 open("/dev/gpio3", O_WRONLY, GPIO_SPD_FAST);
 
 open("/dev/gpio4", O_RDONLY, GPIO_INT_FALLING | GPIO_INT_RISING);
-open("/dev/gpio4", O_RDONLY, GPIO_CONF_PULL_DOWN | GPIO_INT_RISING);
+open("/dev/gpio4", O_RDONLY, GPIO_CONF_PULLDOWN | GPIO_INT_RISING);
 ioctl(fd, C_EVENT, user_defined_isr);
 
 open("/dev/gpio5", O_RDWR); --> ERR_UNDEF(-1)

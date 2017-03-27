@@ -9,7 +9,7 @@
  * PF base 80
  * PG base 96 */
 
-#define PIN_DEBUG			 2 /* PA.2 */
+#define PIN_DEBUG			64 /* PE.0 */
 
 /* UART */
 #define PIN_UART1_TX			 9 /* PA.9 */

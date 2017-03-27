@@ -67,7 +67,7 @@ int __attribute__((used)) sleep_in_waitqueue(struct waitqueue_head *q, int ms)
 
 	/* keep the pointer of its own queue in temp space of task structure */
 	current->args = q;
-	if (add_timer(ms, wake_callback)) {
+	if ((ms != INF) && add_timer(ms, wake_callback)) {
 		unlock_atomic(&q->lock);
 		return -ETIMEDOUT;
 	}

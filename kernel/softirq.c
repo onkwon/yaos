@@ -7,7 +7,59 @@ struct task *softirqd;
 
 static DEFINE_MUTEX(req_lock);
 
-unsigned int request_softirq(void (*func)())
+static inline unsigned int softirq_pending()
+{
+	unsigned int pending;
+	int irqflag;
+
+	disable_irq(irqflag);
+	assert(!is_locked(softirq.wlock));
+	lock_atomic(&softirq.wlock);
+
+	pending = softirq.pending;
+	softirq.pending = 0;
+
+	unlock_atomic(&softirq.wlock);
+	enable_irq(irqflag);
+
+	return pending;
+}
+
+static inline void *getpool()
+{
+	return softirq.pool;
+}
+
+static void softirq_handler()
+{
+	unsigned int pending;
+	struct task *thread;
+	struct __softirq *pool;
+
+endless:
+	pending = softirq_pending();
+	pool = getpool();
+
+	while (pending) {
+		if ((pending & 1) &&
+				((thread = make(get_task_flags(current),
+						STACK_SIZE_DEFAULT,
+						pool->action, current)))) {
+			put_arguments(thread, pool->args, NULL, NULL, NULL);
+			set_task_pri(thread, pool->priority);
+			go_run(thread);
+		}
+
+		pending >>= 1;
+		pool++;
+	}
+
+	sys_yield();
+
+	goto endless;
+}
+
+unsigned int request_softirq(void (*func)(), int pri)
 {
 	if (func == NULL)
 		return EINVAL;
@@ -18,7 +70,9 @@ unsigned int request_softirq(void (*func)())
 	for (i = 0; i < SOFTIRQ_MAX; i++) {
 		if ((softirq.bitmap & (1 << i)) == 0) {
 			softirq.bitmap |= 1 << i;
-			softirq.action[i] = func;
+			softirq.pool[i].action = func;
+			softirq.pool[i].args = NULL;
+			softirq.pool[i].priority = DEFAULT_PRIORITY;
 			break;
 		}
 	}
@@ -27,58 +81,25 @@ unsigned int request_softirq(void (*func)())
 	return i;
 }
 
-static inline unsigned int softirq_pending()
-{
-	unsigned int pending, irqflag;
-
-	spin_lock_irqsave(&softirq.wlock, irqflag);
-	pending = softirq.pending;
-	softirq.pending = 0;
-	spin_unlock_irqrestore(&softirq.wlock, irqflag);
-
-	return pending;
-}
-
-static inline void (**get_actions())()
-{
-	return softirq.action;
-}
-
-static void softirq_handler()
-{
-	unsigned int pending;
-	void (*(*action))();
-
-	while (1) {
-		pending = softirq_pending();
-		action = get_actions();
-
-		while (pending) {
-			if (pending & 1)
-				(*action)();
-
-			pending >>= 1;
-			action++;
-		}
-
-		sys_yield();
-	}
-}
-
 #include <kernel/init.h>
 
 int __init softirq_init()
 {
+	int i;
+
 	softirq.pending = 0;
 	softirq.bitmap = 0;
 	lock_init(&softirq.wlock);
+
+	for (i = 0; i < SOFTIRQ_MAX; i++)
+		softirq.pool[i].overrun = 0;
 
 	if ((softirqd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_DEFAULT,
 					softirq_handler, &init)) == NULL)
 		return ENOMEM;
 
 	softirqd->name = "softirqd";
-	set_task_pri(softirqd, HIGHEST_PRIORITY);
+	set_task_pri(softirqd, RT_HIGHEST_PRIORITY);
 
 	return 0;
 }

@@ -355,6 +355,7 @@ void register_uart(const char *name, int minor)
 
 void __putc_debug(int c)
 {
+	static DEFINE_LOCK(lock);
 	struct file *file;
 	int res, chan;
 
@@ -365,7 +366,9 @@ void __putc_debug(int c)
 
 putcr:
 	do {
+		lock_atomic(&lock);
 		res = __uart_putc(chan, c);
+		unlock_atomic(&lock);
 	} while (!res);
 
 	if (c == '\n') {

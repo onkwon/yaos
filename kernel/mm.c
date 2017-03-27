@@ -107,7 +107,7 @@ retry:
 		error("Out of memory");
 	}
 
-	nr_mfree -= size;
+	nr_mfree -= *(size_t *)(p - WORD_SIZE) - 1;
 	return p;
 }
 
@@ -138,7 +138,7 @@ void __init free_bootmem()
 
 size_t getfree()
 {
-	return nr_mfree;
+	return nr_mfree; /* approximate, not that accurate */
 	return show_freelist(&mem_map);
 }
 #endif

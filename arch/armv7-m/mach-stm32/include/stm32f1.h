@@ -81,6 +81,7 @@
 #define EXTI_EMR		(*(reg_t *)(EXTI_BASE + 4))
 #define EXTI_RTSR		(*(reg_t *)(EXTI_BASE + 8))
 #define EXTI_FTSR		(*(reg_t *)(EXTI_BASE + 0xc))
+#define EXTI_SWIER		(*(reg_t *)(EXTI_BASE + 0x10))
 #define EXTI_PR			(*(reg_t *)(EXTI_BASE + 0x14))
 
 /* USART */

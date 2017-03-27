@@ -82,6 +82,41 @@ struct regs {
 			: "memory");					\
 } while (0)
 
+#define __save_curr_context_all()			do {		\
+	__asm__ __volatile__(						\
+			"push	{r0-r12}		\n\t"		\
+			::: "memory");					\
+} while (0)
+
+#define __restore_curr_context_all()			do {		\
+	__asm__ __volatile__(						\
+			"pop	{r0-r12}		\n\t"		\
+			::: "memory");					\
+} while (0)
+
+#define __wrapper_save_regs()				do {		\
+	__asm__ __volatile__(						\
+			"push	{r0-r3}			\n\t"		\
+			::: "memory");					\
+} while (0)
+
+#define __wrapper_restore_regs_and_exec(addr)		do {		\
+	__asm__ __volatile__(						\
+			"mov	r4, %0			\n\t"		\
+			"pop	{r0-r3}			\n\t"		\
+			"blx	r4			\n\t"		\
+			:: "r"(addr)					\
+			: "r0", "r1", "r2", "r3", "r4", "memory");	\
+} while (0)
+
+#define __wrapper_jump(addr)				do { 		\
+	__asm__ __volatile__(						\
+			"mov	r4, %0			\n\t"		\
+			"blx	r4			\n\t"		\
+			:: "r"(addr)					\
+			: "r4", "memory");				\
+} while (0)
+
 #define __context_prepare()				cli()
 #define __context_finish()				sei()
 

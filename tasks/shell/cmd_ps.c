@@ -9,25 +9,25 @@ static unsigned int visit(struct task *p, unsigned int nr)
 	static int tab = 0;
 
 	unsigned int i;
-#define print_tab() for (i = 0; i < tab; i++) puts("|\t");
+#define print_tab() for (i = 0; i < tab; i++) printk("|\t");
 
 	print_tab();
-	printf("+-- 0x%08x(0x%08x) 0x%02x 0x%02x %d %s[%c]\n",
+	printk("+-- 0x%08x(0x%08x) 0x%02x 0x%02x %d %s[%c]\n",
 			p, p->addr, get_task_type(p), get_task_state(p),
 			get_task_pri(p), p->name,
 			get_task_flags(p) & TF_PRIVILEGED? 'P':'U');
 	print_tab();
-	printf("|   /vruntime %d /exec_runtime %d (%d sec)\n",
+	printk("|   /vruntime %d /exec_runtime %d (%d sec)\n",
 			(unsigned)p->se.vruntime,
 			(unsigned)p->se.sum_exec_runtime,
 			(unsigned)p->se.sum_exec_runtime / sysfreq);
 	print_tab();
-	printf("|   /sp 0x%08x /base 0x%08x /heap 0x%08x\n",
+	printk("|   /sp 0x%08x /base 0x%08x /heap 0x%08x\n",
 			p->mm.sp, p->mm.base, p->mm.heap);
 	print_tab();
-	printf("|   /kernel stack 0x%08x base 0x%08x\n", p->mm.kernel.sp, p->mm.kernel.base);
+	printk("|   /kernel stack 0x%08x base 0x%08x\n", p->mm.kernel.sp, p->mm.kernel.base);
 	print_tab();
-	printf("|\n");
+	printk("|\n");
 
 	if (links_empty(&p->children))
 		return nr + 1;
@@ -56,24 +56,27 @@ static unsigned int visit(struct task *p, unsigned int nr)
 #include <kernel/page.h>
 #include <kernel/systick.h>
 #include <kernel/timer.h>
+#include <kernel/softirq.h>
 
 static int ps(int argc, char **argv)
 {
-	printf("    ADDR                   TYPE STAT PRI NAME\n");
+	int i;
 
-	printf("%d tasks running out of %d\n",
+	printk("    ADDR                   TYPE STAT PRI NAME\n");
+
+	printk("%d tasks running out of %d\n",
 			nr_running() + 1, /* including the current task */
 			visit(&init, 1)); /* count from the init task */
 
-	printf("%d bytes free\n", getfree());
+	printk("%d bytes free\n", getfree());
 
-	printf("%d timer(s) activated\n", get_timer_nr());
+	printk("%d timer(s) activated\n", get_timer_nr());
 
 #ifdef CONFIG_DEBUG_SCHED
 #define MHZ	1000000
 #define FREQ	9 /* (get_systick_max() * HZ / MHZ) --> privileged */
 	extern int sched_overhead;
-	printf("scheduling overhead %dus / %dus (%d)\n",
+	printk("scheduling overhead %dus / %dus (%d)\n",
 			sched_overhead / FREQ, MHZ / sysfreq, sched_overhead);
 #endif
 
@@ -81,24 +84,30 @@ static int ps(int argc, char **argv)
 #define MHZ	1000000
 #define FREQ	9 /* (get_systick_max() * HZ / MHZ) --> privileged */
 	extern int clone_overhead;
-	printf("cloning overhead %dus / %dus (%d)\n",
+	printk("cloning overhead %dus / %dus (%d)\n",
 			clone_overhead / FREQ, MHZ / sysfreq, clone_overhead);
 #endif
 
 	unsigned long long uptime = get_systick64();
-	printf("uptime: %d minutes (0x%08x%08x)\n"
+	printk("uptime: %d minutes (0x%08x%08x)\n"
 			, systick / sysfreq / 60
 			, (unsigned int)(uptime >> 32)
 			, (unsigned int)uptime);
 
 #ifdef CONFIG_DEBUG
-	printf("control %08x, sp %08x, msp %08x, psp %08x\n",
+	printk("control %08x, sp %08x, msp %08x, psp %08x\n",
 			__get_cntl(), __get_sp(), __get_ksp(), __get_usp());
+	printk("cpu load: %d%%\n", cpuload);
 #endif
+	for (i = 0; i < SOFTIRQ_MAX; i++) {
+		if (softirq.bitmap & (1 << i))
+			printk("softirq overrun[%02d]: %d\n",
+					i, softirq.pool[i].overrun);
+	}
 
 #if 0
 	extern void print_rq();
-	printf("\nRun queue list:\n");
+	printk("\nRun queue list:\n");
 	print_rq();
 #endif
 
