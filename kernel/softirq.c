@@ -41,6 +41,7 @@ endless:
 	pool = getpool();
 
 	while (pending) {
+#ifdef CONFIG_SOFTIRQ_THREAD
 		if ((pending & 1) &&
 				((thread = make(get_task_flags(current),
 						STACK_SIZE_DEFAULT,
@@ -48,6 +49,12 @@ endless:
 			put_arguments(thread, pool->args, NULL, NULL, NULL);
 			set_task_pri(thread, pool->priority);
 			go_run(thread);
+#else
+		if (pending & 1) {
+			set_task_pri(current, pool->priority);
+			pool->action(pool->args);
+			set_task_pri(current, RT_HIGHEST_PRIORITY);
+#endif
 		}
 
 		pending >>= 1;

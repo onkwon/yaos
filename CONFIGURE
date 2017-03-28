@@ -10,6 +10,7 @@ CONFIG_TIMER=y
 CONFIG_FLOAT=y
 #CONFIG_TIMER_MS=y
 CONFIG_CPU_LOAD=y
+#CONFIG_SOFTIRQ_THREAD=y
 
 # Uncomment a line to add the module
 MODULE_USART=y

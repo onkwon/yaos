@@ -87,6 +87,7 @@ size_t getfree()
 
 static heap_t mem_map;
 static size_t nr_mfree;
+unsigned int mem_bottom = -1;
 
 void *kmalloc(size_t size)
 {
@@ -105,9 +106,12 @@ retry:
 			goto retry;
 
 		error("Out of memory");
-	}
+	} else
+		nr_mfree -= *(size_t *)(p - WORD_SIZE) - 1;
 
-	nr_mfree -= *(size_t *)(p - WORD_SIZE) - 1;
+	if (mem_bottom > nr_mfree)
+		mem_bottom = nr_mfree;
+
 	return p;
 }
 

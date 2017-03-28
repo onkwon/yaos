@@ -98,7 +98,7 @@ static void do_run_timer(struct ktimer *timer)
 	timer->event(timer);
 	//TODO: sum_curr_stat(timer->task);
 
-	kill(current);
+	sys_kill_core(current, current);
 	freeze(); /* never reaches here */
 }
 
@@ -123,6 +123,11 @@ static void run_timerd(void *args)
 			break;
 		}
 
+		flags = (get_task_flags(timer->task) & ~TASK_STATIC) | TF_ATOMIC;
+		if ((thread = make(flags, STACK_SIZE_MIN, do_run_timer,
+						timer->task)) == NULL)
+			break;
+
 		link_del(curr, prev);
 		curr = prev->next;
 		q->nr--;
@@ -130,12 +135,6 @@ static void run_timerd(void *args)
 		lock_atomic(&timer->task->lock);
 		link_del(&timer->link, &timer->task->timer_head);
 		unlock_atomic(&timer->task->lock);
-
-		flags = (get_task_flags(timer->task) & ~TASK_STATIC) | TF_ATOMIC;
-
-		if ((thread = make(flags, STACK_SIZE_DEFAULT, do_run_timer,
-						timer->task)) == NULL)
-			break;
 
 		put_arguments(thread, timer, NULL, NULL, NULL);
 		go_run(thread);

@@ -32,7 +32,7 @@ static int ls(int argc, char **argv)
 		argv[1] = "/";
 
 	if ((fd = open(argv[1], O_RDONLY)) <= 0) {
-		printf("%s: no such file or directory\n", argv[1]);
+		printk("%s: no such file or directory\n", argv[1]);
 		return 0;
 	}
 
@@ -40,7 +40,7 @@ static int ls(int argc, char **argv)
 		goto out;
 
 	if (!(file->inode->mode & FT_DIR)) {
-		printf("%02x %d %d\n",
+		printk("%02x %d %d\n",
 				file->inode->mode, file->inode->size,
 				file->inode->refcount);
 		goto out;
@@ -85,7 +85,7 @@ static int ls(int argc, char **argv)
 		}
 
 		if (type != FT_DELETED)
-			printf("0x%08x 0x%02x %s\n", inode, type, name);
+			printk("0x%08x 0x%02x %s\n", inode, type, name);
 
 		if (fs_type == FS_TYPE_EMBED)
 			free(name);

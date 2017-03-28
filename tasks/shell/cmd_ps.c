@@ -105,6 +105,9 @@ static int ps(int argc, char **argv)
 					i, softirq.pool[i].overrun);
 	}
 
+	extern unsigned int mem_bottom;
+	printk("memory bottom %d\n", mem_bottom);
+
 #if 0
 	extern void print_rq();
 	printk("\nRun queue list:\n");

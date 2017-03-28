@@ -8,7 +8,7 @@
 #define SOFTIRQ_MAX			(WORD_SIZE * 8)
 
 struct __softirq {
-	void (*action)();
+	void (*action)(void *args);
 	void *args;
 	int priority;
 	int overrun;
