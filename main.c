@@ -35,12 +35,20 @@ static void __init load_user_task()
 static int __init make_init_task()
 {
 	extern void idle(); /* becomes init task */
+	unsigned int *kstack;
+	int i;
 
 	/* stack must be allocated first. and to build root relationship
 	 * properly `current` must be set to `init`. */
 	current = &init;
 
-	if (alloc_mm(&init, STACK_SIZE_MIN, 0, NULL))
+	if ((kstack = kmalloc(STACK_SIZE_DEFAULT)) == NULL)
+		panic();
+
+	for (i = 0; i < STACK_SIZE_DEFAULT / WORD_SIZE; i++)
+		kstack[i] = STACK_SENTINEL;
+
+	if (alloc_mm(&init, STACK_SIZE_MIN, 0, kstack))
 		return ENOMEM;
 
 	set_task_dressed(&init, TASK_STATIC | TASK_KERNEL, idle);
