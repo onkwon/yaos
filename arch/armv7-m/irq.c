@@ -53,6 +53,7 @@ void __attribute__((naked)) sys_schedule()
 unsigned int syscall_count = 0;
 #endif
 
+#ifndef CONFIG_SYSCALL_THREAD
 #ifdef CONFIG_DEBUG_SYSCALL_NESTED
 #include <error.h>
 void syscall_nested(int sysnum)
@@ -60,6 +61,7 @@ void syscall_nested(int sysnum)
 	error("syscall %d nested!! current %x %s",
 			sysnum, current, current->name);
 }
+#endif
 #endif
 
 void __attribute__((naked)) svc_handler()
@@ -77,6 +79,7 @@ void __attribute__((naked)) svc_handler()
 			"teq	r0, %0			\n\t"
 			"beq	sys_schedule		\n\t"
 			"push	{lr}			\n\t"
+#ifndef CONFIG_SYSCALL_THREAD
 #ifdef CONFIG_DEBUG_SYSCALL_NESTED
 			"push	{r0-r3, lr}		\n\t"
 			"ldr	r1, =current		\n\t"
@@ -86,6 +89,7 @@ void __attribute__((naked)) svc_handler()
 			"it	ne			\n\t"
 			"bne	syscall_nested		\n\t"
 			"pop	{r0-r3, lr}		\n\t"
+#endif
 #endif
 			/* save context that are not yet saved by hardware.
 			 * you can remove this overhead if not using
@@ -109,6 +113,7 @@ void __attribute__((naked)) svc_handler()
 			"ldr	r1, [r12, #8]		\n\t"
 			"ldr	r2, [r12, #12]		\n\t"
 			"blx	r3			\n\t"
+			"mrs	r12, psp		\n\t"
 #ifndef CONFIG_SYSCALL_THREAD
 			/* check if delegated task */
 			"ldr	r1, =current		\n\t"
@@ -116,11 +121,10 @@ void __attribute__((naked)) svc_handler()
 			"ldr	r1, [r2, #4]		\n\t"
 			"ands	r1, %2			\n\t"
 			/* restore saved context if not */
-#endif
-			"mrs	r12, psp		\n\t"
 			"itt	eq			\n\t"
 			"ldmiaeq	r12!, {r4-r11}		\n\t"
 			"msreq	psp, r12		\n\t"
+#endif
 			/* store return value */
 			"str	r0, [r12]		\n\t"
 			"dsb				\n\t"
