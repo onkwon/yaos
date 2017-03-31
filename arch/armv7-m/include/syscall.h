@@ -10,10 +10,16 @@
  * pass syscall number to distinguish each syscalls */
 static int __attribute__((naked, noinline)) syscall(int n, ...)
 {
-	svc(SYSCALL_NR);
+	__asm__ __volatile__(
+			"svc	%0	\n\t"
+			"bx	lr	\n\t"
+			:: "I"(SYSCALL_NR) : "memory");
 
 	register int result __asm__("r0");
 	return result;
 }
+
+void syscall_delegate_callback();
+void syscall_delegate_atomic(void *func, void *sp, void *flag);
 
 #endif /* __ARMv7M_SYSCALL_H__ */

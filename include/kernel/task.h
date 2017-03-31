@@ -29,15 +29,19 @@ struct mm {
 };
 
 /* type & flag */
-#define TF_USER				0x00
-#define TF_KERNEL			0x01
-#define TF_STATIC			0x02
-#define TF_SYSCALL			0x04
-#define TF_CLONED			0x08
-#define TF_HANDLER			0x10
-#define TF_PRIVILEGED			0x20
-#define TF_ATOMIC			0x40
-#define TF_SHARED			0x80 /* share the kernel stack */
+enum {
+	TF_USER		= 0x0000,
+	TF_KERNEL	= 0x0001,
+	TF_STATIC	= 0x0002,
+	TF_SYSCALL	= 0x0004,
+	TF_CLONED	= 0x0008,
+	TF_HANDLER	= 0x0010,
+	TF_PRIVILEGED	= 0x0020,
+	TF_ATOMIC	= 0x0040,
+	TF_SHARED	= 0x0080, /* kernel stack sharing */
+
+	IN_TRANSIT	= 0x0100,
+};
 
 #define TASK_USER			(TF_USER)
 #define TASK_KERNEL			(TF_KERNEL | TF_PRIVILEGED)
@@ -92,7 +96,7 @@ struct task {
 	/* `state` must be the first element in the structure as it is used
 	 * for sanity check at the initialization */
 	unsigned int state;
-	unsigned int flags;
+	unsigned int flags; /* keep the postion; used in assembly as offset */
 	unsigned int pri;
 	void *addr;
 	const char *name;

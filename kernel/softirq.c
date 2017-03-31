@@ -33,8 +33,10 @@ static inline void *getpool()
 static void softirq_handler()
 {
 	unsigned int pending;
-	struct task *thread;
 	struct __softirq *pool;
+#ifdef CONFIG_SOFTIRQ_THREAD
+	struct task *thread;
+#endif
 
 endless:
 	pending = softirq_pending();
@@ -79,7 +81,7 @@ unsigned int request_softirq(void (*func)(), int pri)
 			softirq.bitmap |= 1 << i;
 			softirq.pool[i].action = func;
 			softirq.pool[i].args = NULL;
-			softirq.pool[i].priority = DEFAULT_PRIORITY;
+			softirq.pool[i].priority = pri;
 			break;
 		}
 	}

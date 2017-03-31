@@ -55,11 +55,12 @@ struct regs {
 	__asm__ __volatile__(						\
 			"mrs	r12, psp		\n\t"		\
 			"stmdb	r12!, {r4-r11}		\n\t"		\
-			::: "memory");					\
+			::: "r4", "r5", "r6", "r7", "r8",		\
+			"r9", "r10", "r11", "r12", "memory");		\
 	__asm__ __volatile__(						\
 			"mov	%0, r12			\n\t"		\
 			: "=&r"(task->mm.sp)				\
-			:: "memory");					\
+			:: "r12", "memory");				\
 } while (0)
 
 #define __context_restore(task)				do {		\
@@ -71,15 +72,16 @@ struct regs {
 			"movne	r12, #2			\n\t"		\
 			:: "r"(task->mm.kernel.sp)			\
 			, "r"(get_task_flags(task))			\
-			, "I"(TASK_PRIVILEGED)				\
-			: "memory");					\
+			, "I"(TF_PRIVILEGED)				\
+			: "r12", "memory");				\
 	__asm__ __volatile__(						\
 			"ldmia	%0!, {r4-r11}		\n\t"		\
 			"msr	psp, %0			\n\t"		\
 			"ldr	lr, =0xfffffffd		\n\t"		\
 			"msr	control, r12		\n\t"		\
 			:: "r"(task->mm.sp)				\
-			: "memory");					\
+			: "r4", "r5", "r6", "r7", "r8", "r9",		\
+			"r10", "r11", "r12", "lr", "memory");		\
 } while (0)
 
 #define __save_curr_context_all()			do {		\

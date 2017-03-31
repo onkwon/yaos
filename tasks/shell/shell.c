@@ -9,13 +9,13 @@
 
 static unsigned int getline(int fd, char *buf, int maxlen)
 {
-	char c;
+	int c;
 	unsigned int i = 0;
 
 	do {
 		while (read(fd, &c, 1) <= 0);
 
-		switch (c) {
+		switch ((char)c) {
 		case (char)-1: /* no input */
 		case 0x1b: /* extended ascii code */
 		case '\t':
@@ -34,7 +34,7 @@ static unsigned int getline(int fd, char *buf, int maxlen)
 			}
 			break;
 		}
-	} while (c != '\r');
+	} while ((char)c != '\r');
 
 	buf[i] = '\0';
 	putchar('\n');

@@ -54,6 +54,24 @@ static void add_timerd(void *args)
 		mutex_unlock(&timerq.mutex);
 	}
 
+#if 1
+	/* in case the caller has not yet turned into waiting state by being
+	 * preempted, missing its chance to run until higher realtime tasks get
+	 * their own work done. */
+	if (get_task_state(tm->task) == TASK_RUNNING) {
+		unsigned int pri;
+		runqueue_del(tm->task);
+		pri = get_task_pri(tm->task);
+		set_task_pri(tm->task, get_task_pri(current));
+		runqueue_add(tm->task);
+
+		while (get_task_state(tm->task) != TASK_WAITING)
+			resched();
+		set_task_pri(tm->task, pri);
+	}
+#endif
+	assert(get_task_state(tm->task) == TASK_WAITING);
+
 	__set_retval(tm->task, ret);
 	//sum_curr_stat(tm->task);
 	go_run(tm->task);
@@ -191,6 +209,8 @@ unsigned int get_timer_nr()
 #endif
 }
 
+#ifdef CONFIG_TIMER
+#ifdef CONFIG_SYSCALL_THREAD
 static void create_timer(struct ktimer *new)
 {
 	new->task = current->parent;
@@ -202,7 +222,6 @@ static void create_timer(struct ktimer *new)
 
 int sys_timer_create(struct ktimer *new)
 {
-#ifdef CONFIG_TIMER
 #if 1
 	struct task *thread;
 
@@ -220,10 +239,30 @@ int sys_timer_create(struct ktimer *new)
 #endif
 
 	return 0;
-#else
-	return EFAULT;
-#endif
 }
+#else
+static void create_timer(struct ktimer *new)
+{
+	new->task = current;
+	while (raise_softirq(nsoftirq_add, new) == false) ;
+
+	set_task_state(current, TASK_WAITING);
+	resched();
+}
+
+int sys_timer_create(struct ktimer *new)
+{
+	syscall_delegate_atomic(create_timer, &current->mm.sp, &current->flags);
+
+	return 0;
+}
+#endif /* CONFIG_SYSCALL_THREAD */
+#else
+int sys_timer_create(struct ktimer *new)
+{
+	return EFAULT;
+}
+#endif /* CONFIG_TIMER */
 
 int __add_timer(struct ktimer *new)
 {

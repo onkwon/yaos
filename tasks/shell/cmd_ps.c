@@ -108,6 +108,11 @@ static int ps(int argc, char **argv)
 	extern unsigned int mem_bottom;
 	printk("memory bottom %d\n", mem_bottom);
 
+#ifdef CONFIG_DEBUG_SYSCALL
+	extern unsigned int syscall_count;
+	printk("syscall: %d times called\n", syscall_count);
+#endif
+
 #if 0
 	extern void print_rq();
 	printk("\nRun queue list:\n");

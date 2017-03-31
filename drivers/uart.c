@@ -1,5 +1,6 @@
 #include <kernel/module.h>
 #include <kernel/page.h>
+#include <kernel/syscall.h>
 #include <asm/uart.h>
 #include <error.h>
 #include "worklist.h"
@@ -125,9 +126,12 @@ static void do_uart_close(struct file *file)
 	}
 	mutex_unlock(&dev->mutex);
 
+#ifdef CONFIG_SYSCALL_THREAD
 	syscall_delegate_return(current->parent, 0);
+#endif
 }
 
+#ifdef CONFIG_SYSCALL_THREAD
 static int uart_close(struct file *file)
 {
 	struct task *thread;
@@ -141,8 +145,16 @@ static int uart_close(struct file *file)
 
 	return 0;
 }
+#else
+static int uart_close(struct file *file)
+{
+	syscall_delegate_atomic(do_uart_close, &current->mm.sp, &current->flags);
 
-static size_t uart_read_core(struct file *file, void *buf, size_t len)
+	return 0;
+}
+#endif
+
+static inline size_t uart_read_core(struct file *file, void *buf, size_t len)
 {
 	struct device *dev;
 	struct uart_buffer *uartq;
@@ -167,27 +179,30 @@ static size_t uart_read_core(struct file *file, void *buf, size_t len)
 	return 1;
 }
 
-static void do_uart_read(struct file *file, void *buf, size_t len)
+static size_t do_uart_read(struct file *file, void *buf, size_t len)
 {
 	struct device *dev;
 	struct uart_buffer *uartq;
-	size_t ret, cnt;
+	size_t total, d;
 
 	dev = getdev(file->inode->dev);
 	uartq = dev->buffer;
 
-	for (ret = 0; ret < len && file->offset < file->inode->size;) {
-		if ((cnt = uart_read_core(file, buf + ret, len - ret))
-				<= 0) {
+	for (total = 0; total < len && file->offset < file->inode->size;) {
+		if ((d = uart_read_core(file, buf + total, len - total)) <= 0) {
 			wq_wait(&uartq->waitq);
 			continue;
 		}
-		ret += cnt;
+		total += d;
 	}
 
-	syscall_delegate_return(current->parent, ret);
+#ifdef CONFIG_SYSCALL_THREAD
+	syscall_delegate_return(current->parent, total);
+#endif
+	return total;
 }
 
+#ifdef CONFIG_SYSCALL_THREAD
 static size_t uart_read(struct file *file, void *buf, size_t len)
 {
 	struct task *thread;
@@ -204,6 +219,14 @@ static size_t uart_read(struct file *file, void *buf, size_t len)
 
 	return 0;
 }
+#else
+size_t uart_read(struct file *file, void *buf, size_t len)
+{
+	syscall_delegate_atomic(do_uart_read, &current->mm.sp, &current->flags);
+
+	return 0;
+}
+#endif
 
 static size_t uart_write_int(struct file *file, void *data)
 {
@@ -242,22 +265,26 @@ static size_t uart_write_polling(struct file *file, void *data)
 	return res;
 }
 
-static void do_uart_write(struct file *file, void *buf, size_t len)
+static size_t do_uart_write(struct file *file, void *buf, size_t len)
 {
-	size_t ret, (*f)(struct file *file, void *data);
+	size_t written, (*f)(struct file *file, void *data);
 
 	if (file->flags & O_NONBLOCK)
 		f = uart_write_polling;
 	else
 		f = uart_write_int;
 
-	for (ret = 0; ret < len && file->offset < file->inode->size;)
-		if (f(file, buf + ret) >= 1)
-			ret++;
+	for (written = 0; written < len && file->offset < file->inode->size;)
+		if (f(file, buf + written) >= 1)
+			written++;
 
-	syscall_delegate_return(current->parent, ret);
+#ifdef CONFIG_SYSCALL_THREAD
+	syscall_delegate_return(current->parent, written);
+#endif
+	return written;
 }
 
+#ifdef CONFIG_SYSCALL_THREAD
 static size_t uart_write(struct file *file, void *buf, size_t len)
 {
 	struct task *thread;
@@ -271,6 +298,14 @@ static size_t uart_write(struct file *file, void *buf, size_t len)
 
 	return 0;
 }
+#else
+size_t uart_write(struct file *file, void *buf, size_t len)
+{
+	syscall_delegate_atomic(do_uart_write, &current->mm.sp, &current->flags);
+
+	return 0;
+}
+#endif
 
 #include <fs/fs.h>
 
@@ -355,7 +390,6 @@ void register_uart(const char *name, int minor)
 
 void __putc_debug(int c)
 {
-	static DEFINE_LOCK(lock);
 	struct file *file;
 	int res, chan;
 
@@ -366,9 +400,7 @@ void __putc_debug(int c)
 
 putcr:
 	do {
-		lock_atomic(&lock);
 		res = __uart_putc(chan, c);
-		unlock_atomic(&lock);
 	} while (!res);
 
 	if (c == '\n') {

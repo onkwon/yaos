@@ -100,13 +100,17 @@ out:
 	return err;
 }
 
-void do_sys_open(char *filename, int mode, void *option)
+int do_sys_open(char *filename, int mode, void *option)
 {
 	int ret = sys_open_core(filename, mode, option);
 
+#ifdef CONFIG_SYSCALL_THREAD
 	syscall_delegate_return(current->parent, ret);
+#endif
+	return ret;
 }
 
+#ifdef CONFIG_SYSCALL_THREAD
 int sys_open(char *filename, int mode, void *option)
 {
 	struct task *thread;
@@ -120,6 +124,14 @@ int sys_open(char *filename, int mode, void *option)
 
 	return 0;
 }
+#else
+int sys_open(char *filename, int mode, void *option)
+{
+	syscall_delegate_atomic(do_sys_open, &current->mm.sp, &current->flags);
+
+	return 0;
+}
+#endif
 
 int sys_read(int fd, void *buf, size_t len)
 {
@@ -233,11 +245,13 @@ int sys_remove_core(const char *pathname)
 out_free_inode:
 	kfree(inode);
 out:
+#ifdef CONFIG_SYSCALL_THREAD
 	syscall_delegate_return(current->parent, err);
-
+#endif
 	return err;
 }
 
+#ifdef CONFIG_SYSCALL_THREAD
 int sys_remove(const char *pathname)
 {
 	struct task *thread;
@@ -251,6 +265,15 @@ int sys_remove(const char *pathname)
 
 	return 0;
 }
+#else
+int sys_remove(const char *pathname)
+{
+	syscall_delegate_atomic(sys_remove_core, &current->mm.sp,
+			&current->flags);
+
+	return 0;
+}
+#endif
 
 #include <kernel/power.h>
 
