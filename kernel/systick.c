@@ -2,7 +2,7 @@
 
 unsigned int sysfreq;
 
-volatile unsigned int __attribute__((section(".data"))) systick, systick_ms;
+volatile unsigned int __attribute__((section(".data"))) systick;
 uint64_t __attribute__((section(".data"))) systick64;
 
 static DEFINE_SPINLOCK(lock_systick64);
@@ -32,22 +32,33 @@ static inline void update_tick(unsigned int delta)
 	spin_unlock_irqrestore(&lock_systick64, irqflag);
 }
 
-static int nticks_khz;
+static unsigned int period, interval;
+
+unsigned int get_curr_interval()
+{
+	return interval;
+}
 
 static void isr_systick()
 {
-#ifdef CONFIG_TIMER_MS
-	static int ms;
+#ifdef CONFIG_SLEEP_LONG
+	static unsigned int clks;
+	unsigned int ticks;
 
-	systick_ms++;
+	clks += interval;
 
-	if (++ms >= nticks_khz) {
-		ms = 0;
-		update_tick(1);
+	if (clks >= period) {
+		/* TODO: udiv instruction takes 2-12 cycles. replace it with
+		 * bit operation. what about making period as a constant
+		 * reducing the number of accessing memory? */
+		ticks = clks / period;
+		clks -= period * ticks;
+		update_tick(ticks);
 		resched();
 	}
+
+	interval = get_sysclk_max();
 #else
-	systick_ms += nticks_khz;
 	update_tick(1);
 	resched();
 #endif
@@ -60,7 +71,8 @@ void __init systick_init()
 {
 	register_isr(sysclk_init(), isr_systick);
 
-	nticks_khz = KHZ / sysfreq;
+	period = get_sysclk_period();
+	interval = get_sysclk_max();
 
 	run_sysclk();
 }

@@ -138,9 +138,6 @@ time in second, ~~`systick` / `get_sysclk_freq()`~~ `systick` / `HZ`.
 
 ### timer
 
-When CONFIG_TIMER_MS defined, triggered every 1ms while systick is
-updated every HZ. Otherwise it gets triggered and updated every HZ configured.
-
 32비트 systick 값을 초과하는 시간은 설정할 수 없다. 즉 50HZ 에서 설정할 수 있는
 타이머의 최대 시간은 2년 남짓이다(32bits / 60(초) / 60(분) / 60(시) / 24(일) /
 365(년)).

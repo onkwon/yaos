@@ -4,22 +4,52 @@
 #include <kernel/power.h>
 #include <kernel/systick.h>
 
-unsigned int cpu_idle, cpu_idle_stamp;
-int cpuload;
-
 static void cleanup()
 {
 	/* Clean up redundant code and data used during initialization */
 	free_bootmem();
 }
 
+/* NOTE: FIXME: get sysclk periodic whenever woken by any other interrupts than
+ * systick interrupt
+ *
+ * It is okay when woken up by systick interrupt because it is already set as
+ * periodic in the last update. But the problem arises when it is woken up by
+ * any other interrupts. If an interrupt occurs and tasks take place from then,
+ * each task would have time slice as much as the current interval which can be
+ * up to get_raw_sysclk_max(). So run_sysclk_periodic() should be placed in
+ * every interrupt handler. maybe I think implement the common interrupt
+ * handler to put it in only a place. */
+static inline void update_sleep_period()
+{
+	struct ktimer *timer;
+	int ticks_left, clks2go;
+
+	timer = get_timer_nearest();
+
+	if (timer) {
+		ticks_left = timer->expires - systick;
+		clks2go = ticks_to_clks(ticks_left) - get_curr_interval();
+
+		if (clks2go <= (int)get_sysclk_period()) { /* expires on the next */
+			run_sysclk_periodic();
+			return;
+		}
+
+		if (clks2go > get_raw_sysclk_max())
+			clks2go = get_raw_sysclk_max();
+
+		set_sleep_interval(clks2go);
+	}
+}
+
 /* when no task in runqueue, this one takes place.
  * do some power savings */
 void idle()
 {
+	extern unsigned int cpu_idle, cpu_idle_stamp;
 	unsigned int tout = 0;
 	int cpu_total = 0;
-	unsigned long long stamp;
 
 	cleanup();
 
@@ -27,9 +57,9 @@ void idle()
 		kill_zombie();
 
 #ifdef CONFIG_CPU_LOAD
-		cpu_total += systick_ms - cpu_idle_stamp;
-		cpu_idle_stamp = systick_ms;
-		if (cpu_total > KHZ) { /* every second */
+		cpu_total += systick - cpu_idle_stamp;
+		cpu_idle_stamp = systick;
+		if (ticks_to_sec(cpu_total)) { /* every second */
 			cpuload = 100 - cpu_idle * 100 / cpu_total;
 
 			cpu_total = 0;
@@ -68,19 +98,25 @@ void idle()
 			 * 6)); for transmission complete or data(even system)
 			 * can be corrupted. */
 
+#ifdef CONFIG_SLEEP_LONG
+			update_sleep_period();
+#endif
+
 			/* having a timer running means still have a job to be
 			 * done when the timer expires or free to enter stop
 			 * mode which disable most peripherals off even the
 			 * system clock. */
 			if (get_timer_nr()) {
 				enter_sleep_mode();
+#ifdef CONFIG_SLEEP_DEEP
 			} else {
-				stamp = get_systick64();
+				unsigned long long stamp = get_systick64();
 				notice("[%08x%08x] entering stop mode",
 						(unsigned int)(stamp >> 32),
 						(unsigned int)stamp);
 
 				enter_stop_mode();
+#endif
 			}
 
 			/* post-dos(); */

@@ -58,11 +58,13 @@ enum {
 #define get_task_type(p)		get_task_flags(p)
 
 /* state */
-#define TASK_RUNNING			0x00
-#define TASK_STOPPED			0x01
-#define TASK_WAITING			0x02
-#define TASK_SLEEPING			0x04
-#define TASK_ZOMBIE			0x08
+enum {
+	TASK_RUNNING	= 0x00,
+	TASK_STOPPED	= 0x01,
+	TASK_WAITING	= 0x02,
+	TASK_SLEEPING	= 0x04,
+	TASK_ZOMBIE	= 0x08,
+};
 
 #define set_task_state(p, s)		((p)->state = s)
 #define get_task_state(p)		((p)->state)

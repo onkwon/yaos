@@ -54,7 +54,7 @@ static unsigned int visit(struct task *p, unsigned int nr)
 }
 
 #include <kernel/page.h>
-#include <kernel/systick.h>
+#include <kernel/power.h>
 #include <kernel/timer.h>
 #include <kernel/softirq.h>
 

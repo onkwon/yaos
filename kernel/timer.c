@@ -65,7 +65,8 @@ static void add_timerd(void *args)
 		set_task_pri(tm->task, get_task_pri(current));
 		runqueue_add(tm->task);
 
-		while (get_task_state(tm->task) != TASK_WAITING)
+		while (get_task_state((volatile struct task *)tm->task) !=
+				TASK_WAITING)
 			resched();
 		set_task_pri(tm->task, pri);
 	}
@@ -154,11 +155,17 @@ static void run_timerd(void *args)
 		link_del(&timer->link, &timer->task->timer_head);
 		unlock_atomic(&timer->task->lock);
 
+		set_task_pri(thread, get_task_pri(timer->task));
 		put_arguments(thread, timer, NULL, NULL, NULL);
 		go_run(thread);
 	}
 
 	mutex_unlock(&q->mutex);
+}
+
+struct ktimer *get_timer_nearest()
+{
+	return (struct ktimer *)timerq.list.next;
 }
 
 static void sleep_callback(struct ktimer *timer)
@@ -171,6 +178,9 @@ static void sleep_callback(struct ktimer *timer)
 		schedule();
 	}
 
+	/* this callback may get run first before caller gets into sleeping if
+	 * sleep time is really short. so give it time to fall asleep */
+	while (get_task_state((volatile struct task *)task) != TASK_SLEEPING);
 	go_run_if(task, TASK_SLEEPING);
 }
 
@@ -331,25 +341,12 @@ void msleep(unsigned int ms)
 
 void set_timeout(unsigned int *tv, unsigned int tick)
 {
-	*tv = systick + tick;
+	*tv = systick + tick - 1;
 }
 
 int is_timeout(unsigned int goal)
 {
 	if (time_after(goal, systick))
-		return 1;
-
-	return 0;
-}
-
-static inline void set_timeout_ms(unsigned int *tv, unsigned int ms)
-{
-	*tv = systick_ms + ms;
-}
-
-static inline bool is_timeout_ms(unsigned int goal)
-{
-	if (time_after(goal, systick_ms))
 		return true;
 
 	return false;
@@ -358,8 +355,8 @@ static inline bool is_timeout_ms(unsigned int goal)
 void mdelay(unsigned int ms)
 {
 	unsigned int tout;
-	set_timeout_ms(&tout, ms);
-	while (!is_timeout_ms(tout));
+	set_timeout(&tout, msec_to_ticks(ms));
+	while (!is_timeout(tout));
 }
 
 /* TODO: make it work for user */

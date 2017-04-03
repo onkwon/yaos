@@ -4,6 +4,13 @@
 
 #define LIMIT		(100 * KHZ) /* 100KHz */
 
+static unsigned int sysclk_period;
+
+unsigned int get_sysclk_period()
+{
+	return sysclk_period;
+}
+
 int sysclk_init()
 {
 	unsigned int sysclk, period, hz;
@@ -24,10 +31,7 @@ int sysclk_init()
 
 	period = sysclk / hz - 1;
 	sysfreq = sysclk / (period + 1);
-#ifdef CONFIG_TIMER_MS
-	period = sysclk / KHZ - 1;
-	debug("systick period = %d", period);
-#endif
+	sysclk_period = period + 1;
 
 	assert(sysfreq == hz);
 	assert(period > 0);

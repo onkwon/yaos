@@ -26,6 +26,7 @@ int add_timer(int ms, void (*func)(struct ktimer *timer));
 int __add_timer(struct ktimer *new);
 void __del_timer_if_match(struct task *task, void *addr);
 unsigned int get_timer_nr();
+struct ktimer *get_timer_nearest();
 
 int sys_timer_create(struct ktimer *new);
 

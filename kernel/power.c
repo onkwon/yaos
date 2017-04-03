@@ -3,6 +3,9 @@
 #include <kernel/systick.h>
 #include <error.h>
 
+int cpuload;
+unsigned int cpu_idle, cpu_idle_stamp;
+
 void enter_sleep_mode()
 {
 #ifdef CONFIG_CPU_LOAD
@@ -17,8 +20,7 @@ void enter_sleep_mode()
 #ifdef CONFIG_CPU_LOAD
 	assert(current == &init);
 
-	extern unsigned int cpu_idle, cpu_idle_stamp;
-	cpu_idle += systick_ms - cpu_idle_stamp;
+	cpu_idle += systick - cpu_idle_stamp;
 
 	run_scheduler(ON);
 #endif

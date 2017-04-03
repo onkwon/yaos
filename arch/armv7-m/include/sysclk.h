@@ -18,8 +18,15 @@
 
 #define get_sysclk()		(STK_VAL)
 #define get_sysclk_max()	(STK_LOAD + 1)
+#define get_raw_sysclk_max()	SYSTICK_MAX
+
+#define ticks_to_clks(ticks)	((ticks) * get_sysclk_period())
+
+#define set_sleep_interval(clks)	set_sysclk(clks - 1)
+#define run_sysclk_periodic()		set_sleep_interval(get_sysclk_period())
 
 int sysclk_init();
+unsigned int get_sysclk_period();
 
 #undef  INCPATH
 #define INCPATH			<asm/mach-MACHINE/clock.h>

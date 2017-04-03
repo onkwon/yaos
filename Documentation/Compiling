@@ -42,11 +42,11 @@ activate software timer functionality
 
 ### `CONFIG_FLOAT`
 
-### `CONFIG_TIMER_MS`
-
-to make mili-second-granularity-timer in case HZ is lower than 1 KHz
-
 ### `CONFIG_CPU_LOAD`
+
+### `CONFIG_SLEEP_LONG`
+
+### `CONFIG_SLEEP_DEEP`
 
 ## include/foundation.h
 
