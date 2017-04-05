@@ -66,13 +66,13 @@ User tasks would be placed under /tasks(e.g. tasks/my-first-task.c):
 
 ### Task management and scheduling
 
-Two types of task are handled: normal and real time tasks. Round-robin scheduler for normal tasks while priority scheduler for real time tasks. Each task is given a priority which can be dynamically changed with `set_task_pri()`. For real time tasks a higher priority task always preempts lower priority tasks while the same priority tasks take place in turn under round-robin scheduling. Scheduler can be stopped to reduce even the scheduling overhead in case of a time critical task. On the other hand nomal tasks get chance to run by simplified fair scheduler, that picks the minimum value of vruntime up for the next task to run.
+Two types of task are handled: normal and real time tasks. Round-robin scheduler for normal tasks while priority scheduler for real time tasks. Each task is given a priority which can be dynamically changed with `set_task_pri()`. For real time tasks a higher priority task always preempts lower priority tasks while the same priority tasks take place in turn under round-robin scheduling. Scheduler can be stopped to reduce even the scheduling overhead in case of a time critical task. On the other hand normal tasks get chance to run by simplified fair scheduler, that picks the minimum value of runtime up for the next task to run.
 
 Tasks are always in one of five states: running, stopped, waiting, sleeping, or zombie. And a task can be created both statically and dynamically at run-time.
 
 ### System call interface
 
-System resource is accessed by the system call interface entering privileged mode as a user task runs in user(unpriviliged) mode.
+System resource is accessed by the system call interface entering priviliged mode as a user task runs in user(unpriviliged) mode.
 
 ### Virtual file system
 
