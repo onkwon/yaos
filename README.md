@@ -72,7 +72,7 @@ Tasks are always in one of five states: running, stopped, waiting, sleeping, or 
 
 ### System call interface
 
-System resource is accessed by the system call interface entering priviliged mode as a user task runs in user(unpriviliged) mode.
+System resource is accessed by the system call interface entering privileged mode as a user task runs in user(unprivileged) mode.
 
 ### Virtual file system
 
