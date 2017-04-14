@@ -17,13 +17,13 @@ struct uisr {
 	struct task *task;
 };
 
-static void isr()
+static void isr(int nvector)
 {
-	int nirq = get_active_irq();
-
-	raise_softirq(nsoftirq, (void *)nirq);
-
-	ret_from_exti(nirq);
+#ifndef CONFIG_IRQ_HIERARCHY
+	nvector = get_active_irq();
+#endif
+	raise_softirq(nsoftirq, (void *)nvector);
+	ret_from_exti(nvector);
 }
 
 static size_t gpio_read(struct file *file, void *buf, size_t len)

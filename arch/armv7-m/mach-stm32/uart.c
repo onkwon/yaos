@@ -245,7 +245,7 @@ int __uart_putc(unsigned int channel, int c)
 	return uart_putc(channel, c);
 }
 
-int __uart_check_rx(unsigned int channel)
+int __uart_has_rx(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -260,7 +260,7 @@ int __uart_check_rx(unsigned int channel)
 	return 0;
 }
 
-int __uart_check_tx(unsigned int channel)
+int __uart_has_tx(unsigned int channel)
 {
 	reg_t *reg = ch2reg(channel);
 

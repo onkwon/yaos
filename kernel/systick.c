@@ -39,7 +39,7 @@ unsigned int get_curr_interval()
 	return interval;
 }
 
-static void isr_systick()
+void isr_systick(int nvector)
 {
 #ifdef CONFIG_SLEEP_LONG
 	static unsigned int clks;

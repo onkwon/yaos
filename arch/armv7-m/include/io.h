@@ -76,6 +76,4 @@
 #define INCPATH			<asm/mach-MACHINE/io.h>
 #include INCPATH
 
-#define NVECTOR_PENDSV		14
-
 #endif /* __ARMv7M_IO_H__ */

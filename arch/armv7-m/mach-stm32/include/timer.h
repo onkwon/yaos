@@ -30,7 +30,7 @@ struct __timer {
 
 #include <io.h>
 
-static inline bool check_timer_int_source(int flags, int mask)
+static inline bool is_timer(int flags, int mask)
 {
 	if (flags & mask)
 		return true;
@@ -38,14 +38,14 @@ static inline bool check_timer_int_source(int flags, int mask)
 	return false;
 }
 
-static inline int get_timer_int_source_channel(int flags)
+static inline int get_timer_channel_active(int flags)
 {
 	return (flags & TIM_COMPARE_MASK) >> 1;
 }
 
-static inline int __get_irq_source_timer()
+static inline int __get_timer_active(int nvector)
 {
-	int n = get_active_irq() - 42;
+	int n = nvector - 42;
 
 	if (n == 24)
 		n = 5;

@@ -11,7 +11,7 @@ static struct fifo ir_queue;
 static unsigned int nsoftirq;
 static int siglevel;
 
-static void isr_ir()
+static void isr_ir(int nvector)
 {
 	static unsigned int elapsed = 0;
 	unsigned int stamp, ir_count_max;

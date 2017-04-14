@@ -10,26 +10,30 @@ static int (*user_isr[NR_TIMER_MAX][TIM_CHANNEL_MAX+1])(int flags);
 static int capture[NR_TIMER_MAX][TIM_CHANNEL_MAX];
 static volatile int new;
 
-static void isr_timer()
+static void isr_timer(int nvector)
 {
 	struct __timer *tim;
 	unsigned int *reg;
 	int flags, id, ch, i;
 
-	if (!(id = __get_irq_source_timer())) {
-		error("INT:unmapped irq source:%x", get_active_irq());
+#ifndef CONFIG_IRQ_HIERARCHY
+	nvector = get_active_irq();
+#endif
+
+	if (!(id = __get_timer_active(nvector))) {
+		error("INT:unmapped irq source:%x", nvector);
 		return;
 	}
 
 	tim = __timer_id2reg(id);
 	flags = tim->sr;
-	ch = get_timer_int_source_channel(flags);
+	ch = get_timer_channel_active(flags);
 
-	if (check_timer_int_source(flags, TIM_OVERCAPTURE_MASK)) {
+	if (is_timer(flags, TIM_OVERCAPTURE_MASK)) {
 		warn("INT:overcaptured!");
 	}
 
-	if (check_timer_int_source(flags, TIM_UPDATE_MASK)) {
+	if (is_timer(flags, TIM_UPDATE_MASK)) {
 		if (user_isr[id-1][0])
 			user_isr[id-1][0](flags);
 	}
