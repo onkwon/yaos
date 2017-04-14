@@ -1,11 +1,8 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
-MEMORY
-{
-	ram (rwx)	: ORIGIN = 0x20000000, LENGTH = 20K
-	rom (rx)	: ORIGIN = 0x08000000, LENGTH = 64K
-}
+resched = sys_schedule;
+systick = systick64;
 
 PROVIDE(_rom_start   = ORIGIN(rom));
 PROVIDE(_rom_size    = LENGTH(rom));
@@ -14,8 +11,6 @@ PROVIDE(_ram_size    = LENGTH(ram));
 PROVIDE(_ram_end     = ORIGIN(ram) + LENGTH(ram));
 PROVIDE(_vector_size = 0x200); /* The minimum alignment is 128 words. */
 
-resched = sys_schedule;
-systick = systick64;
 SECTIONS
 {
 	.text :
@@ -24,7 +19,7 @@ SECTIONS
 
 		*(.text.init)
 
-		. = (. + 3) & ~ 3;
+		. = ALIGN(4);
 		_init_func_list = .;
 		*(.text.init.0)
 		*(.text.init.1)
@@ -43,6 +38,7 @@ SECTIONS
 		_driver_list = .;
 		*(.driver_list)
 		LONG(0);
+
 		. = ALIGN(4);
 		_device_list = .;
 		*(.device_list)
@@ -56,7 +52,11 @@ SECTIONS
 		_etext = .;
 	} > rom
 
+#ifdef CONFIG_IRQ_HIERARCHY
+	.data _ram_start :
+#else
 	.data _ram_start + _vector_size :
+#endif
 	{
 		. = ALIGN(4);
 		_data = .;

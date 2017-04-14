@@ -18,7 +18,8 @@ depend dep:
 	$(CC) $(CFLAGS) -MM $(SRCS) $(TARGET_SRCS) > .depend
 
 lds:
-	-cp mach-$(MACH)/$(LD_SCRIPT) ld.script
+	-cp mach-$(MACH)/$(LD_SCRIPT) generated.lds
+	$(CC) -E -x c $(CFLAGS) common.lds | grep -v '^#' >> generated.lds
 
 subs:
 	@$(MAKE) --print-directory -C mach-$(MACH)
@@ -38,7 +39,7 @@ endif
 
 clean:
 	@rm -f $(OBJS) .depend
-	@rm -f ld.script
+	@rm -f generated.lds
 	@$(MAKE) clean -C mach-$(MACH)
 	@rm -f mach-$(MACH).o
 	@rm -rf include/mach-$(MACH)
