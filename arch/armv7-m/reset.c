@@ -1,8 +1,6 @@
 #include <io.h>
 #include <kernel/init.h>
 
-#define NVIC_DEFAULT_PRIORITY		10
-
 extern char _ram_end;
 
 extern void sys_init();
@@ -166,14 +164,14 @@ static void __init __attribute__((naked, used)) __reset()
 
 	unsigned int i;
 	for (i = NVECTOR_IRQ; i < NVECTOR_MAX; i++)
-		nvic_set_pri(i, NVIC_DEFAULT_PRIORITY);
+		nvic_set_pri(i, IRQ_PRIORITY_DEFAULT);
 
 	/* the bigger number the lower priority while 0 is the highest
 	 * priority. it gives systick the highest priority while giving svc and
 	 * pendsv lowest priority */
-	nvic_set_pri(NVECTOR_SYSTICK, 1);
-	nvic_set_pri(NVECTOR_SVC, NVIC_DEFAULT_PRIORITY + 1);
-	nvic_set_pri(NVECTOR_PENDSV, NVIC_DEFAULT_PRIORITY + 1);
+	nvic_set_pri(NVECTOR_SYSTICK, IRQ_PRIORITY_HIGHEST);
+	nvic_set_pri(NVECTOR_SVC, IRQ_PRIORITY_LOWEST);
+	nvic_set_pri(NVECTOR_PENDSV, IRQ_PRIORITY_LOWEST);
 
 	dsb();
 	isb();

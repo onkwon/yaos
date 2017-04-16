@@ -7,7 +7,9 @@
 
 #define UNLOCKED			1
 
-typedef enum {
+#define bool				_Bool
+
+enum {
 	false	= 0,
 	LOW	= false,
 	OFF	= false,
@@ -16,7 +18,7 @@ typedef enum {
 	HIGH	= true,
 	ON	= true,
 	ENABLE	= true,
-} bool;
+};
 
 typedef volatile int lock_t;
 typedef unsigned int dev_t;

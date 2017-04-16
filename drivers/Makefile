@@ -2,7 +2,7 @@ include $(BASEDIR)/CONFIGURE
 
 SRCS_ASM = $(wildcard *.S)
 SRCS     = led.c # for testing
-ifdef MODULE_USART
+ifdef MODULE_UART
 	SRCS += uart.c
 endif
 ifdef MODULE_TIMER
