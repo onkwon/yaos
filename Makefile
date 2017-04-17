@@ -127,7 +127,7 @@ $(SUBDIRS):
 include:
 	@$(MAKE) include --print-directory -C arch/$(TARGET)
 	-cp -R arch/$(TARGET)/include include/asm
-	-cp -R drivers/include include/driver
+	-cp -R drivers/include include/drivers
 	-cp -R lib/include include/lib
 	-cp -R fs/include include/fs
 

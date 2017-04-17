@@ -14,10 +14,12 @@ enum {
 	LOW	= false,
 	OFF	= false,
 	DISABLE	= false,
+	disable	= false,
 	true	= 1,
 	HIGH	= true,
 	ON	= true,
 	ENABLE	= true,
+	enable	= true,
 };
 
 typedef volatile int lock_t;
