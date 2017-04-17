@@ -146,7 +146,7 @@ clean:
 	@rm -f $(PROJECT:%=%.bin)
 	@rm -f $(PROJECT:%=%.dump)
 	@rm -rf include/asm
-	@rm -rf include/driver
+	@rm -rf include/drivers
 	@rm -rf include/lib
 	@rm -rf include/fs
 

@@ -3,16 +3,19 @@
 #include <kernel/syscall.h>
 #include <asm/uart.h>
 #include <error.h>
-#include "worklist.h"
+#include <uart.h>
 
 #define CHANNEL(n)		(MINOR(n) - 1)
 
-static unsigned int major;
+#define DEFAULT_BUFSIZE		128
 
-struct uart {
-	size_t rx, tx;
-	int baudrate;
+enum {
+	BAUDRATE_MIN		= 2400,
+	BAUDRATE_DEFAULT	= 115200,
+	BAUDRATE_MAX		= 4500000,
 };
+
+static unsigned int major;
 
 struct uart_buffer {
 	struct fifo rxq, txq;
@@ -39,8 +42,8 @@ static void isr_uart(int nvector)
 	if (__uart_has_rx(channel)) {
 		c = __uart_getc(channel);
 
-		if (fifo_put(&buf->rxq, c, 1) == -1) {
-			/* TODO: make a stats counting overflow */
+		if (fifo_put(&buf->rxq, c, 1) == ERANGE) {
+			/* TODO: count overflow for stats */
 		}
 
 		wq_wake(&buf->waitq, WQ_EXCLUSIVE);
@@ -49,7 +52,7 @@ static void isr_uart(int nvector)
 	if (__uart_has_tx(channel)) {
 		c = fifo_get(&buf->txq, 1);
 
-		if (c == -1) /* end of transmitting */
+		if (c < 0) /* end of transmission */
 			__uart_tx_irq_reset(channel);
 		else if (!__uart_putc(channel, c)) /* put it back if error */
 			fifo_put(&buf->txq, c, 1);
@@ -173,7 +176,7 @@ static inline size_t uart_read_core(struct file *file, void *buf, size_t len)
 	data = fifo_get(&uartq->rxq, 1);
 	spin_unlock_irqrestore(nospin, irqflag);
 
-	if (data == -1)
+	if (data < 0)
 		return 0;
 
 	if (c)
@@ -245,7 +248,7 @@ static size_t uart_write_int(struct file *file, void *data)
 	spin_lock_irqsave(nospin, irqflag);
 
 	/* ring buffer: if full, throw the oldest one for new one */
-	while (fifo_put(&buf->txq, c, 1) == -1)
+	while (fifo_put(&buf->txq, c, 1) == ERANGE)
 		fifo_get(&buf->txq, 1);
 
 	spin_unlock_irqrestore(nospin, irqflag);
@@ -310,36 +313,54 @@ size_t uart_write(struct file *file, void *buf, size_t len)
 }
 #endif
 
-#include <fs/fs.h>
+static inline void check_channel_conf(int channel, struct uart *conf)
+{
+	if (conf->rx && !conf->rxbuf)
+		conf->rxbuf = DEFAULT_BUFSIZE;
+	if (conf->tx && !conf->txbuf)
+		conf->txbuf = DEFAULT_BUFSIZE;
+
+	if (conf->baudrate < BAUDRATE_MIN || conf->baudrate > BAUDRATE_MAX)
+		conf->baudrate = BAUDRATE_DEFAULT;
+}
 
 static int uart_open(struct inode *inode, struct file *file)
 {
-	struct device *dev = getdev(file->inode->dev);
-	int err = 0;
+	struct device *dev;
 	struct uart_buffer *buf;
-	void *rx, *tx;
+	void *rxbuf, *txbuf;
+	int err;
 
-	if (dev == NULL)
+	rxbuf = txbuf = NULL;
+	err = 0;
+
+	if ((dev = getdev(file->inode->dev)) == NULL)
 		return EFAULT;
 
 	mutex_lock(&dev->mutex);
 
 	if (dev->refcount++ == 0) {
-		struct uart def = { 128, 128, 115200 }; /* default */
 		struct uart *conf;
+		struct uart def = { /* default */
+			0, /* rx pin */
+			0, /* tx pin */
+			enable, /* rx enable */
+			enable, /* tx enable */
+			DEFAULT_BUFSIZE, /* rx buffer size */
+			DEFAULT_BUFSIZE, /* tx buffer size */
+			0, /* rts pin */
+			0, /* cts pin */
+			false, /* flow control */
+			UART_PARITY_NONE, /* parity */
+			BAUDRATE_DEFAULT };
 		int nvector;
 
 		if ((conf = (struct uart *)file->option) == NULL)
 			conf = &def;
 
-		debug("rx: %d, tx: %d, baudrate: %d",
-				conf->rx, conf->tx, conf->baudrate);
+		check_channel_conf(CHANNEL(dev->id), conf);
 
-		if (conf->rx < def.rx) conf->rx = def.rx;
-		if (conf->tx < def.tx) conf->tx = def.tx;
-		assert(conf->baudrate);
-
-		if ((nvector = __uart_open(CHANNEL(dev->id), conf->baudrate)) <= 0) {
+		if ((nvector = __uart_open(CHANNEL(dev->id), *conf)) <= 0) {
 			err = EINVAL;
 			goto out;
 		}
@@ -347,16 +368,14 @@ static int uart_open(struct inode *inode, struct file *file)
 		if ((buf = kmalloc(sizeof(*buf))) == NULL)
 			goto out_close;
 
-		/* read */
-		if ((rx = kmalloc(conf->rx)) == NULL)
+		if (conf->rx && (rxbuf = kmalloc(conf->rxbuf)) == NULL)
 			goto out_free_buf;
 
-		/* write */
-		if ((tx = kmalloc(conf->tx)) == NULL)
+		if (conf->tx && (txbuf = kmalloc(conf->txbuf)) == NULL)
 			goto out_free_rx;
 
-		fifo_init(&buf->rxq, rx, conf->rx);
-		fifo_init(&buf->txq, tx, conf->tx);
+		fifo_init(&buf->rxq, rxbuf, conf->rxbuf);
+		fifo_init(&buf->txq, txbuf, conf->txbuf);
 		WQ_INIT(buf->waitq);
 		dev->buffer = buf;
 
@@ -366,7 +385,7 @@ static int uart_open(struct inode *inode, struct file *file)
 	goto out;
 
 out_free_rx:
-	kfree(rx);
+	kfree(rxbuf);
 out_free_buf:
 	kfree(buf);
 out_close:
