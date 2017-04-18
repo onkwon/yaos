@@ -139,8 +139,7 @@ void sys_kill_core(struct task *target, struct task *killer)
 
 		runqueue_del_core(&init);
 		set_task_pri(&init, get_task_pri(killer));
-		set_task_state(&init, TASK_RUNNING);
-		runqueue_add_core(&init);
+		go_run_atomic_if(&init, TASK_SLEEPING);
 	}
 
 	/* add it to zombie list */

@@ -139,8 +139,10 @@ rts_next:
 #endif
 
 	if (!(next = cfs_pick_next(&cfs))) {
-		if (get_task_state(current)) /* no task to schedule */
+		if (get_task_state(current)) { /* no task to schedule */
 			current = &init; /* turn to init task */
+			set_task_state(current, TASK_BACKGROUND);
+		}
 
 		goto adjust_vruntime;
 	}

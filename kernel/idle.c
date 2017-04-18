@@ -22,6 +22,7 @@ static void cleanup()
  * handler to put it in only a place. */
 static inline void update_sleep_period()
 {
+#ifdef CONFIG_SLEEP_LONG
 	struct ktimer *timer;
 	int ticks_left, clks2go;
 
@@ -41,6 +42,7 @@ static inline void update_sleep_period()
 
 		set_sleep_interval(clks2go);
 	}
+#endif
 }
 
 /* when no task in runqueue, this one takes place.
@@ -67,10 +69,10 @@ void idle()
 		}
 #endif
 
-		/* if not TASK_RUNNING it is the best chance to enter power
-		 * saving mode since the init task gets its turn from scheduler
-		 * without changing the state to TASK_RUNNING when there is no
-		 * task to schedule. */
+		/* if not TASK_RUNNING buf TASK_BACKGROUND it is the best
+		 * chance to enter power saving mode since the init task gets
+		 * its turn with BACKGROUND state from scheduler when there is
+		 * no task to schedule. */
 		if (get_task_state(current)) {
 #ifdef CONFIG_DEBUG
 			/* check if there is any peripherals enabled that is
@@ -98,15 +100,12 @@ void idle()
 			 * 6)); for transmission complete or data(even system)
 			 * can be corrupted. */
 
-#ifdef CONFIG_SLEEP_LONG
-			update_sleep_period();
-#endif
-
 			/* having a timer running means still have a job to be
 			 * done when the timer expires or free to enter stop
 			 * mode which disable most peripherals off even the
 			 * system clock. */
 			if (get_timer_nr()) {
+				update_sleep_period();
 				enter_sleep_mode();
 #ifdef CONFIG_SLEEP_DEEP
 			} else {

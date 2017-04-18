@@ -64,6 +64,7 @@ enum {
 	TASK_WAITING	= 0x02,
 	TASK_SLEEPING	= 0x04,
 	TASK_ZOMBIE	= 0x08,
+	TASK_BACKGROUND	= 0x10,
 };
 
 #define set_task_state(p, s)		((p)->state = s)

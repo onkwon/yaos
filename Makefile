@@ -15,7 +15,7 @@ BASEDIR = $(shell pwd)
 
 SUBDIRS = lib arch kernel fs drivers tasks
 CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles -DVERSION=$(VERSION)
-OCFLAGS = -O binary
+OCFLAGS =
 ODFLAGS = -Dx
 INC	= -I./include
 LIBS	=
@@ -114,7 +114,8 @@ all: include common
 
 common: $(OBJS) subdirs
 	$(LD) -o $(PROJECT).elf $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $(PROJECT).map $(LDFLAGS)
-	$(OC) $(OCFLAGS) $(PROJECT).elf $(PROJECT).bin
+	$(OC) $(OCFLAGS) -O binary $(PROJECT).elf $(PROJECT).bin
+	$(OC) $(OCFLAGS) -O ihex $(PROJECT).elf $(PROJECT).hex
 	$(OD) $(ODFLAGS) $(PROJECT).elf > $(PROJECT).dump
 
 .PHONY: subdirs $(SUBDIRS)
@@ -144,6 +145,7 @@ clean:
 	@rm -f $(OBJS) $(PROJECT:%=%.elf) .depend
 	@rm -f $(PROJECT:%=%.map)
 	@rm -f $(PROJECT:%=%.bin)
+	@rm -f $(PROJECT:%=%.hex)
 	@rm -f $(PROJECT:%=%.dump)
 	@rm -rf include/asm
 	@rm -rf include/driver
