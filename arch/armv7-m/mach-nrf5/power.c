@@ -4,6 +4,7 @@
 
 void __enter_sleep_mode()
 {
+	__wfe();
 }
 
 void __enter_stop_mode()
@@ -27,5 +28,5 @@ void disp_sysinfo()
 
 unsigned int __read_reset_source()
 {
-	return 0;
+	return 4;
 }

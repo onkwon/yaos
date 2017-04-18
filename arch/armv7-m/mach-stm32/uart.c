@@ -171,7 +171,7 @@ static inline int uart_putc(int channel, int c)
 	return 1;
 }
 
-static inline void set_uart_port(int channel, struct uart *conf)
+static inline int set_uart_port(int channel, struct uart *conf)
 {
 	/* TODO: in case of remapping, check pinout. */
 	if (conf->rx) {
@@ -251,9 +251,10 @@ static inline void set_uart_port(int channel, struct uart *conf)
 		}
 	}
 
-	return;
+	return 0;
 errout:
 	error("PIN_UARTx_[R|T]X is not defined");
+	return ERANGE;
 }
 
 /* TODO: support flow control and parity */
@@ -263,7 +264,8 @@ int __uart_open(int channel, struct uart conf)
 
 	cr1 = cr2 = cr3 = gtpr = 0;
 
-	set_uart_port(channel, &conf);
+	if (set_uart_port(channel, &conf))
+		return ERANGE;
 
 	if (conf.rx)
 		cr1 |= (1 << RE) | (1 << RXNEIE);
@@ -290,7 +292,7 @@ int __uart_putc(int channel, int c)
 	return uart_putc(channel, c);
 }
 
-int __uart_has_rx(int channel)
+bool __uart_has_rx(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -305,7 +307,7 @@ int __uart_has_rx(int channel)
 	return 0;
 }
 
-int __uart_has_tx(int channel)
+bool __uart_has_tx(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 

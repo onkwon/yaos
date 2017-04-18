@@ -2,8 +2,7 @@
 
 #include "nrf52.h"
 #include "nrf_gpio.h"
-#include "nrf_delay.h"
-#include <kernel/gpio.h>
+#include <drivers/gpio.h>
 #include <asm/interrupt.h>
 
 static struct gpio {
@@ -33,23 +32,22 @@ static struct gpio {
 
 static int nr_active; /* number of active pins */
 
-int reg2port(reg_t *reg)
+void ret_from_gpio_int(unsigned int n)
 {
-	return 0;
-}
+	NRF_GPIOTE->EVENTS_PORT = 0;
 
-void set_port_pin_conf(reg_t *reg, int pin, int mode)
-{
-}
-
-void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
-{
+#if 0
+	int i;
+	for (i = 0; i < 8; i++)
+		NRF_GPIOTE->EVENTS_IN[i] = 0;
+#endif
 }
 
 unsigned int gpio_get(unsigned int npin)
 {
-	//nrf_gpio_pin_read(npin);
 	return nrf_gpio_pin_out_read(npin);
+	nrf_gpio_pin_read(npin);
+	nrf_gpio_pin_sense_get(npin);
 }
 
 void gpio_put(unsigned int npin, int v)
@@ -60,26 +58,64 @@ void gpio_put(unsigned int npin, int v)
 		nrf_gpio_pin_clear(npin);
 }
 
-int gpio_init(unsigned int npin, unsigned int flags)
+int gpio_init(unsigned int pin, unsigned int flags)
 {
-	int vector;
+	nrf_gpio_pin_pull_t conf;
+	nrf_gpio_pin_sense_t intr;
+	int vector = 0;
 
-	vector = NVECTOR_IRQ + 6; /* GPIOTE */
+	if (state[0].pins & (1 << pin)) {
+		error("already taken: %d", pin);
+		return EEXIST;
+	}
 
 	if (flags & GPIO_MODE_OUTPUT) {
-		nrf_gpio_cfg_output(npin);
+		nrf_gpio_cfg_output(pin);
 	} else {
-#if 0
-		nrf_gpio_cfg_sense_input(uint32_t pin_number,
-   	             nrf_gpio_pin_pull_t  pull_config,
-		     nrf_gpio_pin_sense_t sense_config)
-#endif
+		switch (flags & GPIO_CONF_MASK) {
+		case GPIO_CONF_PULLUP:
+			conf = NRF_GPIO_PIN_PULLUP;
+			break;
+		case GPIO_CONF_PULLDOWN:
+			conf = NRF_GPIO_PIN_PULLDOWN;
+			break;
+		default:
+			conf = NRF_GPIO_PIN_NOPULL;
+			break;
+		}
+
+		switch (flags & GPIO_INT_MASK) {
+		case GPIO_INT_HIGH:
+		case GPIO_INT_RISING:
+			intr = NRF_GPIO_PIN_SENSE_HIGH;
+			break;
+		case GPIO_INT_LOW:
+		case GPIO_INT_FALLING:
+			intr = NRF_GPIO_PIN_SENSE_LOW;
+			break;
+		default:
+			intr = NRF_GPIO_PIN_NOSENSE;
+			break;
+		}
+
+		nrf_gpio_cfg_sense_input(pin, conf, intr);
+
+		if (intr != NRF_GPIO_PIN_NOSENSE) {
+			vector = NVECTOR_IRQ + 6; /* GPIOTE */
+			nvic_set(vec2irq(vector), ON);
+
+			NRF_GPIOTE->EVENTS_PORT = 0;
+			NRF_GPIOTE->INTENSET = 1 << 31; /* PORT event */
+		}
 	}
+
+	state[0].pins |= 1 << pin;
+	nr_active++;
 
 	return vector;
 }
 
-void gpio_reset(unsigned int npin)
+void gpio_reset(unsigned int pin)
 {
 }
 
@@ -93,6 +129,7 @@ unsigned int get_gpio_state(int port)
 	return state[port].pins;
 }
 
+#include "nrf_delay.h"
 void __nrf_delay_ms(int ms)
 {
 	nrf_delay_ms(ms);

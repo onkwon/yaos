@@ -179,7 +179,7 @@ static void sleep_callback(struct ktimer *timer)
 	}
 
 	/* this callback may get run first before caller gets into sleeping if
-	 * sleep time is really short. so give it time to fall asleep */
+	 * sleep time was really short. so give it time to fall asleep */
 	while (get_task_state((volatile struct task *)task) != TASK_SLEEPING);
 	go_run_if(task, TASK_SLEEPING);
 }

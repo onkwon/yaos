@@ -10,9 +10,9 @@ INC	+= -I$(NRF_SDK)/components/drivers_nrf/hal
 INC	+= -I$(NRF_SDK)/components/drivers_nrf/delay
 INC	+= -I$(NRF_SDK)/components/drivers_nrf/nrf_soc_nosd
 INC	+= -I$(NRF_SDK)/components/libraries/util
-INC	+= -I$(NRF_SDK)/components/libraries/uart
 
-THIRD_PARTY = $(NRF_SDK)/components/toolchain/system_$(SOC).c
+INIT_SRC = $(NRF_SDK)/components/toolchain/system_$(SOC).c
+INIT_OBJ = $(addprefix $(SOC)_, $(notdir $(INIT_SRC:%.c=%.o)))
 
 LIBS    +=
 CFLAGS  += $(INC) $(LIBS)
@@ -21,7 +21,7 @@ CFLAGS  += $(INC) $(LIBS)
 .SUFFIXES: .s.o
 .SUFFIXES: .S.o
 
-all: board $(OBJS) $(SOC).o
+all: board $(OBJS) $(INIT_OBJ)
 ifdef BOARD
 	$(LD) -o $(BOARD).o -r boards/$(BOARD)/*.o
 endif
@@ -31,7 +31,7 @@ ifdef BOARD
 	@$(MAKE) --print-directory -C boards/$(BOARD)
 endif
 
-$(SOC).o: $(THIRD_PARTY)
+$(INIT_OBJ): $(INIT_SRC)
 	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $< -o $@
 
 depend dep:
@@ -40,7 +40,7 @@ depend dep:
 
 clean:
 	@rm -f $(OBJS) .depend 
-	@rm -f $(SOC).o
+	@rm -f $(INIT_OBJ)
 ifdef BOARD
 	@rm -f $(BOARD).o
 	@$(MAKE) clean -C boards/$(BOARD)

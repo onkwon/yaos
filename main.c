@@ -66,7 +66,7 @@ static int __init make_init_task()
 #include <fs/fs.h>
 #include <kernel/device.h>
 
-static int __init console_init()
+int __attribute__((weak)) __init console_init()
 {
 	extern int sys_open_core(char *filename, int mode, void *opt);
 

@@ -22,6 +22,7 @@ static void cleanup()
  * handler to put it in only a place. */
 static inline void update_sleep_period()
 {
+#ifdef CONFIG_SLEEP_LONG
 	struct ktimer *timer;
 	int ticks_left, clks2go;
 
@@ -41,6 +42,7 @@ static inline void update_sleep_period()
 
 		set_sleep_interval(clks2go);
 	}
+#endif
 }
 
 /* when no task in runqueue, this one takes place.
@@ -98,9 +100,13 @@ void idle()
 			 * 6)); for transmission complete or data(even system)
 			 * can be corrupted. */
 
-#ifdef CONFIG_SLEEP_LONG
 			update_sleep_period();
-#endif
+
+			/* FIXME: idle task's state can be changed at any time
+			 * since the job of destroying zombie tasks is
+			 * delegated to idle task. */
+			if (!get_task_state(current))
+				continue;
 
 			/* having a timer running means still have a job to be
 			 * done when the timer expires or free to enter stop

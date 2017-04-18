@@ -18,9 +18,9 @@
  * [03:12] R4          -
  * [02:08] flags
  * [01:04] flags(addr)
- * [00:00] callback    (sp when exit from system call)
+ * [00:00] handler     (sp when exit from system call)
  *         PSR         -
- *         PC          |
+ *         PC(callback)|
  *         LR          |
  *         R12         |
  *         R3          |- copied from above
@@ -41,7 +41,7 @@ __attribute__((naked, noinline)) void syscall_delegate_callback()
 			/* set return address */
 			"ldr	lr, =1f			\n\t"
 			"orr	lr, #1			\n\t"
-			/* jump to callback */
+			/* jump to handler */
 			"pop	{pc}			\n\t"
 			/* restore user context saved by hardware */
 		"1:"	"ldr	r12, [sp, #56]		\n\t"
@@ -69,9 +69,9 @@ __attribute__((naked, noinline))
 void syscall_delegate_atomic(void *func, void *sp, void *flags)
 {
 	__asm__ __volatile__(
-			/* save flags and callback function address */
+			/* save flags and handler */
 			"mrs	r3, psp				\n\t"
-			"str	r0, [r3, #-12]			\n\t" /* func */
+			"str	r0, [r3, #-12]			\n\t" /* handler */
 			"str	r2, [r3, #-8]			\n\t" /* flags(addr) */
 			"ldr	r0, [r2]			\n\t"
 			"str	r0, [r3, #-4]			\n\t" /* flags */

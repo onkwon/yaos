@@ -124,10 +124,10 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
-		return 0;
+		return ERANGE;
 	}
 
-	vector = -1;
+	vector = 0;
 	mode = 0;
 	pin = pin2portpin(index);
 	reg = port2reg(port);
@@ -137,7 +137,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
-		vector = 0;
+		vector = EEXIST;
 		goto out;
 	}
 
@@ -236,10 +236,10 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
-		return 0;
+		return ERANGE;
 	}
 
-	vector = -1;
+	vector = 0;
 	mode = 0;
 	pin = pin2portpin(index);
 	reg = port2reg(port);
@@ -249,7 +249,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
-		vector = 0;
+		vector = EEXIST;
 		goto out;
 	}
 
