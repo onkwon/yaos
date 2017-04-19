@@ -84,18 +84,6 @@ struct regs {
 			"r10", "r11", "r12", "lr", "memory");		\
 } while (0)
 
-#define __save_curr_context_all()			do {		\
-	__asm__ __volatile__(						\
-			"push	{r0-r12}		\n\t"		\
-			::: "memory");					\
-} while (0)
-
-#define __restore_curr_context_all()			do {		\
-	__asm__ __volatile__(						\
-			"pop	{r0-r12}		\n\t"		\
-			::: "memory");					\
-} while (0)
-
 #define __wrapper_save_regs()				do {		\
 	__asm__ __volatile__(						\
 			"push	{r0-r3}			\n\t"		\

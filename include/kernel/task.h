@@ -1,6 +1,7 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#define STACK_ALIGNMENT			8 /* bytes */
 #define STACK_SIZE_DEFAULT		1024 /* bytes */
 #define STACK_SIZE_MIN			384 /* bytes */
 

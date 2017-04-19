@@ -30,13 +30,16 @@ int register_isr(int nvector, void (*handler)(int nvec))
 void __attribute__((naked)) irq_handler()
 {
 	__asm__ __volatile__(
-			"push	{lr}			\n\t"
+			"sub	sp, sp, #8		\n\t"
+			"str	lr, [sp]		\n\t"
 			"mrs	r0, ipsr		\n\t"
 			"ldr	r1, =vector_table	\n\t"
 			"mov	r2, r0, lsl #2		\n\t"
 			"ldr	r3, [r1, r2]		\n\t"
 			"blx	r3			\n\t"
-			"pop	{pc}			\n\t"
+			"ldr	lr, [sp]		\n\t"
+			"add	sp, sp, #8		\n\t"
+			"bx	lr			\n\t"
 			::: "memory");
 }
 #else
@@ -93,17 +96,19 @@ void __attribute__((naked)) svc_handler()
 			"ldr	r0, [r12]		\n\t"
 			"teq	r0, %0			\n\t"
 			"beq	sys_schedule		\n\t"
-			"push	{lr}			\n\t"
+			/* #24 = r0-r3, lr and padding(4) */
+			"sub	sp, sp, #24		\n\t"
+			"str	lr, [sp, #20]		\n\t"
 #ifndef CONFIG_SYSCALL_THREAD
 #ifdef CONFIG_DEBUG_SYSCALL_NESTED
-			"push	{r0-r3, lr}		\n\t"
+			"stmia	sp, {r0-r3}		\n\t"
 			"ldr	r1, =current		\n\t"
 			"ldr	r2, [r1]		\n\t"
 			"ldr	r1, [r2, #4]		\n\t"
 			"tst	r1, %2			\n\t"
 			"it	ne			\n\t"
-			"bne	syscall_nested		\n\t"
-			"pop	{r0-r3, lr}		\n\t"
+			"blne	syscall_nested		\n\t"
+			"ldmia	sp, {r0-r3}		\n\t"
 #endif
 #endif
 			/* save context that are not yet saved by hardware.
@@ -111,9 +116,9 @@ void __attribute__((naked)) svc_handler()
 			 * `syscall_delegate_atomic()` but using only
 			 * CONFING_SYSCALL_THREAD. */
 #ifndef CONFIG_SYSCALL_THREAD
-			"mov	r1, r12			\n\t"
-			"stmdb	r1!, {r4-r11}		\n\t"
+			"sub	r1, r12, #32		\n\t"
 			"msr	psp, r1			\n\t"
+			"stmdb	r12, {r4-r11}		\n\t"
 #endif
 			/* if nr >= SYSCALL_NR */
 			"cmp	r0, %1			\n\t"
@@ -144,7 +149,9 @@ void __attribute__((naked)) svc_handler()
 			"str	r0, [r12]		\n\t"
 			"dsb				\n\t"
 			"isb				\n\t"
-			"pop	{pc}			\n\t"
+			"ldr	lr, [sp, #20]		\n\t"
+			"add	sp, sp, #24		\n\t"
+			"bx	lr			\n\t"
 			:: "I"(SYSCALL_SCHEDULE), "I"(SYSCALL_NR), "I"(TF_SYSCALL)
 			: "r12", "memory");
 }

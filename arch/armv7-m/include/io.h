@@ -56,12 +56,6 @@
 	__asm__ __volatile__("mrs %0, control" : "=r"(__control));	\
 	__control;							\
 })
-#define __set_pc(addr)	({						\
-	__asm__ __volatile(						\
-		"push {%0}	\n\t"					\
-		"pop {pc}	\n\t"					\
-		:: "r"(addr) : "memory");				\
-})
 #define __set_sp(sp)							\
 	__asm__ __volatile__("mov sp, %0" :: "r"(sp))
 #define __set_ksp(sp)							\

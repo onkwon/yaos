@@ -1,5 +1,6 @@
 #include <io.h>
 #include <kernel/init.h>
+#include <kernel/task.h>
 
 #define NVIC_DEFAULT_PRIORITY		10
 
@@ -21,8 +22,7 @@ static void *isr_vectors[]
 __attribute__((section(".vector"), aligned(4), used)) = {
 				/* NUM(IRQ): ADDR - DESC */
 				/* -------------------- */
-	/* save a word for allocator's link to the head */
-	&_ram_end - WORD_SIZE,	/* 00     :       - Stack pointer */
+	&_ram_end,		/* 00     : 0x00  - Stack pointer */
 	__reset,		/* 01     : 0x04  - Reset */
 	isr_fault,		/* 02     : 0x08  - NMI */
 	isr_fault,		/* 03     : 0x0c  - HardFault */
@@ -156,11 +156,10 @@ static void __init __attribute__((naked, used)) __reset()
 	SCB_SHPR2 |= 0xf0000000; /* SVCall : the lowest priority, 15 */
 	SCB_SHCSR |= 0x00070000; /* enable faults */
 	SCB_CCR   |= 0x00000008; /* enable unaligned access traps */
-#ifdef CONFIG_STACK_ALIGN_8BYTE
 	SCB_CCR   |= 0x00000200; /* 8-byte stack alignment */
-#else
-	//SCB_CCR   &= ~0x200UL;
-#endif
+
+	if (STACK_ALIGNMENT == 4) /* 4-byte stack alignment */
+		SCB_CCR &= ~0x200UL;
 
 #ifdef CONFIG_WRITE_BUFFER_DISABLE
 	SCB_ACTLR |= 2; /* disable write buffer */

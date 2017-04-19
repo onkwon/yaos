@@ -17,10 +17,10 @@ int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 		return ENOMEM;
 	}
 
-	/* make its stack pointer to point out the highest memory address.
-	 * full descending stack, 8-byte alignment */
+	/* full descending stack */
 	new->mm.sp = new->mm.base + (size / WORD_SIZE);
-	new->mm.sp = (typeof(new->mm.sp))BASE_ALIGN((unsigned int)new->mm.sp, 8);
+	new->mm.sp = (typeof(new->mm.sp))
+		BASE_ALIGN((unsigned int)new->mm.sp, STACK_ALIGNMENT);
 	new->mm.base[0] = STACK_SENTINEL;
 
 	/* initialize heap for malloc() */
@@ -37,7 +37,8 @@ int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 			new->mm.kernel.sp = &new->mm.kernel.base[size /
 				WORD_SIZE];
 			new->mm.kernel.sp = (typeof(new->mm.kernel.sp))
-				BASE_ALIGN((unsigned int)new->mm.kernel.sp, 8);
+				BASE_ALIGN((unsigned int)new->mm.kernel.sp,
+						STACK_ALIGNMENT);
 		}
 	}
 

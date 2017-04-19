@@ -1,6 +1,5 @@
 /*
- * 8-byte meta data per a allocated block is required, meaning not to alloc a
- * small size dynamically but use a local variable in stack.
+ * 8-byte meta data per an allocated block is required.
  *
  * The latest freed object gets added to the head. And new object gets from
  * the head for cache efficiency.
