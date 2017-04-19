@@ -118,13 +118,13 @@ static void buddy_freelist_init(struct buddy *node, size_t nr_pages,
 
 	/* Preserve the initial kernel stack to be free later, which is located
 	 * at the end of memory */
-	preserved = nr_pages - PAGE_NR(ALIGN_PAGE(STACK_SIZE));
-	order = mylog2(PAGE_NR(ALIGN_PAGE(STACK_SIZE)));
+	preserved = nr_pages - PAGE_NR(ALIGN_PAGE(STACK_SIZE_DEFAULT));
+	order = mylog2(PAGE_NR(ALIGN_PAGE(STACK_SIZE_DEFAULT)));
 	SET_PAGE_ORDER(&mem_map[preserved], order);
 
 	/* And mark kernel .data and .bss sections as used.
 	 * The region of mem_map array as well. */
-	idx = PAGE_NR(ALIGN_PAGE(&mem_map[nr_pages]) -
+	idx = PAGE_NR(ALIGN_PAGE((unsigned int)&mem_map[nr_pages]) -
 			(unsigned int)&_ram_start);
 	nr_free = preserved - idx;
 	debug("The first free page(idx:%d) - %x", idx, &mem_map[nr_pages]);

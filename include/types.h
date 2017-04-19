@@ -33,20 +33,14 @@ typedef struct ff_freelist_head heap_t;
 #define max(a, b)			(((a) > (b))? a : b)
 #define min(a, b)			(((a) > (b))? b : a)
 
-#define MASK_ALIGN(x, a)		\
-	((typeof(x))((unsigned int)(x) & ~((a) - 1UL)))
+#define BASE_ALIGN(x, a)		((x) & ~((typeof(x))(a) - 1UL))
+#define ALIGN(x, a)			\
+	BASE_ALIGN((x) + ((typeof(x))(a) - 1UL), a)
 
-#define BASE_WORD(x)			((unsigned int)(x) & ~(WORD_SIZE - 1))
-#define ALIGN_WORD(x)			\
-	BASE_WORD((unsigned int)(x) + (WORD_SIZE - 1))
-#define BASE_DWORD(x)			\
-	((unsigned int)(x) & ~((WORD_SIZE << 1) - 1))
-#define ALIGN_DWORD(x)			\
-	BASE_DWORD((unsigned int)(x) + ((WORD_SIZE << 1) - 1))
-#define BLOCK_BASE(x, size)		\
-	((unsigned int)(x) & ~((size) - 1))
-#define ALIGN_BLOCK(x, size)		\
-	BLOCK_BASE((unsigned int)(x) + ((size) - 1), size)
+#define BASE_WORD(x)			BASE_ALIGN(x, WORD_SIZE)
+#define ALIGN_WORD(x)			ALIGN(x, WORD_SIZE)
+#define BASE_DWORD(x)			BASE_ALIGN(x, WORD_SIZE << 1)
+#define ALIGN_DWORD(x)			ALIGN(x, WORD_SIZE << 1)
 
 #define get_container_of(ptr, type, member) \
 	((type *)((char *)(ptr) - (char *)&((type *)0)->member))

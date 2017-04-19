@@ -173,7 +173,7 @@ size_t ff_freelist_init(struct ff_freelist_head *pool, void *start, void *end)
 {
 	struct ff_freelist *first;
 
-	first = (struct ff_freelist *)ALIGN_WORD(start);
+	first = (struct ff_freelist *)ALIGN_WORD((unsigned int)start);
 	first->size = (unsigned int)end - (unsigned int)first - FF_METASIZE;
 	first->size = BASE_WORD(first->size);
 	first->head = first;

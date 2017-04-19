@@ -58,7 +58,7 @@ static size_t read_block(unsigned int nr, void *buf, struct device *dev)
 	char *diskbuf, *s, *d;
 	size_t len = 0;
 
-	fs_block = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
+	fs_block = BASE_ALIGN(NR2ADDR(nr), BLOCK_SIZE);
 
 	if ((diskbuf = getblk_lock(fs_block, dev)) == NULL)
 		goto out;
@@ -81,7 +81,7 @@ static size_t write_block(unsigned int nr, void *buf, size_t len,
 	unsigned int fs_block;
 	char *diskbuf, *s, *d;
 
-	fs_block = BLOCK_BASE(NR2ADDR(nr), BLOCK_SIZE);
+	fs_block = BASE_ALIGN(NR2ADDR(nr), BLOCK_SIZE);
 
 	if ((diskbuf = getblk_lock(fs_block, dev)) == NULL) {
 		len = 0;
@@ -227,7 +227,7 @@ static unsigned int alloc_free_inode(struct device *dev)
 	read_superblock(sb, dev);
 	read_inode_bitmap(bitmap, dev);
 
-	len = ALIGN_BLOCK(sb->nr_inodes, 8) / 8;
+	len = ALIGN(sb->nr_inodes, 8) / 8;
 	for (i = 0; (i < len) && (bitmap[i] == 0xff); i++) ;
 	bit = fls(bitmap[i]);
 
@@ -307,7 +307,7 @@ static unsigned int alloc_free_block(struct device *dev)
 
 	read_superblock(sb, dev);
 
-	data_bitmap_size = ALIGN_BLOCK(sb->nr_blocks, 8) / 8;
+	data_bitmap_size = ALIGN(sb->nr_blocks, 8) / 8;
 
 	for (i = 0; i < data_bitmap_size; i++) {
 		read_block(D_BMAP_BLK + i, bitmap, dev);
@@ -1331,11 +1331,11 @@ static int build_file_system(struct device *dev)
 				    block */
 
 	nr_blocks = disk_size / BLOCK_SIZE;
-	data_bitmap_size = ALIGN_BLOCK(nr_blocks, 8) / 8;
+	data_bitmap_size = ALIGN(nr_blocks, 8) / 8;
 	inode_table = data_bitmap_size / BLOCK_SIZE + 1;
 	inode_table += 2;
 
-	inode_table_size_by_block = ALIGN_BLOCK(sizeof(struct embed_inode) *
+	inode_table_size_by_block = ALIGN(sizeof(struct embed_inode) *
 			nr_inodes, BLOCK_SIZE) / BLOCK_SIZE + 1;
 
 	data_block = inode_table + inode_table_size_by_block;

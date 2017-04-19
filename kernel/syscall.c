@@ -333,7 +333,7 @@ void *syscall_table[] = {
 };
 
 #define getarg(args, type)	({ \
-	args = (char *)ALIGN_BLOCK(args, sizeof(type)); \
+	args = (char *)ALIGN((unsigned int)args, sizeof(type)); \
 	args = (char *)((unsigned int)(args) + sizeof(type)); \
 	*(type *)((unsigned int)(args) - sizeof(type)); \
 })

@@ -152,12 +152,12 @@ void __init mm_init()
 	unsigned int end =
 		(unsigned int)&_ram_start + (unsigned int)&_ram_size - 1;
 #ifdef CONFIG_PAGING
-	unsigned int start = ALIGN_WORD(&_ram_start);
+	unsigned int start = ALIGN_WORD((unsigned int)&_ram_start);
 
 	/* assume flat memory */
 	unsigned int nr_pages = PAGE_NR(end) - PAGE_NR(start) + 1;
 
-	struct page *page = (struct page *)ALIGN_PAGE(&_ebss);
+	struct page *page = (struct page *)ALIGN_PAGE((unsigned int)&_ebss);
 
 	notice("# Initializing memory\n"
 	       "page size %d bytes\n"

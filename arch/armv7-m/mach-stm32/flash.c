@@ -122,11 +122,12 @@ __flash_write(void *addr, void *buf, size_t len)
 	for (index = BLOCK_LEN; len; len -= WORD_SIZE) {
 		if (index >= BLOCK_LEN) {
 			index = 0;
-			sentinel = (unsigned int)
-				to - BLOCK_BASE(to, BLOCK_SIZE);
+			sentinel = (unsigned int)to -
+				BASE_ALIGN((unsigned int)to, BLOCK_SIZE);
 			sentinel /= WORD_SIZE;
 
-			to = (unsigned int *)BLOCK_BASE(to, BLOCK_SIZE);
+			to = (unsigned int *)
+				BASE_ALIGN((unsigned int)to, BLOCK_SIZE);
 			__flash_read(to, tmp, BLOCK_SIZE);
 			FLASH_WRITE_END();
 			flash_erase(to);
@@ -239,7 +240,7 @@ static int flash_init()
 	dev->block_size = BLOCK_SIZE;
 	dev->base_addr = (unsigned int)&_etext +
 		((unsigned int)&_ebss - (unsigned int)&_data);
-	dev->base_addr = ALIGN_BLOCK(dev->base_addr, BLOCK_SIZE);
+	dev->base_addr = ALIGN(dev->base_addr, BLOCK_SIZE);
 
 #if (SOC == stm32f4)
 	/* 16KiB sectors only and part of 64KiB block,

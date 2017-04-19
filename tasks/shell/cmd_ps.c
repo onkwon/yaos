@@ -105,8 +105,10 @@ static int ps(int argc, char **argv)
 					i, softirq.pool[i].overrun);
 	}
 
+#ifndef CONFIG_PAGING
 	extern unsigned int mem_bottom;
 	printk("memory bottom %d\n", mem_bottom);
+#endif
 
 #ifdef CONFIG_DEBUG_SYSCALL
 	extern unsigned int syscall_count;
