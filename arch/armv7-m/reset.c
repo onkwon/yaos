@@ -158,6 +158,8 @@ static void __init __attribute__((naked, used)) __reset()
 	SCB_CCR   |= 0x00000008; /* enable unaligned access traps */
 #ifdef CONFIG_STACK_ALIGN_8BYTE
 	SCB_CCR   |= 0x00000200; /* 8-byte stack alignment */
+#else
+	//SCB_CCR   &= ~0x200UL;
 #endif
 
 #ifdef CONFIG_WRITE_BUFFER_DISABLE

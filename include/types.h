@@ -33,6 +33,9 @@ typedef struct ff_freelist_head heap_t;
 #define max(a, b)			(((a) > (b))? a : b)
 #define min(a, b)			(((a) > (b))? b : a)
 
+#define MASK_ALIGN(x, a)		\
+	((typeof(x))((unsigned int)(x) & ~((a) - 1UL)))
+
 #define BASE_WORD(x)			((unsigned int)(x) & ~(WORD_SIZE - 1))
 #define ALIGN_WORD(x)			\
 	BASE_WORD((unsigned int)(x) + (WORD_SIZE - 1))

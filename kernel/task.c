@@ -20,6 +20,7 @@ int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 	/* make its stack pointer to point out the highest memory address.
 	 * full descending stack */
 	new->mm.sp = new->mm.base + (size / WORD_SIZE);
+	new->mm.sp = MASK_ALIGN(new->mm.sp, 8); /* 8-byte alignment */
 	new->mm.base[0] = STACK_SENTINEL;
 
 	/* initialize heap for malloc() */
@@ -35,6 +36,7 @@ int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 			new->mm.kernel.base[0] = STACK_SENTINEL;
 			new->mm.kernel.sp = &new->mm.kernel.base[size /
 				WORD_SIZE];
+			new->mm.kernel.sp = MASK_ALIGN(new->mm.kernel.sp, 8);
 		}
 	}
 
