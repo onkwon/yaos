@@ -10,13 +10,13 @@ static int (*user_isr[NR_TIMER_MAX][TIM_CHANNEL_MAX+1])(int flags);
 static int capture[NR_TIMER_MAX][TIM_CHANNEL_MAX];
 static volatile int new;
 
-static void isr_timer(int nvector)
+static void ISR_timer(int nvector)
 {
 	struct __timer *tim;
 	unsigned int *reg;
 	int flags, id, ch, i;
 
-#ifndef CONFIG_IRQ_HIERARCHY
+#ifndef CONFIG_COMMON_IRQ_FRAMEWORK
 	nvector = get_active_irq();
 #endif
 
@@ -217,7 +217,7 @@ static int timer_open(struct inode *inode, struct file *file)
 	mutex_lock(&dev->mutex);
 
 	if (dev->refcount == 0) {
-		int nvector, dir, id;
+		int vector, dir, id;
 		unsigned int hz;
 
 		if (!(get_task_flags(current->parent) & TASK_PRIVILEGED)) {
@@ -235,12 +235,12 @@ static int timer_open(struct inode *inode, struct file *file)
 
 		dir = dir >> 1; /* to the bool data type */
 		id = MINOR(file->inode->dev);
-		if ((nvector = __timer_open(id, (bool)dir, hz)) <= 0) {
+		if ((vector = __timer_open(id, (bool)dir, hz)) <= 0) {
 			ret = EAGAIN;
 			goto out_unlock;
 		}
 
-		register_isr(nvector, isr_timer);
+		register_isr(vector, ISR_timer);
 		if (!dir || hz)
 			__timer_run(id, true);
 	}

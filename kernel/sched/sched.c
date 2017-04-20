@@ -202,7 +202,7 @@ void sum_curr_stat(struct task *to)
 int sched_overhead;
 #endif
 
-void __attribute__((naked, used)) __schedule()
+void __attribute__((naked, used)) ISR_schedule()
 {
 #ifdef CONFIG_DEBUG_SCHED
 	/* FIXME: do not use any registers that are not saved yet
@@ -225,7 +225,7 @@ void __attribute__((naked, used)) __schedule()
 	__ret();
 }
 
-static void __attribute__((naked, used)) __schedule_dummy()
+static void __attribute__((naked, used)) ISR_schedule_dummy()
 {
 	__ret();
 }
@@ -244,9 +244,9 @@ void run_scheduler(bool run)
 	}
 
 	if (run)
-		func = __schedule;
+		func = ISR_schedule;
 	else
-		func = __schedule_dummy;
+		func = ISR_schedule_dummy;
 
 	register_isr(NVECTOR_PENDSV, func);
 	isb();

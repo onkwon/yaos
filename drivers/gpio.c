@@ -17,13 +17,12 @@ struct uisr {
 	struct task *task;
 };
 
-static void isr(int nvector)
+static void ISR_gpio(int nvector)
 {
-#ifndef CONFIG_IRQ_HIERARCHY
+#ifndef CONFIG_COMMON_IRQ_FRAMEWORK
 	nvector = get_active_irq();
 #endif
 	raise_softirq(nsoftirq, (void *)nvector);
-	ret_from_exti(nvector);
 }
 
 static size_t gpio_read(struct file *file, void *buf, size_t len)
@@ -92,7 +91,7 @@ static int gpio_open(struct inode *inode, struct file *file)
 		}
 
 		if (vector > 0) {
-			register_isr(vector, isr);
+			register_isr(vector, ISR_gpio);
 			/* we do not use file->offset nor seek() for gpio
 			 * driver so safe to keep the vector number in it */
 			file->offset = vector;

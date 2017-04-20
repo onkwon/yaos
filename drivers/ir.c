@@ -11,7 +11,7 @@ static struct fifo ir_queue;
 static unsigned int nsoftirq;
 static int siglevel;
 
-static void isr_ir(int nvector)
+static void ISR_ir(int nvector)
 {
 	static unsigned int elapsed = 0;
 	unsigned int stamp, ir_count_max;
@@ -33,8 +33,6 @@ static void isr_ir(int nvector)
 	siglevel ^= HIGH;
 
 	raise_softirq(nsoftirq, NULL);
-
-	ret_from_gpio_int(gpio2exti(PIN_IR));
 }
 
 static size_t ir_read(struct file *file, void *buf, size_t len)
@@ -85,17 +83,17 @@ static int __init ir_init()
 {
 	struct device *dev;
 	void *buf;
-	int vector_nr;
+	int vector;
 
 	if ((buf = kmalloc(QUEUE_SIZE)) == NULL)
 		return ENOMEM;
 
 	fifo_init(&ir_queue, buf, QUEUE_SIZE);
 
-	vector_nr = gpio_init(PIN_IR, GPIO_MODE_INPUT | GPIO_CONF_PULLUP |
+	vector = gpio_init(PIN_IR, GPIO_MODE_INPUT | GPIO_CONF_PULLUP |
 			GPIO_INT_FALLING | GPIO_INT_RISING);
 
-	register_isr(vector_nr, isr_ir);
+	register_isr(vector, ISR_ir);
 
 	if ((dev = mkdev(0, 0, &ops, "ir"))) {
 		if ((nsoftirq = request_softirq(ird, HIGHEST_PRIORITY))

@@ -19,14 +19,14 @@ struct uart_buffer {
 	struct waitqueue_head waitq;
 };
 
-static void isr_uart(int nvector)
+static void ISR_uart(int nvector)
 {
 	unsigned int channel;
 	struct device *dev;
 	struct uart_buffer *buf;
 	int c;
 
-#ifndef CONFIG_IRQ_HIERARCHY
+#ifndef CONFIG_COMMON_IRQ_FRAMEWORK
 	nvector = get_active_irq();
 #endif
 	channel = __get_uart_channel_active(nvector);
@@ -327,7 +327,7 @@ static int uart_open(struct inode *inode, struct file *file)
 	if (dev->refcount++ == 0) {
 		struct uart def = { 128, 128, 115200 }; /* default */
 		struct uart *conf;
-		int nvector;
+		int vector;
 
 		if ((conf = (struct uart *)file->option) == NULL)
 			conf = &def;
@@ -339,7 +339,7 @@ static int uart_open(struct inode *inode, struct file *file)
 		if (conf->tx < def.tx) conf->tx = def.tx;
 		assert(conf->baudrate);
 
-		if ((nvector = __uart_open(CHANNEL(dev->id), conf->baudrate)) <= 0) {
+		if ((vector = __uart_open(CHANNEL(dev->id), conf->baudrate)) <= 0) {
 			err = EINVAL;
 			goto out;
 		}
@@ -360,7 +360,7 @@ static int uart_open(struct inode *inode, struct file *file)
 		WQ_INIT(buf->waitq);
 		dev->buffer = buf;
 
-		register_isr(nvector, isr_uart);
+		register_isr(vector, ISR_uart);
 	}
 
 	goto out;

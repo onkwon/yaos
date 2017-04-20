@@ -48,11 +48,8 @@ void print_task_status(struct task *task)
 }
 
 /* externally triggered break point */
-static void __attribute__((naked)) isr_break()
+static void ISR_break()
 {
-	dsb();
-	__context_save(current);
-
 	unsigned int sp, lr, psr, usp;
 
 	sp  = __get_sp();
@@ -71,25 +68,18 @@ static void __attribute__((naked)) isr_break()
 
 	printk("\nCurrent Context\n");
 	print_context((unsigned int *)current->mm.sp);
-
-	ret_from_gpio_int(gpio2exti(PIN_DEBUG));
-
-	__context_restore(current);
-	dsb();
-	isb();
-	__ret();
 }
 
 #include <kernel/init.h>
 
 void __init debug_init()
 {
-	int nvector;
+	int vector;
 
 	//nvic_set_pri(23, 0); /* make it the highest priority */
 
-	nvector = gpio_init(PIN_DEBUG,
+	vector = gpio_init(PIN_DEBUG,
 			GPIO_MODE_INPUT | GPIO_CONF_PULLDOWN | GPIO_INT_RISING);
 
-	register_isr(nvector, isr_break);
+	register_isr(vector, ISR_break);
 }

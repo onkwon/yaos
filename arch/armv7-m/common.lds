@@ -16,6 +16,12 @@ SECTIONS
 	.text :
 	{
 		*(.vector)
+		*(.vector_irq)
+		/* TODO: fill irq_handler in here */
+		FILL(0xDEAFC0DE);
+
+		. = _vector_size;
+		LONG(0); /* null sentinel */
 
 		*(.text.init)
 
@@ -25,7 +31,7 @@ SECTIONS
 		*(.text.init.1)
 		*(.text.init.2)
 		*(.text.init.*)
-		LONG(0); /* null sentinel */
+		LONG(0);
 
 		*(.text)
 		*(.text.*)
@@ -52,8 +58,8 @@ SECTIONS
 		_etext = .;
 	} > rom
 
-#ifdef CONFIG_IRQ_HIERARCHY
-	.data _ram_start :
+#ifdef CONFIG_COMMON_IRQ_FRAMEWORK
+	.data :
 #else
 	.data _ram_start + _vector_size :
 #endif

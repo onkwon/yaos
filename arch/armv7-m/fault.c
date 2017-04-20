@@ -69,7 +69,7 @@ static inline void usagefault()
 
 #define IS_FROM_THREAD(lr)	!!((lr) & (1 << 3))
 
-void __attribute__((naked)) isr_fault()
+void __attribute__((naked)) ISR_fault()
 {
 	dsb();
 	__context_save(current);

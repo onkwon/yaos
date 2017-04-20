@@ -39,5 +39,5 @@ int sysclk_init()
 	reset_sysclk();
 	set_sysclk(period);
 
-	return IRQ_SYSTICK;
+	return NVECTOR_SYSTICK;
 }

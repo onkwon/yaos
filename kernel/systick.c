@@ -39,7 +39,7 @@ unsigned int get_curr_interval()
 	return interval;
 }
 
-void isr_systick(int nvector)
+void ISR_systick(int nvector)
 {
 #ifdef CONFIG_SLEEP_LONG
 	static unsigned int clks;
@@ -69,7 +69,7 @@ void isr_systick(int nvector)
 
 void __init systick_init()
 {
-	register_isr(sysclk_init(), isr_systick);
+	register_isr(sysclk_init(), ISR_systick);
 
 	period = get_sysclk_period();
 	interval = get_sysclk_max();

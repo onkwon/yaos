@@ -33,24 +33,88 @@ static struct gpio {
 
 static int nr_active; /* number of active pins */
 
-int reg2port(reg_t *reg)
-{
-	switch ((unsigned int)reg) {
-	case PORTA: return 0;
-	case PORTB: return 1;
-	case PORTC: return 2;
-	case PORTD: return 3;
-	case PORTE: return 4;
-	case PORTF: return 5;
-	case PORTG: return 6;
-	default:
-		break;
-	}
+static void (*isr_table[PINS_PER_PORT])(int nvector);
 
-	return ERANGE;
+static int irq_register(int lvector, void (*handler)(int))
+{
+	int pin = get_secondary_vector(lvector);
+
+	if (pin >= PINS_PER_PORT)
+		return ERANGE;
+
+	/* NOTE: maybe you can make handler list so that multiple user handlers
+	 * get called. we call only one here however. */
+	isr_table[pin] = handler;
+
+	return 0;
 }
 
-void set_port_pin_conf(reg_t *reg, int pin, int mode)
+/* FIXME: simultaneously generated interrupts between EXTI5~15 will be missed
+ * those interrupts share an interrupt vector and we clear all that bits at
+ * once below, we will miss except the first one. */
+static void ISR_gpio(int nvector)
+{
+	int pin, mask;
+
+#ifndef CONFIG_COMMON_IRQ_FRAMEWORK
+	nvector = get_active_irq();
+#endif
+	pin = nvector;
+	mask = 1;
+
+	pin -= 22; /* EXTI0~4 */
+
+	if (pin == 17) { /* EXTI5~9 */
+		pin = 5;
+		mask = 0x1f;
+	} else if (pin == 34) { /* EXTI10~15 */
+		pin = 10;
+		mask = 0x3f;
+	} else if (pin > 4) {
+		error("unknown interrupt vector %x\n", nvector);
+		return;
+	}
+
+	if (isr_table[pin])
+		isr_table[pin](nvector);
+
+	/* FIXME: handle EXTI in an isolated func considering sync, lock */
+	EXTI_PR |= mask << pin;
+}
+
+static inline int gpio2exti(int n)
+{
+	return pin2portpin(n);
+}
+
+static inline unsigned int scan_port(reg_t *reg)
+{
+	int idx = 4;
+#if (SOC == stm32f1)
+	idx = 2;
+#endif
+	return reg[idx];
+}
+
+static inline void write_port(reg_t *reg, unsigned int data)
+{
+	int idx = 5;
+#if (SOC == stm32f1)
+	idx = 3;
+#endif
+	reg[idx] = data;
+}
+
+static inline void write_port_pin(reg_t *reg, int pin, bool on)
+{
+	int idx = 6;
+#if (SOC == stm32f1)
+	idx = 4;
+#endif
+	reg[idx] = on? 1 << pin : 1 << (pin + 16);
+}
+
+static void set_port_pin_conf(reg_t *reg, int pin, int mode)
 {
 	unsigned int idx, t, shift, mask;
 
@@ -69,7 +133,7 @@ void set_port_pin_conf(reg_t *reg, int pin, int mode)
 	reg[idx] = t;
 }
 
-void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
+static void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
 {
 	unsigned int idx, t, shift, mask;
 
@@ -81,6 +145,44 @@ void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
 	t = reg[idx];
 	t = MASK_RESET(t, mask << shift) | (mode << shift);
 	reg[idx] = t;
+}
+
+static inline int pin2vec(int pin)
+{
+	int nvector = 0;
+
+	switch (pin) {
+	case 0 ... 4:
+		nvector = pin + 22;
+		break;
+	case 5 ... 9:
+		nvector = 39;
+		break;
+	case 10 ... 15:
+		nvector = 56;
+		break;
+	default:
+		break;
+	}
+
+	return nvector;
+}
+
+int reg2port(reg_t *reg)
+{
+	switch ((unsigned int)reg) {
+	case PORTA: return 0;
+	case PORTB: return 1;
+	case PORTC: return 2;
+	case PORTD: return 3;
+	case PORTE: return 4;
+	case PORTF: return 5;
+	case PORTG: return 6;
+	default:
+		break;
+	}
+
+	return ERANGE;
 }
 
 unsigned int gpio_get(unsigned int index)
@@ -119,7 +221,7 @@ void gpio_put(unsigned int index, int v)
 int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode;
-	int vector;
+	int lvector;
 	reg_t *reg;
 
 	if ((port = pin2port(index)) >= NR_PORT) {
@@ -127,7 +229,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		return 0;
 	}
 
-	vector = -1;
+	lvector = -1;
 	mode = 0;
 	pin = pin2portpin(index);
 	reg = port2reg(port);
@@ -137,7 +239,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
-		vector = 0;
+		lvector = 0;
 		goto out;
 	}
 
@@ -199,22 +301,8 @@ int gpio_init(unsigned int index, unsigned int flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		switch (pin) {
-		case 0 ... 4:
-			nvic_set(pin + 6, ON);
-			vector = pin + 22;
-			break;
-		case 5 ... 9:
-			nvic_set(23, ON);
-			vector = 39;
-			break;
-		case 10 ... 15:
-			nvic_set(40, ON);
-			vector = 56;
-			break;
-		default:
-			break;
-		}
+		nvic_set(vec2irq(pin2vec(pin)), ON);
+		lvector = mkvector(pin2vec(pin), pin);
 
 		link_exti_to_nvic(port, pin);
 	}
@@ -225,13 +313,13 @@ int gpio_init(unsigned int index, unsigned int flags)
 out:
 	mutex_unlock(&gpio_init_lock);
 
-	return vector;
+	return lvector;
 }
 #elif (SOC == stm32f3 || SOC == stm32f4)
 int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode;
-	int vector;
+	int lvector;
 	reg_t *reg;
 
 	if ((port = pin2port(index)) >= NR_PORT) {
@@ -239,7 +327,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		return 0;
 	}
 
-	vector = -1;
+	lvector = -1;
 	mode = 0;
 	pin = pin2portpin(index);
 	reg = port2reg(port);
@@ -249,7 +337,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
-		vector = 0;
+		lvector = 0;
 		goto out;
 	}
 
@@ -318,22 +406,8 @@ int gpio_init(unsigned int index, unsigned int flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		switch (pin) {
-		case 0 ... 4:
-			nvic_set(pin + 6, ON);
-			vector = pin + 22;
-			break;
-		case 5 ... 9:
-			nvic_set(23, ON);
-			vector = 39;
-			break;
-		case 10 ... 15:
-			nvic_set(40, ON);
-			vector = 56;
-			break;
-		default:
-			break;
-		}
+		nvic_set(vec2irq(pin2vec(pin)), ON);
+		lvector = mkvector(pin2vec(pin), pin);
 
 		link_exti_to_nvic(port, pin);
 	}
@@ -344,13 +418,13 @@ int gpio_init(unsigned int index, unsigned int flags)
 out:
 	mutex_unlock(&gpio_init_lock);
 
-	return vector;
+	return lvector;
 }
 #endif
 
 void gpio_reset(unsigned int index)
 {
-	unsigned int port, pin;
+	unsigned int port, pin, lvector;
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
@@ -376,6 +450,9 @@ void gpio_reset(unsigned int index)
 #endif
 	}
 
+	lvector = mkvector(pin2vec(pin), pin);
+	unregister_isr(lvector);
+
 	mutex_unlock(&gpio_init_lock);
 }
 
@@ -391,8 +468,34 @@ unsigned int get_gpio_state(int port)
 
 #include <kernel/init.h>
 
+static inline void gpio_irq_init()
+{
+	int i;
+
+	for (i = 0; i < PINS_PER_PORT; i++)
+		isr_table[i] = NULL;
+
+	register_isr(22, ISR_gpio); /* EXTI0 */
+	register_isr(23, ISR_gpio); /* EXTI1 */
+	register_isr(24, ISR_gpio); /* EXTI2 */
+	register_isr(25, ISR_gpio); /* EXTI3 */
+	register_isr(26, ISR_gpio); /* EXTI4 */
+	register_isr(39, ISR_gpio); /* EXTI5~9 */
+	register_isr(56, ISR_gpio); /* EXTI10~15 */
+
+	register_isr_register(22, irq_register, 0);
+	register_isr_register(23, irq_register, 0);
+	register_isr_register(24, irq_register, 0);
+	register_isr_register(25, irq_register, 0);
+	register_isr_register(26, irq_register, 0);
+	register_isr_register(39, irq_register, 0);
+	register_isr_register(56, irq_register, 0);
+}
+
 static void __init port_init()
 {
+	gpio_irq_init();
+
 	/* FIXME: initializing of ports makes JTAG not working */
 	return;
 	__turn_port_clock((reg_t *)PORTA, ON);
