@@ -1,8 +1,9 @@
 #include <error.h>
 #include <kernel/module.h>
-#include <kernel/gpio.h>
 #include <kernel/timer.h>
 #include <kernel/page.h>
+#include <kernel/systick.h>
+#include <drivers/gpio.h>
 #include <asm/pinmap.h>
 
 #define set_cs()	gpio_put(PIN_CLCD_E, 1)
@@ -44,7 +45,7 @@ static inline void clcd_put(unsigned char v)
 static inline void clcd_dir(unsigned int dir)
 {
 	if (dir == INPUT)
-		gpio_init(PIN_CLCD_DB7, GPIO_MODE_INPUT | GPIO_CONF_PULL_DOWN);
+		gpio_init(PIN_CLCD_DB7, GPIO_MODE_INPUT | GPIO_CONF_PULLDOWN);
 	else
 		gpio_init(PIN_CLCD_DB7, GPIO_MODE_OUTPUT);
 
@@ -57,8 +58,7 @@ static inline int get_busy_flag()
 
 static inline void wait_while_busy()
 {
-	volatile unsigned int busy;
-	unsigned int tout;
+	unsigned int busy, tout;
 
 	set_timeout(&tout, msec_to_ticks(100)); /* 100ms */
 
@@ -230,7 +230,7 @@ static int clcd_open(struct inode *inode, struct file *file)
 
 	mutex_lock(&dev->mutex);
 
-	if (dev->count++ == 0) {
+	if (dev->refcount++ == 0) {
 		void *buf;
 
 		if ((buf = kmalloc(QSIZE)) == NULL) {
@@ -265,7 +265,7 @@ static int clcd_close(struct file *file)
 
 	mutex_lock(&dev->mutex);
 
-	if (--dev->count == 0) {
+	if (--dev->refcount == 0) {
 		kfree(queue.buf);
 	}
 

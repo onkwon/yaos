@@ -8,7 +8,7 @@
 static unsigned int major;
 static int (*user_isr[NR_TIMER_MAX][TIM_CHANNEL_MAX+1])(int flags);
 static int capture[NR_TIMER_MAX][TIM_CHANNEL_MAX];
-static volatile int new;
+static int new;
 
 static void ISR_timer(int nvector)
 {

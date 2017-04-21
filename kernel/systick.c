@@ -2,7 +2,7 @@
 
 unsigned int sysfreq;
 
-volatile unsigned int __attribute__((section(".data"))) systick;
+unsigned int __attribute__((section(".data"))) systick;
 uint64_t __attribute__((section(".data"))) systick64;
 
 static DEFINE_SPINLOCK(lock_systick64);
@@ -15,7 +15,8 @@ uint64_t get_systick64()
 	do {
 		if (!is_locked(lock_systick64))
 #endif
-			stamp = systick64;
+			stamp = (typeof(systick64))
+				*(volatile typeof(systick64) *)&systick64;
 #ifdef CONFIG_SMP
 	} while (is_locked(lock_systick64));
 #endif
