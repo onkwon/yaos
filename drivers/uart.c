@@ -42,7 +42,7 @@ static void ISR_uart(int nvector)
 	if (__uart_has_rx(channel)) {
 		c = __uart_getc(channel);
 
-		if (fifo_put(&buf->rxq, c, 1) == ERANGE) {
+		if (fifo_putb(&buf->rxq, c) == ENOSPC) {
 			/* TODO: count overflow for stats */
 		}
 
@@ -50,12 +50,12 @@ static void ISR_uart(int nvector)
 	}
 
 	if (__uart_has_tx(channel)) {
-		c = fifo_get(&buf->txq, 1);
+		c = fifo_getb(&buf->txq);
 
 		if (c < 0) /* end of transmission */
 			__uart_tx_irq_reset(channel);
 		else if (!__uart_putc(channel, c)) /* put it back if error */
-			fifo_put(&buf->txq, c, 1);
+			fifo_putb(&buf->txq, c);
 	}
 }
 
@@ -74,15 +74,11 @@ static void uart_flush(struct file *file)
 {
 	struct device *dev;
 	struct uart_buffer *buf;
-	unsigned int irqflag;
 
 	dev = getdev(file->inode->dev);
 	buf = dev->buffer;
 
-	spin_lock_irqsave(nospin, irqflag);
 	fifo_flush(&buf->rxq);
-	spin_unlock_irqrestore(nospin, irqflag);
-
 	__uart_flush(CHANNEL(file->inode->dev));
 }
 
@@ -164,23 +160,19 @@ static inline size_t uart_read_core(struct file *file, void *buf, size_t len)
 {
 	struct device *dev;
 	struct uart_buffer *uartq;
-	char *c;
+	char *p;
 	int data;
-	unsigned int irqflag;
 
 	dev = getdev(file->inode->dev);
 	uartq = dev->buffer;
-	c = (char *)buf;
-
-	spin_lock_irqsave(nospin, irqflag);
-	data = fifo_get(&uartq->rxq, 1);
-	spin_unlock_irqrestore(nospin, irqflag);
+	p = (char *)buf;
+	data = fifo_getb(&uartq->rxq);
 
 	if (data < 0)
 		return 0;
 
-	if (c)
-		*c = data & 0xff;
+	if (p)
+		*p = data & 0xff;
 
 	return 1;
 }
@@ -239,19 +231,14 @@ static size_t uart_write_int(struct file *file, void *data)
 	struct device *dev;
 	struct uart_buffer *buf;
 	char c;
-	unsigned int irqflag;
 
 	dev = getdev(file->inode->dev);
 	buf = dev->buffer;
 	c = *(char *)data;
 
-	spin_lock_irqsave(nospin, irqflag);
-
 	/* ring buffer: if full, throw the oldest one for new one */
-	while (fifo_put(&buf->txq, c, 1) == ERANGE)
-		fifo_get(&buf->txq, 1);
-
-	spin_unlock_irqrestore(nospin, irqflag);
+	while (fifo_putb(&buf->txq, c) == ENOSPC)
+		fifo_getb(&buf->txq);
 
 	__uart_tx_irq_raise(CHANNEL(file->inode->dev));
 

@@ -1,7 +1,7 @@
 #include <types.h>
 #include <error.h>
-
-/* fifo */
+#include <kernel/lock.h>
+#include <bitops.h>
 
 void fifo_init(struct fifo *q, void *queue, size_t size)
 {
@@ -15,55 +15,159 @@ void fifo_flush(struct fifo *q)
 	q->front = q->rear = 0;
 }
 
-int fifo_get(struct fifo *q, int type_size)
+/* NOTE: the size of queue must be power of 2 when using byte type because it
+ * takes performace advantage replacing modulo operation with bit operation. */
+int fifo_getb(struct fifo *q)
 {
-	unsigned int sentinel, index;
-	unsigned char *p;
-	register unsigned int i;
-	int v = 0;
+	unsigned int pos;
+	char *buf;
+	int val;
 
 	if (!q || !q->buf)
 		return EINVAL;
 
-	sentinel = q->size / type_size;
-	index = q->front * type_size;
-	p = q->buf;
+	q->size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
+	buf = q->buf;
 
-	if (q->front == q->rear) /* empty */
-		return ERANGE;
+	do {
+		pos = __ldrex(&q->front);
 
-	for (i = 0; i < type_size; i++)
-		v = (unsigned int)v | (p[index + i] << (i << 3));
+		if (pos == (typeof(pos))(volatile typeof(q->rear))q->rear)
+			return ENOENT; /* empty */
 
-	q->front += 1;
-	q->front %= sentinel;
+		val = (typeof(val))buf[pos];
+		pos = (pos + 1) & (q->size - 1);
+	} while (__strex(pos, &q->front));
 
-	return v;
+	return val;
 }
 
-int fifo_put(struct fifo *q, int value, int type_size)
+int fifo_putb(struct fifo *q, int val)
 {
-	unsigned int sentinel, index;
-	unsigned char *p;
-	register unsigned int i;
+	unsigned int pos;
+	char *buf;
 
 	if (!q || !q->buf)
 		return EINVAL;
 
-	sentinel = q->size / type_size;
-	index = q->rear * type_size;
-	p = q->buf;
+	q->size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
+	buf = q->buf;
 
-	if (((q->rear+1) % sentinel) == q->front) /* no more room */
-		return ERANGE;
+	do {
+		pos = __ldrex(&q->rear);
 
-	for (i = 0; i < type_size; i++) {
-		p[index + i] = (unsigned char)value;
-		value        = (unsigned int)value >> 8;
-	}
+		if (((pos + 1) & (q->size - 1)) ==
+				(typeof(pos))(volatile typeof(q->front))q->front)
+			return ENOSPC; /* no more room */
 
-	q->rear += 1;
-	q->rear %= sentinel;
+		buf[pos] = (typeof(*buf))val;
+		pos = (pos + 1) & (q->size - 1);
+	} while (__strex(pos, &q->rear));
 
-	return value;
+	return 0;
+}
+
+int fifo_getw(struct fifo *q)
+{
+	unsigned int pos, val, *buf;
+
+	if (!q || !q->buf)
+		return EINVAL;
+
+	buf = q->buf;
+
+	do {
+		pos = __ldrex(&q->front);
+
+		if (pos == (typeof(pos))(volatile typeof(q->rear))q->rear)
+			return ENOENT; /* empty */
+
+		val = buf[pos];
+		pos = (pos + 1) % (q->size >> 2);
+	} while (__strex(pos, &q->front));
+
+	return (int)val;
+}
+
+int fifo_putw(struct fifo *q, int val)
+{
+	unsigned int mod, pos, *buf;
+
+	if (!q || !q->buf)
+		return EINVAL;
+
+	mod = q->size >> 2;
+	buf = q->buf;
+
+	do {
+		pos = __ldrex(&q->rear);
+
+		if (((pos + 1) % mod) ==
+				(typeof(pos))(volatile typeof(q->front))q->front)
+			return ENOSPC; /* no more room */
+
+		buf[pos] = (typeof(*buf))val;
+		pos = (pos + 1) % mod;
+	} while (__strex(pos, &q->rear));
+
+	return 0;
+}
+
+int fifo_get(struct fifo *q, int type_size)
+{
+	unsigned int mod, idx, pos, val;
+	char *buf;
+	register int i;
+
+	if (!q || !q->buf)
+		return EINVAL;
+
+	mod = q->size / type_size;
+	buf = q->buf;
+	val = 0;
+
+	do {
+		pos = __ldrex(&q->front);
+		idx = pos * type_size;
+
+		if (pos == (typeof(pos))(volatile typeof(q->rear))q->rear)
+			return ENOENT; /* empty */
+
+		for (i = 0; i < type_size; i++)
+			val = val | ((typeof(val))buf[idx + i] << (i << 3));
+
+		pos = (pos + 1) % mod;
+	} while (__strex(pos, &q->front));
+
+	return (int)val;
+}
+
+int fifo_put(struct fifo *q, int val, int type_size)
+{
+	unsigned int mod, pos, idx;
+	char *buf;
+	register int i;
+
+	if (!q || !q->buf)
+		return EINVAL;
+
+	mod = q->size / type_size;
+	buf = q->buf;
+
+	do {
+		pos = __ldrex(&q->rear);
+		idx = pos * type_size;
+
+		if (((pos + 1) % mod) ==
+				(typeof(pos))(volatile typeof(q->front))q->front)
+			return ENOSPC; /* no more room */
+
+		for (i = 0; i < type_size; i++) {
+			buf[idx + i] = (typeof(*buf))val;
+			val = (unsigned int)val >> 8;
+		}
+		pos = (pos + 1) % mod;
+	} while (__strex(pos, &q->rear));
+
+	return 0;
 }

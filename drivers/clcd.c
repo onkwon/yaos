@@ -137,6 +137,9 @@ static void __clcd_open(unsigned int mode)
 
 static struct fifo queue;
 
+/* FIXME: do not access fifo directly but use fifo_xxx functions
+ * I don't remember why I have done like this. feeling like wanting to redo
+ * whole code. *shy* */
 static inline void clcd_print()
 {
 	unsigned int i, idx;
@@ -161,17 +164,14 @@ static inline void clcd_print()
 
 static size_t clcd_write_core(struct file *file, void *buf, size_t len)
 {
-	struct device *dev = getdev(file->inode->dev);
 	char *src = buf;
 	unsigned int i;
 
-	mutex_lock(&dev->mutex);
 	for (i = 0; i < len; i++) {
-		while (fifo_put(&queue, src[i], 1) < 0)
-			fifo_get(&queue, 1);
+		while (fifo_putb(&queue, src[i]) < 0)
+			fifo_getb(&queue);
 		clcd_print();
 	}
-	mutex_unlock(&dev->mutex);
 
 	return i;
 }

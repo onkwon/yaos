@@ -27,7 +27,7 @@ static void ISR_ir(int nvector)
 	/* make it micro second time base */
 	elapsed /= (ir_count_max * sysfreq) / MHZ;
 
-	fifo_put(&ir_queue, elapsed, sizeof(elapsed));
+	fifo_putw(&ir_queue, elapsed);
 
 	elapsed = stamp;
 	siglevel ^= HIGH;
@@ -38,12 +38,9 @@ static void ISR_ir(int nvector)
 static size_t ir_read(struct file *file, void *buf, size_t len)
 {
 	int i, *data;
-	struct device *dev = getdev(file->inode->dev);
 
 	for (i = 0, data = (int *)buf; i < len; i++) {
-		spin_lock(&dev->mutex.count);
-		data[i] = fifo_get(&ir_queue, sizeof(int));
-		spin_unlock(&dev->mutex.count);
+		data[i] = fifo_getw(&ir_queue);
 
 		if (data[i] == -1)
 			break;

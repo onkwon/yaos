@@ -17,8 +17,9 @@ enum {
 	EBUSY		= -12,
 	ECANCELED	= -13,
 	ETIMEDOUT	= -14,
-	EANYWAY		= -15,
-	EMAX		= -16,
+	ENOSPC		= -15,
+	EANYWAY		= -16,
+	EMAX		= -17,
 };
 
 #define MSG_ERROR		0
