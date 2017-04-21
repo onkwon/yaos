@@ -15,7 +15,9 @@ enum gpio_mode {
 
 	GPIO_INT_FALLING	= 0x0100,
 	GPIO_INT_RISING		= 0x0200,
-	GPIO_INT_MASK		= 0x0300,
+	GPIO_INT_HIGH		= 0x0400,
+	GPIO_INT_LOW		= 0x0800,
+	GPIO_INT_MASK		= 0x0f00,
 
 	GPIO_SPD_SLOW		= 0x1000,
 	GPIO_SPD_MID		= 0x2000,
@@ -30,10 +32,10 @@ enum gpio_mode {
 	(GPIO_MODE_ALT | ((n) << GPIO_ALT_SHIFT))
 #define gpio_altfunc_get(flags)		((flags) >> GPIO_ALT_SHIFT)
 
-int gpio_init(unsigned int index, unsigned int flags);
-void gpio_reset(unsigned int index);
-void gpio_put(unsigned int index, int v);
-unsigned int gpio_get(unsigned int index);
+int gpio_init(unsigned int npin, unsigned int flags);
+void gpio_reset(unsigned int npin);
+void gpio_put(unsigned int npin, int v);
+unsigned int gpio_get(unsigned int npin);
 
 #undef  INCPATH
 #define INCPATH			<asm/mach-MACHINE/gpio.h>

@@ -3,6 +3,7 @@
 #include "exti.h"
 #include "clock.h"
 #include <asm/pinmap.h>
+#include <error.h>
 
 #ifndef stm32f1
 #define stm32f1	1
@@ -10,10 +11,20 @@
 #define stm32f4	4
 #endif
 
-#define RXNE		5
-#define TXE		7
+enum {
+	RE	= 2, /* Receiver enable */
+	TE	= 3, /* Transmitter enable */
+	RXNEIE	= 5, /* RXNE interrupt enable */
+	RXNE	= 5,
+	TXE	= 7,
+#if (SOC == stm32f3)
+	UE	= 0, /* USART enable */
+#else
+	UE	= 13,
+#endif
+};
 
-struct uart {
+struct _regs {
 	/*unsigned int sr;*/
 	/*unsigned int dr;*/
 	unsigned int brr;
@@ -37,7 +48,7 @@ static unsigned int brr2reg(unsigned int baudrate, unsigned int clk)
 	return baudrate;
 }
 
-static inline int ch2vec(unsigned int channel)
+static inline int ch2vec(int channel)
 {
 	int nvec = -1;
 
@@ -49,7 +60,7 @@ static inline int ch2vec(unsigned int channel)
 	return nvec;
 }
 
-static inline reg_t *ch2reg(unsigned int channel)
+static inline reg_t *ch2reg(int channel)
 {
 	reg_t *reg = NULL;
 
@@ -67,56 +78,25 @@ static inline reg_t *ch2reg(unsigned int channel)
 	return reg;
 }
 
-static inline int uart_open(unsigned int channel, struct uart arg)
+static inline int uart_open(int channel, struct _regs arg)
 {
-	unsigned int rx, tx, apb;
 	reg_t *reg = ch2reg(channel);
 
-	switch ((unsigned int)reg) {
-	case USART1:
-		tx = PIN_UART1_TX;
-		rx = PIN_UART1_RX;
-#if (SOC == stm32f1 || SOC == stm32f3)
-		apb = 14;
-#elif (SOC == stm32f4)
-		apb = 4;
-#endif
-		break;
-	case USART2:
-		tx = PIN_UART2_TX;
-		rx = PIN_UART2_RX;
-		apb = 17;
-		break;
-	case USART3:
-		tx = PIN_UART3_TX;
-		rx = PIN_UART3_RX;
-		apb = 18;
-		break;
-	default:
-		return -1;
-	}
-
 	if ((unsigned int)reg == USART1) {
-		__turn_apb2_clock(apb, ON);
-		__reset_apb2_device(apb);
-
+#if (SOC == stm32f1 || SOC == stm32f3)
+		__turn_apb2_clock(14, ON);
+		__reset_apb2_device(14);
+#elif (SOC == stm32f4)
+		__turn_apb2_clock(4, ON);
+		__reset_apb2_device(4);
+#endif
 		arg.brr = brr2reg(arg.brr, get_pclk2());
 	} else {
-		__turn_apb1_clock(apb, ON);
-		__reset_apb1_device(apb);
+		__turn_apb1_clock(channel + 16, ON);
+		__reset_apb1_device(channel + 16);
 
 		arg.brr = brr2reg(arg.brr, get_pclk1());
 	}
-
-	/* gpio configuration. in case of remapping, check pinout. */
-	gpio_init(tx, gpio_altfunc(7) | GPIO_SPD_SLOW);
-	gpio_init(rx, gpio_altfunc(7));
-
-	/* TODO: FOR TEST, use rx pin as wake-up source */
-	/* FIXME: register handler */
-	exti_enable(rx, ON);
-
-	nvic_set(vec2irq(ch2vec(channel)), ON);
 
 #if (SOC == stm32f3)
 	reg[0] = arg.cr1;
@@ -132,37 +112,20 @@ static inline int uart_open(unsigned int channel, struct uart arg)
 	reg[6] = arg.gtpr;
 #endif
 
+	nvic_set(vec2irq(ch2vec(channel)), ON);
+
 	return ch2vec(channel);
 }
 
-static inline void uart_close(unsigned int channel)
+static inline void uart_close(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
 	/* check if still in transmission. */
 #if (SOC == stm32f3)
-	while (!gbi(reg[7], 7));
+	while (!gbi(reg[7], TXE));
 #else
-	while (!gbi(reg[0], 7)); /* wait until TXE bit set */
-#endif
-
-	/* Use APB2 peripheral reset register (RCC_APB2RSTR),
-	 * or just turn off enable bit of tranceiver, controller and clock. */
-
-	/* Turn off enable bit of transmitter, receiver, and clock.
-	 * It leaves port clock, pin, irq, and configuration as set */
-#if (SOC == stm32f3)
-	reg[0] &= ~(
-			(1 << 0) 	/* UE: USART enable */
-			| (1 << 5)	/* RXNEIE: RXNE interrupt enable */
-			| (1 << 3) 	/* TE: Transmitter enable */
-			| (1 << 2));	/* RE: Receiver enable */
-#else
-	reg[3] &= ~(
-			(1 << 13) 	/* UE: USART enable */
-			| (1 << 5)	/* RXNEIE: RXNE interrupt enable */
-			| (1 << 3) 	/* TE: Transmitter enable */
-			| (1 << 2));	/* RE: Receiver enable */
+	while (!gbi(reg[0], TXE)); /* wait until TXE bit set */
 #endif
 
 	if (!channel) { /* USART1 */
@@ -176,12 +139,14 @@ static inline void uart_close(unsigned int channel)
 	}
 
 	nvic_set(vec2irq(ch2vec(channel)), OFF);
+	/* TODO: gpio_reset() and unlink_exti_to_nvic() */
 }
 
 /* to get buf index from register address */
-#define GET_USART_NR(from)     (from == USART1? 0 : (((from >> 8) & 0xff) - 0x40) / 4)
+#define GET_USART_NR(from)		\
+	(from == USART1? 0 : (((from >> 8) & 0xff) - 0x40) / 4)
 
-static inline int uart_putc(unsigned int channel, int c)
+static inline int uart_putc(int channel, int c)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -204,44 +169,128 @@ static inline int uart_putc(unsigned int channel, int c)
 	return 1;
 }
 
-int __uart_open(unsigned int channel, unsigned int baudrate)
+static inline int set_uart_port(int channel, struct uart *conf)
 {
-#if (SOC == stm32f3)
-	return uart_open(channel, (struct uart) {
-		.brr  = baudrate,
-		.gtpr = 0,
-		.cr3  = 0,
-		.cr2  = 0,
-		.cr1  = (1 << 0)	/* UE    : USART enable */
-			| (1 << 5)	/* RXNEIE: RXNE interrupt enable */
-			| (1 << 3)	/* TE    : Transmitter enable */
-			| (1 << 2)	/* RE    : Receiver enable */
-	});
+	/* TODO: in case of remapping, check pinout. */
+	if (conf->rx) {
+		if (!conf->npin_rx) {
+			switch (channel) {
+			case 0:
+#ifdef PIN_UART1_RX
+				conf->npin_rx = PIN_UART1_RX;
 #else
-	return uart_open(channel, (struct uart) {
-		.brr  = baudrate,
-		.gtpr = 0,
-		.cr3  = 0,
-		.cr2  = 0,
-		.cr1  = (1 << 13)	/* UE    : USART enable */
-			| (1 << 5)	/* RXNEIE: RXNE interrupt enable */
-			| (1 << 3)	/* TE    : Transmitter enable */
-			| (1 << 2)	/* RE    : Receiver enable */
-	});
+				goto errout;
 #endif
+				break;
+			case 1:
+#ifdef PIN_UART2_RX
+				conf->npin_rx = PIN_UART2_RX;
+#else
+				goto errout;
+#endif
+				break;
+			case 2:
+#ifdef PIN_UART3_RX
+				conf->npin_rx = PIN_UART3_RX;
+#else
+				goto errout;
+#endif
+				break;
+			default:
+				goto errout;
+				break;
+			}
+		}
+
+		gpio_init(conf->npin_rx, gpio_altfunc(7));
+
+		/* TODO: FOR TEST, use rx pin as wake-up source */
+		/* FIXME: register handler */
+		exti_enable(conf->npin_rx, ON);
+	}
+
+	if (conf->tx) {
+		if (!conf->npin_tx) {
+			switch (channel) {
+			case 0:
+#ifdef PIN_UART1_TX
+				conf->npin_tx = PIN_UART1_TX;
+#else
+				goto errout;
+#endif
+				break;
+			case 1:
+#ifdef PIN_UART2_TX
+				conf->npin_tx = PIN_UART2_TX;
+#else
+				goto errout;
+#endif
+				break;
+			case 2:
+#ifdef PIN_UART3_TX
+				conf->npin_tx = PIN_UART3_TX;
+#else
+				goto errout;
+#endif
+				break;
+			default:
+				goto errout;
+				break;
+			}
+		}
+
+		gpio_init(conf->npin_tx, gpio_altfunc(7) | GPIO_SPD_SLOW);
+	}
+
+	if (conf->flow) {
+		if (!conf->npin_rts) {
+		}
+		if (!conf->npin_cts) {
+		}
+	}
+
+	return 0;
+errout:
+	error("PIN_UARTx_[R|T]X is not defined");
+	return ERANGE;
 }
 
-void __uart_close(unsigned int channel)
+/* TODO: support flow control and parity */
+int __uart_open(int channel, struct uart conf)
+{
+	unsigned int cr1, cr2, cr3, gtpr;
+
+	cr1 = cr2 = cr3 = gtpr = 0;
+
+	if (set_uart_port(channel, &conf))
+		return ERANGE;
+
+	if (conf.rx)
+		cr1 |= (1 << RE) | (1 << RXNEIE);
+	if (conf.tx)
+		cr1 |= 1 << TE;
+
+	cr1 |= 1 << UE;
+
+	return uart_open(channel, (struct _regs) {
+			.brr = conf.baudrate,
+			.cr1 = cr1,
+			.cr2 = cr2,
+			.cr3 = cr3,
+			.gtpr = gtpr });
+}
+
+void __uart_close(int channel)
 {
 	uart_close(channel);
 }
 
-int __uart_putc(unsigned int channel, int c)
+int __uart_putc(int channel, int c)
 {
 	return uart_putc(channel, c);
 }
 
-int __uart_has_rx(unsigned int channel)
+bool __uart_has_rx(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -256,7 +305,7 @@ int __uart_has_rx(unsigned int channel)
 	return 0;
 }
 
-int __uart_has_tx(unsigned int channel)
+bool __uart_has_tx(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -271,7 +320,7 @@ int __uart_has_tx(unsigned int channel)
 	return 0;
 }
 
-int __uart_getc(unsigned int channel)
+int __uart_getc(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -282,31 +331,31 @@ int __uart_getc(unsigned int channel)
 #endif
 }
 
-void __uart_tx_irq_reset(unsigned int channel)
+void __uart_tx_irq_reset(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
 	/* TXE interrupt disable */
 #if (SOC == stm32f3)
-	reg[0] &= ~(1 << 7); /* TXEIE */
+	reg[0] &= ~(1 << TXE); /* TXEIE */
 #else
 	reg[3] &= ~(1 << TXE); /* TXEIE */
 #endif
 }
 
-void __uart_tx_irq_raise(unsigned int channel)
+void __uart_tx_irq_raise(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
 	/* TXE interrupt enable */
 #if (SOC == stm32f3)
-	reg[0] |= 1 << 7; /* TXEIE */
+	reg[0] |= 1 << TXE; /* TXEIE */
 #else
 	reg[3] |= 1 << TXE; /* TXEIE */
 #endif
 }
 
-void __uart_flush(unsigned int channel)
+void __uart_flush(int channel)
 {
 	reg_t *reg = ch2reg(channel);
 
@@ -318,12 +367,12 @@ void __uart_flush(unsigned int channel)
 #endif
 }
 
-unsigned int __uart_get_baudrate(unsigned int channel)
+unsigned int __uart_get_baudrate(int channel)
 {
 	return 0;
 }
 
-int __uart_set_baudrate(unsigned int channel, unsigned int baudrate)
+int __uart_set_baudrate(int channel, unsigned int baudrate)
 {
 	reg_t *reg = ch2reg(channel);
 

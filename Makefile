@@ -23,7 +23,7 @@ LIBS	=
 # Configuration
 
 include CONFIGURE
-include .config
+-include .config
 
 ifdef CONFIG_SMP
 	CFLAGS += -DCONFIG_SMP
@@ -128,7 +128,7 @@ $(SUBDIRS):
 include:
 	@$(MAKE) include --print-directory -C arch/$(TARGET)
 	-cp -R arch/$(TARGET)/include include/asm
-	-cp -R drivers/include include/driver
+	-cp -R drivers/include include/drivers
 	-cp -R lib/include include/lib
 	-cp -R fs/include include/fs
 
@@ -148,7 +148,7 @@ clean:
 	@rm -f $(PROJECT:%=%.hex)
 	@rm -f $(PROJECT:%=%.dump)
 	@rm -rf include/asm
-	@rm -rf include/driver
+	@rm -rf include/drivers
 	@rm -rf include/lib
 	@rm -rf include/fs
 
@@ -178,16 +178,38 @@ mango-z1: stm32f1
 	@echo "BOARD = mango-z1" >> .config
 	@echo "LD_SCRIPT = boards/mango-z1/memory.lds" >> .config
 
-stm32f4:
-	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f4\nCFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" > .config
-stm32f3:
-	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f3\nCFLAGS += -mtune=cortex-m4 -mthumb" > .config
-stm32f1:
-	@echo "ARCH = armv7-m\nMACH = stm32\nSOC = stm32f1\nCFLAGS += -mtune=cortex-m3 -mthumb" > .config
-rpi:
-	@echo "ARCH = armv6zk\nMACH = rpi\nSOC = bcm2835\nCFLAGS += -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp" > .config
-rpi2:
-	@echo "ARCH = armv7-a\nMACH = rpi\nSOC = bcm2836\nCFLAGS += -mtune=cortex-a7 -mfloat-abi=hard -mfpu=vfpv3-d16" > .config
+nrf52: armv7-m4
+	@echo "CFLAGS += -DNRF52832_XXAA" >> .config
+	@echo "LD_SCRIPT = nrf52.lds" >> .config
+	@echo "MACH = nrf5" >> .config
+	@echo "SOC = nrf52" >> .config
+
+stm32f4: armv7-m4 stm32
+	@echo "SOC = stm32f4" >> .config
+stm32f3: armv7-m4 stm32
+	@echo "SOC = stm32f3" >> .config
+stm32f1: armv7-m3 stm32
+	@echo "SOC = stm32f1" >> .config
+stm32:
+	@echo "MACH = stm32" >> .config
+
+rpi: rpi-common
+	@echo "ARCH = armv6zk" >> .config
+	@echo "SOC = bcm2835" >> .config
+	@echo "CFLAGS += -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp" >> .config
+rpi2: rpi-common
+	@echo "ARCH = armv7-a" >> .config
+	@echo "SOC = bcm2836" >> .config
+	@echo "CFLAGS += -mtune=cortex-a7 -mfloat-abi=hard -mfpu=vfpv3-d16" >> .config
+rpi-common:
+	@echo "MACH = rpi" > .config
+
+armv7-m4: armv7-m
+	@echo "CFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" >> .config
+armv7-m3: armv7-m
+	@echo "CFLAGS += -mtune=cortex-m3 -mthumb" >> .config
+armv7-m:
+	@echo "ARCH = armv7-m" > .config
 
 TTY = /dev/tty.SLAB_USBtoUART
 .PHONY: burn

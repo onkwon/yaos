@@ -36,8 +36,6 @@ enum {
 	while (1) ;		\
 } while (0)
 
-#include <io.h>
-
 #define error(fmt...)	do {			\
 	printk("error: %s: ", __func__);	\
 	printk(fmt);				\

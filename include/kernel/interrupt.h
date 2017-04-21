@@ -1,6 +1,13 @@
 #ifndef __INTERRUPT_H__
 #define __INTERRUPT_H__
 
+enum {
+	__IRQ_PRIORITY_HIGHEST	=  0,
+	IRQ_PRIORITY_HIGHEST	=  1,
+	IRQ_PRIORITY_DEFAULT	= 10,
+	IRQ_PRIORITY_LOWEST	= 20,
+};
+
 #include <asm/interrupt.h>
 
 #define irq_save(val)			__irq_save(val)

@@ -5,7 +5,7 @@
 #include <string.h>
 #include <error.h>
 
-static DEFINE_LINKS_HEAD(fdtable);
+static DEFINE_LINK_HEAD(fdtable);
 
 unsigned int mkfile(struct file *file)
 {
@@ -16,10 +16,9 @@ unsigned int mkfile(struct file *file)
 
 	memcpy(new, file, sizeof(struct file));
 
-	unsigned int irqflag;
-	spin_lock_irqsave(nospin, irqflag);
-	links_add(&new->list, &fdtable);
-	spin_unlock_irqrestore(nospin, irqflag);
+	do {
+		new->list.next = (void *)__ldrex(&fdtable);
+	} while (__strex(&new->list, &fdtable));
 
 	return (unsigned int)new;
 }
@@ -28,7 +27,8 @@ void rmfile(struct file *file)
 {
 	unsigned int irqflag;
 	spin_lock_irqsave(nospin, irqflag);
-	links_del(&file->list);
+	__clrex();
+	link_del(&file->list, &fdtable);
 	spin_unlock_irqrestore(nospin, irqflag);
 
 	mutex_lock_atomic(&file->inode->lock);
@@ -47,22 +47,22 @@ out:
 
 struct file *getfile(int fd)
 {
-	struct links  *p;
-	struct file  *file = NULL;
+	struct link *p;
+	struct file *file = NULL;
 	unsigned int *addr = (unsigned int *)fd;
+	unsigned int tid;
 
-	unsigned int irqflag;
-	spin_lock_irqsave(nospin, irqflag);
+	do {
+		tid = __ldrex(&fdtable);
 
-	/* TODO: make O(1) or run with not interrupt disabled */
-	for (p = fdtable.next; p != &fdtable; p = p->next) {
-		file = get_container_of(p, struct file, list);
+		/* TODO: make O(1) or run with not interrupt disabled */
+		for (p = fdtable.next; p != &fdtable; p = p->next) {
+			file = get_container_of(p, struct file, list);
 
-		if ((unsigned int)file == (unsigned int)addr) break;
-		else file = NULL;
-	}
-
-	spin_unlock_irqrestore(nospin, irqflag);
+			if ((unsigned int)file == (unsigned int)addr) break;
+			else file = NULL;
+		}
+	} while (__strex(tid, &fdtable));
 
 	return file;
 }

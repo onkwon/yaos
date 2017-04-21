@@ -247,7 +247,7 @@ void __attribute__((naked)) wrapper()
 	__wrapper_restore_regs_and_exec(current->addr);
 #endif
 
-	sys_kill_core(current, current);
+	kill(current);
 	freeze(); /* never reaches here */
 }
 

@@ -1,8 +1,8 @@
 /* This led driver is just for testing. */
 
 #include <error.h>
+#include <gpio.h>
 #include <kernel/module.h>
-#include <kernel/gpio.h>
 #include <asm/pinmap.h>
 
 static unsigned int major;

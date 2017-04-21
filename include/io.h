@@ -34,7 +34,7 @@ extern void puts(const char *s);
 
 #include <fs/fs.h>
 #include <kernel/interrupt.h>
-#include <kernel/gpio.h>
+#include <drivers/gpio.h>
 
 #define in_interrupt()			__in_interrupt()
 #define is_interrupt_disabled()		(__get_primask() & 1)

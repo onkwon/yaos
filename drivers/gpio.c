@@ -1,6 +1,6 @@
 #include <error.h>
+#include <gpio.h>
 #include <kernel/module.h>
-#include <kernel/gpio.h>
 #include <kernel/softirq.h>
 #include <asm/pinmap.h>
 
@@ -85,8 +85,8 @@ static int gpio_open(struct inode *inode, struct file *file)
 
 		mode |= getconf((int)file->option);
 
-		if (!(vector = gpio_init(MINOR(file->inode->dev), mode))) {
-			mode = EEXIST;
+		if ((vector = gpio_init(MINOR(file->inode->dev), mode)) < 0) {
+			mode = vector;
 			goto out_unlock;
 		}
 

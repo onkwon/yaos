@@ -20,6 +20,9 @@
 		: "cc", "memory");			\
 	__result;					\
 })
+
+#define __clrex()					\
+	__asm__ __volatile__("clrex" ::: "cc", "memory")
 #else
 int __ldrex(void *addr);
 int __strex(int val, void *addr);

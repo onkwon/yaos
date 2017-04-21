@@ -122,7 +122,7 @@ struct file {
 
 	struct file_operations *op;
 
-	struct links list;
+	struct link list;
 
 	void *option;
 };

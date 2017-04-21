@@ -47,6 +47,7 @@ void print_task_status(struct task *task)
 	printk("  parent->addr	%08x\n", task->parent->addr);
 }
 
+#ifdef PIN_DEBUG
 /* externally triggered break point */
 static void ISR_break()
 {
@@ -69,17 +70,20 @@ static void ISR_break()
 	printk("\nCurrent Context\n");
 	print_context((unsigned int *)current->mm.sp);
 }
+#endif
 
 #include <kernel/init.h>
 
 void __init debug_init()
 {
-	int vector;
+#ifdef PIN_DEBUG
+	int lvector;
 
 	//nvic_set_pri(23, 0); /* make it the highest priority */
 
-	vector = gpio_init(PIN_DEBUG,
+	lvector = gpio_init(PIN_DEBUG,
 			GPIO_MODE_INPUT | GPIO_CONF_PULLDOWN | GPIO_INT_RISING);
 
-	register_isr(vector, ISR_break);
+	register_isr(lvector, ISR_break);
+#endif
 }
