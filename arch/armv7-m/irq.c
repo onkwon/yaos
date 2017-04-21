@@ -344,12 +344,16 @@ void nvic_set(int nirq, int on)
 void nvic_set_pri(int nirq, int pri)
 {
 	reg_t *reg;
-	unsigned int bit;
+	unsigned int bit, val;
 
 	bit  = nirq % 4 * 8;
 	reg  = (reg_t *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
-	*reg &= ~(0xff << bit);
-	*reg |= ((pri & 0xf) << 4) << bit;
+
+	do {
+		val = __ldrex(reg);
+		val &= ~(0xff << bit);
+		val |= ((pri & 0xf) << 4) << bit;
+	} while (__strex(val, reg));
 
 	dsb();
 }

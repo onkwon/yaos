@@ -49,11 +49,9 @@ static int irq_register(int lvector, void (*handler)(int))
 	return 0;
 }
 
-/* FIXME: simultaneously generated interrupts between EXTI5~15 will be missed
- * those interrupts share an interrupt vector and we clear all that bits at
- * once below, we will miss except the first one. */
 static void ISR_gpio(int nvector)
 {
+	unsigned int pending;
 	int pin, mask;
 
 #ifndef CONFIG_COMMON_IRQ_FRAMEWORK
@@ -75,11 +73,19 @@ static void ISR_gpio(int nvector)
 		return;
 	}
 
-	if (isr_table[pin])
+	pending = get_exti_pending();
+
+	while (mask) {
+		if (pending & (1 << pin))
+			break;
+		mask >>= 1;
+		pin++;
+	}
+
+	if (mask && isr_table[pin])
 		isr_table[pin](nvector);
 
-	/* FIXME: handle EXTI in an isolated func considering sync, lock */
-	EXTI_PR |= mask << pin;
+	clear_exti_pending(pin);
 }
 
 static inline int gpio2exti(int n)
@@ -304,7 +310,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		nvic_set(vec2irq(pin2vec(pin)), ON);
 		lvector = mkvector(pin2vec(pin), pin);
 
-		link_exti_to_nvic(port, pin);
+		exti_enable(index, ON);
 	}
 
 	state[port].pins |= 1 << pin;
@@ -409,7 +415,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		nvic_set(vec2irq(pin2vec(pin)), ON);
 		lvector = mkvector(pin2vec(pin), pin);
 
-		link_exti_to_nvic(port, pin);
+		exti_enable(index, ON);
 	}
 
 	state[port].pins |= 1 << pin;
@@ -450,6 +456,7 @@ void gpio_reset(unsigned int index)
 #endif
 	}
 
+	exti_enable(index, OFF);
 	lvector = mkvector(pin2vec(pin), pin);
 	unregister_isr(lvector);
 

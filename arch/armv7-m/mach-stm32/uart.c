@@ -69,12 +69,11 @@ static inline reg_t *ch2reg(unsigned int channel)
 
 static inline int uart_open(unsigned int channel, struct uart arg)
 {
-	unsigned int port, rx, tx, apb;
+	unsigned int rx, tx, apb;
 	reg_t *reg = ch2reg(channel);
 
 	switch ((unsigned int)reg) {
 	case USART1:
-		port = PORTA;
 		tx = PIN_UART1_TX;
 		rx = PIN_UART1_RX;
 #if (SOC == stm32f1 || SOC == stm32f3)
@@ -84,13 +83,11 @@ static inline int uart_open(unsigned int channel, struct uart arg)
 #endif
 		break;
 	case USART2:
-		port = PORTA;
 		tx = PIN_UART2_TX;
 		rx = PIN_UART2_RX;
 		apb = 17;
 		break;
 	case USART3:
-		port = PORTB;
 		tx = PIN_UART3_TX;
 		rx = PIN_UART3_RX;
 		apb = 18;
@@ -112,13 +109,12 @@ static inline int uart_open(unsigned int channel, struct uart arg)
 	}
 
 	/* gpio configuration. in case of remapping, check pinout. */
-	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + tx,
-			gpio_altfunc(7) | GPIO_SPD_SLOW);
-	gpio_init(reg2port((reg_t *)port) * PINS_PER_PORT + rx,
-			gpio_altfunc(7));
+	gpio_init(tx, gpio_altfunc(7) | GPIO_SPD_SLOW);
+	gpio_init(rx, gpio_altfunc(7));
 
 	/* TODO: FOR TEST, use rx pin as wake-up source */
-	link_exti_to_nvic(reg2port((reg_t *)port), rx);
+	/* FIXME: register handler */
+	exti_enable(rx, ON);
 
 	nvic_set(vec2irq(ch2vec(channel)), ON);
 
