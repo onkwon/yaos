@@ -22,7 +22,7 @@ void *kmalloc(size_t size)
 {
 	struct page *page;
 
-	if (!size)
+	if (!size || !honored())
 		return NULL;
 
 	int order;
@@ -52,7 +52,8 @@ void kfree(void *addr)
 	struct page *page;
 	struct buddy *node = &buddy;
 
-	if (!addr) return;
+	if (!addr || !honored())
+		return;
 
 	page = addr2page(addr, node);
 
@@ -94,6 +95,9 @@ void *kmalloc(size_t size)
 	void *p;
 	unsigned int irqflag;
 
+	if (!honored())
+		return NULL;
+
 retry:
 	spin_lock_irqsave(nospin, irqflag);
 	p = ff_alloc(&mem_map, size);
@@ -119,7 +123,8 @@ void kfree(void *addr)
 {
 	unsigned int irqflag;
 
-	if (!addr) return;
+	if (!addr || !honored())
+		return;
 
 	nr_mfree += *(size_t *)(addr - WORD_SIZE) - 1;
 

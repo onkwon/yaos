@@ -366,7 +366,7 @@ void udelay(unsigned int us)
 {
 	int goal, stamp, prev, elapsed;
 
-	if (get_current_rank() != TF_PRIVILEGED) {
+	if (!honored()) {
 		error("no permission");
 		return;
 	}

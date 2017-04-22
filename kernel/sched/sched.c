@@ -236,9 +236,7 @@ void run_scheduler(bool run)
 {
 	void (*func)();
 
-	if (!is_interrupt_disabled() &&
-			get_current_rank() == TF_USER &&
-			!which_context()) {
+	if (!honored()) {
 		error("no permission");
 		return;
 	}
