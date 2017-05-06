@@ -2,7 +2,7 @@
 #include <error.h>
 
 #if 0
-int __attribute__((naked, noinline, pure, leaf)) __ldrex(void *addr)
+int __attribute__((naked, noinline, leaf)) __ldrex(void *addr)
 {
 	__asm__ __volatile__(
 			"ldrex	r0, [r0]		\n\t"
@@ -10,7 +10,7 @@ int __attribute__((naked, noinline, pure, leaf)) __ldrex(void *addr)
 			::: "cc", "memory");
 }
 
-int __attribute__((naked, noinline, pure, leaf)) __strex(int val, void *addr)
+int __attribute__((naked, noinline, leaf)) __strex(int val, void *addr)
 {
 	__asm__ __volatile__(
 			"strex	r0, r0, [r1]		\n\t"

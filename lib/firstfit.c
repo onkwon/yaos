@@ -65,6 +65,11 @@ retry:
 	next = NULL;
 	head = prev = (struct link *)&pool->list_head;
 
+	/* TODO: remove an embarrassing lock mechanism below but implement real
+	 * lock-free.
+	 *
+	 * checking if locked first would be better before ldrex to avoid
+	 * contention, since it does ldrex every time in the loop causing contention. */
 	do {
 		snap = __ldrex(&head->next);
 		if (snap == HEAD_LOCKED)
@@ -91,7 +96,7 @@ retry:
 			n->size = p->size - size - FF_METASIZE;
 			n->list.next = curr->next;
 			n->head = n;
-			FF_LINK_HEAD(n);
+			FF_MARK_TAG(n);
 			FF_MARK_FREE(n);
 
 			next = &n->list;
@@ -112,7 +117,7 @@ retry:
 	if (n)
 		p->size = p->size - n->size - FF_METASIZE;
 
-	FF_LINK_HEAD(p);
+	FF_MARK_TAG(p);
 	FF_MARK_ALLOCATED(p);
 
 	return (void *)((unsigned int)p + FF_DATA_OFFSET);
@@ -162,7 +167,7 @@ retry:
 	}
 
 	p->head = p;
-	FF_LINK_HEAD(p);
+	FF_MARK_TAG(p);
 	p->list.next = tmp.next;
 
 	head->next = &p->list;
@@ -176,7 +181,7 @@ size_t ff_freelist_init(struct ff_freelist_head *pool, void *start, void *end)
 	first->size = (unsigned int)end - (unsigned int)first - FF_METASIZE;
 	first->size = BASE_WORD(first->size);
 	first->head = first;
-	FF_LINK_HEAD(first);
+	FF_MARK_TAG(first);
 	link_init(&first->list);
 	FF_MARK_FREE(first);
 

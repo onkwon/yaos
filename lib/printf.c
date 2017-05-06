@@ -1,14 +1,9 @@
 #include <io.h>
 #include <string.h>
+#include <stdarg.h>
 
 #define BUFSIZE				\
 	(WORD_SIZE * 8 + 1) /* max length of binary */
-
-#define getarg(args, type)		({ \
-	args = (char *)ALIGN((unsigned int)args, sizeof(type)); \
-	args = (char *)((unsigned int)(args) + sizeof(type)); \
-	*(type *)((unsigned int)(args) - sizeof(type)); \
-})
 
 #define PAD_RIGHT			(1 << (WORD_SIZE * 8 - 1))
 #define PAD_ZERO			(1 << (WORD_SIZE * 8 - 2))
@@ -28,7 +23,7 @@
 #define tok2base(x)			\
 	((x == 'd')? 10 : (x == 'x')? 16 : (x == 'b')? 2 : (x == 'p')? 16 : 10)
 
-static void printc(int fd, void **s, int c)
+static inline void printc(int fd, void **s, int c)
 {
 	if (s)
 		*(*(char **)s)++ = c;
@@ -38,7 +33,7 @@ static void printc(int fd, void **s, int c)
 		putchar(c);
 }
 
-static size_t prints(int fd, void **to, const char *s, int opt, size_t maxlen)
+static inline size_t prints(int fd, void **to, const char *s, int opt, size_t maxlen)
 {
 	int padding, len, i;
 	char padchar = ' ';
@@ -77,15 +72,13 @@ static size_t prints(int fd, void **to, const char *s, int opt, size_t maxlen)
 	return i;
 }
 
-static size_t print(int fd, void **to, size_t limit, void *args)
+static inline size_t print(int fd, void **to, size_t limit, const char *fmt, va_list args)
 {
-	const char *fmt;
 	size_t printed, maxlen, align, flen;
 	int padding;
 	bool op;
 	char buf[BUFSIZE];
 
-	fmt = getarg(args, char *);
 	maxlen = limit;
 	printed = 0;
 
@@ -116,24 +109,24 @@ static size_t print(int fd, void **to, size_t limit, void *args)
 		case 'x':
 		case 'p':
 		case 'b':
-			itos(getarg(args, int), buf, tok2base(*fmt), BUFSIZE);
+			itos(va_arg(args, int), buf, tok2base(*fmt), BUFSIZE);
 			printed = prints(fd, to, buf, padding | align, limit);
 			break;
 #ifdef CONFIG_FLOAT
 		case 'f':
 			set_padding(padding, PAD_FLOAT);
-			ftos(getarg(args, double), buf, align, BUFSIZE);
+			ftos(va_arg(args, double), buf, align, BUFSIZE);
 			printed = prints(fd, to, buf,
 					padding | combine(flen, align),
 					limit);
 			break;
 #endif
 		case 's':
-			printed = prints(fd, to, getarg(args, char *),
+			printed = prints(fd, to, va_arg(args, char *),
 					padding | align, limit);
 			break;
 		case 'c':
-			printc(fd, to, getarg(args, char));
+			printc(fd, to, va_arg(args, int));
 			printed = 1;
 			break;
 		case '%':
@@ -171,22 +164,50 @@ static size_t print(int fd, void **to, size_t limit, void *args)
 
 size_t printf(const char *fmt, ...)
 {
-	return print(0, 0, -1, &fmt);
+	va_list args;
+	size_t len;
+
+	va_start(args, fmt);
+	len = print(0, 0, -1, fmt, args);
+	va_end(args);
+
+	return len;
 }
 
 size_t sprintf(char *to, const char *fmt, ...)
 {
-	return print(0, (void **)&to, -1, &fmt);
+	va_list args;
+	size_t len;
+
+	va_start(args, fmt);
+	len = print(0, (void **)&to, -1, fmt, args);
+	va_end(args);
+
+	return len;
 }
 
 size_t snprintf(char *to, size_t maxlen, const char *fmt, ...)
 {
-	return print(0, (void **)&to, maxlen, &fmt);
+	va_list args;
+	size_t len;
+
+	va_start(args, fmt);
+	len = print(0, (void **)&to, maxlen, fmt, args);
+	va_end(args);
+
+	return len;
 }
 
 size_t fprintf(int fd, const char *fmt, ...)
 {
-	return print(fd, 0, -1, &fmt);
+	va_list args;
+	size_t len;
+
+	va_start(args, fmt);
+	len = print(fd, 0, -1, fmt, args);
+	va_end(args);
+
+	return len;
 }
 
 size_t printk(const char *fmt, ...)
@@ -195,12 +216,17 @@ size_t printk(const char *fmt, ...)
 		return 0;
 
 	extern void __putc_debug(int c);
-	size_t ret;
+	va_list args;
+	size_t len;
 	void (*tmp)(int) = putchar;
 
 	putchar = __putc_debug;
-	ret = print(0, 0, -1, &fmt);
+
+	va_start(args, fmt);
+	len = print(0, 0, -1, fmt, args);
+	va_end(args);
+
 	putchar = tmp;
 
-	return ret;
+	return len;
 }

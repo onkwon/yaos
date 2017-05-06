@@ -231,7 +231,7 @@ int sys_remove_core(const char *pathname)
 
 	mutex_lock(&found->lock);
 
-	while ((volatile typeof(found->refcount))found->refcount) {
+	while (*(volatile typeof(found->refcount) *)&found->refcount) {
 		mutex_unlock(&found->lock);
 		resched();
 		mutex_lock(&found->lock);

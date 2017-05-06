@@ -200,7 +200,7 @@ void __init mm_init()
 	p = (struct ff_freelist *)
 		ALIGN_WORD(end - (STACK_SIZE_DEFAULT + FF_METASIZE));
 	p->size = ALIGN_WORD(STACK_SIZE_DEFAULT);
-	FF_LINK_HEAD(p);
+	FF_MARK_TAG(p);
 	FF_MARK_ALLOCATED(p);
 
 	/* TODO: preserve the staic user tasks to be free later */

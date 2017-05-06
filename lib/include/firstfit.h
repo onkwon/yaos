@@ -5,7 +5,7 @@
 
 #define FF_METASIZE	(sizeof(struct ff_freelist) - sizeof(struct link))
 #define FF_DATA_OFFSET	sizeof(size_t)
-#define FF_LINK_HEAD(p)	\
+#define FF_MARK_TAG(p)	\
 	(*(struct ff_freelist **) \
 	 ((unsigned int)p + p->size + FF_DATA_OFFSET) = p)
 
