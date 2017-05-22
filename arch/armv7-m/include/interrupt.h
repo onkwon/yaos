@@ -22,8 +22,8 @@ enum {
 	NVECTOR_IRQ		= NVECTOR_MAX,
 };
 
-#define irq2vec(nirq)		((nirq) + 16)
-#define vec2irq(nvec)		((nvec) - 16)
+#define irq2vec(nirq)		((nirq) + NVECTOR_IRQ)
+#define vec2irq(nvec)		((nvec) - NVECTOR_IRQ)
 
 #define SECONDARY_IRQ_BITS	16
 /* primary irq   : actual hardware interrupt number

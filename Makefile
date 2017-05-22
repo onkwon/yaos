@@ -1,15 +1,17 @@
 # Machine dependant
 
-CC = arm-none-eabi-gcc
-LD = arm-none-eabi-ld
-OC = arm-none-eabi-objcopy
-OD = arm-none-eabi-objdump
+PREFIX = arm-none-eabi-
+CC = $(PREFIX)gcc
+LD = $(PREFIX)ld
+OC = $(PREFIX)objcopy
+OD = $(PREFIX)objdump
 
 # Common
 
 PROJECT = yaos
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
 BASEDIR = $(shell pwd)
+BUILDIR = $(BASEDIR)/build
 
 # Options
 
@@ -74,17 +76,9 @@ ifdef CONFIG_COMMON_IRQ_FRAMEWORK
 	CFLAGS += -DCONFIG_COMMON_IRQ_FRAMEWORK
 endif
 
-# Module
+# Third party module
 
-ifdef MODULE_UGFX
-	GFXLIB = $(BASEDIR)/ugfx
-	export GFXLIB
-	include $(GFXLIB)/boards/base/Olimex-STM32-LCD/board.mk
-	include $(GFXLIB)/gfx.mk
-
-	INC += $(foreach d, $(GFXINC), -I$d)
-	SRCS +=$(GFXSRC)
-endif
+include Makefile.3rd
 
 # Build
 
@@ -97,30 +91,39 @@ LDFLAGS = -Tarch/$(TARGET)/generated.lds -L$(LD_LIBRARY_PATH) -lgcc
 
 SRCS_ASM = $(wildcard *.S)
 SRCS    += $(wildcard *.c)
-OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
+OBJS     = $(addprefix $(BUILDIR)/,$(notdir $(SRCS:.c=.o)))
+OBJS    += $(addprefix $(BUILDIR)/,$(notdir $(SRCS_ASM:.S=.o)))
 
-export BASEDIR
+export BASEDIR BUILDIR
 export TARGET MACH SOC BOARD LD_SCRIPT
 export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
 export INC LIBS
 
-all: include common
+all: include $(BUILDIR)/$(PROJECT).elf $(BUILDIR)/$(PROJECT).bin $(BUILDIR)/$(PROJECT).hex
 	@echo "\nArchitecture :" $(ARCH)
 	@echo "Vendor       :" $(MACH)
 	@echo "SoC          :" $(SOC)
 	@echo "Board        :" $(BOARD)
 	@echo "\nSection Size(in bytes):"
-	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(PROJECT).map
+	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(BUILDIR)/$(PROJECT).map
+	@$(OD) $(ODFLAGS) $(BUILDIR)/$(PROJECT).elf > $(BUILDIR)/$(PROJECT).dump
 
-common: $(OBJS) subdirs
-	$(LD) -o $(PROJECT).elf $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) -Map $(PROJECT).map $(LDFLAGS)
-	$(OC) $(OCFLAGS) -O binary $(PROJECT).elf $(PROJECT).bin
-	$(OC) $(OCFLAGS) -O ihex $(PROJECT).elf $(PROJECT).hex
-	$(OD) $(ODFLAGS) $(PROJECT).elf > $(PROJECT).dump
+$(THIRD_PARTY_OBJS): %.o: %.c Makefile $(BUILDIR)
+	$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) -c $< -o $(addprefix $(BUILDIR)/3rd/,$(notdir $@))
+$(BUILDIR)/%.o: %.c Makefile $(BUILDIR)
+	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $< -o $@
+$(BUILDIR)/$(PROJECT).elf: $(OBJS) subdirs Makefile $(THIRD_PARTY_OBJS)
+	$(LD) -o $@ $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) $(addprefix $(BUILDIR)/3rd/,$(notdir $(THIRD_PARTY_OBJS))) \
+		-Map $(BUILDIR)/$(PROJECT).map $(LDFLAGS)
+$(BUILDIR)/%.bin: $(BUILDIR)/%.elf $(BUILDIR)
+	$(OC) $(OCFLAGS) -O binary $< $@
+$(BUILDIR)/%.hex: $(BUILDIR)/%.elf $(BUILDIR)
+	$(OC) $(OCFLAGS) -O ihex $< $@
+$(BUILDIR):
+	mkdir -p $@/3rd
 
 .PHONY: subdirs $(SUBDIRS)
 subdirs: $(SUBDIRS)
-
 $(SUBDIRS):
 	@$(MAKE) --print-directory -C $@
 
@@ -132,25 +135,19 @@ include:
 	-cp -R lib/include include/lib
 	-cp -R fs/include include/fs
 
-.c.o:
-	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $< -o $@
-
 .PHONY: depend dep
-depend dep:
+depend dep: $(BUILDIR)
 	$(CC) $(CFLAGS) -MM $(SRCS) > .depend
 
 .PHONY: clean
 clean:
 	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
-	@rm -f $(OBJS) $(PROJECT:%=%.elf) .depend
-	@rm -f $(PROJECT:%=%.map)
-	@rm -f $(PROJECT:%=%.bin)
-	@rm -f $(PROJECT:%=%.hex)
-	@rm -f $(PROJECT:%=%.dump)
+	@rm -rf $(BUILDIR)
 	@rm -rf include/asm
 	@rm -rf include/drivers
 	@rm -rf include/lib
 	@rm -rf include/fs
+	@rm -f .depend
 
 ifneq ($(MAKECMDGOALS), clean)
 	ifneq ($(MAKECMDGOALS), depend)
@@ -161,6 +158,22 @@ ifneq ($(MAKECMDGOALS), clean)
 		endif
 	endif
 endif
+
+armv7-m4: armv7-m
+	@echo "CFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" >> .config
+armv7-m3: armv7-m
+	@echo "CFLAGS += -mtune=cortex-m3 -mthumb" >> .config
+armv7-m:
+	@echo "ARCH = armv7-m" > .config
+
+stm32f4: armv7-m4 stm32
+	@echo "SOC = stm32f4" >> .config
+stm32f3: armv7-m4 stm32
+	@echo "SOC = stm32f3" >> .config
+stm32f1: armv7-m3 stm32
+	@echo "SOC = stm32f1" >> .config
+stm32:
+	@echo "MACH = stm32" >> .config
 
 mycortex-stm32f4: stm32f4
 	@echo "BOARD = mycortex-stm32f4" >> .config
@@ -184,15 +197,6 @@ nrf52: armv7-m4
 	@echo "MACH = nrf5" >> .config
 	@echo "SOC = nrf52" >> .config
 
-stm32f4: armv7-m4 stm32
-	@echo "SOC = stm32f4" >> .config
-stm32f3: armv7-m4 stm32
-	@echo "SOC = stm32f3" >> .config
-stm32f1: armv7-m3 stm32
-	@echo "SOC = stm32f1" >> .config
-stm32:
-	@echo "MACH = stm32" >> .config
-
 rpi: rpi-common
 	@echo "ARCH = armv6zk" >> .config
 	@echo "SOC = bcm2835" >> .config
@@ -204,17 +208,10 @@ rpi2: rpi-common
 rpi-common:
 	@echo "MACH = rpi" > .config
 
-armv7-m4: armv7-m
-	@echo "CFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" >> .config
-armv7-m3: armv7-m
-	@echo "CFLAGS += -mtune=cortex-m3 -mthumb" >> .config
-armv7-m:
-	@echo "ARCH = armv7-m" > .config
-
 TTY = /dev/tty.SLAB_USBtoUART
 .PHONY: burn
 burn:
-	st-flash --reset write $(PROJECT:%=%.bin) 0x08000000
+	st-flash --reset write $(BUILDIR)/$(PROJECT:%=%.bin) 0x08000000
 .PHONY: erase
 erase:
 	st-flash erase

@@ -1,3 +1,5 @@
 *.o
 .config
 tags
+build
+cscope*
