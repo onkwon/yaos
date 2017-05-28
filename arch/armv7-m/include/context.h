@@ -1,7 +1,7 @@
 #ifndef __CONTEXT_H__
 #define __CONTEXT_H__
 
-#define NR_CONTEXT_SOFT			8
+#define NR_CONTEXT_SOFT			9
 #define NR_CONTEXT_HARD			8
 #define NR_CONTEXT			(NR_CONTEXT_HARD + NR_CONTEXT_SOFT)
 #define CONTEXT_SIZE			(NR_CONTEXT * WORD_SIZE)
@@ -9,14 +9,17 @@
 
 #define INIT_IRQFLAG(flag)		((flag) = 0)
 
-#define EXC_RETURN_MSPH	0xfffffff1	/* return to HANDLER mode using MSP */
-#define EXC_RETURN_MSPT	0xfffffff9	/* return to THREAD  mode using MSP */
-#define EXC_RETURN_PSPT	0xfffffffd	/* return to THREAD  mode using PSP */
+#define EXC_RETURN_MSPH			0xfffffff1 /* return to HANDLER mode using MSP */
+#define EXC_RETURN_MSPT			0xfffffff9 /* return to THREAD  mode using MSP */
+#define EXC_RETURN_PSPT			0xfffffffd /* return to THREAD  mode using PSP */
+#define EXC_RETURN_MSPH_FP		0xffffffe1 /* return to HANDLER mode using MSP with floating-point-state */
+#define EXC_RETURN_MSPT_FP		0xffffffe9 /* return to THREAD  mode using MSP with floating-point-state */
+#define EXC_RETURN_PSPT_FP		0xffffffed /* return to THREAD  mode using PSP with floating-point-state */
 
 #define DEFAULT_PSR			0x01000000
 
-#define INDEX_R0			8
-#define INDEX_PSR			15
+#define INDEX_R0			9
+#define INDEX_PSR			16
 
 /*  __________
  * | psr      |  |
@@ -28,6 +31,7 @@
  * | r1       |
  * | r0       |
  *  ----------
+ * | exc_ret  |
  * | r4 - r11 |
  *  ----------
  */
@@ -40,6 +44,8 @@ struct regs {
 	unsigned int r9;
 	unsigned int r10;
 	unsigned int r11;
+	/* s16 ~ s31 */
+	unsigned int exc_return;
 	unsigned int r0;
 	unsigned int r1;
 	unsigned int r2;
@@ -48,13 +54,18 @@ struct regs {
 	unsigned int lr;
 	unsigned int pc;
 	unsigned int psr;
+	/* s0 ~ s15
+	 * FPSCR */
 	//unsigned int sp;
 };
 
 #define __context_save(task)				do {		\
 	__asm__ __volatile__(						\
 			"mrs	r12, psp		\n\t"		\
-			"stmdb	r12!, {r4-r11}		\n\t"		\
+			"tst	lr, #0x10		\n\t"		\
+			"it	eq			\n\t"		\
+			"vstmdbeq	r12!, {s16-s31}	\n\t"		\
+			"stmdb	r12!, {r4-r11, lr}	\n\t"		\
 			::: "r4", "r5", "r6", "r7", "r8",		\
 			"r9", "r10", "r11", "r12", "memory");		\
 	__asm__ __volatile__(						\
@@ -75,10 +86,14 @@ struct regs {
 			, "I"(TF_PRIVILEGED)				\
 			: "r12", "memory");				\
 	__asm__ __volatile__(						\
-			"ldmia	%0!, {r4-r11}		\n\t"		\
-			"msr	psp, %0			\n\t"		\
-			"ldr	lr, =0xfffffffd		\n\t"		\
 			"msr	control, r12		\n\t"		\
+			"ldmia	%0!, {r4-r11, r12}	\n\t"		\
+			"ldr	lr, =0xffffffed		\n\t"		\
+			"orr	lr, r12			\n\t"		\
+			"tst	r12, #0x10		\n\t"		\
+			"it	eq			\n\t"		\
+			"vldmiaeq	%0!, {s16-s31}	\n\t"		\
+			"msr	psp, %0			\n\t"		\
 			:: "r"(task->mm.sp)				\
 			: "r4", "r5", "r6", "r7", "r8", "r9",		\
 			"r10", "r11", "r12", "lr", "memory");		\

@@ -3,9 +3,13 @@
 
 #define STACK_ALIGNMENT			8 /* bytes */
 #define STACK_SIZE_DEFAULT		1024 /* bytes */
+#ifdef CONFIG_FPU
+#define STACK_SIZE_MIN			768 /* bytes */
+#else
 #define STACK_SIZE_MIN			384 /* bytes */
+#endif
 
-/* TODO: add the functionality of resizing heap size dynamically */
+/* TODO: add the functionality of resizing heap dynamically */
 #define HEAP_SIZE_DEFAULT		128 /* bytes */
 
 #define STACK_SENTINEL			0xdeafc0de

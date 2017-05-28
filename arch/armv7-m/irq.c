@@ -266,8 +266,7 @@ void __attribute__((naked)) ISR_svc()
 			"teq	r0, %0			\n\t"
 			"beq	sys_schedule		\n\t"
 			/* #24 = r0-r3, lr and padding(4) */
-			"sub	sp, sp, #24		\n\t"
-			"str	lr, [sp, #20]		\n\t"
+			"push	{lr}			\n\t"
 #ifndef CONFIG_SYSCALL_THREAD
 #ifdef CONFIG_DEBUG_SYSCALL_NESTED
 			"stmia	sp, {r0-r3}		\n\t"
@@ -285,9 +284,9 @@ void __attribute__((naked)) ISR_svc()
 			 * `syscall_delegate_atomic()` but using only
 			 * CONFING_SYSCALL_THREAD. */
 #ifndef CONFIG_SYSCALL_THREAD
-			"sub	r1, r12, #32		\n\t"
+			"sub	r1, r12, #36		\n\t"
 			"msr	psp, r1			\n\t"
-			"stmdb	r12, {r4-r11}		\n\t"
+			"stmdb	r12, {r4-r11, lr}	\n\t"
 #endif
 			/* if nr >= SYSCALL_NR */
 			"cmp	r0, %1			\n\t"
@@ -303,6 +302,8 @@ void __attribute__((naked)) ISR_svc()
 			"ldr	r2, [r12, #12]		\n\t"
 			"blx	r3			\n\t"
 			"mrs	r12, psp		\n\t"
+			/* exc_return */
+			"pop	{lr}			\n\t"
 #ifndef CONFIG_SYSCALL_THREAD
 			/* check if delegated task */
 			"ldr	r1, =current		\n\t"
@@ -310,16 +311,16 @@ void __attribute__((naked)) ISR_svc()
 			"ldr	r1, [r2, #4]		\n\t"
 			"ands	r1, %2			\n\t"
 			/* restore saved context if not */
-			"itt	eq			\n\t"
-			"ldmiaeq	r12!, {r4-r11}		\n\t"
+			"itte	eq			\n\t"
+			"ldmiaeq	r12!, {r4-r11, lr}		\n\t"
 			"msreq	psp, r12		\n\t"
+			/* manipulate exc_return */
+			"orrne	lr, #0x10		\n\t"
 #endif
 			/* store return value */
 			"str	r0, [r12]		\n\t"
 			"dsb				\n\t"
 			"isb				\n\t"
-			"ldr	lr, [sp, #20]		\n\t"
-			"add	sp, sp, #24		\n\t"
 			"bx	lr			\n\t"
 			:: "I"(SYSCALL_SCHEDULE), "I"(SYSCALL_NR), "I"(TF_SYSCALL)
 			: "r12", "memory");

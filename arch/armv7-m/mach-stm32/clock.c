@@ -278,9 +278,12 @@ void clock_init()
 void clock_init()
 {
 	FLASH_ACR |= 5; /* five wait states */
-	/* enable data cache, instruction cache and prefetch */
+	/* enable prefetch, data cache(8 lines * 128 bits = 128 bytes) and
+	 * instruction cache(64 lines * 128 bits = 1024 bytes) */
 	FLASH_ACR |= 0x700;
 	while ((FLASH_ACR & 7) != 5);
+
+	/* Select power scale mode, PWR_CR */
 
 	/* 1. Turn on HSE oscillator. */
 	BITBAND(&RCC_CR, HSEON, ON);

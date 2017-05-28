@@ -51,6 +51,9 @@ endif
 ifdef CONFIG_FLOAT
 	CFLAGS += -DCONFIG_FLOAT
 endif
+ifdef CONFIG_FPU
+	CFLAGS += -DCONFIG_FPU
+endif
 ifdef CONFIG_CPU_LOAD
 	CFLAGS += -DCONFIG_CPU_LOAD
 endif
@@ -160,11 +163,13 @@ ifneq ($(MAKECMDGOALS), clean)
 endif
 
 armv7-m4: armv7-m
-	@echo "CFLAGS += -mtune=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16" >> .config
+	@echo "CFLAGS += -mtune=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16" >> .config
+	@echo "CFLAGS += -fsingle-precision-constant -Wdouble-promotion" >> .config
 armv7-m3: armv7-m
-	@echo "CFLAGS += -mtune=cortex-m3 -mthumb" >> .config
+	@echo "CFLAGS += -mtune=cortex-m3" >> .config
 armv7-m:
 	@echo "ARCH = armv7-m" > .config
+	@echo "CFLAGS += -mthumb" >> .config
 
 stm32f4: armv7-m4 stm32
 	@echo "SOC = stm32f4" >> .config

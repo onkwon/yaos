@@ -109,10 +109,20 @@ void __attribute__((naked)) ISR_fault()
 	print_context((unsigned int *)current->mm.sp);
 
 	if (IS_FROM_THREAD(lr) && current != &init) {
-		error("Kill current %s(%x)", current->name, current);
+#ifdef CONFIG_FPU
+		if ((SCB_CFSR & NOCP) && !(SCB_CPACR & (0xf << 20))) {
+			SCB_CPACR |= 0xf << 20; /* full access to coprocessor */
+			SCB_CFSR |= NOCP;
+		} else {
+#else
+		{
+#endif
+			error("Kill current %s(%x)", current->name, current);
 
-		sys_kill_core(current, current);
-		schedule_core();
+			sys_kill_core(current, current);
+			schedule_core();
+		}
+
 		__context_restore(current);
 		dsb();
 		isb();

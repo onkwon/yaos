@@ -15,7 +15,8 @@ void set_task_context_soft(struct task *p)
 {
 	unsigned int i;
 
-	for (i = 0; i < NR_CONTEXT_SOFT; i++)
+	*(--p->mm.sp) = EXC_RETURN_PSPT;
+	for (i = 1; i < NR_CONTEXT_SOFT; i++)
 		*(--p->mm.sp) = 0;
 }
 
