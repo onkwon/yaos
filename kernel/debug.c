@@ -3,7 +3,7 @@
 #include <asm/pinmap.h>
 
 static const char *rname[] = { "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
-		"r0", "r1", "r2", "r3", "r12", "lr", "pc", "psr" };
+		"exc", "r0", "r1", "r2", "r3", "r12", "lr", "pc", "psr" };
 
 void print_context(unsigned int *regs)
 {

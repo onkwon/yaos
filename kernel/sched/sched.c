@@ -202,7 +202,7 @@ void sum_curr_stat(struct task *to)
 int sched_overhead;
 #endif
 
-void __attribute__((naked, used)) ISR_schedule()
+void __attribute__((naked, used, weak)) ISR_schedule()
 {
 #ifdef CONFIG_DEBUG_SCHED
 	/* FIXME: do not use any registers that are not saved yet

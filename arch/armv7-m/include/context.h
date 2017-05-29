@@ -1,8 +1,8 @@
 #ifndef __CONTEXT_H__
 #define __CONTEXT_H__
 
-#define NR_CONTEXT_SOFT			9
-#define NR_CONTEXT_HARD			8
+#define NR_CONTEXT_SOFT			9 /* r4-r11, EXC_RETURN */
+#define NR_CONTEXT_HARD			8 /* r0-r3, r12, lr, pc, psr */
 #define NR_CONTEXT			(NR_CONTEXT_HARD + NR_CONTEXT_SOFT)
 #define CONTEXT_SIZE			(NR_CONTEXT * WORD_SIZE)
 /* depending on SCB_CCR[STKALIGN] */
@@ -21,19 +21,23 @@
 #define INDEX_R0			9
 #define INDEX_PSR			16
 
-/*  __________
- * | psr      |  |
- * | pc       |  | stack
- * | lr       |  |
- * | r12      |  v
- * | r3       |
- * | r2       |
- * | r1       |
- * | r0       |
- *  ----------
- * | exc_ret  |
- * | r4 - r11 |
- *  ----------
+/*  ___________
+ * | FPSCR     | (if fpu used)
+ * | s0 - s15  |
+ *  -----------
+ * | psr       |  |
+ * | pc        |  | stack
+ * | lr        |  |
+ * | r12       |  v
+ * | r3        |
+ * | r2        |
+ * | r1        |
+ * | r0        |
+ *  -----------
+ * | exc_ret   |
+ * | s16 - s31 | (if fpu used)
+ * | r4 - r11  |
+ *  -----------
  */
 struct regs {
 	unsigned int r4; /* low address */
@@ -56,15 +60,11 @@ struct regs {
 	unsigned int psr;
 	/* s0 ~ s15
 	 * FPSCR */
-	//unsigned int sp;
 };
 
 #define __context_save(task)				do {		\
 	__asm__ __volatile__(						\
 			"mrs	r12, psp		\n\t"		\
-			"tst	lr, #0x10		\n\t"		\
-			"it	eq			\n\t"		\
-			"vstmdbeq	r12!, {s16-s31}	\n\t"		\
 			"stmdb	r12!, {r4-r11, lr}	\n\t"		\
 			::: "r4", "r5", "r6", "r7", "r8",		\
 			"r9", "r10", "r11", "r12", "memory");		\
@@ -87,13 +87,9 @@ struct regs {
 			: "r12", "memory");				\
 	__asm__ __volatile__(						\
 			"msr	control, r12		\n\t"		\
-			"ldmia	%0!, {r4-r11, r12}	\n\t"		\
-			"ldr	lr, =0xffffffed		\n\t"		\
-			"orr	lr, r12			\n\t"		\
-			"tst	r12, #0x10		\n\t"		\
-			"it	eq			\n\t"		\
-			"vldmiaeq	%0!, {s16-s31}	\n\t"		\
+			"ldmia	%0!, {r4-r11, lr}	\n\t"		\
 			"msr	psp, %0			\n\t"		\
+			"ldr	lr, =0xfffffffd		\n\t"		\
 			:: "r"(task->mm.sp)				\
 			: "r4", "r5", "r6", "r7", "r8", "r9",		\
 			"r10", "r11", "r12", "lr", "memory");		\

@@ -265,7 +265,7 @@ void __attribute__((naked)) ISR_svc()
 			"ldr	r0, [r12]		\n\t"
 			"teq	r0, %0			\n\t"
 			"beq	sys_schedule		\n\t"
-			/* #24 = r0-r3, lr and padding(4) */
+			/* save exc_return */
 			"push	{lr}			\n\t"
 #ifndef CONFIG_SYSCALL_THREAD
 #ifdef CONFIG_DEBUG_SYSCALL_NESTED
