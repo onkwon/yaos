@@ -346,7 +346,7 @@ void set_timeout(unsigned int *tv, unsigned int tick)
 
 int is_timeout(unsigned int goal)
 {
-	if (time_after(goal, systick))
+	if (time_after(goal, (unsigned int)*(volatile unsigned int *)&systick))
 		return true;
 
 	return false;
