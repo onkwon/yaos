@@ -1,7 +1,11 @@
 #ifndef __STM32_GPIO_H__
 #define __STM32_GPIO_H__
 
-#define NR_PORT			7
+#include <asm/hw.h>
+
+#ifndef NR_PORT
+#define NR_PORT			5
+#endif
 #define PINS_PER_PORT		16
 
 #define pin2port(pin)		((pin) / PINS_PER_PORT)

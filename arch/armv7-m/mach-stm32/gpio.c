@@ -260,7 +260,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 			mode |= PIN_OUTPUT_10MHZ;
 			break;
 		case GPIO_SPD_FAST:
-		case GPIO_SPD_FASTER:
+		case GPIO_SPD_FASTEST:
 			mode |= PIN_OUTPUT_50MHZ;
 			break;
 		default:
@@ -369,7 +369,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		case GPIO_SPD_FAST:
 			reg[2] |= 2 << (pin * 2);
 			break;
-		case GPIO_SPD_FASTER:
+		case GPIO_SPD_FASTEST:
 			reg[2] |= 3 << (pin * 2);
 			break;
 		default:

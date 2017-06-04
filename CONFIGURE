@@ -26,4 +26,5 @@ MODULE_GPIO=y
 #MODULE_CLCD=y
 
 # Third party modules
-#MODULE_UGFX=y
+#USE_UGFX=y
+#USE_CUBEMX=y

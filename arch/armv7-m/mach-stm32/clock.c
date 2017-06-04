@@ -32,6 +32,7 @@
 #define PLLP			16
 #define PLLN			6
 #define PLLM			0
+#define PLLR			28
 
 #define MHZ			1000000
 #endif
@@ -63,7 +64,7 @@ unsigned int get_pllclk()
 			clk = (HSI >> 1) * pllm;
 		}
 #elif (SOC == stm32f4)
-		pllm = ((RCC_PLLCFGR >> PLLM) & 0x3f) * MHZ;
+		pllm = ((RCC_PLLCFGR >> PLLM) & 0x3f);
 		plln = (RCC_PLLCFGR >> PLLN) & 0x1ff;
 		pllp = (RCC_PLLCFGR >> PLLP) & 3;
 		switch (pllp) {
@@ -82,7 +83,7 @@ unsigned int get_pllclk()
 		else
 			clk = HSI / pllm;
 
-		clk = clk * plln / pllp * MHZ;
+		clk = clk * plln / pllp;
 #endif
 		break;
 	default   :
@@ -238,7 +239,7 @@ void __reset_apb2_device(unsigned int nbit)
 #include <kernel/init.h>
 
 #if (SOC == stm32f1)	/* 72MHz */
-void clock_init()
+void __attribute__((weak)) clock_init()
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */
@@ -275,7 +276,7 @@ void clock_init()
 	//BITBAND(&RCC_CR, CSSON, ON);
 }
 #elif (SOC == stm32f4)	/* 168MHz */
-void clock_init()
+void __attribute__((weak)) clock_init()
 {
 	FLASH_ACR |= 5; /* five wait states */
 	/* enable prefetch, data cache(8 lines * 128 bits = 128 bytes) and
@@ -315,7 +316,7 @@ void clock_init()
 	//BITBAND(&RCC_CR, CSSON, ON);
 }
 #elif (SOC == stm32f3)	/* 72MHz */
-void clock_init()
+void __attribute__((weak)) clock_init()
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */

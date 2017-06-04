@@ -64,10 +64,43 @@ __attribute__((section(".vector_irq"), aligned(4), used, weak)) = {
 	ISR_irq,	/*  69(53)  : 0x114 - UART5 */
 	ISR_irq,	/*  70(54)  : 0x118 - TIM6 */
 	ISR_irq,	/*  71(55)  : 0x11c - TIM7 */
-	ISR_irq,	/*  72(56)  : 0x120 - DMA2_Channel1 */
-	ISR_irq,	/*  73(57)  : 0x124 - DMA2_Channel2 */
-	ISR_irq,	/*  74(58)  : 0x128 - DMA2_Channel3 */
-	ISR_irq,	/*  75(59)  : 0x12c - DMA2_Channel4,5 */
+	ISR_irq,	/*  72(56)  : 0x120 - DMA2_Channel0 */
+	ISR_irq,	/*  73(57)  : 0x124 - DMA2_Channel1 */
+	ISR_irq,	/*  74(58)  : 0x128 - DMA2_Channel2 */
+	ISR_irq,	/*  75(59)  : 0x12c - DMA2_Channel3 */
+	ISR_irq,	/*  76(60)  : 0x130 - DMA2_Channel4 */
+	ISR_irq,	/*  77(61)  : 0x134 - Ethernet */
+	ISR_irq,	/*  78(62)  : 0x138 - Ethernet wakeup */
+	ISR_irq,	/*  79(63)  : 0x13c - CAN2 TX */
+	ISR_irq,	/*  80(64)  : 0x140 - CAN2 RX0 */
+	ISR_irq,	/*  81(65)  : 0x144 - CAN2 RX1 */
+	ISR_irq,	/*  82(66)  : 0x148 - CAN2 SCE */
+	ISR_irq,	/*  83(67)  : 0x14c - USB OTG FS */
+	ISR_irq,	/*  84(68)  : 0x150 - DMA2 Stream 5 */
+	ISR_irq,	/*  85(69)  : 0x154 - DMA2 Stream 6 */
+	ISR_irq,	/*  86(70)  : 0x158 - DMA2 Stream 7 */
+	ISR_irq,	/*  87(71)  : 0x15c - USART6 */
+	ISR_irq,	/*  88(72)  : 0x160 - I2C3 event */
+	ISR_irq,	/*  89(73)  : 0x164 - I2C3 error */
+	ISR_irq,	/*  90(74)  : 0x168 - USB OTG HS end point 1 out */
+	ISR_irq,	/*  91(75)  : 0x16c - USB OTG HS end point 1 in */
+	ISR_irq,	/*  92(76)  : 0x170 - USB OTG HS wakeup */
+	ISR_irq,	/*  93(77)  : 0x174 - USB OTG HS */
+	ISR_irq,	/*  94(78)  : 0x178 - DCMI */
+	ISR_irq,	/*  95(79)  : 0x17c - Reserved */
+	ISR_irq,	/*  96(80)  : 0x180 - Hash and RNG */
+	ISR_irq,	/*  97(81)  : 0x184 - FPU */
+	ISR_irq,	/*  98(82)  : 0x188 - UART7 */
+	ISR_irq,	/*  99(83)  : 0x18c - UART8 */
+	ISR_irq,	/* 100(84)  : 0x190 - SPI4 */
+	ISR_irq,	/* 101(85)  : 0x194 - SPI5 */
+	ISR_irq,	/* 102(86)  : 0x198 - SPI6 */
+	ISR_irq,	/* 103(87)  : 0x19c - SAI1 */
+	ISR_irq,	/* 104(88)  : 0x1a0 - LTDC */
+	ISR_irq,	/* 105(89)  : 0x1a4 - LTDC error */
+	ISR_irq,	/* 106(90)  : 0x1a8 - DMA2D */
+	ISR_irq,	/* 107(91)  : 0x1ac - QUADSPI */
+	ISR_irq,	/* 108(92)  : 0x1b0 - DSI */
 };
 
 void ISR_null(int nvector)

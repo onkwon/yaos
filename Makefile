@@ -16,10 +16,10 @@ BUILDIR = $(BASEDIR)/build
 # Options
 
 SUBDIRS = lib arch kernel fs drivers tasks
-CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles -DVERSION=$(VERSION)
+CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles -DVERSION=$(VERSION) -Wno-main
 OCFLAGS =
 ODFLAGS = -Dx
-INC	= -I./include
+INC	= -I$(BASEDIR)/include
 LIBS	=
 
 # Configuration
@@ -124,6 +124,8 @@ $(BUILDIR)/%.hex: $(BUILDIR)/%.elf $(BUILDIR)
 	$(OC) $(OCFLAGS) -O ihex $< $@
 $(BUILDIR):
 	mkdir -p $@/3rd
+.c.o:
+	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $< -o $@
 
 .PHONY: subdirs $(SUBDIRS)
 subdirs: $(SUBDIRS)
@@ -201,6 +203,10 @@ nrf52: armv7-m4
 	@echo "LD_SCRIPT = nrf52.lds" >> .config
 	@echo "MACH = nrf5" >> .config
 	@echo "SOC = nrf52" >> .config
+
+stm32f4-disco: stm32f4
+	@echo "BOARD := stm32f469-disco" >> .config
+	@echo "LD_SCRIPT = boards/$(BOARD)/memory.lds" >> .config
 
 rpi: rpi-common
 	@echo "ARCH = armv6zk" >> .config

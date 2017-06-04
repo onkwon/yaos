@@ -1,6 +1,8 @@
 #ifndef __STM32_IO_H__
 #define __STM32_IO_H__
 
+#include "typedef.h"
+
 /* RCC */
 #define SET_CLOCK_AHB1(on, pin)		BITBAND(&RCC_AHB1ENR, pin, on)
 #define SET_CLOCK_APB2(on, pin)		BITBAND(&RCC_APB2ENR, pin, on)

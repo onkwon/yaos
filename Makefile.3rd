@@ -1,6 +1,6 @@
 # Module
 
-ifdef MODULE_UGFX
+ifdef USE_UGFX
 	GFXLIB = $(BASEDIR)/ugfx
 	export GFXLIB
 	include $(GFXLIB)/boards/base/Olimex-STM32-LCD/board.mk
@@ -10,28 +10,34 @@ ifdef MODULE_UGFX
 	SRCS +=$(GFXSRC)
 endif
 
-THIRD_PARTY_CFLAGS  = $(CFLAGS)
-THIRD_PARTY_CFLAGS += -DUSE_HAL_DRIVER -DSTM32F407xx
-THIRD_PARTY_SRCS    = \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c \
-	   $(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
-	   $(BASEDIR)/../mycortex/Src/stm32f4xx_hal_msp.c \
-	   $(BASEDIR)/../mycortex/Src/system_stm32f4xx.c \
-	   $(BASEDIR)/../mycortex/Src/main.c
-THIRD_PARTY_OBJS = $(THIRD_PARTY_SRCS:.c=.o)
-THIRD_PARTY_INCS = -I$(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Inc \
-	-I$(BASEDIR)/../mycortex/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy \
-	-I$(BASEDIR)/../mycortex/Drivers/CMSIS/Device/ST/STM32F4xx/Include \
-	-I$(BASEDIR)/../mycortex/Drivers/CMSIS/Include \
-	-I$(BASEDIR)/../mycortex/Inc
+ifdef USE_CUBEMX
+	THIRD_PARTY_CFLAGS  = $(CFLAGS)
+	THIRD_PARTY_CFLAGS += -DUSE_HAL_DRIVER -DSTM32F469xx
+	THIRD_PARTY_SRCS    = \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc_ex.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dsi.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sdram.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.c \
+		$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
+		$(BASEDIR)/../CubeMX/Src/stm32f4xx_hal_msp.c \
+		$(BASEDIR)/../CubeMX/Src/system_stm32f4xx.c \
+		$(BASEDIR)/../CubeMX/Src/main.c
+	THIRD_PARTY_OBJS = $(THIRD_PARTY_SRCS:.c=.o)
+	THIRD_PARTY_INCS = \
+		-I$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Inc \
+		-I$(BASEDIR)/../CubeMX/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy \
+		-I$(BASEDIR)/../CubeMX/Drivers/CMSIS/Device/ST/STM32F4xx/Include \
+		-I$(BASEDIR)/../CubeMX/Drivers/CMSIS/Include \
+		-I$(BASEDIR)/../CubeMX/Inc
+endif

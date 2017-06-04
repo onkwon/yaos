@@ -4,8 +4,11 @@
 #include <io.h>
 #include <drivers/uart.h>
 
-#define __get_uart_channel_active(nvec)			\
-	((nvec < (53 + 12))? nvec - 53 : nvec - 53 - 12)
+#define __get_uart_channel_active(nvec)	\
+	((nvec < 68)? nvec - 53 : \
+	 (nvec < 87)? nvec - 68 + 3 : \
+	 (nvec < 98)? nvec - 87 + 5 : \
+	 nvec - 98 + 6);
 
 int  __uart_open(int channel, struct uart conf);
 void __uart_close(int channel);

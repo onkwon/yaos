@@ -19,7 +19,7 @@ ifdef MODULE_CLCD
 endif
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
-INC     += -I$(BASEDIR)/include
+INC     += -I./include
 LIBS    += 
 CFLAGS  += $(INC) $(LIBS)
 

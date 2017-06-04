@@ -152,8 +152,7 @@ int __init kernel_init()
 	       get_sysclk(), sysfreq, get_sysclk_freq(),
 	       get_sysclk(), get_hclk(), get_pllclk(), get_pclk1(), get_pclk2(),
 	       get_sysclk(), get_adclk());
-	notice("[%08x] interrupt %s",
-	       get_sysclk(), is_interrupt_disabled()? "disabled" : "enabled");
+	notice("[%08x] number of ports supported %d", get_sysclk(), NR_PORT);
 	extern char _ram_size, _rom_size;
 	notice("[%08x] ram size: %d, rom size: %d",
 	       get_sysclk(), (int)&_ram_size, (int)&_rom_size);

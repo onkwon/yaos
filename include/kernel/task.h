@@ -9,7 +9,7 @@
 #define STACK_SIZE_MIN			384 /* bytes */
 #endif
 
-/* TODO: add the functionality of resizing heap dynamically */
+/* TODO: add the functionality of resizing heap size dynamically */
 #define HEAP_SIZE_DEFAULT		128 /* bytes */
 
 #define STACK_SENTINEL			0xdeafc0de

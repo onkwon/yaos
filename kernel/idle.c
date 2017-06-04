@@ -51,7 +51,7 @@ void idle()
 {
 	extern unsigned int cpu_idle, cpu_idle_stamp;
 	unsigned int tout = 0;
-	int cpu_total = 0;
+	int i, cpu_total = 0;
 
 	cleanup();
 
@@ -84,10 +84,8 @@ void idle()
 				set_timeout(&tout, msec_to_ticks(10000));
 
 				extern unsigned int get_gpio_state(int port);
-				printk("PORTA %x\n", get_gpio_state(0));
-				printk("PORTB %x\n", get_gpio_state(1));
-				printk("PORTC %x\n", get_gpio_state(2));
-				printk("PORTD %x\n", get_gpio_state(3));
+				for (i = 0; i < NR_PORT; i++)
+					printk("GPIO%d %x\n", i, get_gpio_state(i));
 			}
 #endif
 			/* pre-dos();

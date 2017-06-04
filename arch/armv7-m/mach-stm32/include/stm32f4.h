@@ -96,11 +96,13 @@
 
 /* USART */
 #define USART1			(0x40011000)
+#define USART6			(0x40011400)
 #define USART2			(0x40004400)
 #define USART3			(0x40004800)
 #define UART4			(0x40004c00)
 #define UART5			(0x40005000)
-#define USART6			(0x40011400)
+#define UART7			(0x40007800)
+#define UART8			(0x40007c00)
 
 /* I2C1 */
 #define I2C1_BASE		(0x40005400)
@@ -175,6 +177,24 @@
 #define TIM3_CCR2		(*(reg_t *)(TIM3_BASE + 0x38))
 #define TIM3_CCR3		(*(reg_t *)(TIM3_BASE + 0x3c))
 #define TIM3_CCR4		(*(reg_t *)(TIM3_BASE + 0x40))
+
+#define TIM4_BASE		(0x40000800)
+#define TIM4_CR1		(*(reg_t *)TIM4_BASE)
+#define TIM4_CR2		(*(reg_t *)(TIM4_BASE + 4))
+#define TIM4_SMCR		(*(reg_t *)(TIM4_BASE + 8))
+#define TIM4_DIER		(*(reg_t *)(TIM4_BASE + 0xc))
+#define TIM4_SR 		(*(reg_t *)(TIM4_BASE + 0x10))
+#define TIM4_EGR		(*(reg_t *)(TIM4_BASE + 0x14))
+#define TIM4_CCMR1		(*(reg_t *)(TIM4_BASE + 0x18))
+#define TIM4_CCMR2		(*(reg_t *)(TIM4_BASE + 0x1c))
+#define TIM4_CCER		(*(reg_t *)(TIM4_BASE + 0x20))
+#define TIM4_CNT		(*(reg_t *)(TIM4_BASE + 0x24))
+#define TIM4_PSC		(*(reg_t *)(TIM4_BASE + 0x28))
+#define TIM4_ARR		(*(reg_t *)(TIM4_BASE + 0x2c))
+#define TIM4_CCR1		(*(reg_t *)(TIM4_BASE + 0x34))
+#define TIM4_CCR2		(*(reg_t *)(TIM4_BASE + 0x38))
+#define TIM4_CCR3		(*(reg_t *)(TIM4_BASE + 0x3c))
+#define TIM4_CCR4		(*(reg_t *)(TIM4_BASE + 0x40))
 
 /* ADC */
 #define ADC_BASE		(0x40012300)

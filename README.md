@@ -30,6 +30,8 @@ Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have on
 >  * [mango-z1](http://www.mangoboard.com/main/?cate1=9&cate2=26&cate3=36)
 >  * [mycortex-stm32f4](http://www.withrobot.com/mycortex-stm32f4/)
 >  * [ust-mpb-stm32f103](https://www.devicemart.co.kr/1089642)
+>  * [nrf52](https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF52832)
+>  * [stm32f4-disco](http://www.st.com/en/evaluation-tools/32f469idiscovery.html)
 
 In case of getting error messages something like `undefined reference to __aeabi_uidiv`, specify library path when you `make` in the way below:
 

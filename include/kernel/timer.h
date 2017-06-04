@@ -34,7 +34,7 @@ void sleep(unsigned int sec);
 void msleep(unsigned int ms);
 
 void set_timeout(unsigned int *tv, unsigned int tick);
-int is_timeout(unsigned int goal);
+bool is_timeout(unsigned int goal);
 
 void udelay(unsigned int us);
 void mdelay(unsigned int ms);

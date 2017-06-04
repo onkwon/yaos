@@ -3,7 +3,7 @@ SRCS     = $(wildcard *.c)
 OBJS     = $(SRCS:%.c=%.o) $(SRCS_ASM:%.S=%.o)
 
 INC     += -I./include
-LIBS    += 
+LIBS    +=
 CFLAGS  += $(INC) $(LIBS)
 
 .SUFFIXES: .c.o
