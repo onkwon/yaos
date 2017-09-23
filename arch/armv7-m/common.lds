@@ -67,7 +67,7 @@ SECTIONS
 		. = ALIGN(4);
 		_data = .;
 
-		*(.data)
+		*(.data .data.*)
 		*(.iap)
 
 		. = ALIGN(4);
@@ -84,7 +84,7 @@ SECTIONS
 		. = ALIGN(4);
 		_bss = .;
 
-		*(.bss)
+		*(.bss .bss.*)
 		*(COMMON)
 
 		. = ALIGN(4);
