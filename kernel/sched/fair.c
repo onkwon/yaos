@@ -32,6 +32,7 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 	head = cfs->rq;
 	to   = head->prev;
 
+#if 0
 	/* TODO: Improve O(N) `cfs_rq_add()`, the more tasks the slower */
 	for (curr = head->next; curr != head; curr = curr->next) {
 		task = get_container_of(curr, struct task, rq);
@@ -41,6 +42,7 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 			break;
 		}
 	}
+#endif
 
 	links_add(&new->rq, to);
 	cfs->nr_running++;
