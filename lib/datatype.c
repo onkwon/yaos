@@ -15,6 +15,11 @@ void fifo_flush(struct fifo *q)
 	q->front = q->rear = 0;
 }
 
+bool fifo_empty(struct fifo *q)
+{
+	return q->front == q->rear;
+}
+
 /* NOTE: the size of queue must be power of 2 when using byte type because it
  * takes performace advantage replacing modulo operation with bit operation. */
 int fifo_getb(struct fifo *q)
