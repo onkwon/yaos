@@ -179,6 +179,11 @@ static inline size_t uart_read_core(struct file *file, void *buf, size_t len)
 
 static size_t do_uart_read(struct file *file, void *buf, size_t len)
 {
+#ifndef CONFIG_SYSCALL_THREAD
+	if (file->flags & O_NONBLOCK)
+		return uart_read_core(file, buf, len);
+#endif
+
 	struct device *dev;
 	struct uart_buffer *uartq;
 	size_t total, d;
