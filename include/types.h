@@ -34,8 +34,16 @@ typedef struct ff_freelist_head heap_t;
 #define WORD_SIZE			sizeof(int)
 #define WORD_BITS			(WORD_SIZE << 3)
 
-#define max(a, b)			(((a) > (b))? a : b)
-#define min(a, b)			(((a) > (b))? b : a)
+#define max(a, b)			({ \
+		__typeof__(a) _a = (a); \
+		__typeof__(b) _b = (b); \
+		_a > _b ? _a : _b; \
+})
+#define min(a, b)			({ \
+		__typeof__(a) _a = (a); \
+		__typeof__(b) _b = (b); \
+		_a < _b ? _a : _b; \
+})
 
 #define BASE_ALIGN(x, a)		((x) & ~((typeof(x))(a) - 1UL))
 #define ALIGN(x, a)			\
