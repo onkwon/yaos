@@ -204,8 +204,11 @@ nrf52: armv7-m4
 	@echo "MACH = nrf5" >> .config
 	@echo "SOC = nrf52" >> .config
 
-stm32f4-disco: stm32f4
-	@echo "BOARD := stm32f469-disco" >> .config
+stm32f469i-disco: stm32f4
+	@echo "BOARD := stm32f469i-disco" >> .config
+	@echo "LD_SCRIPT = boards/$(BOARD)/memory.lds" >> .config
+stm32f429i-disco: stm32f4
+	@echo "BOARD := stm32f429i-disco" >> .config
 	@echo "LD_SCRIPT = boards/$(BOARD)/memory.lds" >> .config
 
 rpi: rpi-common

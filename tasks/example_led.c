@@ -7,7 +7,7 @@ static void led()
 	const char *pathname = "/dev/led" def2str(PIN_STATUS_LED);
 
 	if ((fd = open(pathname, O_WRONLY)) <= 0) {
-		error("can not open %x\n", fd);
+		error("can not open %d\n", fd);
 		return;
 	}
 
