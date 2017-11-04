@@ -15,6 +15,33 @@ static inline int ffs(int x)
 	return fls(x & -x);
 }
 
+static inline int digits(const unsigned int n)
+{
+	assert(sizeof(n) == 4);
+
+	const int tbl[] = {
+		10, 10, 9, 9, 9, 8, 8, 8, 7, 7, 7, 7, 6, 6, 6, 5,
+		5, 5, 4, 4, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1,
+		0 };
+	const unsigned int base[] = {
+		0,
+		10,
+		100,
+		1000,
+		10000,
+		100000,
+		1000000,
+		10000000,
+		100000000,
+		1000000000 };
+	int digits = tbl[__clz(n)];
+
+	if (base[digits] <= n)
+		digits++;
+
+	return digits;
+}
+
 static inline int log2(int x)
 {
 	if (!x)
