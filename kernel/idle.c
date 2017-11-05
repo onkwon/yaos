@@ -104,7 +104,7 @@ void idle()
 			 * system clock. */
 			if (get_timer_nr()) {
 				update_sleep_period();
-				enter_sleep_mode();
+				enter_sleep_mode(SLEEP_NAP);
 #ifdef CONFIG_SLEEP_DEEP
 			} else {
 				unsigned long long stamp = get_systick64();
@@ -112,7 +112,7 @@ void idle()
 						(unsigned int)(stamp >> 32),
 						(unsigned int)stamp);
 
-				enter_stop_mode();
+				enter_sleep_mode(SLEEP_DEEP);
 #endif
 			}
 

@@ -6,7 +6,7 @@
 int cpuload;
 unsigned int cpu_idle, cpu_idle_stamp;
 
-void enter_sleep_mode()
+static inline void enter_sleep_mode_core()
 {
 #ifdef CONFIG_CPU_LOAD
 	/* FIXME: make sure cpu load measuring to be done correctly
@@ -24,6 +24,22 @@ void enter_sleep_mode()
 
 	run_scheduler(ON);
 #endif
+}
+
+void enter_sleep_mode(sleep_t sleeptype)
+{
+	switch (sleeptype) {
+	case SLEEP_DEEP:
+		__enter_stop_mode();
+		break;
+	case SLEEP_BLACKOUT:
+		__enter_standby_mode();
+		break;
+	case SLEEP_NAP:
+		enter_sleep_mode_core();
+	default:
+		break;
+	}
 }
 
 #include <kernel/device.h>

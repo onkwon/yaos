@@ -30,6 +30,11 @@ struct links;
 typedef struct links buf_t;
 typedef volatile unsigned int reg_t;
 typedef struct ff_freelist_head heap_t;
+typedef enum {
+	SLEEP_NAP	= 1,
+	SLEEP_DEEP	= 2,
+	SLEEP_BLACKOUT	= 3,
+} sleep_t;
 
 #define WORD_SIZE			sizeof(int)
 #define WORD_BITS			(WORD_SIZE << 3)

@@ -5,6 +5,7 @@
 #include <bitops.h>
 
 #include "rcc.h"
+#include "../../../include/power.h"
 
 REGISTER_DEVICE(uart, "uart", 1);
 REGISTER_DEVICE(gpio, "led", PIN_LED_GREEN);
@@ -199,6 +200,8 @@ static void rcc_init(const unsigned int hclk_mhz)
 void clock_init()
 {
 	assert(OPERATING_FREQUENCY_MHZ <= 180);
+
+	__set_power_regulator(ON, 3);
 
 	rcc_reset();
 	set_flash_latency(OPERATING_FREQUENCY_MHZ);

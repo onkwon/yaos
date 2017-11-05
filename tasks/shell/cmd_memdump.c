@@ -11,20 +11,20 @@ static void dump(unsigned int saddr, unsigned int len, unsigned int width)
 	unsigned int i;
 
 	for (curr = saddr; curr < (saddr + len); curr += width) {
-		printf("\n%08x  ", curr); 
+		printk("\n%08x  ", curr); 
 		for (i = 0; i < width; i++) {
-			printf("%02x ", getbyte(curr + i));
-			if(!((i + 1) % 4)) printf(" ");
+			printk("%02x ", getbyte(curr + i));
+			if(!((i + 1) % 4)) printk(" ");
 		}
-		printf(" ");
+		printk(" ");
 		for (i = 0; i < width; i++) {
 			if (getbyte(curr + i) >= 0x20 && getbyte(curr + i) < 0x7f) 
-				printf("%c", getbyte(curr + i));
+				printk("%c", getbyte(curr + i));
 			else 
-				printf(".");
+				printk(".");
 		}   
 	}
-	printf("\n");
+	printk("\n");
 }
 
 static int memdump(int argc, char **argv)

@@ -7,24 +7,58 @@
 #define stm32f4	2
 #endif
 
-static inline void set_power_clock(unsigned int op)
+enum system_control_bits {
+	SLEEPONEXIT	= 1,
+	SLEEPDEEP	= 2,
+	SEVONPEND	= 4,
+};
+
+enum power_control_bits {
+	LPDS		= 0,
+	PDDS		= 1,
+	CWUF		= 2,
+	FPDS		= 9,
+	LPUDS		= 10,
+	MRUDS		= 11,
+	VOS		= 14,
+	UDEN		= 18,
+};
+
+void __set_power_regulator(bool on, int scalemode)
 {
-	__turn_apb1_clock(28, op); /* PWR */
+	unsigned int tmp;
+
 #if (SOC == stm32f1)
-	__turn_apb1_clock(27, op); /* BKP */
+	__turn_apb1_clock(27, on); /* BKP */
 #endif
+	__turn_apb1_clock(28, on); /* PWR */
+
+	tmp = PWR_CR;
+	if (on)
+		tmp |= (3 << UDEN) | (1 << LPUDS) | (1 << LPDS);
+
+	tmp &= ~(3 << VOS);
+	tmp |= (4 - scalemode) << VOS;
+
+	PWR_CR = tmp;
+}
+
+sleep_t get_sleep_type()
+{
+	if (PWR_CR & (1 << PDDS))
+		return SLEEP_BLACKOUT;
+	else if (SCB_SCR & (1 << SLEEPDEEP))
+		return SLEEP_DEEP;
+
+	return SLEEP_NAP;
 }
 
 void __enter_sleep_mode()
 {
-	set_power_clock(ON);
-
-	/*  drain any pending memory activity before suspending execution to
-	 *  enter a sleep mode */
+	SCB_SCR &= ~(1 << SLEEPDEEP);
+	/*  drain any pending memory activity before suspending execution */
 	dsb();
 	__wfi();
-
-	set_power_clock(OFF);
 }
 
 /* all clocks in the 1.8 V domain are stopped,
@@ -39,24 +73,17 @@ void __enter_stop_mode()
 	irq_save(irqflag);
 	local_irq_disable();
 
-	set_power_clock(ON);
-
-	SCB_SCR |= 4; /* Set SLEEPDEEP bit */
-	/* Clear PDDS bit in Power Control register (PWR_CR) */
-	PWR_CR |= 1; /* configure LPDS bit in PWR_CR */
+	SCB_SCR |= 1 << SLEEPDEEP;
+	PWR_CR &= ~(1 << PDDS);
 
 	stop_sysclk();
-	/*  drain any pending memory activity before suspending execution to
-	 *  enter a sleep mode */
+
+	/*  drain any pending memory activity before suspending execution */
 	dsb();
 	__wfi();
+
 	clock_init();
 	run_sysclk();
-
-	SCB_SCR &= ~4;
-	PWR_CR &= ~1;
-
-	set_power_clock(OFF);
 
 	irq_restore(irqflag);
 
@@ -81,8 +108,8 @@ void __enter_stop_mode()
  * except for registersin the Backup domain and Standby circuitry */
 void __enter_standby_mode()
 {
-	SCB_SCR |= 4; /* Set SLEEPDEEP bit */
-	PWR_CR |= 2; /* Set PDDS bit in Power Control register (PWR_CR) */
+	SCB_SCR |= 1 << SLEEPDEEP; /* Set SLEEPDEEP bit */
+	PWR_CR |= 1 << PDDS;
 	PWR_CR |= 4; /* Clear WUF bit in Power Control register (PWR_CSR) */
 
 	__wfi();
@@ -92,7 +119,7 @@ void __enter_standby_mode()
 
 void __sleep_on_exit()
 {
-	SCB_SCR |= 2;
+	SCB_SCR |= 1 << SLEEPONEXIT;
 }
 
 #ifdef CONFIG_DEBUG
@@ -135,6 +162,10 @@ static void disp_clkinfo()
 	printk("Enabled peripheral clock:\n");
 #if (SOC == stm32f1)
 	printk("AHB  %08x\n", RCC_AHB1ENR);
+#elif (SOC == stm32f4)
+	printk("AHB1 %08x\n", RCC_AHB1ENR);
+	printk("AHB2 %08x\n", RCC_AHB2ENR);
+	printk("AHB3 %08x\n", RCC_AHB3ENR);
 #endif
 	printk("APB2 %08x\n", RCC_APB2ENR);
 	printk("APB1 %08x\n", RCC_APB1ENR);
