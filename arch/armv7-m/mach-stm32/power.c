@@ -219,7 +219,7 @@ static int getadc(int ch)
 	v = ADC1_DR;				/* get the result */
 
 	//ADC1_CR2  &= ~1;			/* ADC1 power down */
-	//SET_CLOCK_APB2(DISABLE, 9);		/* ADC1 clock disable */
+	//SET_CLOCK_APB2(9, DISABLE);		/* ADC1 clock disable */
 
 	return v;
 }

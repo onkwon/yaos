@@ -182,17 +182,17 @@ unsigned int get_sysclk_freq()
 
 void __turn_apb1_clock(unsigned int nbit, bool on)
 {
-	SET_CLOCK_APB1(on, nbit);
+	SET_CLOCK_APB1(nbit, on);
 }
 
 void __turn_apb2_clock(unsigned int nbit, bool on)
 {
-	SET_CLOCK_APB2(on, nbit);
+	SET_CLOCK_APB2(nbit, on);
 }
 
 void __turn_ahb1_clock(unsigned int nbit, bool on)
 {
-	SET_CLOCK_AHB1(on, nbit);
+	SET_CLOCK_AHB1(nbit, on);
 }
 
 void __turn_port_clock(reg_t *port, bool on)
