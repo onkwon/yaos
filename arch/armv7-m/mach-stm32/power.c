@@ -111,9 +111,11 @@ void __enter_standby_mode()
 	SCB_SCR |= 1 << SLEEPDEEP; /* Set SLEEPDEEP bit */
 	PWR_CR |= 1 << PDDS;
 	PWR_CR |= 4; /* Clear WUF bit in Power Control register (PWR_CSR) */
+	PWR_CSR |= 0x100; /* EWUP */
 
 	__wfi();
 
+	__reboot();
 	/* wakeup latency: reset phase */
 }
 
