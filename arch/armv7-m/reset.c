@@ -117,9 +117,8 @@ static void __init __attribute__((naked, used)) ISR_reset()
 		nvic_set_pri(i, IRQ_PRIORITY_DEFAULT);
 
 	/* the bigger number the lower priority while 0 is the highest
-	 * priority. it gives systick the highest priority while giving svc and
-	 * pendsv lowest priority */
-	nvic_set_pri(NVECTOR_SYSTICK, IRQ_PRIORITY_HIGHEST);
+	 * priority. */
+	nvic_set_pri(NVECTOR_SYSTICK, IRQ_PRIORITY_LOWEST);
 	nvic_set_pri(NVECTOR_SVC, IRQ_PRIORITY_LOWEST);
 	nvic_set_pri(NVECTOR_PENDSV, IRQ_PRIORITY_LOWEST);
 
