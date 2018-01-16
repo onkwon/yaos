@@ -1,6 +1,6 @@
 # Module
 
-ifdef USE_UGFX
+ifeq ($(USE_UGFX),y)
 	GFXLIB = $(BASEDIR)/ugfx
 	export GFXLIB
 	include $(GFXLIB)/boards/base/Olimex-STM32-LCD/board.mk
@@ -10,7 +10,7 @@ ifdef USE_UGFX
 	SRCS +=$(GFXSRC)
 endif
 
-ifdef USE_CUBEMX
+ifeq ($(USE_CUBEMX),y)
 	THIRD_PARTY_CFLAGS  = $(CFLAGS)
 	THIRD_PARTY_CFLAGS += -DUSE_HAL_DRIVER -DSTM32F469xx
 	THIRD_PARTY_SRCS    = \

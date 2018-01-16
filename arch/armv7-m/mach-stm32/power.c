@@ -199,7 +199,7 @@ static void disp_clkinfo()
 #define AD2VOL_FAC(ad)	(ad * 8 / 100 % 100)
 
 /* to get internal reference voltage and temperature */
-static int getadc(int ch)
+static __attribute__((unused)) int getadc(int ch)
 {
 	int v;
 

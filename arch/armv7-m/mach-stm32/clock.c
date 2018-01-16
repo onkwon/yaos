@@ -1,5 +1,5 @@
 #include <foundation.h>
-#include "clock.h"
+#include "include/clock.h"
 
 #ifndef stm32f1
 #define stm32f1	1

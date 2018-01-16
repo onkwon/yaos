@@ -129,6 +129,9 @@ int sys_open(char *filename, int mode, void *option)
 {
 	syscall_delegate_atomic(do_sys_open, &current->mm.sp, &current->flags);
 
+	(void)filename;
+	(void)mode;
+	(void)(int)option;
 	return 0;
 }
 #endif
@@ -271,6 +274,7 @@ int sys_remove(const char *pathname)
 	syscall_delegate_atomic(sys_remove_core, &current->mm.sp,
 			&current->flags);
 
+	(void)pathname;
 	return 0;
 }
 #endif

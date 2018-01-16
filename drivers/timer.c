@@ -2,7 +2,7 @@
 #include <kernel/page.h>
 #include <error.h>
 #include <fs/fs.h>
-#include <asm/timer.h>
+#include <asm/mach/timer.h>
 #include <timer.h>
 
 static unsigned int major;
@@ -98,6 +98,8 @@ static inline void timer_ioctl_run(int id, void *data)
 
 static inline void timer_ioctl_get(int id, void *data)
 {
+	(void)id;
+	(void)(int)data;
 #if 0
 	tim->mode = __timer_mode_get(id);
 	tim->prescale = __timer_prescale_get(id);
@@ -250,6 +252,7 @@ static int timer_open(struct inode *inode, struct file *file)
 out_unlock:
 	mutex_unlock(&dev->mutex);
 
+	(void)inode;
 	return ret;
 }
 

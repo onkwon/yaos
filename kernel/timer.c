@@ -264,6 +264,7 @@ int sys_timer_create(struct ktimer *new)
 {
 	syscall_delegate_atomic(create_timer, &current->mm.sp, &current->flags);
 
+	(void)new;
 	return 0;
 }
 #endif /* CONFIG_SYSCALL_THREAD */

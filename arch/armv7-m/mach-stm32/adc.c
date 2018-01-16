@@ -1,4 +1,4 @@
-#include "adc.h"
+#include "include/adc.h"
 #include <error.h>
 #include <io.h>
 #include <kernel/timer.h>

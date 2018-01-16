@@ -37,6 +37,8 @@ void __attribute__((naked, noinline)) __semaphore_dec(struct semaphore *sem, int
 			"dmb				\n\t"
 			"pop	{r8, pc}		\n\t"
 			::: "r0", "r1", "r2", "r8", "lr", "cc", "memory");
+	(void)sem;
+	(void)ms;
 }
 
 int __attribute__((naked, noinline)) __semaphore_dec_wait(struct semaphore *sem, int ms)
@@ -60,6 +62,8 @@ int __attribute__((naked, noinline)) __semaphore_dec_wait(struct semaphore *sem,
 			"pop	{r8, pc}		\n\t"
 			:: "I"(-ETIMEDOUT)
 			: "r0", "r1", "r2", "r8", "lr", "cc", "memory");
+	(void)sem;
+	(void)ms;
 }
 
 void __attribute__((naked, noinline)) __semaphore_inc(struct semaphore *sem)
@@ -79,6 +83,7 @@ void __attribute__((naked, noinline)) __semaphore_inc(struct semaphore *sem)
 			"blgt	shake_waitqueue_out	\n\t"
 			"pop	{r8, pc}		\n\t"
 			::: "r0", "r2", "r8", "lr", "cc", "memory");
+	(void)sem;
 }
 
 void __attribute__((naked, noinline)) __lock_atomic(lock_t *counter)
@@ -95,6 +100,7 @@ void __attribute__((naked, noinline)) __lock_atomic(lock_t *counter)
 			"dmb				\n\t"
 			"bx	lr			\n\t"
 			::: "r0", "r1", "r2", "cc", "memory");
+	(void)counter;
 }
 
 void __attribute__((naked, noinline)) __unlock_atomic(lock_t *counter)
@@ -109,4 +115,5 @@ void __attribute__((naked, noinline)) __unlock_atomic(lock_t *counter)
 			"dmb				\n\t"
 			"bx	lr			\n\t"
 			::: "r0", "r1", "r2", "cc", "memory");
+	(void)counter;
 }

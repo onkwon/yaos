@@ -1,6 +1,6 @@
 #include <timer.h>
 #include <error.h>
-#include <asm/timer.h>
+#include "include/timer.h"
 
 #define TIM_COUNT_MAX		(1 << 16) /* 65536 */
 

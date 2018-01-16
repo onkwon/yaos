@@ -1,7 +1,7 @@
 #include <kernel/module.h>
-#include <pinmap.h>
+#include <asm/pinmap.h>
 #include <error.h>
-#include <hw.h>
+#include <asm/hw.h>
 #include <bitops.h>
 
 #include "rcc.h"
@@ -13,7 +13,7 @@ REGISTER_DEVICE(gpio, "led", PIN_LED_RED);
 
 static inline unsigned int get_pllclk_mhz()
 {
-	unsigned int m, n, p, q;
+	unsigned int m, n, p;
 	unsigned int mhz;
 	int res, i;
 

@@ -26,9 +26,7 @@
 int sysclk_init();
 unsigned int get_sysclk_period();
 
-#undef  INCPATH
-#define INCPATH			<asm/mach-MACHINE/clock.h>
-#include INCPATH
+#include <asm/mach/clock.h>
 
 #define KHZ			1000 /* 1KHz, 1ms */
 #define MHZ			1000000 /* 1MHz, 1us */

@@ -1,8 +1,8 @@
-#include <gpio.h>
+#include "include/gpio.h"
 #include <types.h>
 #include <error.h>
-#include "exti.h"
-#include "io.h"
+#include "include/exti.h"
+#include "include/io.h"
 
 static DEFINE_MUTEX(gpio_init_lock);
 

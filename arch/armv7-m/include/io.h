@@ -66,8 +66,6 @@
 
 #include "regs.h"
 
-#undef  INCPATH
-#define INCPATH			<asm/mach-MACHINE/io.h>
-#include INCPATH
+#include <asm/mach/io.h>
 
 #endif /* __ARMv7M_IO_H__ */

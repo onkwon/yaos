@@ -1,19 +1,21 @@
+LD_LIBRARY_PATH ?= /Users/kwon/Toolchain/gcc-arm-none-eabi-5_4-2016q3/lib/gcc/arm-none-eabi/5.4.1/armv7e-m/fpu/
+
 # Uncomment a line to enable its functionality
 CONFIG_DEBUG=y
-  #CONFIG_DEBUG_TASK=y
+  CONFIG_DEBUG_TASK=n
   CONFIG_DEBUG_SYSCALL=y
   CONFIG_DEBUG_SYSCALL_NESTED=y
-#CONFIG_SMP=y
+CONFIG_SMP=n
 CONFIG_REALTIME=y
-#CONFIG_PAGING=y
+CONFIG_PAGING=n
 CONFIG_SYSCALL=y
-  #CONFIG_SYSCALL_THREAD=y
+  CONFIG_SYSCALL_THREAD=n
 CONFIG_FS=y
 CONFIG_TIMER=y
 CONFIG_FLOAT=y
 CONFIG_FPU=y
 CONFIG_CPU_LOAD=y
-#CONFIG_SOFTIRQ_THREAD=y
+CONFIG_SOFTIRQ_THREAD=n
 CONFIG_SLEEP_LONG=y
 CONFIG_SLEEP_DEEP=y
 CONFIG_COMMON_IRQ_FRAMEWORK=y
@@ -22,9 +24,83 @@ CONFIG_COMMON_IRQ_FRAMEWORK=y
 MODULE_UART=y
 MODULE_TIMER=y
 MODULE_GPIO=y
-#MODULE_IR=y
-#MODULE_CLCD=y
+MODULE_IR=n
+MODULE_CLCD=n
 
 # Third party modules
-#USE_UGFX=y
-#USE_CUBEMX=y
+USE_UGFX=n
+USE_CUBEMX=n
+
+################################################################################
+# DO NOT EDIT BELOW THIS LINE
+################################################################################
+
+# Define
+ifeq ($(CONFIG_SMP),y)
+	CFLAGS += -DCONFIG_SMP
+endif
+ifeq ($(CONFIG_REALTIME),y)
+	CFLAGS += -DCONFIG_REALTIME
+endif
+ifeq ($(CONFIG_PAGING),y)
+	CFLAGS += -DCONFIG_PAGING
+endif
+ifeq ($(CONFIG_SYSCALL),y)
+	CFLAGS += -DCONFIG_SYSCALL
+	ifeq ($(CONFIG_SYSCALL_THREAD),y)
+		CFLAGS += -DCONFIG_SYSCALL_THREAD
+	endif
+endif
+ifeq ($(CONFIG_FS),y)
+	CFLAGS += -DCONFIG_FS
+endif
+ifeq ($(CONFIG_TIMER),y)
+	CFLAGS += -DCONFIG_TIMER
+endif
+ifeq ($(CONFIG_FLOAT),y)
+	CFLAGS += -DCONFIG_FLOAT
+endif
+ifeq ($(CONFIG_FPU),y)
+	CFLAGS += -DCONFIG_FPU
+endif
+ifeq ($(CONFIG_CPU_LOAD),y)
+	CFLAGS += -DCONFIG_CPU_LOAD
+endif
+ifeq ($(CONFIG_SOFTIRQ_THREAD),y)
+	CFLAGS += -DCONFIG_SOFTIRQ_THREAD
+endif
+ifeq ($(CONFIG_DEBUG),y)
+	CFLAGS += -g -DCONFIG_DEBUG #-O0
+	ifeq ($(CONFIG_DEBUG_TASK),y)
+		CFLAGS += -DCONFIG_DEBUG_TASK
+	endif
+	ifeq ($(CONFIG_DEBUG_SYSCALL),y)
+		CFLAGS += -DCONFIG_DEBUG_SYSCALL
+	endif
+endif
+ifeq ($(CONFIG_SLEEP_LONG),y)
+	CFLAGS += -DCONFIG_SLEEP_LONG
+endif
+ifeq ($(CONFIG_SLEEP_DEEP),y)
+	CFLAGS += -DCONFIG_SLEEP_DEEP
+endif
+ifeq ($(CONFIG_COMMON_IRQ_FRAMEWORK),y)
+	CFLAGS += -DCONFIG_COMMON_IRQ_FRAMEWORK
+endif
+
+# Compile
+ifeq ($(MODULE_UART),y)
+	SRCS += drivers/uart.c
+endif
+ifeq ($(MODULE_TIMER),y)
+	SRCS += drivers/timer.c
+endif
+ifeq ($(MODULE_GPIO),y)
+	SRCS += drivers/gpio.c
+endif
+ifeq ($(MODULE_IR),y)
+	SRCS += drivers/ir.c
+endif
+ifeq ($(MODULE_CLCD),y)
+	SRCS += drivers/clcd.c
+endif

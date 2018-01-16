@@ -17,7 +17,7 @@
 }
 
 #undef  INCPATH
-#define INCPATH			<asm/mach-MACHINE/SOC.h>
+#define INCPATH			<asm/mach/SOC.h>
 #include INCPATH
 
 #ifndef stm32f1

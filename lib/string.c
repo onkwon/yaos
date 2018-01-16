@@ -61,7 +61,7 @@ size_t ftos(double v, char *buf, int flen, size_t maxlen)
 	off += itos(i, &buf[off], 10, maxlen - off - 1);
 	buf[off++] = '.';
 
-	while ((f = f - (float)i) != 0.0 && off < maxlen-1) {
+	while ((f = f - (double)i) != (double)0.0 && off < maxlen-1) {
 		c = (int)(f * 10) + '0';
 		if (!isdigit(c))
 			break;

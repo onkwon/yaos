@@ -41,7 +41,7 @@ static void *ramfs_malloc(size_t size, struct device *dev)
 	return addr;
 }
 
-static void ramfs_free(void *addr, struct device *dev)
+static __attribute__((unused)) void ramfs_free(void *addr, struct device *dev)
 {
 	struct ramfs_superblock sb;
 
@@ -338,6 +338,7 @@ static void ramfs_read_inode(struct inode *inode)
 
 static int ramfs_mount(struct device *dev)
 {
+	(void)dev;
 	return 0;
 }
 

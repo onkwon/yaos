@@ -105,4 +105,8 @@ void syscall_delegate_atomic(void *func, void *sp, void *flags)
 			"bx	lr				\n\t"
 			:: "I"(TF_SYSCALL | TF_PRIVILEGED)
 			: "r0", "r1", "r2", "r3", "lr", "memory");
+
+	(void)(int)func;
+	(void)(int)sp;
+	(void)(int)flags;
 }

@@ -108,6 +108,7 @@ err:
 
 int remove_device(struct device *dev)
 {
+	(void)dev;
 	return 0;
 }
 

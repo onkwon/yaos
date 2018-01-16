@@ -1,7 +1,7 @@
-#include <uart.h>
+#include "include/uart.h"
 #include <stdlib.h>
-#include "exti.h"
-#include "clock.h"
+#include "include/exti.h"
+#include "include/clock.h"
 #include <asm/pinmap.h>
 #include <error.h>
 
@@ -433,6 +433,7 @@ void __uart_flush(int channel)
 
 unsigned int __uart_get_baudrate(int channel)
 {
+	(void)channel;
 	return 0;
 }
 

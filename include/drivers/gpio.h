@@ -37,8 +37,6 @@ void gpio_reset(unsigned int npin);
 void gpio_put(unsigned int npin, int v);
 unsigned int gpio_get(unsigned int npin);
 
-#undef  INCPATH
-#define INCPATH			<asm/mach-MACHINE/gpio.h>
-#include INCPATH
+#include <asm/mach/gpio.h>
 
 #endif /* __GPIO_H__ */

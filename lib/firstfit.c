@@ -43,7 +43,7 @@
  * 	   reset if in freelist or set, meaning allocated
  */
 
-#include <firstfit.h>
+#include <lib/firstfit.h>
 #include <kernel/lock.h>
 
 #define MIN_SIZE		(16 - 1) /* bytes */

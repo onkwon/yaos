@@ -1,5 +1,5 @@
+#include <drivers/gpio.h>
 #include <error.h>
-#include <gpio.h>
 #include <kernel/module.h>
 #include <kernel/softirq.h>
 #include <asm/pinmap.h>
@@ -31,6 +31,7 @@ static size_t gpio_read(struct file *file, void *buf, size_t len)
 
 	*p = gpio_get(MINOR(file->inode->dev));
 
+	(void)len;
 	return 1;
 }
 
@@ -40,6 +41,7 @@ static size_t gpio_write(struct file *file, void *buf, size_t len)
 
 	gpio_put(MINOR(file->inode->dev), *p);
 
+	(void)len;
 	return 1;
 }
 
@@ -103,6 +105,7 @@ static int gpio_open(struct inode *inode, struct file *file)
 out_unlock:
 	mutex_unlock(&dev->mutex);
 
+	(void)inode;
 	return mode;
 }
 

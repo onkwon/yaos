@@ -1,9 +1,9 @@
+#include <drivers/uart.h>
 #include <kernel/module.h>
 #include <kernel/page.h>
 #include <kernel/syscall.h>
-#include <asm/uart.h>
+#include <asm/mach/uart.h>
 #include <error.h>
-#include <uart.h>
 
 #define CHANNEL(n)		(MINOR(n) - 1)
 
@@ -152,6 +152,7 @@ static int uart_close(struct file *file)
 {
 	syscall_delegate_atomic(do_uart_close, &current->mm.sp, &current->flags);
 
+	(void)file;
 	return 0;
 }
 #endif
@@ -174,6 +175,7 @@ static inline size_t uart_read_core(struct file *file, void *buf, size_t len)
 	if (p)
 		*p = data & 0xff;
 
+	(void)len;
 	return 1;
 }
 
@@ -227,6 +229,9 @@ size_t uart_read(struct file *file, void *buf, size_t len)
 {
 	syscall_delegate_atomic(do_uart_read, &current->mm.sp, &current->flags);
 
+	(void)file;
+	(void)(int)buf;
+	(void)len;
 	return 0;
 }
 #endif
@@ -301,6 +306,9 @@ size_t uart_write(struct file *file, void *buf, size_t len)
 {
 	syscall_delegate_atomic(do_uart_write, &current->mm.sp, &current->flags);
 
+	(void)file;
+	(void)(int)buf;
+	(void)len;
 	return 0;
 }
 #endif
@@ -314,6 +322,8 @@ static inline void check_channel_conf(int channel, struct uart *conf)
 
 	if (conf->baudrate < BAUDRATE_MIN || conf->baudrate > BAUDRATE_MAX)
 		conf->baudrate = BAUDRATE_DEFAULT;
+
+	(void)channel;
 }
 
 static int uart_open(struct inode *inode, struct file *file)
@@ -385,6 +395,8 @@ out_close:
 	err = ENOMEM;
 out:
 	mutex_unlock(&dev->mutex);
+
+	(void)inode;
 	return err;
 }
 

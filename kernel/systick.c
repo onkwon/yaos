@@ -5,7 +5,7 @@ unsigned int sysfreq;
 unsigned int __attribute__((section(".data"))) systick;
 uint64_t __attribute__((section(".data"))) systick64;
 
-static DEFINE_SPINLOCK(lock_systick64);
+DEFINE_SPINLOCK(lock_systick64);
 
 uint64_t get_systick64()
 {
@@ -63,6 +63,7 @@ void ISR_systick(int nvector)
 	update_tick(1);
 	resched();
 #endif
+	(void)nvector;
 }
 
 #include <kernel/init.h>

@@ -11,6 +11,7 @@ static inline bool is_buddy_free(struct page *page, struct page *buddy,
 			(order == GET_PAGE_ORDER(buddy)))
 		return true;
 
+	(void)page;
 	return false;
 }
 

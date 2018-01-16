@@ -11,6 +11,8 @@ static int help(int argc, char **argv)
 		cmd++;
 	}
 
+	(void)argc;
+	(void)argv;
 	return 0;
 }
 REGISTER_CMD(help, help, "display this information");

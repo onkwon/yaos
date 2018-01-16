@@ -26,13 +26,15 @@ void cfs_rq_add(struct scheduler *cfs, struct task *new)
 	if (!new || get_task_state(new))
 		return;
 
-	struct links *curr, *head, *to;
-	struct task *task;
+	struct links *head, *to;
 
 	head = cfs->rq;
 	to   = head->prev;
 
 #if 0
+	struct links *curr;
+	struct task *task;
+
 	/* TODO: Improve O(N) `cfs_rq_add()`, the more tasks the slower */
 	for (curr = head->next; curr != head; curr = curr->next) {
 		task = get_container_of(curr, struct task, rq);

@@ -16,6 +16,8 @@ static int __attribute__((naked, noinline)) syscall(int n, ...)
 			:: "I"(SYSCALL_NR) : "memory");
 
 	register int result __asm__("r0");
+
+	(void)n;
 	return result;
 }
 

@@ -105,7 +105,7 @@ out:
 }
 
 #ifdef CONFIG_DEBUG
-static void print_block(unsigned int n, struct device *dev)
+static __attribute__((unused)) void print_block(unsigned int n, struct device *dev)
 {
 	char *buf;
 	int i;
@@ -1515,6 +1515,7 @@ static int read_super(struct superblock *sb, struct device *dev)
 	sb->root_inode = 0;
 	sb->op = &super_ops;
 
+	(void)dev;
 	return 0;
 }
 

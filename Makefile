@@ -1,83 +1,29 @@
-# Machine dependant
+# Toolchain
 
-PREFIX = arm-none-eabi-
-CC = $(PREFIX)gcc
-LD = $(PREFIX)ld
-OC = $(PREFIX)objcopy
-OD = $(PREFIX)objdump
+CROSS_COMPILE ?= arm-none-eabi
+CC := $(CROSS_COMPILE)-gcc
+LD := $(CROSS_COMPILE)-ld
+OC := $(CROSS_COMPILE)-objcopy
+OD := $(CROSS_COMPILE)-objdump
 
 # Common
 
 PROJECT = yaos
 VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --abbrev=4 --dirty --always)
 BASEDIR = $(shell pwd)
-BUILDIR = $(BASEDIR)/build
+BUILDIR = build
 
-# Options
-
-SUBDIRS = lib arch kernel fs drivers tasks
-CFLAGS += -Wall -O2 -fno-builtin -nostdlib -nostartfiles -DVERSION=$(VERSION) -Wno-main
+CFLAGS += -fno-builtin -nostdlib -nostartfiles -Wno-main
+CFLAGS += -O2 -DVERSION=$(VERSION)
+CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main
 OCFLAGS =
 ODFLAGS = -Dx
-INC	= -I$(BASEDIR)/include
 LIBS	=
 
 # Configuration
 
-include CONFIGURE
 -include .config
-
-ifdef CONFIG_SMP
-	CFLAGS += -DCONFIG_SMP
-endif
-ifdef CONFIG_REALTIME
-	CFLAGS += -DCONFIG_REALTIME
-endif
-ifdef CONFIG_PAGING
-	CFLAGS += -DCONFIG_PAGING
-endif
-ifdef CONFIG_SYSCALL
-	CFLAGS += -DCONFIG_SYSCALL
-	ifdef CONFIG_SYSCALL_THREAD
-		CFLAGS += -DCONFIG_SYSCALL_THREAD
-	endif
-endif
-ifdef CONFIG_FS
-	CFLAGS += -DCONFIG_FS
-endif
-ifdef CONFIG_TIMER
-	CFLAGS += -DCONFIG_TIMER
-endif
-ifdef CONFIG_FLOAT
-	CFLAGS += -DCONFIG_FLOAT
-endif
-ifdef CONFIG_FPU
-	CFLAGS += -DCONFIG_FPU
-endif
-ifdef CONFIG_CPU_LOAD
-	CFLAGS += -DCONFIG_CPU_LOAD
-endif
-ifdef CONFIG_SOFTIRQ_THREAD
-	CFLAGS += -DCONFIG_SOFTIRQ_THREAD
-endif
-ifdef CONFIG_DEBUG
-	CFLAGS += -g -DCONFIG_DEBUG #-O0
-	ifdef CONFIG_DEBUG_TASK
-		CFLAGS += -DCONFIG_DEBUG_TASK
-	endif
-	ifdef CONFIG_DEBUG_SYSCALL
-		CFLAGS += -DCONFIG_DEBUG_SYSCALL
-	endif
-endif
-ifdef CONFIG_SLEEP_LONG
-	CFLAGS += -DCONFIG_SLEEP_LONG
-endif
-ifdef CONFIG_SLEEP_DEEP
-	CFLAGS += -DCONFIG_SLEEP_DEEP
-endif
-ifdef CONFIG_COMMON_IRQ_FRAMEWORK
-	CFLAGS += -DCONFIG_COMMON_IRQ_FRAMEWORK
-endif
+include CONFIGURE
 
 # Third party module
 
@@ -85,81 +31,86 @@ include Makefile.3rd
 
 # Build
 
-TARGET  = $(ARCH)
-ifeq ($(SOC),bcm2835)
-	TARGET  = armv7-a
+TARGET    = $(ARCH)
+CFLAGS   += -march=$(ARCH) -DMACHINE=$(MACH) -DSOC=$(SOC)
+LD_SCRIPT = $(BUILDIR)/generated.lds
+LDFLAGS   = -T$(LD_SCRIPT)
+ifdef LD_LIBRARY_PATH
+	LDFLAGS += -L$(LD_LIBRARY_PATH) -lgcc
 endif
-CFLAGS += -march=$(ARCH) -DMACHINE=$(MACH) -DSOC=$(SOC)
-LDFLAGS = -Tarch/$(TARGET)/generated.lds -L$(LD_LIBRARY_PATH) -lgcc
 
-SRCS_ASM = $(wildcard *.S)
+SUBDIRS	 = lib kernel fs tasks
+INCS	 = -I$(BASEDIR)/include
+FILES	 = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call FILES,$d/,$2))
+
+INC_TMP	 = include/asm
+INC_ASM	 = $(call FILES,arch/$(ARCH)/include,*.h)
+INC_ASM	+= $(call FILES,arch/$(ARCH)/mach-$(MACH)/include,*.h)
+INC_ASM	+= $(call FILES,arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include,*.h)
+
+SRCS_ASM = $(call FILES,arch/$(ARCH)/,*.S)
+SRCS    += $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c $(dir)/**/*.c))
 SRCS    += $(wildcard *.c)
-OBJS     = $(addprefix $(BUILDIR)/,$(notdir $(SRCS:.c=.o)))
-OBJS    += $(addprefix $(BUILDIR)/,$(notdir $(SRCS_ASM:.S=.o)))
+SRCS    += $(wildcard arch/$(ARCH)/*.c) $(wildcard arch/$(ARCH)/mach-$(MACH)/*.c)
+SRCS    += $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c)
 
-export BASEDIR BUILDIR
-export TARGET MACH SOC BOARD LD_SCRIPT
-export CC LD OC OD CFLAGS LDFLAGS OCFLAGS ODFLAGS
-export INC LIBS
+OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o))
+OBJS	+= $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
 
-all: include $(BUILDIR)/$(PROJECT).elf $(BUILDIR)/$(PROJECT).bin $(BUILDIR)/$(PROJECT).hex
-	@echo "\nArchitecture :" $(ARCH)
+DEPS	 = $(OBJS:.o=.d)
+
+all: $(BUILDIR) $(BUILDIR)/$(PROJECT).bin $(BUILDIR)/$(PROJECT).hex $(BUILDIR)/$(PROJECT).dump
+	@echo "Version      :" $(VERSION)
+	@echo "Architecture :" $(ARCH)
 	@echo "Vendor       :" $(MACH)
 	@echo "SoC          :" $(SOC)
 	@echo "Board        :" $(BOARD)
 	@echo "\nSection Size(in bytes):"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("%s\t\t %8d\n", $$1, strtonum($$3))}' $(BUILDIR)/$(PROJECT).map
-	@$(OD) $(ODFLAGS) $(BUILDIR)/$(PROJECT).elf > $(BUILDIR)/$(PROJECT).dump
 
-$(THIRD_PARTY_OBJS): %.o: %.c Makefile $(BUILDIR)
-	$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) -c $< -o $(addprefix $(BUILDIR)/3rd/,$(notdir $@))
-$(BUILDIR)/%.o: %.c Makefile $(BUILDIR)
-	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $< -o $@
-$(BUILDIR)/$(PROJECT).elf: $(OBJS) subdirs Makefile $(THIRD_PARTY_OBJS)
-	$(LD) -o $@ $(OBJS) $(patsubst %, %/*.o, $(SUBDIRS)) $(addprefix $(BUILDIR)/3rd/,$(notdir $(THIRD_PARTY_OBJS))) \
-		-Map $(BUILDIR)/$(PROJECT).map $(LDFLAGS)
-$(BUILDIR)/%.bin: $(BUILDIR)/%.elf $(BUILDIR)
-	$(OC) $(OCFLAGS) -O binary $< $@
-$(BUILDIR)/%.hex: $(BUILDIR)/%.elf $(BUILDIR)
+$(BUILDIR): $(INC_TMP) $(LD_SCRIPT)
+$(BUILDIR)/%.dump: $(BUILDIR)/%.elf
+	$(OD) $(ODFLAGS) $< > $@
+$(BUILDIR)/%.hex: $(BUILDIR)/%.elf
 	$(OC) $(OCFLAGS) -O ihex $< $@
-$(BUILDIR):
-	mkdir -p $@/3rd
+$(BUILDIR)/%.bin: $(BUILDIR)/%.elf
+	$(OC) $(OCFLAGS) -O binary $< $@
+$(BUILDIR)/$(PROJECT).elf: $(OBJS) $(THIRD_PARTY_OBJS)
+	$(LD) -o $@ $^ -Map $(BUILDIR)/$(PROJECT).map $(LDFLAGS)
+$(OBJS): $(BUILDIR)/%.o: %.c Makefile
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCS) $(LIBS) -MMD -c $< -o $@
+$(THIRD_PARTY_OBJS): %.o: %.c
+	@mkdir -p $(BUILDIR)/3rd/$(@D)
+	$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) -c $< -o $(addprefix $(BUILDIR)/3rd/,$(notdir $@))
+$(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.lds
+	@mkdir -p $(@D)
+	-cp arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) $@
+	$(CC) -E -x c $(CFLAGS) arch/$(ARCH)/common.lds | grep -v '^#' >> $@
 .c.o:
-	$(CC) $(CFLAGS) $(INC) $(LIBS) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCS) $(LIBS) -c $< -o $@
 
-.PHONY: subdirs $(SUBDIRS)
-subdirs: $(SUBDIRS)
-$(SUBDIRS):
-	@$(MAKE) --print-directory -C $@
+-include $(DEPS)
 
-.PHONY: include
-include:
-	@$(MAKE) include --print-directory -C arch/$(TARGET)
-	-cp -R arch/$(TARGET)/include include/asm
-	-cp -R drivers/include include/drivers
-	-cp -R lib/include include/lib
-	-cp -R fs/include include/fs
-
-.PHONY: depend dep
-depend dep: $(BUILDIR)
-	$(CC) $(CFLAGS) -MM $(SRCS) > .depend
+include/asm: $(INC_ASM)
+	@rm -rf include/asm
+	-cp -R arch/$(ARCH)/include include/asm
+	-cp -R arch/$(ARCH)/mach-$(MACH)/include include/asm/mach
+ifdef BOARD
+	-cp -R arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include include/asm/mach/board
+	-cp -f arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include/pinmap.h include/asm/
+	-cp -f arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include/hw.h include/asm/
+endif
 
 .PHONY: clean
 clean:
-	@for i in $(SUBDIRS); do $(MAKE) clean -C $$i || exit $?; done
 	@rm -rf $(BUILDIR)
 	@rm -rf include/asm
-	@rm -rf include/drivers
-	@rm -rf include/lib
-	@rm -rf include/fs
-	@rm -f .depend
 
 ifneq ($(MAKECMDGOALS), clean)
 	ifneq ($(MAKECMDGOALS), depend)
-		ifneq ($(MAKECMDGOALS), dep)
-			ifneq ($(SRCS),)
-				-include .depend
-			endif
+		ifneq ($(SRCS),)
+			-include $(BUILDIR)/$(PROJECT).dep
 		endif
 	endif
 endif
@@ -184,47 +135,47 @@ stm32:
 
 mycortex-stm32f4: stm32f4
 	@echo "BOARD = mycortex-stm32f4" >> .config
-	@echo "LD_SCRIPT = stm32f4.lds" >> .config
+	@echo "LD_SCRIPT_MACH = stm32f4.lds" >> .config
 
 ust-mpb-stm32f103: stm32f1
 	@echo "BOARD = ust-mpb-stm32f103" >> .config
-	@echo "LD_SCRIPT = stm32f1.lds" >> .config
+	@echo "LD_SCRIPT_MACH = stm32f1.lds" >> .config
 
 stm32-lcd: stm32f1
 	@echo "BOARD = stm32-lcd" >> .config
-	@echo "LD_SCRIPT = stm32f1.lds" >> .config
+	@echo "LD_SCRIPT_MACH = stm32f1.lds" >> .config
 
 mango-z1: stm32f1
 	@echo "BOARD = mango-z1" >> .config
-	@echo "LD_SCRIPT = boards/mango-z1/memory.lds" >> .config
+	@echo "LD_SCRIPT_MACH = boards/mango-z1/memory.lds" >> .config
 
 nrf52: armv7-m4
 	@echo "CFLAGS += -DNRF52832_XXAA" >> .config
-	@echo "LD_SCRIPT = nrf52.lds" >> .config
+	@echo "LD_SCRIPT_MACH = nrf52.lds" >> .config
 	@echo "MACH = nrf5" >> .config
 	@echo "SOC = nrf52" >> .config
 
 stm32f469i-disco: stm32f4
 	@echo "BOARD := stm32f469i-disco" >> .config
-	@echo "LD_SCRIPT = boards/$(BOARD)/memory.lds" >> .config
+	@echo "LD_SCRIPT_MACH = boards/$(BOARD)/memory.lds" >> .config
 stm32f429i-disco: stm32f4
 	@echo "BOARD := stm32f429i-disco" >> .config
-	@echo "LD_SCRIPT = boards/$(BOARD)/memory.lds" >> .config
+	@echo "LD_SCRIPT_MACH = boards/$(BOARD)/memory.lds" >> .config
 
 rpi: rpi-common
-	@echo "ARCH = armv6zk" >> .config
 	@echo "SOC = bcm2835" >> .config
 	@echo "CFLAGS += -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp" >> .config
+	#@echo "ARCH = armv6zk" >> .config
 rpi2: rpi-common
-	@echo "ARCH = armv7-a" >> .config
 	@echo "SOC = bcm2836" >> .config
 	@echo "CFLAGS += -mtune=cortex-a7 -mfloat-abi=hard -mfpu=vfpv3-d16" >> .config
 rpi-common:
+	@echo "ARCH = armv7-a" >> .config
 	@echo "MACH = rpi" > .config
 
-TTY = /dev/tty.SLAB_USBtoUART
+TTY = /dev/tty.usbmodem141133
 .PHONY: burn
-burn:
+burn: $(BUILDIR)/$(PROJECT).bin
 	st-flash --reset write $(BUILDIR)/$(PROJECT:%=%.bin) 0x08000000
 .PHONY: erase
 erase:

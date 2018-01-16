@@ -121,6 +121,8 @@ static int ps(int argc, char **argv)
 	print_rq();
 #endif
 
+	(void)argc;
+	(void)argv;
 	return 0;
 }
 REGISTER_CMD(ps, ps, "report process status");

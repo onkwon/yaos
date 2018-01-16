@@ -20,4 +20,6 @@ void exti_enable(int pin, bool enable)
 
 	if (!(__read_apb2_clock() & (1 << RCC_SYSCFGEN_BIT)))
 		__turn_apb2_clock(RCC_SYSCFGEN_BIT, ON);
+
+	(void)enable;
 }
