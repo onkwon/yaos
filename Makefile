@@ -56,8 +56,9 @@ SRCS    += $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c)
 
 OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o))
 OBJS	+= $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
+THIRD_PARTY_OBJS = $(addprefix $(BUILDIR)/3rd/, $(THIRD_PARTY_SRCS:.c=.o))
 
-DEPS	 = $(OBJS:.o=.d)
+DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
 
 all: $(BUILDIR) $(BUILDIR)/$(PROJECT).bin $(BUILDIR)/$(PROJECT).hex $(BUILDIR)/$(PROJECT).dump
 	@echo "Version      :" $(VERSION)
@@ -76,19 +77,19 @@ $(BUILDIR)/%.hex: $(BUILDIR)/%.elf
 $(BUILDIR)/%.bin: $(BUILDIR)/%.elf
 	$(OC) $(OCFLAGS) -O binary $< $@
 $(BUILDIR)/$(PROJECT).elf: $(OBJS) $(THIRD_PARTY_OBJS)
-	$(LD) -o $@ $^ -Map $(BUILDIR)/$(PROJECT).map $(LDFLAGS)
-$(OBJS): $(BUILDIR)/%.o: %.c Makefile
+	$(LD) -o $@ $^ $(LIBS) -Map $(BUILDIR)/$(PROJECT).map $(LDFLAGS)
+$(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(INCS) $(LIBS) -MMD -c $< -o $@
-$(THIRD_PARTY_OBJS): %.o: %.c
-	@mkdir -p $(BUILDIR)/3rd/$(@D)
-	$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) -c $< -o $(addprefix $(BUILDIR)/3rd/,$(notdir $@))
+	$(CC) $(CFLAGS) $(INCS) -MMD -c $< -o $@
+$(THIRD_PARTY_OBJS): $(BUILDIR)/3rd/%.o: %.c Makefile Makefile.3rd CONFIGURE .config
+	@mkdir -p $(@D)
+	$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) -c $< -o $@
 $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.lds
 	@mkdir -p $(@D)
 	-cp arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) $@
 	$(CC) -E -x c $(CFLAGS) arch/$(ARCH)/common.lds | grep -v '^#' >> $@
 .c.o:
-	$(CC) $(CFLAGS) $(INCS) $(LIBS) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 -include $(DEPS)
 

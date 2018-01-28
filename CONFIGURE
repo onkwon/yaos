@@ -28,8 +28,9 @@ MODULE_IR=n
 MODULE_CLCD=n
 
 # Third party modules
-USE_UGFX=n
-USE_CUBEMX=n
+USE_CMSIS=n
+USE_HAL=n
+USE_EMWIN=n
 
 ################################################################################
 # DO NOT EDIT BELOW THIS LINE
