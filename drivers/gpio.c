@@ -138,7 +138,7 @@ static int gpio_close_core(struct file *file)
 	mutex_lock(&dev->mutex);
 
 	if (--dev->refcount == 0) {
-		gpio_reset(MINOR(file->inode->dev));
+		gpio_fini(MINOR(file->inode->dev));
 
 		assert(!link_empty(&q_user_isr));
 	}

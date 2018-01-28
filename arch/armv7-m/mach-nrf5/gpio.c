@@ -150,7 +150,7 @@ int gpio_init(unsigned int pin, unsigned int flags)
 	return vector;
 }
 
-void gpio_reset(unsigned int pin)
+void gpio_fini(unsigned int pin)
 {
 }
 

@@ -166,7 +166,7 @@ static inline void uart_close(int channel)
 	}
 
 	nvic_set(vec2irq(ch2vec(channel)), OFF);
-	/* TODO: gpio_reset() and unlink_exti_to_nvic() */
+	/* TODO: gpio_fini() and unlink_exti_to_nvic() */
 }
 
 static inline int uart_putc(int channel, int c)

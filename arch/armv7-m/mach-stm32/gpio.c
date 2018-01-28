@@ -428,7 +428,7 @@ out:
 }
 #endif
 
-void gpio_reset(unsigned int index)
+void gpio_fini(unsigned int index)
 {
 	unsigned int port, pin, lvector;
 
