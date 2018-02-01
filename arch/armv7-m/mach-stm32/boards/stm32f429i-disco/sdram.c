@@ -81,7 +81,7 @@ void sdram_init()
 {
 	sdram_gpio_init();
 
-	struct sdram_t *sdram = (struct sdram_t *)FMC_SDRAM_BASE;
+	struct sdram_t *sdram = (struct sdram_t *)FMC_SDRAM_BASEADDR;
 
 	sdram->SDCR[BANK] = (1 << RPIPE) | (2 << SDCLK) | (2 << CAS) |
 		(1 << NB) | (1 << MWID) | (1 << NR);

@@ -28,6 +28,8 @@
 #define RCC_CSR			(*(reg_t *)(RCC_BASE + 0x74))
 #define RCC_SSCGR		(*(reg_t *)(RCC_BASE + 0x80))
 #define RCC_PLLI2SCFGR		(*(reg_t *)(RCC_BASE + 0x84))
+#define RCC_PLLSAICFGR		(*(reg_t *)(RCC_BASE + 0x88))
+#define RCC_PLLDCKCFGR		(*(reg_t *)(RCC_BASE + 0x8c))
 
 #define RCC_SYSCFGEN_BIT	14
 

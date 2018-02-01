@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <kernel/lock.h>
+#include <kernel/systick.h>
 
 struct ktimer {
 	struct link list; /* keep this first */

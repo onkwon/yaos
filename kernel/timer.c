@@ -1,5 +1,4 @@
 #include <kernel/timer.h>
-#include <kernel/systick.h>
 #include <kernel/task.h>
 #include <kernel/lock.h>
 #include <kernel/softirq.h>

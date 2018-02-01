@@ -12,7 +12,8 @@ ifeq ($(USE_HAL),y)
 		     $(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc.c \
 		     $(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc_ex.c \
 		     $(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dsi.c \
-		     $(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
+		     $(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
+		     $(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
 	HAL_INCS = \
 		   -I$(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Inc \
 		   -I$(BASEDIR)/../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy \

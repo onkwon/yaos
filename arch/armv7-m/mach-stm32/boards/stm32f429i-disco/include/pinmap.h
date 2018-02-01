@@ -20,7 +20,7 @@
 #define PIN_LED_RED			110 //(96+14) /* PG.14 */
 
 /* UART */
-#define PIN_UART1_TX			9 /* PA.9 */
+#define PIN_UART1_TX			 9 /* PA.9 */
 #define PIN_UART1_RX			10 /* PA.10 */
 
 /* SDRAM */
@@ -63,9 +63,43 @@
 #define PIN_FMC_SDCLK			104 /* PG.8 */
 #define PIN_FMC_NCAS			111 /* PG.15 */
 
-#define PIN_LCD_RESET
-#define PIN_LCD_TEAR
-#define PIN_LCD_BACKLIGHT
+/* LCD */
+#define PIN_LCD_MCU_WRX			 61 /* PD.13 */
+#define PIN_LCD_MCU_RDX			 60 /* PD.12 */
+#define PIN_LCD_MCU_NCS			 34 /* PC.2 */
+
+#define PIN_LCD_IM0			 50 /* PD.2 */
+#define PIN_LCD_IM1			 52 /* PD.4 */
+#define PIN_LCD_IM2			 53 /* PD.5 */
+#define PIN_LCD_IM3			 55 /* PD.7 */
+
+#define PIN_LCD_R2			 42 /* PC.10 */
+#define PIN_LCD_R3			 16 /* PB.0 */
+#define PIN_LCD_R4			 11 /* PA.11 */
+#define PIN_LCD_R5			 12 /* PA.12 */
+#define PIN_LCD_R6			 17 /* PB.01 */
+#define PIN_LCD_R7			102 /* PG.06 */
+#define PIN_LCD_G2			  6 /* PA.06 */
+#define PIN_LCD_G3			106 /* PG.10 */
+#define PIN_LCD_G4			 26 /* PB.10 */
+#define PIN_LCD_G5			 27 /* PB.11 */
+#define PIN_LCD_G6			 39 /* PC.07 */
+#define PIN_LCD_G7			 51 /* PD.03 */
+#define PIN_LCD_B2			 54 /* PD.06 */
+#define PIN_LCD_B3			107 /* PG.11 */
+#define PIN_LCD_B4			108 /* PG.12 */
+#define PIN_LCD_B5			  3 /* PA.03 */
+#define PIN_LCD_B6			 24 /* PB.08 */
+#define PIN_LCD_B7			 25 /* PB.09 */
+#define PIN_LCD_HSYNC			 38 /* PC.06 */
+#define PIN_LCD_VSYNC			  4 /* PA.04 */
+#define PIN_LCD_CLK			103 /* PG.07 */
+#define PIN_LCD_DE			 90 /* PF.10 */
+
+/* SPI5 */
+#define PIN_SPI5_SCK			87 /* PF.7 */
+#define PIN_SPI5_MISO			88 /* PF.8 */
+#define PIN_SPI5_MOSI			89 /* PF.9 */
 
 /* Timer */
 #define PIN_TIM2CH1			 0 /* PA.0 */
