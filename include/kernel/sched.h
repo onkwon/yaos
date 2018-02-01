@@ -2,6 +2,7 @@
 #define __SCHED_H__
 
 #include <types.h>
+#include <stdint.h>
 
 struct sched_entity {
 	uint64_t vruntime;

@@ -25,7 +25,6 @@ enum {
 typedef volatile int lock_t;
 typedef unsigned int dev_t;
 typedef unsigned int size_t;
-typedef unsigned long long uint64_t;
 struct links;
 typedef struct links buf_t;
 typedef volatile unsigned int reg_t;
