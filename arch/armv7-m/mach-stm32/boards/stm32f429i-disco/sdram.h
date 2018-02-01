@@ -3,8 +3,8 @@
 
 #include <types.h>
 
-#define FMC_CONTROL_BASE	0xA0000000U
-#define FMC_SDRAM_BASE		(FMC_CONTROL_BASE + 0x140U)
+#define FMC_CONTROL_BASEADDR	0xA0000000U
+#define FMC_SDRAM_BASEADDR	(FMC_CONTROL_BASEADDR + 0x140U)
 #define BANK			1 // bank2
 
 #define SDRAM_BASEADDR		0xD0000000
@@ -17,7 +17,7 @@ struct sdram_t {
 	reg_t SDCMR;	// 0x150
 	reg_t SDRTR;	// 0x154
 	reg_t SDSR;	// 0x158
-} __attribute__((packed));
+} __attribute__((packed, aligned(4)));
 
 enum FMC_SDCR_BIT {
 	RPIPE	= 13,
