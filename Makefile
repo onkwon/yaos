@@ -40,7 +40,7 @@ ifdef LD_LIBRARY_PATH
 endif
 
 SUBDIRS	 = lib kernel fs tasks
-INCS	 = -I$(BASEDIR)/include
+INCS	+= -I$(BASEDIR)/include
 FILES	 = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call FILES,$d/,$2))
 
 INC_TMP	 = include/asm
@@ -157,11 +157,11 @@ nrf52: armv7-m4
 	@echo "SOC = nrf52" >> .config
 
 stm32f469i-disco: stm32f4
-	@echo "BOARD := stm32f469i-disco" >> .config
-	@echo "LD_SCRIPT_MACH = boards/$(BOARD)/memory.lds" >> .config
+	@echo "BOARD = stm32f469i-disco" >> .config
+	@echo "LD_SCRIPT_MACH = boards/stm32f469i-disco/memory.lds" >> .config
 stm32f429i-disco: stm32f4
-	@echo "BOARD := stm32f429i-disco" >> .config
-	@echo "LD_SCRIPT_MACH = boards/$(BOARD)/memory.lds" >> .config
+	@echo "BOARD = stm32f429i-disco" >> .config
+	@echo "LD_SCRIPT_MACH = boards/stm32f429i-disco/memory.lds" >> .config
 
 rpi: rpi-common
 	@echo "SOC = bcm2835" >> .config

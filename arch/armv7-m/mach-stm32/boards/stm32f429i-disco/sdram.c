@@ -45,6 +45,8 @@ static inline void sdram_gpio_init()
 	gpio_init(PIN_FMC_NRAS, GPIO_MODE_ALT | gpio_altfunc(12) | GPIO_SPD_FASTEST);
 	gpio_init(PIN_FMC_NCAS, GPIO_MODE_ALT | gpio_altfunc(12) | GPIO_SPD_FASTEST);
 	gpio_init(PIN_FMC_SDCLK, GPIO_MODE_ALT | gpio_altfunc(12) | GPIO_SPD_FASTEST);
+	gpio_init(PIN_FMC_BA0, GPIO_MODE_ALT | gpio_altfunc(12) | GPIO_SPD_FASTEST);
+	gpio_init(PIN_FMC_BA1, GPIO_MODE_ALT | gpio_altfunc(12) | GPIO_SPD_FASTEST);
 }
 
 /* SDRAM clock = HCLK / 2 = 120 / 2 = 60MHz
@@ -83,11 +85,15 @@ void sdram_init()
 
 	struct sdram_t *sdram = (struct sdram_t *)FMC_SDRAM_BASEADDR;
 
+	sdram->SDCR[0] = (1 << RPIPE) | (2 << SDCLK);
+	sdram->SDCR[1] = (2 << CAS) | (1 << NB) | (1 << MWID) | (1 << NR);
+	sdram->SDTR[0] = (3 << TRC);
+	sdram->SDTR[1] = (1 << TWR) | (2 << TRAS) | (4 << TXSR) | (1 << TMRD);
+#if 0
 	sdram->SDCR[BANK] = (1 << RPIPE) | (2 << SDCLK) | (2 << CAS) |
 		(1 << NB) | (1 << MWID) | (1 << NR);
 	sdram->SDTR[BANK] = (1 << TWR) | (3 << TRC) | (2 << TRAS) |
 		(4 << TXSR) | (1 << TMRD);
-#if 1
 	sdram->SDCR[0] = (1 << RPIPE) | (2 << SDCLK) | (2 << CAS) |
 		(1 << NB) | (1 << MWID) | (1 << NR);
 	sdram->SDTR[0] = (1 << TWR) | (3 << TRC) | (2 << TRAS) |
