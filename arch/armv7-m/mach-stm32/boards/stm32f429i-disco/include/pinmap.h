@@ -95,6 +95,7 @@
 #define PIN_LCD_VSYNC			  4 /* PA.04 */
 #define PIN_LCD_CLK			103 /* PG.07 */
 #define PIN_LCD_DE			 90 /* PF.10 */
+#define PIN_LCD_TE			 59 /* PD.11 */
 
 /* SPI5 */
 #define PIN_SPI5_SCK			87 /* PF.7 */

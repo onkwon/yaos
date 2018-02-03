@@ -4,6 +4,40 @@
 #include <stdint.h>
 #include <types.h>
 
+#define LCD_WIDTH		240
+#define LCD_HEIGHT		320
+
+/* DRAM Mapping
+ *
+ * 240x320x4(bytes per pixel) = 307,200 bytes, 0x4B000
+ *
+ * 0xD0000000 - 0xD004AFFF : Layer0 Framebuffer0 (4 bytes per pixel)
+ * 0xD004B000 - 0xD0095FFF : Layer0 Framebuffer1
+ * 0xD0096000 - 0xD00E0FFF : Layer0 Framebuffer2
+ * 0xD00E1000 - 0xD012BFFF : Layer1 Framebuffer0
+ * 0xD012C000 - 0xD0176FFF : Layer1 Framebuffer1
+ * 0xD0177000 - 0xD01C1FFF : Layer1 Framebuffer2
+ * 0xD01C2000 - 0xD03C1FFF : emWin heap
+ * 0xD03C2000 - 0xD07FFFFF : about 4MiB reserved
+ */
+#define LCD_LAYER1_FB		0xD0000000U
+#define LCD_LAYER2_FB		0xD00E1000U
+#define LCD_HEAP		0xD01C2000U
+
+enum pixel_format_t {
+	PF_ARGB8888	= 0,
+	PF_RGB888	= 1,
+	PF_RGB565	= 2,
+	PF_ARGB1555	= 3,
+	PF_ARGB4444	= 4,
+	PF_L8		= 5,
+	PF_AL44		= 6,
+	PF_AL88		= 7,
+	PF_L4		= 8,
+	PF_A8		= 9,
+	PF_A4		= 10,
+};
+
 #define LTDC_BASEADDR		0x40016800U
 #define LTDC_LAYER1_BASEADDR	0x40016884U
 #define LTDC_LAYER2_BASEADDR	0x40016904U
@@ -48,16 +82,7 @@ struct ltdc_t {
 	struct ltdc_layer_t layer[2];
 } __attribute__((packed, aligned(4)));
 
-enum pixel_format_t {
-	PF_ARGB8888	= 0,
-	PF_RGB888	= 1,
-	PF_RGB565	= 2,
-	PF_ARGB1555	= 3,
-	PF_ARGB4444	= 4,
-	PF_L8		= 5,
-	PF_AL44		= 6,
-	PF_AL88		= 7,
-};
+struct ltdc_t *LTDC;
 
 void lcd_write_reg(uint8_t reg);
 void lcd_write_data(uint8_t v);
@@ -67,6 +92,7 @@ void lcd_layer_pos_set(int layer, int x0, int x1, int y0, int y1);
 void lcd_layer_pf_set(int layer, enum pixel_format_t pf);
 void lcd_layer_fb_set(int layer, unsigned int addr);
 void lcd_layer_alpha_set(int layer, uint8_t alpha);
+void lcd_layer_set(int layer, bool on);
 void lcd_reload();
 
 extern void ili9341_init(); /* ili9341.c */

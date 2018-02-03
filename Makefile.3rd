@@ -27,18 +27,10 @@ endif
 
 ifeq ($(USE_EMWIN),y)
 	EMWIN_CFLAGS = $(CFLAGS) #-DOS_SUPPORT
-	EMWIN_SRCS   = \
-		       $(BASEDIR)/../emWin/OS/GUI_X.c \
-		       $(BASEDIR)/../emWin/Config/GUIConf.c \
-		       $(BASEDIR)/../emWin/Config/LCDConf.c
 	EMWIN_INCS = \
-		     -I$(BASEDIR)/../emWin/Config \
+		     -I$(BASEDIR)/tasks \
 		     -I$(BASEDIR)/../emWin/inc
 
-	THIRD_PARTY_SRCS += $(EMWIN_SRCS:.c=.o)
-	THIRD_PARTY_INCS += $(EMWIN_INCS)
-	THIRD_PARTY_CFLAGS ?= $(CFLAGS)
-	THIRD_PARTY_CFLAGS += $(EMWIN_CFLAGS)
 	LIBS += $(BASEDIR)/../emWin/Lib/STemWin540_CM4_GCC.a
 	INCS += $(EMWIN_INCS)
 endif

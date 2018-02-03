@@ -133,4 +133,7 @@ void ili9341_init()
 	udelay(200);
 	lcd_write_reg(0x29);
 	lcd_write_reg(0x2C);
+
+	lcd_write_reg(0x35);
+	lcd_write_data(0x00);
 }

@@ -3,9 +3,7 @@
 #include <kernel/timer.h>
 #include <stdint.h>
 #include "spi.h"
-
-#define LCD_WIDTH	240
-#define LCD_HEIGHT	320
+#include "dma2d.h"
 
 #define HSYNC		10 /* Horizontal sync */
 #define HBP		20 /* Horizontal back porch */
@@ -24,6 +22,8 @@
 #define LCD_RDX(lv)	gpio_put(PIN_LCD_MCU_RDX, lv)
 #define LCD_WRX(lv)	gpio_put(PIN_LCD_MCU_WRX, lv)
 
+struct ltdc_t *LTDC = (struct ltdc_t *)LTDC_BASEADDR;
+
 static inline void lcd_spi_init()
 {
 	__turn_apb2_clock(20, ON); /* SPI5 clock enable */
@@ -41,8 +41,17 @@ static inline void lcd_spi_init()
 	spi_init(SPI5, SPI_MASTER, 3750, SPI_NSS_SOFT);
 }
 
+static void ISR_VSYNC(int nvector)
+{
+	extern void lcd_vsync_callback();
+	lcd_vsync_callback();
+	(void)nvector;
+}
+
 static inline void lcd_gpio_init()
 {
+	int vector;
+
 	gpio_init(PIN_LCD_HSYNC, GPIO_MODE_ALT | gpio_altfunc(14) | GPIO_SPD_FAST);
 	gpio_init(PIN_LCD_VSYNC, GPIO_MODE_ALT | gpio_altfunc(14) | GPIO_SPD_FAST);
 	gpio_init(PIN_LCD_CLK, GPIO_MODE_ALT | gpio_altfunc(14) | GPIO_SPD_FAST);
@@ -66,7 +75,8 @@ static inline void lcd_gpio_init()
 	gpio_init(PIN_LCD_B6, GPIO_MODE_ALT | gpio_altfunc(14) | GPIO_SPD_FAST);
 	gpio_init(PIN_LCD_B7, GPIO_MODE_ALT | gpio_altfunc(14) | GPIO_SPD_FAST);
 
-	// configure interrupts here
+	vector = gpio_init(PIN_LCD_TE, GPIO_MODE_INPUT | GPIO_INT_RISING);
+	register_isr(vector, ISR_VSYNC);
 }
 
 static inline void lcd_cntl_init()
@@ -100,14 +110,12 @@ void lcd_write_data(uint8_t v)
 
 void lcd_layer_pos_set(int layer, int x0, int x1, int y0, int y1)
 {
-	struct ltdc_t *ltdc = (struct ltdc_t *)LTDC_BASEADDR;
-	ltdc->layer[layer].WHPCR = (HBP + x0) | ((HBP + x1 - 1) << 16);
-	ltdc->layer[layer].WVPCR = (VBP + y0) | ((VBP + y1 - 1) << 16);
+	LTDC->layer[layer].WHPCR = (HBP + x0) | ((HBP + x1 - 1) << 16);
+	LTDC->layer[layer].WVPCR = (VBP + y0) | ((VBP + y1 - 1) << 16);
 }
 
 void lcd_layer_pf_set(int layer, enum pixel_format_t pf)
 {
-	struct ltdc_t *ltdc = (struct ltdc_t *)LTDC_BASEADDR;
 	uint32_t pixelsize;
 
 	switch (pf) {
@@ -130,39 +138,33 @@ void lcd_layer_pf_set(int layer, enum pixel_format_t pf)
 		break;
 	}
 
-	ltdc->layer[layer].PFCR = pf;
-	ltdc->layer[layer].CFBLR = ((LCD_WIDTH * pixelsize) << 16) | ((LCD_WIDTH * pixelsize) + 3);
-	ltdc->layer[layer].CFBLNR = LCD_HEIGHT;
+	LTDC->layer[layer].PFCR = pf;
+	LTDC->layer[layer].CFBLR = ((LCD_WIDTH * pixelsize) << 16) | ((LCD_WIDTH * pixelsize) + 3);
+	LTDC->layer[layer].CFBLNR = LCD_HEIGHT;
 }
 
 void lcd_layer_fb_set(int layer, unsigned int addr)
 {
-	struct ltdc_t *ltdc = (struct ltdc_t *)LTDC_BASEADDR;
-	ltdc->layer[layer].CFBAR = addr;
+	LTDC->layer[layer].CFBAR = addr;
 }
 
 void lcd_layer_alpha_set(int layer, uint8_t alpha)
 {
-	struct ltdc_t *ltdc = (struct ltdc_t *)LTDC_BASEADDR;
-	ltdc->layer[layer].CACR = alpha;
+	LTDC->layer[layer].CACR = alpha;
 }
 
 void lcd_layer_set(int layer, bool on)
 {
-	struct ltdc_t *ltdc = (struct ltdc_t *)LTDC_BASEADDR;
-	ltdc->layer[layer].CR = (ltdc->layer[layer].CR & ~1U) | on;
+	LTDC->layer[layer].CR = (LTDC->layer[layer].CR & ~1U) | on;
 }
 
 void lcd_reload()
 {
-	struct ltdc_t *ltdc = (struct ltdc_t *)LTDC_BASEADDR;
-	ltdc->SRCR = 1;
+	LTDC->SRCR = 1;
 }
 
 void lcd_init()
 {
-	struct ltdc_t *ltdc = (struct ltdc_t *)LTDC_BASEADDR;
-
 	lcd_gpio_init();
 	lcd_cntl_init();
 
@@ -178,21 +180,21 @@ void lcd_init()
 
 	__turn_apb2_clock(26, ON); /* LTDC clock enable */
 
-	ltdc->SSCR = ((HSYNC - 1) << 16) | (VSYNC - 1);
-	ltdc->BPCR = ((HBP - 1) << 16) | (VBP - 1);
-	ltdc->AWCR = (HACTIVE << 16) | VACTIVE;
-	ltdc->TWCR = (HTOTAL << 16) | VTOTAL;
+	LTDC->SSCR = ((HSYNC - 1) << 16) | (VSYNC - 1);
+	LTDC->BPCR = ((HBP - 1) << 16) | (VBP - 1);
+	LTDC->AWCR = (HACTIVE << 16) | VACTIVE;
+	LTDC->TWCR = (HTOTAL << 16) | VTOTAL;
 
-	ltdc->BCCR = 0; // Background color
-	ltdc->GCR |= 1 << 16; // DEN, enable dithering
+	LTDC->BCCR = 0; // Background color
+	LTDC->GCR |= 1 << 16; // DEN, enable dithering
 
-	ltdc->GCR |= 1;
+	LTDC->GCR |= 1;
 
-	// Configure interrupts and DMA2D
-	//__turn_ahb1_clock(23, ON); /* DMA2D clock enable */
-	//__turn_ahb1_clock(12, ON); /* CRC clock enable */
+	dma2d_init();
+	__turn_ahb1_clock(12, ON); /* CRC clock enable */
 }
 
+#if 0
 static void lcd()
 {
 	extern void sdram_init();
@@ -234,3 +236,4 @@ static void lcd()
 
 }
 REGISTER_TASK(lcd, TASK_KERNEL, DEFAULT_PRIORITY, STACK_SIZE_DEFAULT);
+#endif
