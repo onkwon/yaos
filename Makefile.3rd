@@ -28,7 +28,7 @@ endif
 ifeq ($(USE_EMWIN),y)
 	EMWIN_CFLAGS = $(CFLAGS) #-DOS_SUPPORT
 	EMWIN_INCS = \
-		     -I$(BASEDIR)/tasks \
+		     -I$(BASEDIR)/.. \
 		     -I$(BASEDIR)/../emWin/inc
 
 	LIBS += $(BASEDIR)/../emWin/Lib/STemWin540_CM4_GCC.a
