@@ -2,7 +2,7 @@
 #include <kernel/device.h>
 #include <kernel/page.h>
 #include <error.h>
-#include <stdlib.h>
+#include <string.h>
 #include <io.h>
 
 int sys_open_core(char *filename, int mode, void *option)

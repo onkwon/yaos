@@ -266,7 +266,7 @@ void syscall_delegate_return(struct task *task, int ret)
 	freeze(); /* never reaches here */
 }
 
-#include <stdlib.h>
+#include <string.h>
 
 /* It must be kept as noinline function because of inline assembler placed in
  * the wrapper function, clone(). Otherwise `__save_curr_context()` macro will

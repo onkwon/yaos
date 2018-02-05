@@ -24,4 +24,7 @@ unsigned int toknum(const char *line, const char *const token);
 char *strchr(char *s, const char c);
 char *strstr(const char *string, const char *word);
 
+void *memcpy(void *dst, const void *src, size_t len);
+void *memset(void *src, int c, size_t len);
+
 #endif /* __STRING_H__ */
