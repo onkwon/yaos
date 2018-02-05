@@ -64,7 +64,7 @@ SECTIONS
 		_edata = .;
 	} > ram
 
-	.bss :
+	.bss (NOLOAD) :
 	{
 		_bss = .;
 		*(.bss)

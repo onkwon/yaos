@@ -79,7 +79,7 @@ SECTIONS
 		_edata = .;
 	} > ram AT > rom
 
-	.bss :
+	.bss (NOLOAD) :
 	{
 		. = ALIGN(4);
 		_bss = .;
