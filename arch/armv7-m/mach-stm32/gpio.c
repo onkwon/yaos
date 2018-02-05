@@ -40,7 +40,7 @@ static int irq_register(int lvector, void (*handler)(int))
 	int pin = get_secondary_vector(lvector);
 
 	if (pin >= PINS_PER_PORT)
-		return ERANGE;
+		return -ERANGE;
 
 	/* NOTE: maybe you can make handler list so that multiple user handlers
 	 * get called. we call only one here however. */
@@ -188,7 +188,7 @@ int reg2port(reg_t *reg)
 		break;
 	}
 
-	return ERANGE;
+	return -ERANGE;
 }
 
 unsigned int gpio_get(unsigned int index)
@@ -198,7 +198,7 @@ unsigned int gpio_get(unsigned int index)
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
-		return ERANGE;
+		return -ERANGE;
 	}
 
 	reg = port2reg(port);
@@ -232,7 +232,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
-		return ERANGE;
+		return -ERANGE;
 	}
 
 	lvector = 0;
@@ -245,7 +245,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
-		lvector = EEXIST;
+		lvector = -EEXIST;
 		goto out;
 	}
 
@@ -330,7 +330,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if ((port = pin2port(index)) >= NR_PORT) {
 		error("not supported port: %d", port);
-		return ERANGE;
+		return -ERANGE;
 	}
 
 	lvector = 0;
@@ -343,7 +343,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 
 	if (state[port].pins & (1 << pin)) {
 		error("already taken: %d", index);
-		lvector = EEXIST;
+		lvector = -EEXIST;
 		goto out;
 	}
 
@@ -467,7 +467,7 @@ unsigned int get_gpio_state(int port)
 {
 	if (port >= NR_PORT) {
 		error("not supported port: %d", port);
-		return ERANGE;
+		return -ERANGE;
 	}
 
 	return state[port].pins;

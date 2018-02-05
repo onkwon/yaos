@@ -104,7 +104,7 @@ static inline int uart_open(int channel, struct _regs arg)
 	reg_t *reg;
 
 	if (!(reg = ch2reg(channel)))
-		return EINVAL;
+		return -EINVAL;
 
 	if ((unsigned int)reg & 0x10000) { /* if USART1 or USART6 */
 #if (SOC == stm32f1 || SOC == stm32f3)
@@ -298,7 +298,7 @@ static inline int set_uart_port(int channel, struct uart *conf)
 	return 0;
 errout:
 	error("PIN_UARTx_[R|T]X is not defined");
-	return ERANGE;
+	return -ERANGE;
 }
 
 /* TODO: support flow control and parity */
@@ -309,7 +309,7 @@ int __uart_open(int channel, struct uart conf)
 	cr1 = cr2 = cr3 = gtpr = 0;
 
 	if (set_uart_port(channel, &conf))
-		return ERANGE;
+		return -ERANGE;
 
 	if (conf.rx)
 		cr1 |= (1 << RE) | (1 << RXNEIE);

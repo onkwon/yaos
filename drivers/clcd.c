@@ -192,7 +192,7 @@ static size_t clcd_write(struct file *file, void *buf, size_t len)
 	} else if (tid < 0) { /* error */
 		/* use errno */
 		error("failed cloning");
-		return EAGAIN;
+		return -EAGAIN;
 	}
 
 	int ret;
@@ -226,7 +226,7 @@ static int clcd_open(struct inode *inode, struct file *file)
 	int err = 0;
 
 	if (dev == NULL)
-		return EFAULT;
+		return -EFAULT;
 
 	mutex_lock(&dev->mutex);
 
@@ -234,7 +234,7 @@ static int clcd_open(struct inode *inode, struct file *file)
 		void *buf;
 
 		if ((buf = kmalloc(QSIZE)) == NULL) {
-			err = ENOMEM;
+			err = -ENOMEM;
 			goto out;
 		}
 		fifo_init(&queue, buf, QSIZE);
@@ -261,7 +261,7 @@ static int clcd_close(struct file *file)
 	struct device *dev = getdev(file->inode->dev);
 
 	if (dev == NULL)
-		return EFAULT;
+		return -EFAULT;
 
 	mutex_lock(&dev->mutex);
 

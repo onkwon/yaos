@@ -19,7 +19,7 @@ CFLAGS += -O2 -DVERSION=$(VERSION)
 CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main
 ARFLAGS = rcs
 OCFLAGS =
-ODFLAGS = -Dx
+ODFLAGS = -Dsx
 LIBS	=
 
 # Configuration
@@ -64,14 +64,15 @@ OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump)
 
 DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
 
-all: $(OUTPUTS)
-	@echo "\n  Version      :" $(VERSION)
-	@echo "  Architecture :" $(ARCH)
-	@echo "  Vendor       :" $(MACH)
-	@echo "  SoC          :" $(SOC)
-	@echo "  Board        :" $(BOARD)
-	@echo "  \n  Section Size(in bytes):"
+all: $(BUILDIR) $(OUTPUTS)
+	@printf "\n  Version      : $(VERSION)\n"
+	@printf "  Architecture : $(ARCH)\n"
+	@printf "  Vendor       : $(MACH)\n"
+	@printf "  SoC          : $(SOC)\n"
+	@printf "  Board        : $(BOARD)\n\n"
+	@printf "  Section Size(in bytes):\n"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("  %s\t\t %8d\n", $$1, strtonum($$3))}' $(BUILDIR)/$(PROJECT).map
+	@printf "\n  $(shell sha256sum $(BUILDIR)/$(PROJECT).bin)\n"
 
 $(BUILDIR)/%.dump: $(BUILDIR)/%.elf
 	@printf "  OD       $@\n"
@@ -88,7 +89,7 @@ $(BUILDIR)/$(PROJECT).elf: $(OBJS) $(THIRD_PARTY_OBJS)
 $(BUILDIR)/$(PROJECT).a: $(OBJS) $(THIRD_PARTY_OBJS)
 	@printf "  AR       $@\n"
 	$(Q)$(AR) $(ARFLAGS) -o $@ $^
-$(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config $(BUILDIR)
+$(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config
 	@printf "  CC       $<\n"
 	@mkdir -p $(@D)
 	$(Q)$(CC) $(CFLAGS) $(INCS) -MMD -c $< -o $@
@@ -113,6 +114,7 @@ include/asm: $(INC_ASM) .config
 	@rm -rf include/asm
 	$(Q)-cp -R arch/$(ARCH)/include include/asm
 	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/include include/asm/mach
+	$(Q)-cp include/asm/mach/$(SOC).h include/asm/mach/reg.h
 ifdef BOARD
 	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include include/asm/mach/board
 	$(Q)-cp -f arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include/pinmap.h include/asm/

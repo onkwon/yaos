@@ -60,7 +60,7 @@ int __attribute__((naked, noinline)) __semaphore_dec_wait(struct semaphore *sem,
 			"bne	1b			\n\t"
 		"3:"	"dmb				\n\t"
 			"pop	{r8, pc}		\n\t"
-			:: "I"(-ETIMEDOUT)
+			:: "L"(-ETIME)
 			: "r0", "r1", "r2", "r8", "lr", "cc", "memory");
 	(void)sem;
 	(void)ms;

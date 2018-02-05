@@ -131,10 +131,10 @@ int add_file_system(struct file_system_type *fs, const char *name)
 	char *str;
 
 	if (!name)
-		return ERANGE;
+		return -ERANGE;
 
 	if ((str = kmalloc(strnlen(name, FILENAME_MAX)+1)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	strncpy(str, name, strnlen(name, FILENAME_MAX)+1);
 	fs->name = str;
@@ -169,14 +169,14 @@ int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 	struct file_system_type *fs;
 
 	if (!mnt_point || !(fs = get_file_system(fs_type)))
-		return EFAULT;
+		return -EFAULT;
 
 	if ((sb = kmalloc(sizeof(struct superblock))) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	if (fs->read_super(sb, dev)) {
 		kfree(sb);
-		return ENOENT; /* wrong file system */
+		return -ENOENT; /* wrong file system */
 	}
 
 	sb->pathname_len = strnlen(mnt_point, FILENAME_MAX);
@@ -186,7 +186,7 @@ int mount(struct device *dev, const char *mnt_point, const char *fs_type)
 
 	if ((sb->pathname = kmalloc(sb->pathname_len+1)) == NULL) {
 		kfree(sb);
-		return ENOMEM;
+		return -ENOMEM;
 	}
 
 	strncpy(sb->pathname, mnt_point, sb->pathname_len);

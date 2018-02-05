@@ -102,7 +102,7 @@ int __uart_open(int channel, struct uart conf)
 	int nirq = 2;
 
 	if (channel)
-		return ERANGE;
+		return -ERANGE;
 
 	NRF_UART_Type *reg = (NRF_UART_Type *)NRF_UART0_BASE;
 

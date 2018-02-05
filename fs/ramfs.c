@@ -124,14 +124,14 @@ static int write_block(struct ramfs_inode *inode, void *data, size_t len,
 
 	for (offset = 0; offset < len; offset++) {
 		if ((blk = take_dblock(inode, inode->size, dev)) == NULL) {
-			ret = ENOMEM;
+			ret = -ENOMEM;
 			break;
 		}
 
 		if (!*blk) { /* if not allocated yet */
 			*blk = (unsigned int)ramfs_malloc(RAMFS_BLOCKSIZE, dev);
 			if (!*blk) {
-				ret = ENOMEM;
+				ret = -ENOMEM;
 				break;
 			}
 		}
@@ -249,17 +249,17 @@ static int create_file(const char *pathname, int mode, struct device *dev)
 	p = lookup(&parent, pathname, dev);
 
 	if (p == NULL) /* already exist */
-		return EEXIST;
+		return -EEXIST;
 
 	/* not exsiting parent dir(s) or not a dir */
 	if (toknum(p, "/") || !(parent->mode & FT_DIR))
-		return ENOENT;
+		return -ENOENT;
 
 	len = strnlen(p, FILENAME_MAX);
 
 	if (!(new = ramfs_mknod(mode, dev)) ||
 			!(name = ramfs_malloc(len+1, dev)))
-		return ENOMEM;
+		return -ENOMEM;
 
 	strncpy(name, p, len+1);
 
@@ -297,7 +297,7 @@ static int ramfs_lookup(struct inode *inode, const char *pathname)
 	s = lookup(&fs_inode, pathname, inode->sb->dev);
 
 	if (*s)
-		return ENOENT;
+		return -ENOENT;
 
 	inode->addr = (unsigned int)fs_inode;
 	inode->mode = fs_inode->mode;
@@ -416,14 +416,14 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 	int ret;
 
 	if (!name)
-		return ERANGE;
+		return -ERANGE;
 
 	suffix = itoa(MINOR(id), str, 10, SUFFIX_MAXLEN);
 	len = strnlen(name, FILENAME_MAX) +
 		strnlen(suffix, SUFFIX_MAXLEN);
 
 	if ((buf = (char *)kmalloc(len + 1)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	snprintf(buf, len, "%s%s", name, suffix);
 	ret = create_file(buf, mode, devfs);
@@ -438,7 +438,7 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 
 	if (*s) {
 		//delete(buf);
-		return ENOENT;
+		return -ENOENT;
 	}
 
 	inode->data[0] = (void *)id;

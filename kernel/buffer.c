@@ -240,7 +240,7 @@ int expand_buffer(buf_t *head, unsigned short int block_size)
 		return -BUFFER_UNDEF;
 
 	if ((p = mkbuf(block_size)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	links_add(&p->list, head->prev);
 

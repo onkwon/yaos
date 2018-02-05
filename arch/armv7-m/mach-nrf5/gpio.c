@@ -18,7 +18,7 @@ static int irq_register(int lvector, void (*handler)(int))
 	int pin = get_secondary_vector(lvector);
 
 	if (pin >= PINS_PER_PORT)
-		return ERANGE;
+		return -ERANGE;
 
 	/* NOTE: maybe you can make handler list so that multiple user handlers
 	 * get called. we call only one here however. */
@@ -100,7 +100,7 @@ int gpio_init(unsigned int pin, unsigned int flags)
 
 	if (state[0].pins & (1 << pin)) {
 		error("already taken: %d", pin);
-		return EEXIST;
+		return -EEXIST;
 	}
 
 	if (flags & GPIO_MODE_OUTPUT) {

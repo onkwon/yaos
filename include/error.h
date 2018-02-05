@@ -1,26 +1,7 @@
 #ifndef __ERROR_H__
 #define __ERROR_H__
 
-/* return error code */
-enum {
-	EACCES		= -1,
-	EPERM		= -2,
-	EAGAIN		= -3,
-	EEXIST		= -4,
-	EFAULT		= -5,
-	ENOMEM		= -6,
-	ERANGE		= -7,
-	EINVAL		= -8,
-	ENOENT		= -9,
-	EDOM		= -10,
-	EILSEQ		= -11,
-	EBUSY		= -12,
-	ECANCELED	= -13,
-	ETIMEDOUT	= -14,
-	ENOSPC		= -15,
-	EANYWAY		= -16,
-	EMAX		= -17,
-};
+#include <errno.h>
 
 #define MSG_ERROR		0
 #define MSG_SYSTEM		1

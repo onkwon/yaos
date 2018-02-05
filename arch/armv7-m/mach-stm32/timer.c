@@ -203,7 +203,7 @@ int __timer_open(int id, bool dir, unsigned int hz)
 		nvector = 66;
 		break;
 	default:
-		return ERANGE;
+		return -ERANGE;
 		break;
 	}
 

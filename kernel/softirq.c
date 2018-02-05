@@ -71,7 +71,7 @@ endless:
 unsigned int request_softirq(void (*func)(), int pri)
 {
 	if (func == NULL)
-		return EINVAL;
+		return -EINVAL;
 
 	unsigned int i;
 
@@ -105,7 +105,7 @@ int __init softirq_init()
 
 	if ((softirqd = make(TASK_KERNEL | STACK_SHARED, STACK_SIZE_DEFAULT,
 					softirq_handler, &init)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	softirqd->name = "softirqd";
 	set_task_pri(softirqd, RT_HIGHEST_PRIORITY);

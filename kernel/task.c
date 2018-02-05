@@ -10,11 +10,11 @@ struct task *current = &init;
 int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 {
 	if ((new->mm.base = kmalloc(size)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	if ((new->mm.heap = kmalloc(HEAP_SIZE_DEFAULT)) == NULL) {
 		kfree(new->mm.base);
-		return ENOMEM;
+		return -ENOMEM;
 	}
 
 	/* full descending stack */
@@ -46,7 +46,7 @@ int alloc_mm(struct task *new, size_t size, unsigned int flags, void *ref)
 		kfree(new->mm.base);
 		kfree(new->mm.heap);
 
-		return ENOMEM;
+		return -ENOMEM;
 	}
 
 	return 0;
@@ -277,11 +277,11 @@ static int __attribute__((noinline)) clone_core(unsigned int flags, void *ref,
 	struct task *child;
 
 	if ((child = kmalloc(sizeof(struct task))) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	if (alloc_mm(child, STACK_SIZE_DEFAULT, flags, ref)) {
 		kfree(child);
-		return ENOMEM;
+		return -ENOMEM;
 	}
 
 	/* copy stack */
@@ -453,12 +453,12 @@ int sys_kill(void *task)
 
 	if ((struct task *)task != current) {
 		warn("no permission");
-		return EPERM;
+		return -EPERM;
 	}
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_sys_kill, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, task, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -472,7 +472,7 @@ int heap_new(size_t size)
 	void *new;
 
 	if ((new = kmalloc(size)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	kfree(current->mm.heap);
 	current->mm.heap = new;

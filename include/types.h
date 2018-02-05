@@ -1,21 +1,21 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stddef.h>
+
 #define NULL				((void *)0)
 #define EOF				(-1)
 #define INF				(-1)
 
 #define UNLOCKED			1
 
-#define bool				_Bool
-
 enum {
-	false	= 0,
 	LOW	= false,
 	OFF	= false,
 	DISABLE	= false,
 	disable	= false,
-	true	= 1,
 	HIGH	= true,
 	ON	= true,
 	ENABLE	= true,
@@ -24,7 +24,6 @@ enum {
 
 typedef volatile int lock_t;
 typedef unsigned int dev_t;
-typedef unsigned int size_t;
 struct links;
 typedef struct links buf_t;
 typedef volatile unsigned int reg_t;

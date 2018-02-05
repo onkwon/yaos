@@ -135,7 +135,7 @@ static int register_isr_primary(int lvector, void (*handler)(int))
 	void (*f)(int);
 
 	if (lvector < NVECTOR_IRQ)
-		return EACCES;
+		return -EACCES;
 
 	p = (void *)&primary_irq_table[lvector - NVECTOR_IRQ];
 
@@ -143,7 +143,7 @@ static int register_isr_primary(int lvector, void (*handler)(int))
 		f = (void *)__ldrex(p);
 
 		if (f != ISR_null && f != ISR_irq) /* recursive if ISR_irq */
-			return EEXIST;
+			return -EEXIST;
 	} while (__strex(handler, p));
 
 	return 0;
@@ -157,7 +157,7 @@ static void ISR_irq()
 static int register_isr_primary(int lvector, void (*handler)(int))
 {
 	if (lvector < NVECTOR_IRQ)
-		return EACCES;
+		return -EACCES;
 
 	extern int _ram_start;
 	void (*f)(int);
@@ -168,7 +168,7 @@ static int register_isr_primary(int lvector, void (*handler)(int))
 	do {
 		f = __ldrex(p);
 		if (f != ISR_irq)
-			return EEXIST;
+			return -EEXIST;
 	} while (__strex(handler, p));
 
 	return 0;
@@ -186,7 +186,7 @@ int register_isr_register(int lvector, int (*cb)(int, void (*)(int)), bool force
 	int (*f)(int);
 
 	if (!honored())
-		return EPERM;
+		return -EPERM;
 
 	p = (void *)&secondary_irq_registers[get_primary_vector(lvector) - NVECTOR_IRQ];
 
@@ -195,7 +195,7 @@ int register_isr_register(int lvector, int (*cb)(int, void (*)(int)), bool force
 
 		if (!force && f) {
 			error("already exist or no room");
-			return EEXIST;
+			return -EEXIST;
 		}
 	} while (__strex(cb, p));
 
@@ -206,10 +206,10 @@ int register_isr_register(int lvector, int (*cb)(int, void (*)(int)), bool force
 static int register_isr_secondary(int lvector, void (*handler)(int))
 {
 	if (get_secondary_vector(lvector) >= SECONDARY_IRQ_MAX)
-		return ERANGE;
+		return -ERANGE;
 
 	if (get_primary_vector(lvector) < NVECTOR_IRQ)
-		return EACCES;
+		return -EACCES;
 
 	int (*f)(int, void (*)());
 
@@ -219,7 +219,7 @@ static int register_isr_secondary(int lvector, void (*handler)(int))
 	error("no irq register for %d:%d",
 			get_primary_vector(lvector), get_secondary_vector(lvector));
 
-	return EANYWAY;
+	return -EEXIST;
 }
 
 int register_isr(int lvector, void (*handler)(int))
@@ -227,7 +227,7 @@ int register_isr(int lvector, void (*handler)(int))
 	int ret;
 
 	if (!honored())
-		return EPERM;
+		return -EPERM;
 
 	if (lvector < PRIMARY_IRQ_MAX)
 		ret = register_isr_primary(lvector, handler);
@@ -245,7 +245,7 @@ int unregister_isr(int lvector)
 	int ret, i;
 
 	if (!honored())
-		return EPERM;
+		return -EPERM;
 
 	if (lvector < PRIMARY_IRQ_MAX) {
 		/* unregister all the secondaries. it is time cunsuming since

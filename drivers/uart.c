@@ -42,7 +42,7 @@ static void ISR_uart(int nvector)
 	if (__uart_has_rx(channel)) {
 		c = __uart_getc(channel);
 
-		if (fifo_putb(&buf->rxq, c) == ENOSPC) {
+		if (fifo_putb(&buf->rxq, c) == -ENOSPC) {
 			/* TODO: count overflow for stats */
 		}
 
@@ -108,7 +108,7 @@ static int uart_ioctl(struct file *file, int request, void *data)
 		break;
 	}
 
-	return ERANGE;
+	return -ERANGE;
 }
 
 static void do_uart_close(struct file *file)
@@ -140,7 +140,7 @@ static int uart_close(struct file *file)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_uart_close, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, file, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -217,7 +217,7 @@ static size_t uart_read(struct file *file, void *buf, size_t len)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_uart_read, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, file, buf, len, NULL);
 	syscall_delegate(current, thread);
@@ -247,7 +247,7 @@ static size_t uart_write_int(struct file *file, void *data)
 	c = *(char *)data;
 
 	/* ring buffer: if full, throw the oldest one for new one */
-	while (fifo_putb(&buf->txq, c) == ENOSPC)
+	while (fifo_putb(&buf->txq, c) == -ENOSPC)
 		fifo_getb(&buf->txq);
 
 	__uart_tx_irq_raise(CHANNEL(file->inode->dev));
@@ -294,7 +294,7 @@ static size_t uart_write(struct file *file, void *buf, size_t len)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_uart_write, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, file, buf, len, NULL);
 	syscall_delegate(current, thread);
@@ -337,7 +337,7 @@ static int uart_open(struct inode *inode, struct file *file)
 	err = 0;
 
 	if ((dev = getdev(file->inode->dev)) == NULL)
-		return EFAULT;
+		return -EFAULT;
 
 	mutex_lock(&dev->mutex);
 
@@ -363,7 +363,7 @@ static int uart_open(struct inode *inode, struct file *file)
 		check_channel_conf(CHANNEL(dev->id), conf);
 
 		if ((vector = __uart_open(CHANNEL(dev->id), *conf)) <= 0) {
-			err = EINVAL;
+			err = -EINVAL;
 			goto out;
 		}
 
@@ -392,7 +392,7 @@ out_free_buf:
 	kfree(buf);
 out_close:
 	__uart_close(CHANNEL(dev->id));
-	err = ENOMEM;
+	err = -ENOMEM;
 out:
 	mutex_unlock(&dev->mutex);
 

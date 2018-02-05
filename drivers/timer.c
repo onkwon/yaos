@@ -134,7 +134,7 @@ static void do_timer_ioctl(struct file *file, int request, void *data)
 		*(int *)data = (new & (1 << id))? 1 : 0;
 		break;
 	default:
-		ret = ERANGE;
+		ret = -ERANGE;
 		break;
 	}
 
@@ -149,7 +149,7 @@ static int timer_ioctl(struct file *file, int request, void *data)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_timer_ioctl, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, file, request, data, NULL);
 	syscall_delegate(current, thread);
@@ -200,7 +200,7 @@ static int timer_close(struct file *file)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					do_timer_close, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, file, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -214,7 +214,7 @@ static int timer_open(struct inode *inode, struct file *file)
 	int ret = 0;
 
 	if (dev == NULL)
-		return EFAULT;
+		return -EFAULT;
 
 	mutex_lock(&dev->mutex);
 
@@ -225,20 +225,20 @@ static int timer_open(struct inode *inode, struct file *file)
 		if (!(get_task_flags(current->parent) & TASK_PRIVILEGED)) {
 			debug("no permission");
 			mutex_unlock(&dev->mutex);
-			return EPERM;
+			return -EPERM;
 		}
 
 		hz = (unsigned int)file->option;
 		dir = file->flags & O_RDWR;
 		if (dir == O_RDWR) {
-			ret = EFAULT;
+			ret = -EFAULT;
 			goto out_unlock;
 		}
 
 		dir = dir >> 1; /* to the bool data type */
 		id = MINOR(file->inode->dev);
 		if ((vector = __timer_open(id, (bool)dir, hz)) <= 0) {
-			ret = EAGAIN;
+			ret = -EAGAIN;
 			goto out_unlock;
 		}
 

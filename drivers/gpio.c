@@ -56,7 +56,7 @@ static inline int getmode(int flags)
 		break;
 	}
 
-	return EFAULT;
+	return -EFAULT;
 }
 
 static inline int getconf(int opt)
@@ -70,14 +70,14 @@ static int gpio_open(struct inode *inode, struct file *file)
 	int vector, mode = 0;
 
 	if (dev == NULL)
-		return EFAULT;
+		return -EFAULT;
 
 	mutex_lock(&dev->mutex);
 
 	if (dev->refcount == 0) {
 #if 0
 		if (!(get_task_flags(current->parent) & TF_PRIVILEGED)) {
-			mode = EPERM;
+			mode = -EPERM;
 			goto out_unlock;
 		}
 #endif
@@ -156,16 +156,16 @@ static int gpio_close(struct file *file)
 	struct device *dev = getdev(file->inode->dev);
 
 	if (dev == NULL)
-		return EFAULT;
+		return -EFAULT;
 
 #if 0
 	if (!(get_task_flags(current) & TF_PRIVILEGED))
-		return EPERM;
+		return -EPERM;
 #endif
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					gpio_close_core, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, file, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -179,7 +179,7 @@ static int gpio_isr_add(struct file *file, void *data)
 	int ret = 0;
 
 	if (!(uisr = kmalloc(sizeof(*uisr))))
-		return ENOMEM;
+		return -ENOMEM;
 
 	/* save the file descriptor's address for later identification when
 	 * close() to remove the isr and free memory. And keep track on the
@@ -205,18 +205,18 @@ static int gpio_ioctl(struct file *file, int request, void *data)
 
 #if 0
 	if (!(get_task_flags(current) & TF_PRIVILEGED))
-		return EPERM;
+		return -EPERM;
 #endif
 
 	if (request != C_EVENT)
-		return EFAULT;
+		return -EFAULT;
 
 	if (getmode(file->flags) != GPIO_MODE_INPUT)
-		return EINVAL;
+		return -EINVAL;
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					gpio_isr_add, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, file, data, NULL, NULL);
 	syscall_delegate(current, thread);

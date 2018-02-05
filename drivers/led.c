@@ -31,7 +31,7 @@ static int led_open(struct inode *inode, struct file *file)
 	int err = 0;
 
 	if (dev == NULL)
-		return EFAULT;
+		return -EFAULT;
 
 	spin_lock(&dev->mutex.counter);
 

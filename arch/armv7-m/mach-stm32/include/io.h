@@ -14,9 +14,7 @@
 	BITBAND(&RCC_APB1RSTR, bit, OFF); \
 }
 
-#undef  INCPATH
-#define INCPATH			<asm/mach/SOC.h>
-#include INCPATH
+#include <asm/mach/reg.h>
 
 #ifndef stm32f1
 #define stm32f1	1

@@ -23,7 +23,7 @@ static void add_timerd(void *args)
 	tm->expires -= 1; /* as it uses time_after() not time_equal */
 
 	if (time_after(tm->expires, stamp)) {
-		ret = -ETIMEDOUT;
+		ret = -ETIME;
 	} else {
 		mutex_lock(&timerq.mutex);
 
@@ -194,13 +194,13 @@ int __init timer_init()
 	if ((nsoftirq_timerd = request_softirq(run_timerd, RT_HIGHEST_PRIORITY))
 			>= SOFTIRQ_MAX) {
 		error("out of softirq");
-		return ERANGE;
+		return -ERANGE;
 	}
 
 	if ((nsoftirq_add = request_softirq(add_timerd, RT_HIGHEST_PRIORITY))
 			>= SOFTIRQ_MAX) {
 		error("out of softirq");
-		return ERANGE;
+		return -ERANGE;
 	}
 
 	return 0;
@@ -236,7 +236,7 @@ int sys_timer_create(struct ktimer *new)
 
 	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
 					create_timer, current)) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	syscall_put_arguments(thread, new, NULL, NULL, NULL);
 	syscall_delegate(current, thread);
@@ -270,7 +270,7 @@ int sys_timer_create(struct ktimer *new)
 #else
 int sys_timer_create(struct ktimer *new)
 {
-	return EFAULT;
+	return -EFAULT;
 }
 #endif /* CONFIG_TIMER */
 
@@ -287,7 +287,7 @@ int add_timer(int ms, void (*func)(struct ktimer *timer))
 		return 0;
 
 	if ((tm = malloc(sizeof(*tm))) == NULL)
-		return ENOMEM;
+		return -ENOMEM;
 
 	tm->expires = systick + msec_to_ticks(ms);
 	tm->event = func;
@@ -295,7 +295,7 @@ int add_timer(int ms, void (*func)(struct ktimer *timer))
 
 	if (__add_timer(tm)) {
 		free(tm);
-		return ENOMEM;
+		return -ENOMEM;
 	}
 
 	return 0;

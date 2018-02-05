@@ -132,7 +132,7 @@ int __adc_start(int nadc, unsigned int timeout_ms)
 	unsigned int tout;
 
 	if (!nadc || nadc >= ADC_MAX)
-		return ERANGE;
+		return -ERANGE;
 
 	if (!timeout_ms)
 		timeout_ms = -1; /* infinite */
