@@ -12,7 +12,7 @@ void __enter_sleep_mode();
 void __enter_stop_mode();
 void __enter_standby_mode();
 void __sleep_on_exit();
-void __set_power_regulator(bool on, int scalemode);
+void __set_power_regulator(bool on, int scalemode, bool overdrive);
 sleep_t get_sleep_type();
 
 void __reboot();

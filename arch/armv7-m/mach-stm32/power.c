@@ -21,10 +21,17 @@ enum power_control_bits {
 	LPUDS		= 10,
 	MRUDS		= 11,
 	VOS		= 14,
+	ODEN		= 16,
+	ODSWEN		= 17,
 	UDEN		= 18,
 };
 
-void __set_power_regulator(bool on, int scalemode)
+enum power_status_bits {
+	ODRDY		= 16,
+	ODSWRDY		= 17,
+};
+
+void __set_power_regulator(bool on, int scalemode, bool overdrive)
 {
 	unsigned int tmp;
 
@@ -39,8 +46,15 @@ void __set_power_regulator(bool on, int scalemode)
 
 	tmp &= ~(3 << VOS);
 	tmp |= (4 - scalemode) << VOS;
+	tmp |= (1 * overdrive) << ODEN;
 
 	PWR_CR = tmp;
+
+	if (overdrive) {
+		while (!(PWR_CSR & (1 << ODRDY)));
+		PWR_CR |= 1 << ODSWEN;
+		while (!(PWR_CSR & (1 << ODSWRDY)));
+	}
 }
 
 sleep_t get_sleep_type()
