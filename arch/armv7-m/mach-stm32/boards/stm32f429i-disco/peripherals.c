@@ -190,20 +190,45 @@ static void rcc_init(const unsigned int hclk_mhz)
 	/* turn PLL on */
 	BITBAND(&RCC_CR, PLL_ON, ON);
 	while (!gbi(RCC_CR, PLL_RDY));
+}
 
-	RCC_CFGR |= 2 << SW; /* PLL as system clock; 0:HSI, 1:HSE, 2:PLL */
-	while (((RCC_CFGR >> SWS) & 3) != 2); /* wait until changes applied */
+enum rcc_sysclk_t {
+	RCC_SYSCLK_HSI	= 0,
+	RCC_SYSCLK_HSE	= 1,
+	RCC_SYSCLK_PLL	= 2,
+	RCC_SYSCLK_MASK	= RCC_SYSCLK_HSI | RCC_SYSCLK_HSE | RCC_SYSCLK_PLL,
+};
 
-	RCC_CR &= ~(1U << HSI_ON); /* turn HSI off */
+static void rcc_sysclk_set(enum rcc_sysclk_t clk)
+{
+	RCC_CFGR |= clk << SW; /* PLL as system clock; 0:HSI, 1:HSE, 2:PLL */
+	while (((RCC_CFGR >> SWS) & 3) != clk); /* wait until changes applied */
+
+#ifdef HSE
+	RCC_CR &= ~((unsigned int)(1 * clk) << HSI_ON); /* turn HSI off */
+#endif
 }
 
 void clock_init()
 {
+	int scalemode = 3;
+	bool overdrive = false;
+
 	assert(OPERATING_FREQUENCY_MHZ <= 180);
 
-	__set_power_regulator(ON, 3);
+	if (OPERATING_FREQUENCY_MHZ > 168) {
+		scalemode = 1;
+		overdrive = true;
+	} else if (OPERATING_FREQUENCY_MHZ > 120) {
+		scalemode = 2;
+		if (OPERATING_FREQUENCY_MHZ > 144)
+			overdrive = true;
+	}
 
-	rcc_reset();
+	__set_power_regulator(ON, scalemode, overdrive);
+
 	set_flash_latency(OPERATING_FREQUENCY_MHZ);
+	rcc_reset();
 	rcc_init(OPERATING_FREQUENCY_MHZ);
+	rcc_sysclk_set(RCC_SYSCLK_PLL);
 }
