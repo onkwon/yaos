@@ -24,6 +24,7 @@ bool fifo_empty(struct fifo *q)
  * takes performace advantage replacing modulo operation with bit operation. */
 int fifo_getb(struct fifo *q)
 {
+	size_t size;
 	unsigned int pos;
 	char *buf;
 	int val;
@@ -31,7 +32,7 @@ int fifo_getb(struct fifo *q)
 	if (!q || !q->buf)
 		return -EINVAL;
 
-	q->size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
+	size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
 	buf = q->buf;
 
 	do {
@@ -41,7 +42,7 @@ int fifo_getb(struct fifo *q)
 			return -ENOENT; /* empty */
 
 		val = (typeof(val))buf[pos];
-		pos = (pos + 1) & (q->size - 1);
+		pos = (pos + 1) & (size - 1);
 	} while (__strex(pos, &q->front));
 
 	return val;
@@ -49,24 +50,25 @@ int fifo_getb(struct fifo *q)
 
 int fifo_putb(struct fifo *q, int val)
 {
+	size_t size;
 	unsigned int pos;
 	char *buf;
 
 	if (!q || !q->buf)
 		return -EINVAL;
 
-	q->size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
+	size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
 	buf = q->buf;
 
 	do {
 		pos = __ldrex(&q->rear);
 
-		if (((pos + 1) & (q->size - 1)) ==
+		if (((pos + 1) & (size - 1)) ==
 				*(volatile typeof(q->front) *)&q->front)
 			return -ENOSPC; /* no more room */
 
 		buf[pos] = (typeof(*buf))val;
-		pos = (pos + 1) & (q->size - 1);
+		pos = (pos + 1) & (size - 1);
 	} while (__strex(pos, &q->rear));
 
 	return 0;
