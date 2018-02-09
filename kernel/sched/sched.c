@@ -95,7 +95,10 @@ void schedule_core()
 	/* stack overflow */
 	if ((current->mm.base[0] != STACK_SENTINEL) ||
 			(current->mm.kernel.base[0] != STACK_SENTINEL)) {
-		error("stack overflow %x(%x)", current, current->addr);
+		error("%s stack overflow %x(%x)",
+				(current->mm.base[0] != STACK_SENTINEL)?
+				"User":"Kernel",
+				current, current->addr);
 		error("\nTask Status");
 		print_task_status(current);
 		error("\nCurrent Context");
@@ -236,7 +239,7 @@ void run_scheduler(bool run)
 {
 	void (*func)();
 
-	if (!honored()) {
+	if (!is_honored()) {
 		error("no permission");
 		return;
 	}

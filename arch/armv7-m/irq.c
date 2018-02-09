@@ -185,7 +185,7 @@ int register_isr_register(int lvector, int (*cb)(int, void (*)(int)), bool force
 	int (*p)(int);
 	int (*f)(int);
 
-	if (!honored())
+	if (!is_honored())
 		return -EPERM;
 
 	p = (void *)&secondary_irq_registers[get_primary_vector(lvector) - NVECTOR_IRQ];
@@ -226,7 +226,7 @@ int register_isr(int lvector, void (*handler)(int))
 {
 	int ret;
 
-	if (!honored())
+	if (!is_honored())
 		return -EPERM;
 
 	if (lvector < PRIMARY_IRQ_MAX)
@@ -244,7 +244,7 @@ int unregister_isr(int lvector)
 {
 	int ret, i;
 
-	if (!honored())
+	if (!is_honored())
 		return -EPERM;
 
 	if (lvector < PRIMARY_IRQ_MAX) {

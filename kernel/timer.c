@@ -366,7 +366,7 @@ void udelay(unsigned int us)
 {
 	int goal, stamp, prev, elapsed;
 
-	if (!honored()) {
+	if (!is_honored()) {
 		error("no permission");
 		return;
 	}

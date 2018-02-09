@@ -210,10 +210,10 @@ static inline void syscall_delegate(struct task *org, struct task *delegate)
  * problem when the address is higher than 0x80000000 resulting in negative
  * value. We don't really make use of tid at the moment which is just task
  * address. So return just 1. */
-#define get_task_tid(p)			1
+#define get_task_tid(p)		1
 
 #define get_current_rank()	((__get_cntl() & 1)? TF_USER : TF_PRIVILEGED)
-#define honored()		(in_interrupt() || !(__get_cntl() & 1))
+#define is_honored()		(in_interrupt() || !(__get_cntl() & 1))
 #define which_context()		in_interrupt()
 
 #endif /* __TASK_H__ */
