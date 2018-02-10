@@ -45,6 +45,7 @@
 }
 #elif (SOC == stm32f4) /* stm32f4 */
 #define BLOCK_SIZE		16384
+#define SECTOR_SIZE		16384
 
 #define STRT			16
 #define SNB			3

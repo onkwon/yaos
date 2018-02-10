@@ -110,7 +110,7 @@ $(BUILDIR): $(INC_TMP) $(LD_SCRIPT)
 -include $(DEPS)
 
 include/asm: $(INC_ASM) .config
-	@printf "  CP       $@\n"
+	@printf "  COPY     $@\n"
 	@rm -rf include/asm
 	$(Q)-cp -R arch/$(ARCH)/include include/asm
 	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/include include/asm/mach
