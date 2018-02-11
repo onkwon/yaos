@@ -76,6 +76,9 @@ static int runcmd(struct shell_cmd *cmd, int argc, char **argv)
 /* TODO: add history functionality */
 void shell()
 {
+	extern void sdram_init();
+	sdram_init();
+
 	extern char _shell_cmdlist;
 	int argc, ret, len;
 	char **argv, buf[MAXLEN];
@@ -119,4 +122,4 @@ void shell()
 
 	free(argv);
 }
-REGISTER_TASK(shell, 0, DEFAULT_PRIORITY, STACK_SIZE_DEFAULT);
+REGISTER_TASK(shell, TASK_KERNEL, DEFAULT_PRIORITY, STACK_SIZE_DEFAULT);
