@@ -72,6 +72,7 @@ all: $(BUILDIR) $(OUTPUTS)
 	@printf "  Board        : $(BOARD)\n\n"
 	@printf "  Section Size(in bytes):\n"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("  %s\t\t %8d\n", $$1, strtonum($$3))}' $(BUILDIR)/$(PROJECT).map
+	@wc -c $(BUILDIR)/$(PROJECT).bin | awk '{printf("  .bin\t\t %8d\n", $$1)}'
 	@printf "\n  $(shell sha256sum $(BUILDIR)/$(PROJECT).bin)\n"
 
 $(BUILDIR)/%.dump: $(BUILDIR)/%.elf
