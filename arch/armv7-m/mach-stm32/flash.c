@@ -1,11 +1,31 @@
+/*
+ * "[...] Sincerity (comprising truth-to-experience, honesty towards the self,
+ * and the capacity for human empathy and compassion) is a quality which
+ * resides within the laguage of literature. It isn't a fact or an intention
+ * behind the work [...]"
+ *
+ *             - An introduction to Literary and Cultural Theory, Peter Barry
+ *
+ *
+ *                                                   o8o
+ *                                                   `"'
+ *     oooo    ooo  .oooo.    .ooooo.   .oooo.o     oooo   .ooooo.
+ *      `88.  .8'  `P  )88b  d88' `88b d88(  "8     `888  d88' `88b
+ *       `88..8'    .oP"888  888   888 `"Y88b.       888  888   888
+ *        `888'    d8(  888  888   888 o.  )88b .o.  888  888   888
+ *         .8'     `Y888""8o `Y8bod8P' 8""888P' Y8P o888o `Y8bod8P'
+ *     .o..P'
+ *     `Y8P'                   Kyunghwan Kwon <kwon@yaos.io>
+ *
+ *  Welcome aboard!
+ */
+
 #include <io.h>
 #include <kernel/lock.h>
 #include <kernel/page.h>
 #include <kernel/module.h>
 #include <error.h>
 #include <stdlib.h>
-
-#include "flash.h"
 
 #define NSECTORS				24
 
@@ -457,6 +477,8 @@ static struct file_operations ops = {
 
 #include <kernel/buffer.h>
 
+#define SECTOR_SIZE		16384
+
 static int flash_init()
 {
 	extern char _rom_size, _rom_start, _etext, _data, _ebss;
@@ -490,6 +512,19 @@ MODULE_INIT(flash_init);
 
 #include <kernel/power.h>
 
+#define FLASH_LOCK()			(FLASH_CR |= 1U << BIT_FLASH_LOCK)
+#define FLASH_UNLOCK() { \
+	if (FLASH_CR & (1U << BIT_FLASH_LOCK)) { \
+		FLASH_KEYR = 0x45670123; /* KEY1 */ \
+		FLASH_KEYR = 0xcdef89ab; /* KEY2 */ \
+	} \
+}
+#define FLASH_UNLOCK_OPTPG() { \
+	FLASH_OPTKEYR = 0x08192a3b; /* KEY1 */ \
+	FLASH_OPTKEYR = 0x4c5d6e7f; /* KEY2 */ \
+}
+#define FLASH_LOCK_OPTPG()		(FLASH_OPTCR |= 1)
+
 void flash_protect()
 {
 #if (SOC == stm32f1 || SOC == stm32f3)
@@ -502,7 +537,7 @@ void flash_protect()
 
 	warn("Protect flash memory from externel accesses");
 
-	while (FLASH_SR & (1 << BSY));
+	while (FLASH_SR & (1 << BIT_FLASH_BUSY));
 
 	FLASH_UNLOCK();
 	FLASH_UNLOCK_OPTPG();
@@ -515,7 +550,7 @@ void flash_protect()
 	FLASH_OPTCR |= 2; /* set start bit */
 #endif
 
-	while (FLASH_SR & (1 << BSY));
+	while (FLASH_SR & (1 << BIT_FLASH_BUSY));
 
 #if (SOC == stm32f1 || SOC == stm32f3)
 	FLASH_CR &= ~0x20; /* OPTER */
