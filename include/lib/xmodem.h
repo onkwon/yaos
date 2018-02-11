@@ -7,7 +7,7 @@
 #define XMODEM_META_SIZE	4
 #define XMODEM_PACKET_SIZE	(XMODEM_DATA_SIZE + XMODEM_META_SIZE)
 
-#define XMODEM_RETRY_MAX	10
+#define XMODEM_RETRY_MAX	30
 
 int xmodem_receive(void *dst, int n, int (*get)(), void (*put)(uint8_t));
 

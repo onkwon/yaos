@@ -34,3 +34,7 @@ ifeq ($(USE_EMWIN),y)
 	LIBS += $(BASEDIR)/../emWin/Lib/STemWin540_CM4_GCC.a
 	INCS += $(EMWIN_INCS)
 endif
+
+ifeq ($(USE_SHA256),y)
+	SRCS += $(wildcard examples/sha256/*.c)
+endif

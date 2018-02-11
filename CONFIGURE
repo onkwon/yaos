@@ -31,6 +31,7 @@ MODULE_CLCD=n
 USE_CMSIS=n
 USE_HAL=n
 USE_EMWIN=n
+USE_SHA256=y
 
 ################################################################################
 # DO NOT EDIT BELOW THIS LINE

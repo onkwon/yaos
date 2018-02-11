@@ -14,7 +14,7 @@ static void led()
 	while (1) {
 		v ^= 1;
 		write(fd, &v, 1);
-		mdelay(500);
+		msleep(500);
 	}
 
 	close(fd);
