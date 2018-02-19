@@ -329,7 +329,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		nvic_set(vec2irq(pin2vec(pin)), ON);
+		nvic_enable(pin2vec(pin), true);
 		lvector = mkvector(pin2vec(pin), pin);
 
 		exti_enable(index, ON);
@@ -434,7 +434,7 @@ int gpio_init(unsigned int index, unsigned int flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		nvic_set(vec2irq(pin2vec(pin)), ON);
+		nvic_enable(pin2vec(pin), true);
 		lvector = mkvector(pin2vec(pin), pin);
 
 		exti_enable(index, ON);

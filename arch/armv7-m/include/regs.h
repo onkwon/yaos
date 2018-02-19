@@ -10,6 +10,7 @@
 #define SCB_AIRCR		(*(reg_t *)(SCB_BASE + 0xD0C))
 #define SCB_SCR 		(*(reg_t *)(SCB_BASE + 0xD10))
 #define SCB_CCR 		(*(reg_t *)(SCB_BASE + 0xD14))
+#define SCB_SHPR		(SCB_BASE + 0xD18)
 #define SCB_SHPR1		(*(reg_t *)(SCB_BASE + 0xD18))
 #define SCB_SHPR2		(*(reg_t *)(SCB_BASE + 0xD1C))
 #define SCB_SHPR3		(*(reg_t *)(SCB_BASE + 0xD20))

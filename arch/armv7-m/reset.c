@@ -135,14 +135,14 @@ static void __init __attribute__((naked, used)) ISR_reset()
 #endif
 
 	unsigned int i;
-	for (i = NVECTOR_IRQ; i < NVECTOR_MAX; i++)
-		nvic_set_pri(i, IRQ_PRIORITY_DEFAULT);
+	for (i = NVECTOR_IRQ; i < (NVECTOR_IRQ + IRQ_MAX); i++)
+		nvic_pri_set(i, IRQ_PRIORITY_DEFAULT);
 
 	/* the bigger number the lower priority while 0 is the highest
 	 * priority. */
-	nvic_set_pri(NVECTOR_SYSTICK, IRQ_PRIORITY_LOWEST);
-	nvic_set_pri(NVECTOR_SVC, IRQ_PRIORITY_LOWEST);
-	nvic_set_pri(NVECTOR_PENDSV, IRQ_PRIORITY_LOWEST);
+	nvic_pri_set(NVECTOR_SYSTICK, IRQ_PRIORITY_LOWEST);
+	nvic_pri_set(NVECTOR_SVC, IRQ_PRIORITY_LOWEST);
+	nvic_pri_set(NVECTOR_PENDSV, IRQ_PRIORITY_LOWEST);
 
 	dsb();
 	isb();

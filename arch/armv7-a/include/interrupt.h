@@ -102,6 +102,6 @@ extern void __cli();
 
 int register_isr(unsigned int nirq, void (*func)());
 
-extern void nvic_set_pri(unsigned int nirq, unsigned int pri);
+extern void nvic_pri_set(unsigned int nirq, unsigned int pri);
 
 #endif /* __ARMv7A_INTERRUPT_H__ */

@@ -248,7 +248,7 @@ int __timer_open(int id, bool dir, unsigned int hz)
 		tim->psc = calc_psc(get_hclk(), hz, tim->arr);
 	}
 
-	nvic_set(vec2irq(nvector), true);
+	nvic_enable(nvector, true);
 
 	return nvector;
 }

@@ -136,7 +136,7 @@ int gpio_init(unsigned int pin, unsigned int flags)
 
 		if (intr != NRF_GPIO_PIN_NOSENSE) {
 			vector = NVECTOR_IRQ + 6; /* GPIOTE */
-			nvic_set(vec2irq(vector), ON);
+			nvic_enable(vector, true);
 			vector = mkvector(vector, pin);
 
 			NRF_GPIOTE->EVENTS_PORT = 0;

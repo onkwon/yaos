@@ -382,33 +382,46 @@ void __attribute__((naked)) ISR_svc()
 }
 #endif /* CONFIG_SYSCALL */
 
-void nvic_set(int nirq, int on)
+void nvic_enable(int nvec, int on)
 {
 	reg_t *reg;
 	unsigned int bit, base;
 
-	bit  = nirq % 32;
-	nirq = nirq / 32 * 4;
+	if (nvec < NVECTOR_IRQ) {
+		error("%d is system handler");
+		return;
+	}
+
+	nvec = vec2irq(nvec);
+	bit  = nvec % 32;
+	nvec = nvec / 32 * 4;
 	base = on? NVIC_BASE : NVIC_BASE + 0x80;
-	reg  = (reg_t *)(base + nirq);
+	reg  = (reg_t *)(base + nvec);
 
 	*reg = 1 << bit;
 
 	dsb();
 }
 
-void nvic_set_pri(int nirq, int pri)
+void nvic_pri_set(int nvec, int pri)
 {
 	reg_t *reg;
 	unsigned int bit, val;
 
-	bit  = nirq % 4 * 8;
-	reg  = (reg_t *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
+	if (nvec < NVECTOR_IRQ) {
+		reg = (reg_t *)SCB_SHPR;
+		reg = &reg[(nvec >> 2) - 1];
+		bit = (nvec & 3) * 8;
+	} else {
+		nvec = vec2irq(nvec);
+		bit = nvec % 4 * 8;
+		reg = (reg_t *)((NVIC_BASE + 0x300) + (nvec / 4 * 4));
+	}
 
 	do {
 		val = __ldrex(reg);
-		val &= ~(0xff << bit);
-		val |= ((pri & 0xf) << 4) << bit;
+		val &= ~(0xffUL << bit);
+		val |= (pri & 0xfUL) << (bit + 4);
 	} while (__strex(val, reg));
 
 	dsb();

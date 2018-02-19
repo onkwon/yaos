@@ -134,6 +134,6 @@ void __init irq_init()
 }
 REGISTER_INIT(irq_init, 1);
 
-void nvic_set_pri(unsigned int nirq, unsigned int pri)
+void nvic_pri_set(unsigned int nirq, unsigned int pri)
 {
 }

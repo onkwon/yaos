@@ -101,7 +101,7 @@ void __init debug_init()
 #ifdef PIN_DEBUG
 	int lvector;
 
-	//nvic_set_pri(23, 0); /* make it the highest priority */
+	//nvic_pri_set(23, 0); /* make it the highest priority */
 
 	lvector = gpio_init(PIN_DEBUG,
 			GPIO_MODE_INPUT | GPIO_CONF_PULLDOWN | GPIO_INT_RISING);

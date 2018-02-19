@@ -13,6 +13,7 @@
 
 #define REGISTER_DEVICE(module, name, minor) \
 	void register_##module##minor() { \
+		extern void register_##module(const char *, int); \
 		register_##module(name, minor); \
 	} \
 	DEVICE_INIT(register_##module##minor)

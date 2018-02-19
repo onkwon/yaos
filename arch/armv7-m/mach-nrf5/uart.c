@@ -120,7 +120,7 @@ int __uart_open(int channel, struct uart conf)
 	reg->EVENTS_ERROR = 0;
 	reg->INTENSET = RXDRDY_MASK;
 
-	nvic_set(nirq, ON);
+	nvic_enable(irq2vec(nirq), true);
 
 	reg->ENABLE = 4;
 	reg->TASKS_STARTRX = 1;

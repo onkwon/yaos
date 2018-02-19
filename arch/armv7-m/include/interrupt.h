@@ -74,7 +74,7 @@ enum {
 int register_isr(int lvector, void (*handler)(int));
 int register_isr_register(int lvector, int (*f)(int, void (*)(int)), bool force);
 int unregister_isr(int lvector);
-void nvic_set(int nirq, int on);
-void nvic_set_pri(int nirq, int pri);
+void nvic_enable(int nvec, int on);
+void nvic_pri_set(int nvec, int pri);
 
 #endif /* __ARMv7M_INTERRUPT_H__ */

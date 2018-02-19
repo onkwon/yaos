@@ -158,7 +158,7 @@ static inline int uart_open(int channel, struct _regs arg)
 	reg[6] = arg.gtpr;
 #endif
 
-	nvic_set(vec2irq(ch2vec(channel)), ON);
+	nvic_enable(ch2vec(channel), true);
 
 	return ch2vec(channel);
 }
@@ -187,7 +187,7 @@ static inline void uart_close(int channel)
 		__turn_apb1_clock(channel + 16, OFF);
 	}
 
-	nvic_set(vec2irq(ch2vec(channel)), OFF);
+	nvic_enable(ch2vec(channel), false);
 	/* TODO: gpio_fini() and unlink_exti_to_nvic() */
 }
 
