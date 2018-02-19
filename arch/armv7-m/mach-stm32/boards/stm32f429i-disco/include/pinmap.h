@@ -15,6 +15,7 @@
 
 #define PIN_STATUS_LED			PIN_LED_GREEN
 #define PIN_DEBUG			0 /* PA.0 */
+#define PIN_IR				86 /* PF.6 */
 
 #define PIN_LED_GREEN			109 //(96+13) /* PG.13 */
 #define PIN_LED_RED			110 //(96+14) /* PG.14 */

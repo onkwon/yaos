@@ -32,6 +32,7 @@
 REGISTER_DEVICE(uart, "uart", 1);
 REGISTER_DEVICE(gpio, "led", PIN_LED_GREEN);
 REGISTER_DEVICE(gpio, "led", PIN_LED_RED);
+//REGISTER_DEVICE(ir, "ir", 0);
 
 static inline unsigned int get_pllclk_mhz()
 {
