@@ -35,7 +35,7 @@ include Makefile.3rd
 
 Q	 := @
 TARGET    = $(ARCH)
-CFLAGS   += -march=$(ARCH) -DMACHINE=$(MACH) -DSOC=$(SOC)
+CFLAGS   += -march=$(ARCH) -DMACHINE=$(MACH) -D$(SOC)
 LD_SCRIPT = $(BUILDIR)/generated.ld
 LDFLAGS   = -T$(LD_SCRIPT)
 ifdef LD_LIBRARY_PATH

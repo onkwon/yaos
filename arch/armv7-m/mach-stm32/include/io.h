@@ -16,13 +16,7 @@
 
 #include <asm/mach/reg.h>
 
-#ifndef stm32f1
-#define stm32f1	1
-#define stm32f3	3
-#define stm32f4	4
-#endif
-
-#if (SOC == stm32f4)
+#ifdef RCC_AHB3ENR
 #define SET_CLOCK_AHB3(bit, on)		BITBAND(&RCC_AHB3ENR, bit, on)
 #endif
 

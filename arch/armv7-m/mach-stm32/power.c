@@ -24,11 +24,6 @@
 #include <asm/sysclk.h>
 #include <io.h>
 
-#ifndef stm32f1
-#define stm32f1	1
-#define stm32f4	2
-#endif
-
 enum system_control_bits {
 	SLEEPONEXIT	= 1,
 	SLEEPDEEP	= 2,
@@ -57,7 +52,7 @@ void __set_power_regulator(bool on, int scalemode, bool overdrive)
 {
 	unsigned int tmp;
 
-#if (SOC == stm32f1)
+#ifdef stm32f1
 	__turn_apb1_clock(27, on); /* BKP */
 #endif
 	__turn_apb1_clock(28, on); /* PWR */
@@ -198,9 +193,9 @@ static void disp_clkinfo()
 		pllclk, hclk, pclk1, pclk2, adclk);
 	*/
 	printk("Enabled peripheral clock:\n");
-#if (SOC == stm32f1)
+#ifdef stm32f1
 	printk("AHB  %08x\n", RCC_AHB1ENR);
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 	printk("AHB1 %08x\n", RCC_AHB1ENR);
 	printk("AHB2 %08x\n", RCC_AHB2ENR);
 	printk("AHB3 %08x\n", RCC_AHB3ENR);

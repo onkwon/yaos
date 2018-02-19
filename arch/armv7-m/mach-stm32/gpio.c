@@ -118,7 +118,7 @@ static inline int gpio2exti(int n)
 static inline unsigned int scan_port(reg_t *reg)
 {
 	int idx = 4;
-#if (SOC == stm32f1)
+#if defined(stm32f1)
 	idx = 2;
 #endif
 	return reg[idx];
@@ -127,7 +127,7 @@ static inline unsigned int scan_port(reg_t *reg)
 static inline void write_port(reg_t *reg, unsigned int data)
 {
 	int idx = 5;
-#if (SOC == stm32f1)
+#if defined(stm32f1)
 	idx = 3;
 #endif
 	reg[idx] = data;
@@ -136,7 +136,7 @@ static inline void write_port(reg_t *reg, unsigned int data)
 static inline void write_port_pin(reg_t *reg, int pin, bool on)
 {
 	int idx = 6;
-#if (SOC == stm32f1)
+#if defined(stm32f1)
 	idx = 4;
 #endif
 	reg[idx] = on? 1 << pin : 1 << (pin + 16);
@@ -146,7 +146,7 @@ static void set_port_pin_conf(reg_t *reg, int pin, int mode)
 {
 	unsigned int idx, t, shift, mask;
 
-#if (SOC == stm32f1)
+#if defined(stm32f1)
 	idx = pin / 8;
 	shift = (pin % 8) * 4;
 	mask = 0xf;
@@ -245,7 +245,7 @@ void gpio_put(unsigned int index, int v)
 	write_port_pin(reg, pin, v & 1);
 }
 
-#if (SOC == stm32f1)
+#if defined(stm32f1)
 int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode;
@@ -343,7 +343,7 @@ out:
 
 	return lvector;
 }
-#elif (SOC == stm32f3 || SOC == stm32f4)
+#elif defined(stm32f3) || defined(stm32f4)
 int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode;
@@ -369,10 +369,12 @@ int gpio_init(unsigned int index, unsigned int flags)
 		goto out;
 	}
 
-#if (SOC == stm32f3)
+#if defined(stm32f3)
 	__turn_ahb1_clock(port + 17, ON);
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 	__turn_ahb1_clock(port, ON);
+#else
+#error undefined machine
 #endif
 
 	/* default */
@@ -469,12 +471,14 @@ void gpio_fini(unsigned int index)
 
 	barrier();
 	if (!state[port].pins) {
-#if (SOC == stm32f1)
+#if defined(stm32f1)
 		__turn_apb2_clock(port + 2, OFF);
-#elif (SOC == stm32f3)
+#elif defined(stm32f3)
 		__turn_ahb1_clock(port + 17, OFF);
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 		__turn_ahb1_clock(port, OFF);
+#else
+#error undefined machine
 #endif
 	}
 
@@ -537,7 +541,7 @@ static void __init port_init()
 	unsigned int mode   = 0;
 	unsigned int conf   = 0;
 	unsigned int offset = 4;
-#if (SOC == stm32f4)
+#ifdef stm32f4
 	__turn_port_clock((reg_t *)PORTG, ON);
 	__turn_port_clock((reg_t *)PORTH, ON);
 	__turn_port_clock((reg_t *)PORTI, ON);
@@ -558,7 +562,7 @@ static void __init port_init()
 	*(reg_t *)(PORTE + offset) = conf;
 	*(reg_t *)PORTF = mode;
 	*(reg_t *)(PORTF + offset) = conf;
-#if (SOC == stm32f4)
+#ifdef stm32f4
 	*(reg_t *)PORTG = mode;
 	*(reg_t *)(PORTG + offset) = conf;
 	*(reg_t *)PORTH = mode;

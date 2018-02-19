@@ -11,9 +11,7 @@ struct semaphore {
 
 typedef struct semaphore mutex_t;
 
-#ifdef MACHINE
 #include <asm/lock.h>
-#endif
 
 /* the name of `counter` implies referenced by pointer while the name of
  * `count` implies referenced by value. */

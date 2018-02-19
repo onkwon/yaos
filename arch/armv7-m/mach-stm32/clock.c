@@ -1,12 +1,6 @@
 #include <foundation.h>
 #include "include/clock.h"
 
-#ifndef stm32f1
-#define stm32f1	1
-#define stm32f3	3
-#define stm32f4	4
-#endif
-
 #define PLLRDY			25
 #define PLLON			24
 #define CSSON			19
@@ -16,13 +10,13 @@
 #define SW			0
 #define SWS			2
 #define HPRE			4
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 #define PLLMUL			18
 #define PLLSRC			16
 #define ADCPRE			14
 #define PPRE2			11
 #define PPRE1			8
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 #define RTCPRE			16
 #define PPRE2			13
 #define PPRE1			10
@@ -41,7 +35,7 @@
 unsigned int get_pllclk()
 {
 	unsigned int clk, pllm;
-#if (SOC == stm32f4)
+#ifdef stm32f4
 	unsigned int plln, pllp;
 #endif
 
@@ -53,7 +47,7 @@ unsigned int get_pllclk()
 		clk = HSE;
 		break;
 	case 0x02 :
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 		pllm = ((RCC_CFGR >> PLLMUL) & 0xf) + 2;
 		if ((RCC_CFGR >> PLLSRC) & 1) { /* HSE selected */
 			if (RCC_CFGR & 0x20000) /* mask PLLXTPRE[17] */
@@ -63,7 +57,7 @@ unsigned int get_pllclk()
 		} else {
 			clk = (HSI >> 1) * pllm;
 		}
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 		pllm = ((RCC_PLLCFGR >> PLLM) & 0x3f);
 		plln = (RCC_PLLCFGR >> PLLN) & 0x1ff;
 		pllp = (RCC_PLLCFGR >> PLLP) & 3;
@@ -84,6 +78,8 @@ unsigned int get_pllclk()
 			clk = HSI / pllm;
 
 		clk = clk * plln / pllp;
+#else
+#error undefined machine
 #endif
 		break;
 	default   :
@@ -100,11 +96,13 @@ unsigned int get_hclk()
 	unsigned int clk, pre, pllclk;
 
 	pllclk = get_pllclk();
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 	pre    = (RCC_CFGR >> HPRE) & 0xf; /* mask HPRE[7:4] */
 	pre    = pre? pre - 7 : 0;         /* get prescaler division factor */
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 	pre    = ((RCC_CFGR >> HPRE) & 0x8)? ((RCC_CFGR >> HPRE) & 0x7) + 1 : 0;
+#else
+#error undefined machine
 #endif
 	clk    = pllclk >> pre;
 
@@ -117,11 +115,13 @@ unsigned int get_pclk1()
 	unsigned int clk, pre, hclk;
 
 	hclk = get_hclk();
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 	pre  = (RCC_CFGR >> PPRE1) & 0x7; /* mask PPRE1[10:8] */
 	pre  = pre? pre - 3 : 0;
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 	pre  = ((RCC_CFGR >> PPRE1) & 0x4)? ((RCC_CFGR >> PPRE1) & 0x3) + 1 : 0;
+#else
+#error undefined machine
 #endif
 	clk  = hclk >> pre;
 
@@ -134,11 +134,13 @@ unsigned int get_pclk2()
 	unsigned int clk, pre, hclk;
 
 	hclk = get_hclk();
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 	pre  = (RCC_CFGR >> PPRE2) & 0x7; /* mask PPRE2[13:11] */
 	pre  = pre? pre - 3 : 0;
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 	pre  = ((RCC_CFGR >> PPRE2) & 0x4)? ((RCC_CFGR >> PPRE2) & 0x3) + 1 : 0;
+#else
+#error undefined machine
 #endif
 	clk  = hclk >> pre;
 
@@ -147,7 +149,7 @@ unsigned int get_pclk2()
 
 unsigned int get_adclk()
 {
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 	unsigned int clk, pre, pclk2;
 
 	pclk2 = get_pclk2();
@@ -156,8 +158,10 @@ unsigned int get_adclk()
 	clk = pclk2 / pre;
 
 	return clk;
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 	return 0;
+#else
+#error undefined machine
 #endif
 }
 
@@ -200,14 +204,16 @@ void __turn_port_clock(reg_t *port, bool on)
 	int nbit;
 
 	nbit = (int)(((unsigned int)port >> 10) & 0xf);
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	nbit += 17;
 #endif
 
-#if (SOC == stm32f1)
+#ifdef stm32f1
 	__turn_apb2_clock(nbit, on);
-#else
+#elif defined(stm32f3) || defined(stm32f4)
 	__turn_ahb1_clock(nbit, on);
+#else
+#error undefined machine
 #endif
 }
 
@@ -238,7 +244,7 @@ void __reset_apb2_device(unsigned int nbit)
 
 #include <kernel/init.h>
 
-#if (SOC == stm32f1)	/* 72MHz */
+#ifdef stm32f1	/* 72MHz */
 void __attribute__((weak)) clock_init()
 {
 	/* flash access time adjustment */
@@ -275,7 +281,7 @@ void __attribute__((weak)) clock_init()
 
 	//BITBAND(&RCC_CR, CSSON, ON);
 }
-#elif (SOC == stm32f4)	/* 168MHz */
+#elif defined(stm32f4)	/* 168MHz */
 void __attribute__((weak)) clock_init()
 {
 	FLASH_ACR |= 5; /* five wait states */
@@ -315,7 +321,7 @@ void __attribute__((weak)) clock_init()
 
 	//BITBAND(&RCC_CR, CSSON, ON);
 }
-#elif (SOC == stm32f3)	/* 72MHz */
+#elif defined(stm32f3)	/* 72MHz */
 void __attribute__((weak)) clock_init()
 {
 	/* flash access time adjustment */
@@ -353,5 +359,7 @@ void __attribute__((weak)) clock_init()
 	/* For program and erase operations on the Flash memory (write/erase),
 	 * the internal RC oscillator (HSI) must be ON.  */
 }
+#else
+#error undefined machine
 #endif
 REGISTER_INIT(clock_init, 0);

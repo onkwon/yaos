@@ -27,19 +27,13 @@
 #include <asm/pinmap.h>
 #include <error.h>
 
-#ifndef stm32f1
-#define stm32f1	1
-#define stm32f3	3
-#define stm32f4	4
-#endif
-
 enum {
 	RE	= 2, /* Receiver enable */
 	TE	= 3, /* Transmitter enable */
 	RXNEIE	= 5, /* RXNE interrupt enable */
 	RXNE	= 5,
 	TXE	= 7,
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	UE	= 0, /* USART enable */
 #else
 	UE	= 13,
@@ -129,12 +123,14 @@ static inline int uart_open(int channel, struct _regs arg)
 		return -EINVAL;
 
 	if ((unsigned int)reg & 0x10000) { /* if USART1 or USART6 */
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 		__turn_apb2_clock(14, ON);
 		__reset_apb2_device(14);
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 		__turn_apb2_clock(4 + (channel >> 2), ON);
 		__reset_apb2_device(4 + (channel >> 2));
+#else
+#error undefined machine
 #endif
 		arg.brr = brr2reg(arg.brr, get_pclk2());
 	} else {
@@ -144,18 +140,20 @@ static inline int uart_open(int channel, struct _regs arg)
 		arg.brr = brr2reg(arg.brr, get_pclk1());
 	}
 
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	reg[0] = arg.cr1;
 	reg[1] = arg.cr2;
 	reg[2] = arg.cr3;
 	reg[3] = arg.brr;
 	reg[4] = arg.gtpr;
-#else
+#elif defined(stm32f1) || defined(stm32f4)
 	reg[2] = arg.brr;
 	reg[3] = arg.cr1;
 	reg[4] = arg.cr2;
 	reg[5] = arg.cr3;
 	reg[6] = arg.gtpr;
+#else
+#error undefined machine
 #endif
 
 	nvic_enable(ch2vec(channel), true);
@@ -171,17 +169,21 @@ static inline void uart_close(int channel)
 		return;
 
 	/* check if still in transmission. */
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	while (!gbi(reg[7], TXE));
-#else
+#elif defined(stm32f1) || defined(stm32f4)
 	while (!gbi(reg[0], TXE)); /* wait until TXE bit set */
+#else
+#error undefined machine
 #endif
 
 	if ((unsigned int)reg & 0x10000) { /* if USART1 or USART6 */
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 		__turn_apb2_clock(14, OFF);
-#elif (SOC == stm32f4)
+#elif defined(stm32f4)
 		__turn_apb2_clock(4 + (channel >> 3), OFF);
+#else
+#error undefined machine
 #endif
 	} else {
 		__turn_apb1_clock(channel + 16, OFF);
@@ -200,7 +202,7 @@ static inline int uart_putc(int channel, int c)
 
 	/* FIXME: Disable interrupt between checking and writing
 	 * to make sure nothing interrupts in the mean time. */
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	if (!gbi(reg[7], TXE))
 		return 0;
 #else
@@ -208,7 +210,7 @@ static inline int uart_putc(int channel, int c)
 		return 0;
 #endif
 
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	reg[10] = (unsigned int)c;
 #else
 	reg[1] = (unsigned int)c;
@@ -365,7 +367,7 @@ bool __uart_has_rx(int channel)
 	if (!(reg = ch2reg(channel)))
 		return false;
 
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	if (reg[7] & (1 << RXNE))
 		return true;
 #else
@@ -383,7 +385,7 @@ bool __uart_has_tx(int channel)
 	if (!(reg = ch2reg(channel)))
 		return false;
 
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	if (reg[7] & (1 << TXE))
 		return true;
 #else
@@ -401,7 +403,7 @@ int __uart_getc(int channel)
 	if (!(reg = ch2reg(channel)))
 		return false;
 
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	return reg[9];
 #else
 	return reg[1];
@@ -416,7 +418,7 @@ void __uart_tx_irq_reset(int channel)
 		return;
 
 	/* TXE interrupt disable */
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	reg[0] &= ~(1 << TXE); /* TXEIE */
 #else
 	reg[3] &= ~(1 << TXE); /* TXEIE */
@@ -431,7 +433,7 @@ void __uart_tx_irq_raise(int channel)
 		return;
 
 	/* TXE interrupt enable */
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	reg[0] |= 1 << TXE; /* TXEIE */
 #else
 	reg[3] |= 1 << TXE; /* TXEIE */
@@ -446,7 +448,7 @@ void __uart_flush(int channel)
 		return;
 
 	/* wait until transmission complete */
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	while (!gbi(reg[7], 6));
 #else
 	while (!gbi(reg[0], 6));
@@ -471,7 +473,7 @@ int __uart_set_baudrate(int channel, unsigned int baudrate)
 	else
 		baudrate = brr2reg(baudrate, get_pclk1());
 
-#if (SOC == stm32f3)
+#ifdef stm32f3
 	reg[3] = baudrate;
 #else
 	reg[2] = baudrate;

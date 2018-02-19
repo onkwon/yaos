@@ -37,9 +37,8 @@ int sys_close(int fd);
 int sys_shutdown(int option);
 
 #ifdef CONFIG_SYSCALL
-#ifdef MACHINE
 #include <asm/syscall.h>
-#endif
+
 static inline int read(int fd, void *buf, size_t len)
 {
 	return syscall(SYSCALL_READ, fd, buf, len);

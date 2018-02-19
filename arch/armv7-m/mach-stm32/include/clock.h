@@ -1,11 +1,6 @@
 #ifndef __STM32_RCC_H__
 #define __STM32_RCC_H__
 
-#ifndef stm32f1
-#define stm32f1	1
-#define stm32f4	2
-#endif
-
 #include <asm/hw.h>
 
 #ifndef HSE
@@ -13,11 +8,13 @@
 #endif
 
 #ifndef HSI
-#if (SOC == stm32f1 || SOC == stm32f3)
-#define HSI			8000000	/* 8MHz */
-#elif (SOC == stm32f4)
-#define HSI			16000000
-#endif
+  #if defined(stm32f1) || defined(stm32f3)
+  #define HSI			8000000	/* 8MHz */
+  #elif defined(stm32f4)
+  #define HSI			16000000
+  #else
+  #error undefined machine
+  #endif
 #endif
 
 unsigned int get_pllclk();

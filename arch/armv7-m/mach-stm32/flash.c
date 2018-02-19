@@ -60,7 +60,7 @@ enum flash_status_bits {
 	FLASH_STATUS_ERROR_MASK			= 0x1f2,
 };
 
-/* STM32F429ZIT6 flash */
+/* stm32f429ZIT6 flash */
 /* 2 Mbyte dual bank organization
  * [Bank 1]
  * Sector 0  | 0x0800_0000 - 0x0800_3FFF | 16Kbytes
@@ -527,12 +527,14 @@ MODULE_INIT(flash_init);
 
 void flash_protect()
 {
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 	if (FLASH_OPT_RDP != 0x5aa5)
 		return;
-#else
+#elif defined(stm32f4)
 	if (((FLASH_OPTCR >> 8) & 0xff) != 0xaa)
 		return;
+#else
+#error undefined machine
 #endif
 
 	warn("Protect flash memory from externel accesses");
@@ -542,20 +544,24 @@ void flash_protect()
 	FLASH_UNLOCK();
 	FLASH_UNLOCK_OPTPG();
 
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 	FLASH_CR |= 0x20; /* OPTER */
 	FLASH_CR |= 1 << STRT;
-#else
+#elif defined(stm32f4)
 	FLASH_OPTCR &= ~(0xff << 8);
 	FLASH_OPTCR |= 2; /* set start bit */
+#else
+#error undefined machine
 #endif
 
 	while (FLASH_SR & (1 << BIT_FLASH_BUSY));
 
-#if (SOC == stm32f1 || SOC == stm32f3)
+#if defined(stm32f1) || defined(stm32f3)
 	FLASH_CR &= ~0x20; /* OPTER */
-#else
+#elif defined(stm32f4)
 	FLASH_OPTCR &= ~2;
+#else
+#error undefined machine
 #endif
 
 	FLASH_LOCK_OPTPG();
