@@ -20,7 +20,7 @@
  *  Welcome aboard!
  */
 
-#include "sdram.h"
+#include <asm/mach/board/sdram.h>
 #include <foundation.h>
 #include <kernel/timer.h>
 

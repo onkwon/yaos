@@ -1,4 +1,4 @@
-LD_LIBRARY_PATH ?= /Users/kwon/Toolchain/gcc-arm-none-eabi-5_4-2016q3/lib/gcc/arm-none-eabi/5.4.1/armv7e-m/fpu/
+LD_LIBRARY_PATH ?= /Users/kwon/Toolchain/gcc-arm-none-eabi-7-2017-q4-major/lib/gcc/arm-none-eabi/7.2.1/hard
 
 # Uncomment a line to enable its functionality
 CONFIG_DEBUG=y
@@ -24,6 +24,7 @@ CONFIG_COMMON_IRQ_FRAMEWORK=y
 MODULE_UART=y
 MODULE_TIMER=y
 MODULE_GPIO=y
+MODULE_SPI=y
 MODULE_IR=n
 MODULE_CLCD=n
 
@@ -99,6 +100,9 @@ ifeq ($(MODULE_TIMER),y)
 endif
 ifeq ($(MODULE_GPIO),y)
 	SRCS += drivers/gpio.c
+endif
+ifeq ($(MODULE_SPI),y)
+	SRCS += drivers/spi.c
 endif
 ifeq ($(MODULE_IR),y)
 	SRCS += drivers/ir.c
