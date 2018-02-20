@@ -164,9 +164,9 @@ int __init kernel_init()
 	f_reset = __read_reset_source();
 
 	/* a banner */
-	notice("\n\nyaos %s %s\n"
+	notice("\n\nyaos %s %s, %s\n"
 	       "[%08x] reset by %s(%x)",
-	       def2str(VERSION), def2str(MACHINE),
+	       def2str(VERSION), def2str(MACHINE), __DATE__,
 	       get_sysclk(), str_reset[fls(f_reset)-1], f_reset);
 	notice("[%08x] systick: %dHz, sysclk:%dHz\n"
 	       "[%08x] hclk: %dHz, pll: %dHz, pclk1: %dHz, plck2 %dHz\n"

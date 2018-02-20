@@ -20,7 +20,7 @@ CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main
 ARFLAGS = rcs
 OCFLAGS =
 ODFLAGS = -Dsx
-LIBS	=
+LIBS   +=
 
 # Configuration
 
