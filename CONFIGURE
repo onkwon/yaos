@@ -1,38 +1,39 @@
-LD_LIBRARY_PATH ?= /Users/kwon/Toolchain/gcc-arm-none-eabi-7-2017-q4-major/lib/gcc/arm-none-eabi/7.2.1/hard
+LD_LIBRARY_PATH ?= $(HOME)/Toolchain/gcc-arm-none-eabi-7-2017-q4-major/lib/gcc/arm-none-eabi/7.2.1/hard
+LIBS ?= -L$(HOME)/Toolchain/gcc-arm-none-eabi-7-2017-q4-major/arm-none-eabi/lib/hard
 
 # Uncomment a line to enable its functionality
-CONFIG_DEBUG=y
-  CONFIG_DEBUG_TASK=n
-  CONFIG_DEBUG_SYSCALL=y
-  CONFIG_DEBUG_SYSCALL_NESTED=y
-CONFIG_SMP=n
-CONFIG_REALTIME=y
-CONFIG_PAGING=n
-CONFIG_SYSCALL=y
-  CONFIG_SYSCALL_THREAD=n
-CONFIG_FS=n
-CONFIG_TIMER=y
-CONFIG_FLOAT=y
-CONFIG_FPU=y
-CONFIG_CPU_LOAD=y
-CONFIG_SOFTIRQ_THREAD=n
-CONFIG_SLEEP_LONG=y
-CONFIG_SLEEP_DEEP=y
-CONFIG_COMMON_IRQ_FRAMEWORK=y
+CONFIG_DEBUG?=y
+  CONFIG_DEBUG_TASK?=n
+  CONFIG_DEBUG_SYSCALL?=y
+  CONFIG_DEBUG_SYSCALL_NESTED?=y
+CONFIG_SMP?=n
+CONFIG_REALTIME?=y
+CONFIG_PAGING?=n
+CONFIG_SYSCALL?=y
+  CONFIG_SYSCALL_THREAD?=n
+CONFIG_FS?=n
+CONFIG_TIMER?=y
+CONFIG_FLOAT?=y
+CONFIG_FPU?=y
+CONFIG_CPU_LOAD?=y
+CONFIG_SOFTIRQ_THREAD?=n
+CONFIG_SLEEP_LONG?=y
+CONFIG_SLEEP_DEEP?=y
+CONFIG_COMMON_IRQ_FRAMEWORK?=y
 
 # Uncomment a line to add the module
-MODULE_UART=y
-MODULE_TIMER=y
-MODULE_GPIO=y
-MODULE_SPI=y
-MODULE_IR=n
-MODULE_CLCD=n
+MODULE_UART?=y
+MODULE_TIMER?=y
+MODULE_GPIO?=y
+MODULE_SPI?=y
+MODULE_IR?=n
+MODULE_CLCD?=n
 
 # Third party modules
-USE_CMSIS=n
-USE_HAL=n
-USE_EMWIN=n
-USE_SHA256=y
+USE_CMSIS?=n
+USE_HAL?=n
+USE_EMWIN?=n
+USE_SHA256?=y
 
 ################################################################################
 # DO NOT EDIT BELOW THIS LINE

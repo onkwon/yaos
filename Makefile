@@ -32,13 +32,12 @@ include Makefile.3rd
 
 # Build
 
-Q	 := @
 TARGET    = $(ARCH)
 CFLAGS   += -march=$(ARCH) -DMACHINE=$(MACH) -D$(SOC)
 LD_SCRIPT = $(BUILDIR)/generated.ld
 LDFLAGS   = -T$(LD_SCRIPT)
 ifdef LD_LIBRARY_PATH
-	LDFLAGS += -L$(LD_LIBRARY_PATH) -lgcc
+	LDFLAGS += -L$(LD_LIBRARY_PATH) -lgcc -lc -lm
 endif
 
 SUBDIRS	 = lib kernel fs tasks
@@ -62,6 +61,8 @@ THIRD_PARTY_OBJS = $(addprefix $(BUILDIR)/3rd/, $(THIRD_PARTY_SRCS:.c=.o))
 OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump)
 
 DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
+
+Q := @
 
 all: $(BUILDIR) $(OUTPUTS)
 	@printf "\n  Version      : $(VERSION)\n"
