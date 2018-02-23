@@ -15,11 +15,12 @@ BASEDIR = $(shell pwd)
 BUILDIR = build
 
 CFLAGS += -fno-builtin -nostdlib -nostartfiles
-CFLAGS += -O2 -DVERSION=$(VERSION)
 CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main
+CFLAGS += -O2
 ARFLAGS = rcs
 OCFLAGS =
 ODFLAGS = -Dsx
+DEFS   += -DVERSION=$(VERSION)
 
 # Configuration
 
@@ -33,7 +34,8 @@ include Makefile.3rd
 # Build
 
 TARGET    = $(ARCH)
-CFLAGS   += -march=$(ARCH) -DMACHINE=$(MACH) -D$(SOC)
+DEFS     += -DMACHINE=$(MACH) -D$(SOC)
+CFLAGS   += -march=$(ARCH)
 LD_SCRIPT = $(BUILDIR)/generated.ld
 LDFLAGS   = -T$(LD_SCRIPT)
 ifdef LD_LIBRARY_PATH
@@ -93,7 +95,7 @@ $(BUILDIR)/$(PROJECT).a: $(OBJS) $(THIRD_PARTY_OBJS)
 $(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config
 	@printf "  CC       $<\n"
 	@mkdir -p $(@D)
-	$(Q)$(CC) $(CFLAGS) $(INCS) -MMD -c $< -o $@
+	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -MMD -c $< -o $@
 $(THIRD_PARTY_OBJS): $(BUILDIR)/3rd/%.o: %.c Makefile Makefile.3rd CONFIGURE .config
 	@printf "  CC       $(<F)\n"
 	@mkdir -p $(@D)
@@ -105,7 +107,7 @@ $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.ld
 	$(Q)$(CC) -E -x c $(CFLAGS) arch/$(ARCH)/common.ld | grep -v '^#' >> $@
 .c.o:
 	@printf "  CC       $(<F)\n"
-	$(Q)$(CC) $(CFLAGS) $(INCS) -c $< -o $@
+	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -c $< -o $@
 $(BUILDIR): $(INC_TMP) $(LD_SCRIPT)
 
 -include $(DEPS)
@@ -170,7 +172,7 @@ mango-z1: stm32f1
 	@echo "LD_SCRIPT_MACH = boards/mango-z1/memory.ld" >> .config
 
 nrf52: armv7-m4
-	@echo "CFLAGS += -DNRF52832_XXAA" >> .config
+	@echo "DEFS += -DNRF52832_XXAA" >> .config
 	@echo "LD_SCRIPT_MACH = nrf52.ld" >> .config
 	@echo "MACH = nrf5" >> .config
 	@echo "SOC = nrf52" >> .config
