@@ -27,6 +27,7 @@
 #include <kernel/systick.h>
 #include <drivers/gpio.h>
 #include <asm/pinmap.h>
+#include <lib/fifo.h>
 
 #define set_cs()	gpio_put(PIN_CLCD_E, 1)
 #define clr_cs()	gpio_put(PIN_CLCD_E, 0)

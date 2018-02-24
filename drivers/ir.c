@@ -23,8 +23,9 @@
 #include <foundation.h>
 #include <kernel/systick.h>
 #include <kernel/module.h>
+#include <lib/fifo.h>
 
-#define QUEUE_SIZE	(128 * WORD_SIZE) /* 128 entries of WORD_SIZE */
+#define NITEMS		(128) /* 128 entries of word size */
 
 static DEFINE_WAIT_HEAD(wq);
 static struct fifo ir_queue;
@@ -59,9 +60,7 @@ static size_t ir_read_core(void *buf, size_t len)
 	int i, *data = (int *)buf;
 
 	for (i = 0; i < len; i++) {
-		data[i] = fifo_getw(&ir_queue);
-
-		if (data[i] == -ENOENT)
+		if (fifo_getw(&ir_queue, &data[i]) == -ENOENT)
 			break;
 	}
 
@@ -98,14 +97,13 @@ static size_t ir_read(struct file *file, void *buf, size_t len)
 
 static inline int ir_init()
 {
-	void *buf;
-	int vector;
+	int *buf, vector;
 
-	if ((buf = kmalloc(QUEUE_SIZE)) == NULL)
+	if ((buf = kmalloc(NITEMS * sizeof(*buf))) == NULL)
 		return -ENOMEM;
 
 	/* permission check here */
-	fifo_init(&ir_queue, buf, QUEUE_SIZE);
+	fifo_init(&ir_queue, buf, NITEMS);
 	vector = gpio_init(PIN_IR, GPIO_MODE_INPUT | GPIO_CONF_PULLUP |
 			GPIO_INT_FALLING | GPIO_INT_RISING);
 	register_isr(vector, ISR_ir);

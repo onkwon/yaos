@@ -3,6 +3,7 @@
 
 #include <asm/bitops.h>
 #include <types.h>
+#include <error.h>
 
 static inline int fls(int x)
 {

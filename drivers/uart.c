@@ -26,6 +26,7 @@
 #include <kernel/syscall.h>
 #include <asm/mach/uart.h>
 #include <error.h>
+#include <lib/fifo.h>
 
 #define CHANNEL(n)		(MINOR(n) - 1)
 

@@ -146,25 +146,6 @@ static inline bool link_empty(const struct link *node)
 	return node->next == NULL;
 }
 
-/* fifo: lib/datatype.c */
-struct fifo {
-	size_t size;
-	unsigned int front, rear;
-	void *buf;
-};
-
-extern void fifo_init(struct fifo *q, void *queue, size_t size);
-extern void fifo_flush(struct fifo *q);
-
-extern int fifo_get(struct fifo *q, int type_size);
-extern int fifo_put(struct fifo *q, int value, int type_size);
-
-extern int fifo_getb(struct fifo *q);
-extern int fifo_putb(struct fifo *q, int val);
-extern int fifo_getw(struct fifo *q);
-extern int fifo_putw(struct fifo *q, int val);
-extern bool fifo_empty(struct fifo *q);
-
 #define SWAP_WORD(word)	\
 		((word >> 24) | (word << 24) | ((word >> 8) & 0xff00) | \
 		 ((word << 8) & 0xff0000))

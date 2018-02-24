@@ -20,15 +20,18 @@
  *  Welcome aboard!
  */
 
-#include <types.h>
-#include <error.h>
+#include <lib/fifo.h>
+#include <stddef.h>
+#include <errno.h>
+#ifndef TEST
 #include <kernel/lock.h>
 #include <bitops.h>
+#endif
 
-void fifo_init(struct fifo *q, void *queue, size_t size)
+void fifo_init(struct fifo *q, void *queue, size_t n)
 {
-	q->size  = size;
-	q->buf   = queue;
+	q->n = n;
+	q->buf = queue;
 	q->front = q->rear = 0;
 }
 
@@ -42,11 +45,8 @@ bool fifo_empty(struct fifo *q)
 	return q->front == q->rear;
 }
 
-/* NOTE: the size of queue must be power of 2 when using byte type because it
- * takes performace advantage replacing modulo operation with bit operation. */
 int fifo_getb(struct fifo *q)
 {
-	size_t size;
 	unsigned int pos;
 	char *buf;
 	int val;
@@ -54,7 +54,6 @@ int fifo_getb(struct fifo *q)
 	if (!q || !q->buf)
 		return -EINVAL;
 
-	size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
 	buf = q->buf;
 
 	do {
@@ -64,7 +63,7 @@ int fifo_getb(struct fifo *q)
 			return -ENOENT; /* empty */
 
 		val = (typeof(val))buf[pos];
-		pos = (pos + 1) & (size - 1);
+		pos = (pos + 1) % q->n;
 	} while (__strex(pos, &q->front));
 
 	return val;
@@ -72,35 +71,32 @@ int fifo_getb(struct fifo *q)
 
 int fifo_putb(struct fifo *q, int val)
 {
-	size_t size;
 	unsigned int pos;
 	char *buf;
 
 	if (!q || !q->buf)
 		return -EINVAL;
 
-	size = 1 << (fls(q->size) - 1); /* in case of not power of 2 */
 	buf = q->buf;
 
 	do {
 		pos = __ldrex(&q->rear);
-
-		if (((pos + 1) & (size - 1)) ==
+		if (((pos + 1) % q->n) ==
 				*(volatile typeof(q->front) *)&q->front)
 			return -ENOSPC; /* no more room */
 
 		buf[pos] = (typeof(*buf))val;
-		pos = (pos + 1) & (size - 1);
+		pos = (pos + 1) % q->n;
 	} while (__strex(pos, &q->rear));
 
 	return 0;
 }
 
-int fifo_getw(struct fifo *q)
+static inline int fifo_getw_core(struct fifo *q, unsigned int *p)
 {
-	unsigned int pos, val, *buf;
+	unsigned int pos, *buf;
 
-	if (!q || !q->buf)
+	if (!q || !q->buf || !p)
 		return -EINVAL;
 
 	buf = q->buf;
@@ -111,90 +107,60 @@ int fifo_getw(struct fifo *q)
 		if (pos == *(volatile typeof(q->rear) *)&q->rear)
 			return -ENOENT; /* empty */
 
-		val = buf[pos];
-		pos = (pos + 1) % (q->size >> 2);
+		*p = buf[pos];
+		pos = (pos + 1) % q->n;
 	} while (__strex(pos, &q->front));
 
-	return (int)val;
+	return 0;
+}
+
+int fifo_getw(struct fifo *q, void *p)
+{
+	return fifo_getw_core(q, (unsigned int *)p);
+}
+
+static inline int fifo_putw_core(struct fifo *q, unsigned int val)
+{
+	unsigned int pos, *buf;
+
+	if (!q || !q->buf)
+		return -EINVAL;
+
+	buf = q->buf;
+
+	do {
+		pos = __ldrex(&q->rear);
+
+		if (((pos + 1) % q->n) == *(volatile typeof(q->front) *)&q->front)
+			return -ENOSPC; /* no more room */
+
+		buf[pos] = (typeof(*buf))val;
+		pos = (pos + 1) % q->n;
+	} while (__strex(pos, &q->rear));
+
+	return 0;
 }
 
 int fifo_putw(struct fifo *q, int val)
 {
-	unsigned int mod, pos, *buf;
-
-	if (!q || !q->buf)
-		return -EINVAL;
-
-	mod = q->size >> 2;
-	buf = q->buf;
-
-	do {
-		pos = __ldrex(&q->rear);
-
-		if (((pos + 1) % mod) == *(volatile typeof(q->front) *)&q->front)
-			return -ENOSPC; /* no more room */
-
-		buf[pos] = (typeof(*buf))val;
-		pos = (pos + 1) % mod;
-	} while (__strex(pos, &q->rear));
-
-	return 0;
+	return fifo_putw_core(q, (unsigned int)val);
 }
 
-int fifo_get(struct fifo *q, int type_size)
+int fifo_get(struct fifo *q, void *p)
 {
-	unsigned int mod, idx, pos, val;
-	char *buf;
-	register int i;
-
-	if (!q || !q->buf)
-		return -EINVAL;
-
-	mod = q->size / type_size;
-	buf = q->buf;
-	val = 0;
-
-	do {
-		pos = __ldrex(&q->front);
-		idx = pos * type_size;
-
-		if (pos == *(volatile typeof(q->rear) *)&q->rear)
-			return -ENOENT; /* empty */
-
-		for (i = 0; i < type_size; i++)
-			val = val | ((typeof(val))buf[idx + i] << (i << 3));
-
-		pos = (pos + 1) % mod;
-	} while (__strex(pos, &q->front));
-
-	return (int)val;
+	return fifo_getw_core(q, p);
 }
 
-int fifo_put(struct fifo *q, int val, int type_size)
+int fifo_put(struct fifo *q, void *p)
 {
-	unsigned int mod, pos, idx;
-	char *buf;
-	register int i;
-
-	if (!q || !q->buf)
+	if (!p)
 		return -EINVAL;
 
-	mod = q->size / type_size;
-	buf = q->buf;
-
-	do {
-		pos = __ldrex(&q->rear);
-		idx = pos * type_size;
-
-		if (((pos + 1) % mod) == *(volatile typeof(q->front) *)&q->front)
-			return -ENOSPC; /* no more room */
-
-		for (i = 0; i < type_size; i++) {
-			buf[idx + i] = (typeof(*buf))val;
-			val = (unsigned int)val >> 8;
-		}
-		pos = (pos + 1) % mod;
-	} while (__strex(pos, &q->rear));
-
-	return 0;
+	return fifo_putw_core(q, (unsigned int)p);
 }
+
+#if 0
+int fifo_peek(struct fifo *q, void *p)
+{
+}
+#endif
