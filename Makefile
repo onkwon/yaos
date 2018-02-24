@@ -99,7 +99,7 @@ $(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config
 $(THIRD_PARTY_OBJS): $(BUILDIR)/3rd/%.o: %.c Makefile Makefile.3rd CONFIGURE .config
 	@printf "  CC       $(<F)\n"
 	@mkdir -p $(@D)
-	$(Q)$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) -c $< -o $@
+	$(Q)$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) $(DEFS) -c $< -o $@
 $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.ld .config
 	@printf "  GEN      $@\n"
 	@mkdir -p $(@D)
