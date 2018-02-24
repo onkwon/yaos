@@ -205,3 +205,7 @@ erase:
 .PHONY: term
 term:
 	minicom -D $(TTY)
+
+# Unit test
+
+include Makefile.tst
