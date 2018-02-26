@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define NULL				((void *)0)
-#define EOF				(-1)
 #define INF				(-1)
 
 #define UNLOCKED			1
