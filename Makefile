@@ -66,7 +66,7 @@ DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
 
 Q := @
 
-all: $(BUILDIR) $(OUTPUTS)
+all: $(BUILDIR) $(OUTPUTS) test
 	@printf "\n  Version      : $(VERSION)\n"
 	@printf "  Architecture : $(ARCH)\n"
 	@printf "  Vendor       : $(MACH)\n"
@@ -75,7 +75,7 @@ all: $(BUILDIR) $(OUTPUTS)
 	@printf "  Section Size(in bytes):\n"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("  %s\t\t %8d\n", $$1, strtonum($$3))}' $(BUILDIR)/$(PROJECT).map
 	@wc -c $(BUILDIR)/$(PROJECT).bin | awk '{printf("  .bin\t\t %8d\n", $$1)}'
-	@printf "\n  $(shell sha256sum $(BUILDIR)/$(PROJECT).bin)\n"
+	@printf "\n  sha256: $(shell sha256sum $(BUILDIR)/$(PROJECT).bin)\n"
 
 $(BUILDIR)/%.dump: $(BUILDIR)/%.elf
 	@printf "  OD       $@\n"
@@ -125,7 +125,7 @@ ifdef BOARD
 endif
 
 .PHONY: clean
-clean:
+clean: cleantest
 	@rm -rf $(BUILDIR)
 	@rm -rf include/asm
 

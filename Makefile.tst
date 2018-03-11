@@ -13,7 +13,7 @@ else
     TARGET_EXTENSION=out
 endif
 
-.PHONY: testclean
+.PHONY: cleantest
 .PHONY: test
 
 PATHU = tools/Unity/src/
@@ -49,13 +49,12 @@ $(test_o) : $(1)
 endef
 
 test: $(BUILD_PATHS) $(RESULTS)
-	@echo "-----------------------\nIGNORES:"
+	@echo "\n  TEST IGNORES:"
 	@echo "$(IGNORE)"
-	@echo "-----------------------\nFAILURES:"
+	@echo "  TEST FAILURES:"
 	@echo "$(FAIL)"
-	@echo "-----------------------\nPASSED:"
+	@echo "  TEST PASSED:"
 	@echo "$(PASSED)"
-	@echo "DONE"
 
 $(PATHR)%.txt: $(PATHB)%.$(TARGET_EXTENSION)
 	@echo "  TESTING  " $@ $<
@@ -90,7 +89,7 @@ $(PATHR):
 
 $(foreach test_s,$(ALLSRC),$(eval $(call create_rule,$(test_s))))
 
-testclean:
+cleantest:
 	$(CLEANUP) $(PATHO)*.o
 	$(CLEANUP) $(PATHB)*.$(TARGET_EXTENSION)
 	$(CLEANUP) $(PATHR)*.txt
