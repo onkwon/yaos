@@ -104,7 +104,7 @@ $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.ld
 	@printf "  GEN      $@\n"
 	@mkdir -p $(@D)
 	$(Q)-cp arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) $@
-	$(Q)$(CC) -E -x c $(CFLAGS) arch/$(ARCH)/common.ld | grep -v '^#' >> $@
+	$(Q)$(CC) -E -x c $(CFLAGS) $(DEFS) arch/$(ARCH)/common.ld | grep -v '^#' >> $@
 .c.o:
 	@printf "  CC       $(<F)\n"
 	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -c $< -o $@
