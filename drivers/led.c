@@ -23,7 +23,7 @@
 /* This led driver is just for testing. */
 
 #include <error.h>
-#include <gpio.h>
+#include <drivers/gpio.h>
 #include <kernel/module.h>
 #include <asm/pinmap.h>
 
@@ -36,15 +36,17 @@ static size_t led_read(struct file *file, void *buf, size_t len)
 	*p = gpio_get((unsigned int)file->option);
 
 	return 1;
+	(void)len;
 }
 
 static size_t led_write(struct file *file, void *buf, size_t len)
 {
 	unsigned int *p = (unsigned int *)buf;
 
-	gpio_put((unsigned int)file->option, *p);
+	gpio_put(MINOR(file->inode->dev), *p);
 
 	return 1;
+	(void)len;
 }
 
 static int led_open(struct inode *inode, struct file *file)
@@ -59,7 +61,7 @@ static int led_open(struct inode *inode, struct file *file)
 
 	if (dev->refcount == 0) {
 		/* check permission here */
-		gpio_init((unsigned int)file->option, GPIO_MODE_OUTPUT);
+		gpio_init(MINOR(file->inode->dev), GPIO_MODE_OUTPUT);
 	}
 
 	dev->refcount++;
@@ -67,6 +69,7 @@ static int led_open(struct inode *inode, struct file *file)
 	spin_unlock(&dev->mutex.counter);
 
 	return err;
+	(void)inode;
 }
 
 static struct file_operations ops = {

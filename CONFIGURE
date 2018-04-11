@@ -111,3 +111,5 @@ endif
 ifeq ($(MODULE_CLCD),y)
 	SRCS += drivers/clcd.c
 endif
+
+SRCS += drivers/led.c
