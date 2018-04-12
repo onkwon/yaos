@@ -161,20 +161,6 @@ static void set_port_pin_conf(reg_t *reg, int pin, int mode)
 	reg[idx] = t;
 }
 
-static void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
-{
-	unsigned int idx, t, shift, mask;
-
-	idx = pin / 8;
-	idx += 8; /* port base register + alt register offset(0x20) */
-	shift = (pin % 8) * 4;
-	mask = 0xf;
-
-	t = reg[idx];
-	t = MASK_RESET(t, mask << shift) | (mode << shift);
-	reg[idx] = t;
-}
-
 static inline int pin2vec(int pin)
 {
 	int nvector = 0;
@@ -344,6 +330,20 @@ out:
 	return lvector;
 }
 #elif defined(stm32f3) || defined(stm32f4)
+static void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
+{
+	unsigned int idx, t, shift, mask;
+
+	idx = pin / 8;
+	idx += 8; /* port base register + alt register offset(0x20) */
+	shift = (pin % 8) * 4;
+	mask = 0xf;
+
+	t = reg[idx];
+	t = MASK_RESET(t, mask << shift) | (mode << shift);
+	reg[idx] = t;
+}
+
 int gpio_init(unsigned int index, unsigned int flags)
 {
 	unsigned int port, pin, mode;

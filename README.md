@@ -33,6 +33,7 @@ Get one from [here](https://launchpad.net/gcc-arm-embedded) if you don't have on
 >  * [stm32f469i-disco](http://www.st.com/en/evaluation-tools/32f469idiscovery.html)
 >  * [stm32-lcd](https://www.olimex.com/Products/ARM/ST/STM32-LCD/)
 >  * [ust-mpb-stm32f103](https://www.devicemart.co.kr/1089642)
+>  * [stm32f1-min](https://www.aliexpress.com/item/mini-Stm32f103c8t6-system-board-stm32-learning-development-board/1609777521.html)
 
 In case of getting error messages something like `undefined reference to __aeabi_uidiv`, specify library path when you `make` in the way below:
 

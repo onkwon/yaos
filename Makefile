@@ -163,6 +163,10 @@ ust-mpb-stm32f103: stm32f1
 	@echo "BOARD = ust-mpb-stm32f103" >> .config
 	@echo "LD_SCRIPT_MACH = stm32f1.ld" >> .config
 
+stm32f1-min: stm32f1
+	@echo "BOARD = stm32f1-min" >> .config
+	@echo "LD_SCRIPT_MACH = boards/stm32f1-min/memory.ld" >> .config
+
 stm32-lcd: stm32f1
 	@echo "BOARD = stm32-lcd" >> .config
 	@echo "LD_SCRIPT_MACH = stm32f1.ld" >> .config

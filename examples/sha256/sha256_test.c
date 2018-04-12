@@ -32,4 +32,4 @@ static void sha256()
 		printk("%02x", result[i]);
 	printk("\n");
 }
-REGISTER_TASK(sha256, 0, DEFAULT_PRIORITY, STACK_SIZE_MIN);
+REGISTER_TASK(sha256, 0, DEFAULT_PRIORITY, STACK_SIZE_DEFAULT);
