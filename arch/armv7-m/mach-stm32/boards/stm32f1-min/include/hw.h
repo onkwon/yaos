@@ -1,6 +1,8 @@
 #ifndef __HW_H__
 #define __HW_H__
 
+/* stm32f103c8t6 */
+
 #define VDD				33 /* 3.3V */
 
 #define HSE				8000000

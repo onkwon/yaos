@@ -20,6 +20,16 @@
 #define PIN_UART5_TX			44 /* PC.12 */
 #define PIN_UART5_RX			50 /* PD.2 */
 
+/* SPI */
+#define PIN_SPI1_NSS			 4 /* PA.4 */
+#define PIN_SPI1_SCK			 5 /* PA.5 */
+#define PIN_SPI1_MISO			 6 /* PA.6 */
+#define PIN_SPI1_MOSI			 7 /* PA.7 */
+#define PIN_SPI2_NSS			28 /* PB.12 */
+#define PIN_SPI2_SCK			29 /* PB.13 */
+#define PIN_SPI2_MISO			30 /* PB.14 */
+#define PIN_SPI2_MOSI			31 /* PB.15 */
+
 /* Timer */
 #define PIN_TIM2CH1			 0 /* PA.0 */
 #define PIN_TIM2CH2			 1 /* PA.1 */
@@ -37,6 +47,12 @@
 #define PIN_TIM5CH2			PIN_TIM2CH2
 #define PIN_TIM5CH3			PIN_TIM2CH3
 #define PIN_TIM5CH4			PIN_TIM2CH4
+
+/* e-paper pinout */
+#define PIN_EPD_CS			16 /* PB.0 */
+#define PIN_EPD_DC			17 /* PB.1 */
+#define PIN_EPD_RST			26 /* PB.10 */
+#define PIN_EPD_BUSY			27 /* PB.11 */
 
 /* CLCD */
 #define PIN_CLCD_DB7			 4
