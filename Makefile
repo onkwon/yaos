@@ -14,7 +14,7 @@ VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --a
 BASEDIR = $(shell pwd)
 BUILDIR = build
 
-CFLAGS += -fno-builtin -nostdlib -nostartfiles
+CFLAGS += -nostartfiles -fno-builtin #-nostdlib
 CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main #-Wpointer-arith
 CFLAGS += -O2
 ARFLAGS = rcs
@@ -104,7 +104,8 @@ $(BUILDIR)/%.bin: $(BUILDIR)/%.elf
 	$(Q)$(OC) $(OCFLAGS) -O binary $< $@
 $(BUILDIR)/$(PROJECT).elf: $(OBJS) $(THIRD_PARTY_OBJS)
 	@printf "  LD       $@\n"
-	$(Q)$(LD) -o $@ $^ $(LIBS) -Map $(BUILDIR)/$(PROJECT).map $(LDFLAGS)
+	@#$(Q)$(LD) -o $@ $^ $(LIBS) -Map $(BUILDIR)/$(PROJECT).map $(LDFLAGS)
+	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -o $@ $^ $(LIBS) -Wl,-Map,$(BUILDIR)/$(PROJECT).map $(LDFLAGS)
 $(BUILDIR)/$(PROJECT).a: $(OBJS) $(THIRD_PARTY_OBJS)
 	@printf "  AR       $@\n"
 	$(Q)$(AR) $(ARFLAGS) -o $@ $^
