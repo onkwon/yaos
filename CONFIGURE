@@ -1,3 +1,5 @@
+LOADADDR ?= 0x08000000
+
 LD_LIBRARY_PATH ?= $(HOME)/Toolchain/gcc-arm-none-eabi-7-2017-q4-major/lib/gcc/arm-none-eabi/7.2.1/hard
 LIBS ?= -L$(HOME)/Toolchain/gcc-arm-none-eabi-7-2017-q4-major/arm-none-eabi/lib/hard
 

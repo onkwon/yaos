@@ -4,8 +4,8 @@ OUTPUT_ARCH(arm)
 resched = sys_schedule;
 systick = systick64;
 
-PROVIDE(_rom_start   = ORIGIN(rom));
-PROVIDE(_rom_size    = LENGTH(rom));
+PROVIDE(_rom_start   = LOADADDR);
+PROVIDE(_rom_size    = LENGTH(rom) - LOADADDR - ORIGIN(rom));
 PROVIDE(_ram_start   = ORIGIN(ram));
 PROVIDE(_ram_size    = LENGTH(ram));
 PROVIDE(_ram_end     = ORIGIN(ram) + LENGTH(ram));
@@ -13,7 +13,7 @@ PROVIDE(_vector_size = 0x200); /* The minimum alignment is 128 words. */
 
 SECTIONS
 {
-	.text :
+	.text _rom_start :
 	{
 		*(.vector)
 		*(.vector_irq)

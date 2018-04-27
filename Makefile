@@ -34,7 +34,7 @@ include Makefile.3rd
 # Build
 
 TARGET    = $(ARCH)
-DEFS     += -DMACHINE=$(MACH) -D$(SOC)
+DEFS     += -DMACHINE=$(MACH) -D$(SOC) -DLOADADDR=$(LOADADDR)
 CFLAGS   += -march=$(ARCH)
 LD_SCRIPT = $(BUILDIR)/generated.ld
 LDFLAGS   = -T$(LD_SCRIPT)
@@ -60,7 +60,7 @@ SRCS    += $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c)
 OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o))
 OBJS	+= $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
 THIRD_PARTY_OBJS = $(addprefix $(BUILDIR)/3rd/, $(THIRD_PARTY_SRCS:.c=.o))
-OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump)
+OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump sha256 tmp enc img)
 
 DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
 
@@ -74,9 +74,25 @@ all: $(BUILDIR) $(OUTPUTS) test
 	@printf "  Board        : $(BOARD)\n\n"
 	@printf "  Section Size(in bytes):\n"
 	@awk '/^.text/ || /^.data/ || /^.bss/ {printf("  %s\t\t %8d\n", $$1, strtonum($$3))}' $(BUILDIR)/$(PROJECT).map
-	@wc -c $(BUILDIR)/$(PROJECT).bin | awk '{printf("  .bin\t\t %8d\n", $$1)}'
-	@printf "\n  sha256: $(shell sha256sum $(BUILDIR)/$(PROJECT).bin)\n"
+	@wc -c $(BUILDIR)/$(PROJECT).bin | awk '{printf("\n  .bin\t\t %8d\n", $$1)}'
+	@wc -c $(BUILDIR)/$(PROJECT).img | awk '{printf("  .img\t\t %8d\n", $$1)}'
+	@printf "\n  sha256: $(shell cat $(BUILDIR)/$(PROJECT).sha256)\n"
 
+$(BUILDIR)/%.img: $(BUILDIR)/%.enc
+	@printf "  IMAGE    $@\n"
+	$(Q)openssl enc -aes-128-cbc -base64 -d -K "$(cat examples/aes128.key)" -iv "$(cat examples/aes128.iv)" -in $< -out $@
+$(BUILDIR)/%.enc: $(BUILDIR)/%.tmp
+	@printf "  ENCRYPT  $@\n"
+	$(Q)openssl enc -aes-128-cbc -base64 -K "$(cat examples/aes128.key)" -iv "$(cat examples/aes128.iv)" -in $< -out $@
+$(BUILDIR)/%.tmp: $(BUILDIR)/%.bin
+	@printf "  MAGIC    $@\n"
+	$(Q)-cp $< $@
+	$(Q)printf "EDFFFFFF 6587A9CB FF0F2143" | xxd -r -p >> $@
+	$(Q)wc -c < $< | awk '{printf("%08x", $$1)}' | tools/endian.sh | xxd -r -p >> $@
+	@cat $(BUILDIR)/$(PROJECT).sha256 | awk '{printf("%s\n", $$1)}' | xxd -r -p >> $@
+$(BUILDIR)/%.sha256: $(BUILDIR)/%.bin
+	@printf "  HASH     $@\n"
+	$(Q)echo $(shell sha256sum $<) > $@
 $(BUILDIR)/%.dump: $(BUILDIR)/%.elf
 	@printf "  OD       $@\n"
 	$(Q)$(OD) $(ODFLAGS) $< > $@
@@ -200,9 +216,9 @@ rpi-common:
 	@echo "MACH = rpi" > .config
 
 TTY = /dev/tty.usbmodem141133
-.PHONY: burn
-burn: $(BUILDIR)/$(PROJECT).bin
-	st-flash --reset write $(BUILDIR)/$(PROJECT:%=%.bin) 0x08000000
+.PHONY: burn flash
+burn flash: $(BUILDIR)/$(PROJECT).bin
+	st-flash --reset write $(BUILDIR)/$(PROJECT:%=%.bin) $(LOADADDR)
 .PHONY: erase
 erase:
 	st-flash erase

@@ -450,5 +450,10 @@ void __init irq_init()
 		primary_irq_table[i] = ISR_null;
 
 	__irq_init();
+
+	extern char _rom_start;
+	SCB_VTOR = (unsigned int)&_rom_start;
+	dsb();
+	isb();
 }
 #endif
