@@ -1,3 +1,6 @@
 [submodule "tools/unity"]
 	path = tools/Unity
 	url = git@github.com:ThrowTheSwitch/Unity.git
+[submodule "tools/tiny-AES-c"]
+	path = tools/tiny-AES-c
+	url = https://github.com/kokke/tiny-AES-c.git

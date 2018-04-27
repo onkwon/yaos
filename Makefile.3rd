@@ -23,3 +23,9 @@ endif
 ifeq ($(USE_SHA256),y)
 	SRCS += $(wildcard examples/sha256/*.c)
 endif
+
+ifeq ($(USE_AES),y)
+	SRCS += tools/tiny-AES-c/aes.c
+	INCS += -I$(BASEDIR)/tools/tiny-AES-c
+	DEFS += -DCBC=1 #-DCTR=1
+endif
