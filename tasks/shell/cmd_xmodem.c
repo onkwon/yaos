@@ -29,7 +29,7 @@ static int xmodem_recv(int argc, char **argv)
 
 	/* TODO: Check address range and length
 	 * The address range should not exceed free ram area */
-	addr = (unsigned int)atoi(argv[1]);
+	addr = (unsigned int)strtol(argv[1], NULL, 16);
 	len  = (unsigned int)atoi(argv[2]);
 
 	printf("Downloading %d bytes at 0x%x\n", len, addr);
@@ -43,4 +43,4 @@ static int xmodem_recv(int argc, char **argv)
 
 	return 0;
 }
-REGISTER_CMD(dn, xmodem_recv, "dn addr len");
+REGISTER_CMD(dn, xmodem_recv, "dn 0xaddr len");

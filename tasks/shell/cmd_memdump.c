@@ -33,8 +33,8 @@ static int memdump(int argc, char **argv)
 	static unsigned int len = DUMPSIZE_DEFAULT;
 	static unsigned int addr;
 
-	if (argc >= 3) len  = (unsigned int)atoi(argv[2]);
-	if (argc >= 2) addr = (unsigned int)atoi(argv[1]);
+	if (argc >= 3) len  = atoi(argv[2]);
+	if (argc >= 2) addr = (unsigned int)strtol(argv[1], NULL, 16);
 
 	dump(addr, len, len < 16 ? len : 16);
 
@@ -42,4 +42,4 @@ static int memdump(int argc, char **argv)
 
 	return 0;
 }
-REGISTER_CMD(md, memdump, "md ADDR LEN");
+REGISTER_CMD(md, memdump, "md 0xADDR LEN");

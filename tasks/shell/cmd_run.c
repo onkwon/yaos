@@ -11,7 +11,7 @@ static int run(int argc, char **argv)
 		return -1;
 
 	struct task *p;
-	unsigned int addr = atoi(argv[1]);
+	unsigned int addr = (unsigned int)strtol(argv[1], NULL, 16);
 
 	p = find_task(addr, &init);
 
@@ -26,7 +26,7 @@ static int run(int argc, char **argv)
 
 	return 0;
 }
-REGISTER_CMD(run, run, "run ADDR");
+REGISTER_CMD(run, run, "run 0xADDR");
 
 static int stop(int argc, char **argv)
 {
@@ -34,7 +34,7 @@ static int stop(int argc, char **argv)
 		return -1;
 
 	struct task *p;
-	unsigned int addr = atoi(argv[1]);
+	unsigned int addr = (unsigned int)strtol(argv[1], NULL, 16);
 
 	p = find_task(addr, &init);
 
@@ -47,4 +47,4 @@ static int stop(int argc, char **argv)
 
 	return 0;
 }
-REGISTER_CMD(stop, stop, "stop ADDR");
+REGISTER_CMD(stop, stop, "stop 0xADDR");

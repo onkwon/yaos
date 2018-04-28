@@ -17,8 +17,8 @@ static int flash(int argc, char **argv)
 		return -EINVAL;
 
 	/* TODO: Check address range and length */
-	dst = (unsigned int)atoi(argv[1]);
-	src = (unsigned int)atoi(argv[2]);
+	dst = (unsigned int)strtol(argv[1], NULL, 16);
+	src = (unsigned int)strtol(argv[2], NULL, 16);
 	len = (unsigned int)atoi(argv[3]);
 
 	printf("Flash %d bytes from 0x%x to 0x%x\n", len, src, dst);
@@ -29,4 +29,4 @@ static int flash(int argc, char **argv)
 
 	return 0;
 }
-REGISTER_CMD(flash, flash, "flash dst src len");
+REGISTER_CMD(flash, flash, "flash 0xdst 0xsrc len");

@@ -10,7 +10,7 @@ static int inspect(int argc, char **argv)
 		return -1;
 
 	struct task *task;
-	unsigned int addr = atoi(argv[1]);
+	unsigned int addr = (unsigned int)strtol(argv[1], NULL, 16);
 
 	task = (struct task *)addr;
 
@@ -20,4 +20,4 @@ static int inspect(int argc, char **argv)
 
 	return 0;
 }
-REGISTER_CMD(dbg, inspect, "dbg {addr}");
+REGISTER_CMD(dbg, inspect, "dbg {0xaddr}");
