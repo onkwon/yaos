@@ -1,4 +1,61 @@
+#include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+
+#ifdef CONFIG_FLOAT
+size_t ftoa(double v, char *buf, int flen, size_t maxlen)
+{
+	double f;
+	int i;
+	char c;
+	size_t off = 0;
+
+	if (v < 0) {
+		buf[off++] = '-';
+		v = -v;
+	}
+
+	f = v;
+	i = (int)f;
+	itoa(i, &buf[off], 10);
+	off += strlen(&buf[off]);
+	buf[off++] = '.';
+
+	while ((f = f - (double)i) != (double)0.0 && off < maxlen-1) {
+		c = (int)(f * 10) + '0';
+		if (!isdigit(c))
+			break;
+
+		buf[off++] = c;
+		v *= 10;
+		f = v;
+		i = (int)f;
+
+		if (--flen == 0)
+			break;
+	}
+
+	/*
+	while (flen-- > 0 && off < maxlen-1)
+		buf[off++] = '0';
+	*/
+
+	if (buf[off-1] == '.')
+		off--;
+
+	buf[off] = '\0';
+
+	return off;
+}
+#else
+size_t ftoa(double v, char *buf, int flen, size_t maxlen)
+{
+	return 0;
+}
+#endif
+#if 0
+#include <string.h>
+#include <stdbool.h>
 
 /* TODO: Support all double-precision numbers
  * It only gets a few small floating-point numbers correctly and has bad
@@ -41,6 +98,58 @@ double atof(const char *s)
 #else
 	return 0;
 #endif
+}
+
+#define BASE_MAX	16
+
+/* TODO: Get the result from the first digits
+ * if n is less than the actual string length as the converting result,
+ * it saves from the last digits, not from the first digits. */
+size_t itos(int v, char *buf, int base, size_t n)
+{
+	unsigned int u;
+	bool is_negative;
+	size_t i;
+	char *p, t;
+
+	if (!buf || base > BASE_MAX)
+		return 0;
+
+	is_negative = false;
+	p = buf;
+	n--; /* to preserve a null byte */
+
+	if (v < 0 && base == 10) {
+		is_negative = true;
+		v = -v;
+		n--;
+		*p++ = '-';
+	}
+
+	u = (unsigned int)v;
+
+	for (i = 0; u && (i < n); i++) {
+		t = "0123456789abcdef"[u % base];
+		u /= base;
+		*p++ = t;
+	}
+
+	if (!i) { /* in case of u == 0 */
+		*p++ = '0';
+		i = 1;
+	}
+
+	*p = '\0';
+	n = i; /* Note that the local variable, n, is redefined here */
+	p = buf + is_negative;
+
+	for (i = 0; i < (n >> 1); i++) {
+		t = p[i];
+		p[i] = p[n-i-1];
+		p[n-i-1] = t;
+	}
+
+	return n + is_negative;
 }
 
 size_t ftos(double v, char *buf, int flen, size_t maxlen)
@@ -112,89 +221,6 @@ int strtoi(const char *s, int base)
 	}
 
 	return v;
-}
-
-#define BASE_MAX	16
-
-/* TODO: Get the result from the first digits
- * if n is less than the actual string length as the converting result,
- * it saves from the last digits, not from the first digits. */
-size_t itos(int v, char *buf, int base, size_t n)
-{
-	unsigned int u;
-	bool is_negative;
-	size_t i;
-	char *p, t;
-
-	if (!buf || base > BASE_MAX)
-		return 0;
-
-	is_negative = false;
-	p = buf;
-	n--; /* to preserve a null byte */
-
-	if (v < 0 && base == 10) {
-		is_negative = true;
-		v = -v;
-		n--;
-		*p++ = '-';
-	}
-
-	u = (unsigned int)v;
-
-	for (i = 0; u && (i < n); i++) {
-		t = "0123456789abcdef"[u % base];
-		u /= base;
-		*p++ = t;
-	}
-
-	if (!i) { /* in case of u == 0 */
-		*p++ = '0';
-		i = 1;
-	}
-
-	*p = '\0';
-	n = i; /* Note that the local variable, n, is redefined here */
-	p = buf + is_negative;
-
-	for (i = 0; i < (n >> 1); i++) {
-		t = p[i];
-		p[i] = p[n-i-1];
-		p[n-i-1] = t;
-	}
-
-	return n + is_negative;
-}
-
-char *itoa(int v, char *buf, unsigned int base, size_t n)
-{
-	unsigned int u;
-	char *s;
-	bool is_negative;
-
-	if (!buf || base > BASE_MAX)
-		return NULL;
-
-	s = &buf[n-1];
-	*s = '\0';
-	is_negative = false;
-
-	if ((v < 0) && (base == 10)) {
-		is_negative = true;
-		v = -v;
-	}
-
-	u = (unsigned int)v;
-
-	while (u && n) {
-		*--s = "0123456789abcdef"[u % base];
-		u /= base;
-		n--;
-	}
-
-	if (is_negative) *--s = '-';
-
-	return s;
 }
 
 int atoi(const char *s)
@@ -358,3 +384,4 @@ char *strstr(const char *string, const char *word)
 
 	return NULL;
 }
+#endif

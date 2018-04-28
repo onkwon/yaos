@@ -5,7 +5,7 @@ resched = sys_schedule;
 systick = systick64;
 
 PROVIDE(_rom_start   = LOADADDR);
-PROVIDE(_rom_size    = LENGTH(rom) - LOADADDR - ORIGIN(rom));
+PROVIDE(_rom_size    = LENGTH(rom) - (LOADADDR - ORIGIN(rom)));
 PROVIDE(_ram_start   = ORIGIN(ram));
 PROVIDE(_ram_size    = LENGTH(ram));
 PROVIDE(_ram_end     = ORIGIN(ram) + LENGTH(ram));

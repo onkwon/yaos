@@ -1,6 +1,7 @@
-#include <foundation.h>
 #include "shell.h"
+#include <foundation.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define DUMPSIZE_DEFAULT	256
 #define getbyte(addr)		(*(unsigned char *)(addr))

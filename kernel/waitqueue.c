@@ -62,7 +62,7 @@ static void wake_callback(struct ktimer *timer)
 
 		timer->task->args = (void *)-ETIME;
 		go_run(timer->task);
-		__free(timer, timer->task);
+		task_heap_free(timer, timer->task);
 
 		/* return to the original mode */
 		if (!(flags & TF_PRIVILEGED)) {

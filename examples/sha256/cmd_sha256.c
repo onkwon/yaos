@@ -2,6 +2,7 @@
 #include "../../tasks/shell/shell.h"
 #include <foundation.h>
 #include <string.h>
+#include <stdlib.h>
 
 static int sha256(int argc, char **argv)
 {

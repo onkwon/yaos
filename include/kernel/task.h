@@ -216,4 +216,6 @@ static inline void syscall_delegate(struct task *org, struct task *delegate)
 #define is_honored()		(in_interrupt() || !(__get_cntl() & 1))
 #define which_context()		in_interrupt()
 
+extern void task_heap_free(void *addr, struct task *task);
+
 #endif /* __TASK_H__ */

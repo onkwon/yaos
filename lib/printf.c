@@ -1,6 +1,8 @@
 #include <io.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdarg.h>
+#include "ftoa.h"
 
 #define BUFSIZE				\
 	(WORD_SIZE * 8 + 1) /* max length of binary */
@@ -109,13 +111,13 @@ static inline size_t print(int fd, void **to, size_t limit, const char *fmt, va_
 		case 'x':
 		case 'p':
 		case 'b':
-			itos(va_arg(args, int), buf, tok2base(*fmt), BUFSIZE);
+			itoa(va_arg(args, int), buf, tok2base(*fmt));
 			printed = prints(fd, to, buf, padding | align, limit);
 			break;
 #ifdef CONFIG_FLOAT
 		case 'f':
 			set_padding(padding, PAD_FLOAT);
-			ftos(va_arg(args, double), buf, align, BUFSIZE);
+			ftoa(va_arg(args, double), buf, align, BUFSIZE);
 			printed = prints(fd, to, buf,
 					padding | combine(flen, align),
 					limit);

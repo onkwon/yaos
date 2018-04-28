@@ -5,6 +5,9 @@
 #include <types.h>
 #include <error.h>
 
+#if 1
+#include <string.h>
+#else
 static inline int fls(int x)
 {
         return WORD_BITS - __clz(x);
@@ -15,6 +18,7 @@ static inline int ffs(int x)
 	/* mask the least significant bit only */
 	return fls(x & -x);
 }
+#endif
 
 static inline int digits(const unsigned int n)
 {

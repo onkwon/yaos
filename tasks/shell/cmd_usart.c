@@ -1,6 +1,7 @@
 #include "shell.h"
 #include <foundation.h>
 #include <string.h>
+#include <stdlib.h>
 
 static int uart(int argc, char **argv)
 {

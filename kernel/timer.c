@@ -130,7 +130,7 @@ void __del_timer_if_match(struct task *task, void *addr)
 
 	/* hold lock until free() to avoid the task killed before free */
 	if (deleted)
-		__free(timer, task);
+		task_heap_free(timer, task);
 }
 
 static void do_run_timer(struct ktimer *timer)

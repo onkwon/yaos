@@ -1025,7 +1025,7 @@ static int embed_create(struct inode *inode, const char *pathname, int mode)
 		goto out_free_inode;
 	}
 
-	if (!*s || toknum(s, "/")) {
+	if (!*s || strchr(s, '/')) {
 		ret = -EEXIST;
 		goto out_free_inode;
 	}

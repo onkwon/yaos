@@ -2,6 +2,7 @@
 #include <foundation.h>
 #include <kernel/timer.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <lib/xmodem.h>
 

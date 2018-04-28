@@ -252,7 +252,7 @@ static int create_file(const char *pathname, int mode, struct device *dev)
 		return -EEXIST;
 
 	/* not exsiting parent dir(s) or not a dir */
-	if (toknum(p, "/") || !(parent->mode & FT_DIR))
+	if (strchr(p, '/') || !(parent->mode & FT_DIR))
 		return -ENOENT;
 
 	len = strnlen(p, FILENAME_MAX);
@@ -411,14 +411,15 @@ int sys_mknod(const char *name, unsigned int mode, dev_t id)
 {
 	extern struct device *devfs;
 
-	char *buf, *suffix, str[SUFFIX_MAXLEN] = { 0, };
+	char *buf, suffix[SUFFIX_MAXLEN] = { 0, };
 	unsigned int len;
 	int ret;
 
 	if (!name)
 		return -ERANGE;
 
-	suffix = itoa(MINOR(id), str, 10, SUFFIX_MAXLEN);
+	//itoa(MINOR(id), suffix, 10, SUFFIX_MAXLEN);
+	itoa(MINOR(id), suffix, 10);
 	len = strnlen(name, FILENAME_MAX) +
 		strnlen(suffix, SUFFIX_MAXLEN);
 

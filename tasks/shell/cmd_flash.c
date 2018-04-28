@@ -1,6 +1,7 @@
 #include "shell.h"
 #include <foundation.h>
 #include <string.h>
+#include <stdlib.h>
 
 extern size_t flash_program(void * const addr, const void * const buf,
 		size_t len, bool overwrite);

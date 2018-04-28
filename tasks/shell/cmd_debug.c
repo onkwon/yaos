@@ -1,7 +1,8 @@
-#include <foundation.h>
-#include <string.h>
-#include <kernel/debug.h>
 #include "shell.h"
+#include <foundation.h>
+#include <kernel/debug.h>
+#include <string.h>
+#include <stdlib.h>
 
 static int inspect(int argc, char **argv)
 {

@@ -14,7 +14,7 @@ void free(void *addr)
 	ff_free(&current->mm.heaphead, addr);
 }
 
-void __free(void *addr, struct task *task)
+void task_heap_free(void *addr, struct task *task)
 {
 	ff_free(&task->mm.heaphead, addr);
 }
