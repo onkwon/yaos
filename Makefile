@@ -80,18 +80,18 @@ all: $(BUILDIR) $(OUTPUTS) test
 
 $(BUILDIR)/%.img: $(BUILDIR)/%.enc
 	@printf "  IMAGE    $@\n"
-	$(Q)printf "DEC0ADDE 23016745 AB89EFCD" | xxd -r -p > $@
+	$(Q)printf "DEADC0DE 45670123 CDEF89AB" | xxd -r -p > $@
 	$(Q)wc -c < $< | awk '{printf("%08x", $$1)}' | tools/endian.sh | xxd -r -p >> $@
 	$(Q)cat examples/aes128.iv | xxd -r -p >> $@
 	$(Q)echo $(shell sha256sum $<) | awk '{printf("%s\n", $$1)}' | xxd -r -p >> $@
 	$(Q)cat $< >> $@
 $(BUILDIR)/%.enc: $(BUILDIR)/%.dat
 	@printf "  ENCRYPT  $@\n"
-	$(Q)openssl enc -aes-128-cbc -K "$(cat examples/aes128.key)" -iv "$(cat examples/aes128.iv)" -in $< -out $@ #-base64
+	$(Q)openssl enc -aes-128-ctr -K $(shell cat examples/aes128.key) -iv $(shell cat examples/aes128.iv) -in $< -out $@ #-base64
 $(BUILDIR)/%.dat: $(BUILDIR)/%.bin
 	@printf "  MAGIC    $@\n"
 	$(Q)-cp $< $@
-	$(Q)printf "EDFFFFFF 6587A9CB FF0F2143" | xxd -r -p >> $@
+	$(Q)printf "FFFFFFED CBA98765 43210FFF" | xxd -r -p >> $@
 	$(Q)wc -c < $< | awk '{printf("%08x", $$1)}' | tools/endian.sh | xxd -r -p >> $@
 	@cat $(BUILDIR)/$(PROJECT).sha256 | awk '{printf("%s\n", $$1)}' | xxd -r -p >> $@
 $(BUILDIR)/%.sha256: $(BUILDIR)/%.bin
