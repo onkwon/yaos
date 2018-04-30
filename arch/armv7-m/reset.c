@@ -111,6 +111,8 @@ static void __init __attribute__((naked, used)) ISR_reset()
 {
 	cli();
 
+	__set_sp(&_ram_end);
+
 	/* isb() following dsb() should be put if changing a priority with
 	 * interrupt enabled. Refer to:
 	 * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHJICIE.html
