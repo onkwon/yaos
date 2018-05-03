@@ -187,12 +187,12 @@ static inline int flash_erase(int nr)
 {
 	/* FIXME: make sure that no data in the sector is cached */
 
-	if (nr == FLASH_MASS_ERASE) {
+	if (nr == (int)FLASH_MASS_ERASE) {
 		flash_erase_all();
 		return get_errflags();
 	}
 
-	if (nr >= NSECTORS) {
+	if (nr >= (int)NSECTORS) {
 		debug("no existing sector %d", nr);
 		return -ERANGE;
 	}
@@ -267,7 +267,7 @@ retry:
 		if (!overwrite) { /* Save the sector in a temporal sector */
 			tmp = get_temporal_sector_addr(ss);
 
-			if (flash_write_core((void *)tmp, (void *)base, ss, true) != ss)
+			if (flash_write_core((void *)tmp, (void *)base, ss, true) != (size_t)ss)
 				goto out;
 
 			restore = (unsigned int *)tmp;

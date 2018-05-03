@@ -293,7 +293,8 @@ static void gpiod(void *args)
 
 static void __init module_gpio_init()
 {
-	if ((nsoftirq = request_softirq(gpiod, HIGHEST_PRIORITY)) >= SOFTIRQ_MAX)
+	if ((unsigned int)(nsoftirq = request_softirq(gpiod, HIGHEST_PRIORITY))
+			>= SOFTIRQ_MAX)
 		error("full of softirq!");
 }
 MODULE_INIT(module_gpio_init);

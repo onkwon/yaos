@@ -58,7 +58,7 @@ static int __init make_init_task()
 {
 	extern void idle(); /* becomes init task */
 	unsigned int *kstack;
-	int i;
+	unsigned int i;
 
 	/* stack must be allocated first. and to build root relationship
 	 * properly `current` must be set to `init`. */

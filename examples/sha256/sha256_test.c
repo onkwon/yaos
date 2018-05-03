@@ -5,8 +5,7 @@ static void sha256()
 {
 	SHA256_CTX ctx;
 	unsigned char result[SHA256_BLOCK_SIZE];
-	unsigned int start, end, q, r;
-	int i;
+	unsigned int start, end, q, r, i;
 	extern int _etext, _edata, _rom_start, _ram_start;
 
 	start = (unsigned int)&_rom_start;

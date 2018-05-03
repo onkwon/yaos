@@ -85,7 +85,7 @@ struct device *mkdev(unsigned int major, unsigned int minor,
 		major = nr_device;
 	}
 
-	if (!major || (major > nr_device))
+	if (!major || (major > (unsigned int)nr_device))
 		goto err;
 
 	/* get a unique minor number

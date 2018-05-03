@@ -6,7 +6,7 @@
 static unsigned int visit(struct task *p, unsigned int nr)
 {
 	struct task *next;
-	static int tab = 0;
+	static unsigned int tab = 0;
 
 	unsigned int i;
 #define print_tab() for (i = 0; i < tab; i++) printk("|\t");
@@ -60,7 +60,7 @@ static unsigned int visit(struct task *p, unsigned int nr)
 
 static int ps(int argc, char **argv)
 {
-	int i;
+	unsigned int i;
 
 	printk("    ADDR                   TYPE STAT PRI NAME\n");
 

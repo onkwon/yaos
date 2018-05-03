@@ -116,7 +116,7 @@ unsigned int request_softirq(void (*func)(), int pri)
 
 int __init softirq_init()
 {
-	int i;
+	unsigned int i;
 
 	softirq.pending = 0;
 	softirq.bitmap = 0;

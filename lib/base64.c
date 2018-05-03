@@ -73,7 +73,7 @@ size_t base64_encode(unsigned char *dst, const unsigned char *src, size_t slen)
 {
 	struct base64_t t;
 	unsigned char *p;
-	int n, i;
+	unsigned int n, i;
 
 	if (!slen || dst == NULL || src == NULL)
 		return 0;
@@ -110,7 +110,8 @@ size_t base64_decode(unsigned char *dst, const unsigned char *src, size_t slen)
 {
 	struct base64_t t;
 	unsigned char *p;
-	int n, r, i;
+	unsigned int n, i;
+	int r;
 
 	if (!slen || dst == NULL || src == NULL)
 		return 0;

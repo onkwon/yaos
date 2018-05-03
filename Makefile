@@ -15,8 +15,8 @@ BASEDIR = $(shell pwd)
 BUILDIR = build
 
 CFLAGS += -nostartfiles -fno-builtin #-nostdlib
-CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main #-Wpointer-arith
-CFLAGS += -O2
+CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main -Wextra #-Wpointer-arith
+CFLAGS += -O2 #-std=c99
 ARFLAGS = rcs
 OCFLAGS =
 ODFLAGS = -Dsx

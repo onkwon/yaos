@@ -105,7 +105,7 @@ struct task {
 	 * for sanity check at the initialization */
 	unsigned int state;
 	unsigned int flags; /* keep the postion; used in assembly as offset */
-	unsigned int pri;
+	int pri;
 	void *addr;
 	const char *name;
 

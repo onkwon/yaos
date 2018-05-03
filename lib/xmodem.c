@@ -47,7 +47,7 @@ unsigned int xmodem_received __attribute__((used));
 int xmodem_receive(void *dst, int n, int (*get)(), void (*put)(uint8_t))
 {
 	struct xmodem_packet_t packet;
-	uint8_t *pd, *ps, chksum;
+	uint8_t *pd, *ps, chksum, t;
 	int coming, i, seq, retry;
 	unsigned int tout;
 
@@ -70,7 +70,7 @@ int xmodem_receive(void *dst, int n, int (*get)(), void (*put)(uint8_t))
 			i = 0;
 		}
 
-		/* NOTE: block read will help throughput rather than byte read */
+		/* NOTE: block-read rather than byte-read will help throughput */
 		if ((coming = get()) == -1)
 			continue;
 
@@ -80,7 +80,8 @@ int xmodem_receive(void *dst, int n, int (*get)(), void (*put)(uint8_t))
 		ps[i++] = (uint8_t)coming;
 		/* packet synchronization */
 		i *= !(packet.header ^ SOH);
-		if (i == 3 && ((uint8_t)~(packet.seq) != packet.seq_inverted))
+		t = ~packet.seq;
+		if (i == 3 && (t != packet.seq_inverted))
 			i = 0;
 
 		if (i >= XMODEM_PACKET_SIZE) {

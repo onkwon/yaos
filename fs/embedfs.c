@@ -727,7 +727,7 @@ static const char *lookup(const char *pathname, struct embed_inode *inode,
 			read_data_block(curr, pos + dir_size, name,
 					dir->name_len, dev);
 
-			if (len == dir->name_len-1 &&
+			if (len == (unsigned int)dir->name_len - 1 &&
 					!strncmp(name, pwd, len)) {
 				kfree(name);
 				break;
@@ -823,7 +823,7 @@ static int create_file(const char *filename, int mode,
 	dir->name = (char *)filename;
 
 	pos_next = find_hole(parent, &dir->rec_len, dev);
-	if (pos_next >= 0) {
+	if ((int)pos_next >= 0) {
 		free_inode(inode_new, dev);
 		goto out;
 	}
@@ -961,7 +961,7 @@ static int embed_seek(struct file *file, unsigned int offset, int whence)
 		file->offset += offset;
 		break;
 	case SEEK_END:
-		if ((file->inode->size - offset) < 0)
+		if ((int)(file->inode->size - offset) < 0)
 			return -ERANGE;
 
 		file->offset = file->inode->size - offset;
@@ -1071,7 +1071,7 @@ static int embed_close(struct file *file)
 
 static inline void return_data_blocks(unsigned int *buf, struct device *dev)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < (BLOCK_SIZE / sizeof(*buf)); i++) {
 		if (buf[i])

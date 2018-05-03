@@ -54,7 +54,7 @@ static inline size_t prints(int fd, void **to, const char *s, int opt, size_t ma
 		is_right = get_padding(opt, PAD_RIGHT)? true : false;
 		padchar = get_padding(opt, PAD_ZERO)? '0' : ' ';
 		padding = ((padding - len) < 0)? 0 : padding - len;
-		len = min(len + padding, maxlen);
+		len = min((unsigned int)(len + padding), maxlen);
 
 		if (*s == '-' && padchar == '0') {
 			printc(fd, to, *s++);

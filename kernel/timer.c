@@ -214,13 +214,13 @@ int __init timer_init()
 	mutex_init(&timerq.mutex);
 
 	if ((nsoftirq_timerd = request_softirq(run_timerd, RT_HIGHEST_PRIORITY))
-			>= SOFTIRQ_MAX) {
+			>= (int)SOFTIRQ_MAX) {
 		error("out of softirq");
 		return -ERANGE;
 	}
 
 	if ((nsoftirq_add = request_softirq(add_timerd, RT_HIGHEST_PRIORITY))
-			>= SOFTIRQ_MAX) {
+			>= (int)SOFTIRQ_MAX) {
 		error("out of softirq");
 		return -ERANGE;
 	}

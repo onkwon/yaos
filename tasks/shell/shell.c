@@ -7,7 +7,7 @@
 #define MAXLEN		128
 #define MAXARG		10
 
-static unsigned int getline(int fd, char *buf, int maxlen)
+static unsigned int getline(int fd, char *buf, unsigned int maxlen)
 {
 	int c;
 	unsigned int i = 0;
