@@ -60,7 +60,7 @@ SRCS    += $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c)
 OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o))
 OBJS	+= $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
 THIRD_PARTY_OBJS = $(addprefix $(BUILDIR)/3rd/, $(THIRD_PARTY_SRCS:.c=.o))
-OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump sha256 dat enc img)
+OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump sha256 enc img)
 
 DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
 
@@ -80,20 +80,14 @@ all: $(BUILDIR) $(OUTPUTS) test
 
 $(BUILDIR)/%.img: $(BUILDIR)/%.enc
 	@printf "  IMAGE    $@\n"
-	$(Q)printf "DEADC0DE 45670123 CDEF89AB" | xxd -r -p > $@
+	$(Q)printf "DEADC0DE DEADC1DE DEADC2DE" | xxd -r -p > $@
 	$(Q)wc -c < $< | awk '{printf("%08x", $$1)}' | tools/endian.sh | xxd -r -p >> $@
 	$(Q)cat examples/aes128.iv | xxd -r -p >> $@
 	$(Q)echo $(shell sha256sum $<) | awk '{printf("%s\n", $$1)}' | xxd -r -p >> $@
 	$(Q)cat $< >> $@
-$(BUILDIR)/%.enc: $(BUILDIR)/%.dat
+$(BUILDIR)/%.enc: $(BUILDIR)/%.bin
 	@printf "  ENCRYPT  $@\n"
 	$(Q)openssl enc -aes-128-ctr -K $(shell cat examples/aes128.key) -iv $(shell cat examples/aes128.iv) -in $< -out $@ #-base64
-$(BUILDIR)/%.dat: $(BUILDIR)/%.bin
-	@printf "  MAGIC    $@\n"
-	$(Q)-cp $< $@
-	$(Q)printf "FFFFFFED CBA98765 43210FFF" | xxd -r -p >> $@
-	$(Q)wc -c < $< | awk '{printf("%08x", $$1)}' | tools/endian.sh | xxd -r -p >> $@
-	@cat $(BUILDIR)/$(PROJECT).sha256 | awk '{printf("%s\n", $$1)}' | xxd -r -p >> $@
 $(BUILDIR)/%.sha256: $(BUILDIR)/%.bin
 	@printf "  HASH     $@\n"
 	$(Q)echo $(shell sha256sum $<) > $@
