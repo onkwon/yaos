@@ -47,18 +47,18 @@ INCS	+= -I$(BASEDIR)/include
 FILES	 = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call FILES,$d/,$2))
 
 INC_TMP	 = include/asm
-INC_ASM	 = $(call FILES,arch/$(ARCH)/include,*.h)
-INC_ASM	+= $(call FILES,arch/$(ARCH)/mach-$(MACH)/include,*.h)
-INC_ASM	+= $(call FILES,arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include,*.h)
+INC_ASM	 = $(call FILES,arch/$(ARCH)/include,*.h) \
+	   $(call FILES,arch/$(ARCH)/mach-$(MACH)/include,*.h) \
+	   $(call FILES,arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/include,*.h)
 
 SRCS_ASM = $(call FILES,arch/$(ARCH)/,*.S)
-SRCS    += $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c $(dir)/**/*.c))
-SRCS    += $(wildcard *.c)
-SRCS    += $(wildcard arch/$(ARCH)/*.c) $(wildcard arch/$(ARCH)/mach-$(MACH)/*.c)
-SRCS    += $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c)
+SRCS    += $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c $(dir)/**/*.c)) \
+	   $(wildcard *.c) \
+	   $(wildcard arch/$(ARCH)/*.c) $(wildcard arch/$(ARCH)/mach-$(MACH)/*.c) \
+	   $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c)
 
-OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o))
-OBJS	+= $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
+OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o)) \
+	   $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
 THIRD_PARTY_OBJS = $(addprefix $(BUILDIR)/3rd/, $(THIRD_PARTY_SRCS:.c=.o))
 OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump sha256 enc img)
 
