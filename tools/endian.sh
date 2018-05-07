@@ -3,13 +3,14 @@
 # check stdin
 if [ -t 0 ]; then exit; fi
 
-v=`cat /dev/stdin`
-i=${#v}
+v=`cat /dev/stdin | sed -e 's/ //g'`
+len=${#v}
 
-while [ $i -gt 0 ]
+i=0
+while [ $i -lt $len ]
 do
-    i=$[$i-2]
-    echo -n ${v:$i:2}
+	echo -n ${v:$i+6:2}${v:$i+4:2}${v:$i+2:2}${v:$i:2}
+	i=$[$i+8];
 done
 
 echo

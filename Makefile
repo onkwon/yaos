@@ -42,7 +42,7 @@ ifdef LD_LIBRARY_PATH
 	LDFLAGS += -L$(LD_LIBRARY_PATH) -lgcc -lc -lm
 endif
 
-SUBDIRS	 = lib kernel fs tasks
+SUBDIRS	 = lib kernel tasks
 INCS	+= -I$(BASEDIR)/include
 FILES	 = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call FILES,$d/,$2))
 
@@ -55,12 +55,14 @@ SRCS_ASM = $(call FILES,arch/$(ARCH)/,*.S)
 SRCS    += $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c $(dir)/**/*.c)) \
 	   $(wildcard *.c) \
 	   $(wildcard arch/$(ARCH)/*.c) $(wildcard arch/$(ARCH)/mach-$(MACH)/*.c) \
-	   $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c)
+	   $(wildcard arch/$(ARCH)/mach-$(MACH)/boards/$(BOARD)/*.c) \
+	   fs/fs.c \
+	   fs/ramfs.c
 
 OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o)) \
 	   $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
 THIRD_PARTY_OBJS = $(addprefix $(BUILDIR)/3rd/, $(THIRD_PARTY_SRCS:.c=.o))
-OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump sha256 enc img)
+OUTPUTS	 = $(addprefix $(BUILDIR)/$(PROJECT)., a bin hex dump sha256 img)
 
 DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
 
@@ -78,13 +80,24 @@ all: $(BUILDIR) $(OUTPUTS) test
 	@wc -c $(BUILDIR)/$(PROJECT).img | awk '{printf("  .img\t\t %8d\n", $$1)}'
 	@printf "\n  sha256: $(shell cat $(BUILDIR)/$(PROJECT).sha256)\n"
 
-$(BUILDIR)/%.img: $(BUILDIR)/%.enc
+.PRECIOUS: $(BUILDIR)/%.signature $(BUILDIR)/%.enc
+$(BUILDIR)/%.img: $(BUILDIR)/%.enc $(BUILDIR)/%.signature
 	@printf "  IMAGE    $@\n"
 	$(Q)printf "DEADC0DE DEADC1DE DEADC2DE" | xxd -r -p > $@
 	$(Q)wc -c < $< | awk '{printf("%08x", $$1)}' | tools/endian.sh | xxd -r -p >> $@
 	$(Q)cat examples/aes128.iv | xxd -r -p >> $@
-	$(Q)echo $(shell sha256sum $<) | awk '{printf("%s\n", $$1)}' | xxd -r -p >> $@
+	@#$(Q)echo $(shell sha256sum $<) | awk '{printf("%s\n", $$1)}' | xxd -r -p >> $@
+	$(Q)cat $(@D)/$(*F).signature | xxd -r -p >> $@
 	$(Q)cat $< >> $@
+	@# Initial BootOpt for bootloader. Upload this at LOADADDR - sector size.
+	$(Q)echo $(UPLOAD) | sed -e "s/^0x//" | tools/endian.sh | xxd -r -p > $(@D)/bootopt.bin
+	$(Q)wc -c < $< | awk '{printf("%08x", $$1)}' | tools/endian.sh | xxd -r -p >> $(@D)/bootopt.bin
+	$(Q)cat $(@D)/$(*F).signature | xxd -r -p >> $(@D)/bootopt.bin
+	$(Q)cat examples/aes128.iv | xxd -r -p >> $(@D)/bootopt.bin
+$(BUILDIR)/%.signature: $(BUILDIR)/%.enc
+	@printf "  SIGN     $@\n"
+	$(Q)$(shell openssl dgst -sha256 -sign examples/secp256r1-key.pem $< > $(@D)/$(*F).der)
+	$(Q)xxd -p -c 128 $(@D)/$(*F).der | tools/der2bin.sh > $@
 $(BUILDIR)/%.enc: $(BUILDIR)/%.bin
 	@printf "  ENCRYPT  $@\n"
 	$(Q)openssl enc -aes-128-ctr -K $(shell cat examples/aes128.key) -iv $(shell cat examples/aes128.iv) -in $< -out $@ #-base64
@@ -218,6 +231,9 @@ TTY = /dev/tty.usbmodem141133
 .PHONY: burn flash
 burn flash: $(BUILDIR)/$(PROJECT).bin
 	st-flash --reset write $(BUILDIR)/$(PROJECT:%=%.bin) $(LOADADDR)
+.PHONY: upload
+upload: $(BUILDIR)/$(PROJECT).img
+	st-flash --reset write $(BUILDIR)/$(PROJECT:%=%.img) $(UPLOAD)
 .PHONY: erase
 erase:
 	st-flash erase

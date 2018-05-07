@@ -1,4 +1,5 @@
 LOADADDR ?= 0x08000000
+UPLOAD ?= 0x08020000
 
 # Uncomment a line to enable its functionality
 CONFIG_DEBUG?=y
@@ -33,7 +34,7 @@ USE_CMSIS?=n
 USE_HAL?=n
 USE_EMWIN?=n
 USE_SHA256?=y
-USE_AES?=y
+USE_AES?=n
 
 ################################################################################
 # DO NOT EDIT BELOW THIS LINE

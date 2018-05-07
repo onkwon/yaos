@@ -45,6 +45,7 @@
 
 #include <lib/firstfit.h>
 #include <kernel/lock.h>
+#include <error.h>
 
 #define MIN_SIZE		(16 - 1) /* bytes */
 #define HEAD_LOCKED		1
@@ -217,6 +218,7 @@ size_t show_freelist(struct ff_freelist_head *pool)
 		nr_free += p->size;
 
 		debug("[%4d] %08x %8d %x", ++i, p, p->size, p->list.next);
+		(void)i;
 	}
 
 	debug("Memory pool base: 0x%x, list head %x",

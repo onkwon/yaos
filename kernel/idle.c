@@ -72,8 +72,10 @@ static inline void update_sleep_period()
 void idle()
 {
 	extern unsigned int cpu_idle, cpu_idle_stamp;
+	int cpu_total = 0;
+#ifdef CONFIG_DEBUG
 	unsigned int tout = 0;
-	int i, cpu_total = 0;
+#endif
 
 	cleanup();
 
@@ -106,7 +108,7 @@ void idle()
 				set_timeout(&tout, msec_to_ticks(10000));
 
 				extern unsigned int get_gpio_state(int port);
-				for (i = 0; i < NR_PORT; i++)
+				for (int i = 0; i < NR_PORT; i++)
 					printk("GPIO%d %x\n", i, get_gpio_state(i));
 			}
 #endif
