@@ -217,12 +217,12 @@ size_t printk(const char *fmt, ...)
 	if (!stdout)
 		return 0;
 
-	extern void __putc_debug(int c);
+	extern void swo_putc(const int c);
 	va_list args;
 	size_t len;
 	void (*tmp)(int) = putchar;
 
-	putchar = __putc_debug;
+	putchar = swo_putc;
 
 	va_start(args, fmt);
 	len = print(0, 0, -1, fmt, args);
