@@ -35,7 +35,7 @@ extern void ISR_svc();
 extern void ISR_null(int nvec);
 extern void ISR_systick();
 
-static void ISR_reset();
+void ISR_reset();
 
 static void *vectors[]
 __attribute__((section(".vector"), aligned(4), used)) = {
@@ -107,7 +107,7 @@ static inline void irq_init()
 }
 #endif
 
-static void __init __attribute__((naked, used)) ISR_reset()
+void __init __attribute__((naked, used)) ISR_reset()
 {
 	cli();
 

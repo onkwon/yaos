@@ -11,25 +11,34 @@ PROVIDE(_ram_size    = LENGTH(ram));
 PROVIDE(_ram_end     = ORIGIN(ram) + LENGTH(ram));
 PROVIDE(_vector_size = 0x200); /* The minimum alignment is 128 words. */
 
+ENTRY(ISR_reset)
+
 SECTIONS
 {
 	.text _rom_start :
 	{
+		KEEP(*(.vector))
 		*(.vector)
+		KEEP(*(.vector_irq))
 		*(.vector_irq)
 		/* TODO: fill irq_handler in here */
-		FILL(0xDEAFC0DE);
+		FILL(0xDEADC0DE);
 
 		. = _vector_size;
 		LONG(0); /* null sentinel */
 
+		KEEP(*(.text.init))
 		*(.text.init)
 
 		. = ALIGN(4);
 		_init_func_list = .;
+		KEEP(*(.text.init.0))
 		*(.text.init.0)
+		KEEP(*(.text.init.1))
 		*(.text.init.1)
+		KEEP(*(.text.init.2))
 		*(.text.init.2)
+		KEEP(*(.text.init.*))
 		*(.text.init.*)
 		LONG(0);
 
@@ -42,15 +51,18 @@ SECTIONS
 
 		. = ALIGN(4);
 		_driver_list = .;
+		KEEP(*(.driver_list))
 		*(.driver_list)
 		LONG(0);
 
 		. = ALIGN(4);
 		_device_list = .;
+		KEEP(*(.device_list))
 		*(.device_list)
 		LONG(0);
 
 		_shell_cmdlist = .;
+		KEEP(*(.shell_cmdlist))
 		*(.shell_cmdlist)
 		LONG(0);
 
@@ -72,6 +84,7 @@ SECTIONS
 
 		. = ALIGN(4);
 		_user_task_list = .;
+		KEEP(*(.user_task_list))
 		*(.user_task_list)
 		LONG(0);
 

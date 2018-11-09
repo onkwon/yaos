@@ -14,6 +14,9 @@ VERSION = $(shell git describe --all | sed 's/^.*\///').$(shell git describe --a
 BASEDIR = $(shell pwd)
 BUILDIR = build
 
+#CFLAGS += -specs=nano.specs -specs=nosys.specs
+CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections #-flto
+#CFLAGS += -u _printf_float
 CFLAGS += -nostartfiles -fno-builtin #-nostdlib
 CFLAGS += -Wall -Wunused-parameter -Werror -Wno-main -Wextra #-Wpointer-arith
 CFLAGS += -O2 #-std=c99
