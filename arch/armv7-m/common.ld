@@ -1,9 +1,6 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
-resched = sys_schedule;
-systick = systick64;
-
 PROVIDE(_rom_start   = LOADADDR);
 PROVIDE(_rom_size    = LENGTH(rom) - (LOADADDR - ORIGIN(rom)));
 PROVIDE(_ram_start   = ORIGIN(ram));
@@ -18,9 +15,7 @@ SECTIONS
 	.text _rom_start :
 	{
 		KEEP(*(.vector))
-		*(.vector)
 		KEEP(*(.vector_irq))
-		*(.vector_irq)
 		/* TODO: fill irq_handler in here */
 		FILL(0xDEADC0DE);
 
@@ -28,18 +23,13 @@ SECTIONS
 		LONG(0); /* null sentinel */
 
 		KEEP(*(.text.init))
-		*(.text.init)
 
 		. = ALIGN(4);
 		_init_func_list = .;
 		KEEP(*(.text.init.0))
-		*(.text.init.0)
 		KEEP(*(.text.init.1))
-		*(.text.init.1)
 		KEEP(*(.text.init.2))
-		*(.text.init.2)
 		KEEP(*(.text.init.*))
-		*(.text.init.*)
 		LONG(0);
 
 		*(.text)
@@ -52,18 +42,15 @@ SECTIONS
 		. = ALIGN(4);
 		_driver_list = .;
 		KEEP(*(.driver_list))
-		*(.driver_list)
 		LONG(0);
 
 		. = ALIGN(4);
 		_device_list = .;
 		KEEP(*(.device_list))
-		*(.device_list)
 		LONG(0);
 
 		_shell_cmdlist = .;
 		KEEP(*(.shell_cmdlist))
-		*(.shell_cmdlist)
 		LONG(0);
 
 		. = ALIGN(4);
@@ -85,7 +72,6 @@ SECTIONS
 		. = ALIGN(4);
 		_user_task_list = .;
 		KEEP(*(.user_task_list))
-		*(.user_task_list)
 		LONG(0);
 
 		. = ALIGN(4);
@@ -103,4 +89,20 @@ SECTIONS
 		. = ALIGN(4);
 		_ebss = .;
 	} > ram AT > rom
+
+	.heap (NOLOAD) :
+	{
+		. = ALIGN(8);
+		end = .;
+		_heap_start = .;
+		_heap_end = .;
+	} > ram
+
+	/DISCARD/ :
+	{
+		libc.a (*)
+		libm.a (*)
+		libgcc.a (*)
+		libnosys.a (*)
+	}
 }

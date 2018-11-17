@@ -49,11 +49,11 @@ $(test_o) : $(1)
 endef
 
 test: $(BUILD_PATHS) $(RESULTS)
-	@echo "\n  TEST IGNORES:"
+	@echo "\n  TEST     IGNORES:"
 	@echo "$(IGNORE)"
-	@echo "  TEST FAILURES:"
+	@echo "           FAILURES:"
 	@echo "$(FAIL)"
-	@echo "  TEST PASSED:"
+	@echo "           PASSED:"
 	@echo "$(PASSED)"
 
 $(PATHR)%.txt: $(PATHB)%.$(TARGET_EXTENSION)
@@ -90,9 +90,9 @@ $(PATHR):
 $(foreach test_s,$(ALLSRC),$(eval $(call create_rule,$(test_s))))
 
 cleantest:
-	$(CLEANUP) $(PATHO)*.o
-	$(CLEANUP) $(PATHB)*.$(TARGET_EXTENSION)
-	$(CLEANUP) $(PATHR)*.txt
+	$(Q)$(CLEANUP) $(PATHO)*.o
+	$(Q)$(CLEANUP) $(PATHB)*.$(TARGET_EXTENSION)
+	$(Q)$(CLEANUP) $(PATHR)*.txt
 
 .PRECIOUS: $(PATHB)Test%.$(TARGET_EXTENSION)
 .PRECIOUS: $(PATHD)%.d

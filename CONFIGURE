@@ -1,46 +1,49 @@
 LOADADDR ?= 0x08000000
-UPLOAD ?= 0x08020000
+UPLOAD   ?= 0x08020000
 
-# Uncomment a line to enable its functionality
+# 'y' to enable the functionality while 'n' to disable
 CONFIG_DEBUG?=y
-  CONFIG_DEBUG_TASK?=n
-  CONFIG_DEBUG_SYSCALL?=y
-  CONFIG_DEBUG_SYSCALL_NESTED?=y
-CONFIG_SMP?=n
 CONFIG_REALTIME?=y
-CONFIG_PAGING?=n
-CONFIG_SYSCALL?=y
-  CONFIG_SYSCALL_THREAD?=n
-CONFIG_FS?=n
-CONFIG_TIMER?=y
-CONFIG_FLOAT?=y
-CONFIG_FPU?=n
-CONFIG_CPU_LOAD?=y
-CONFIG_SOFTIRQ_THREAD?=n
 CONFIG_SLEEP_LONG?=y
 CONFIG_SLEEP_DEEP?=y
 CONFIG_COMMON_IRQ_FRAMEWORK?=y
+CONFIG_SYSCALL?=y
+	CONFIG_SYSCALL_THREAD?=n
+CONFIG_FS?=n
+CONFIG_TIMER?=y
+CONFIG_FLOAT?=n
+CONFIG_FPU?=n
+CONFIG_CPU_LOAD?=y
+CONFIG_SOFTIRQ_THREAD?=n
 
-# Uncomment a line to add the module
-MODULE_UART?=y
-MODULE_TIMER?=y
-MODULE_GPIO?=y
-MODULE_SPI?=y
+# modules
+MODULE_UART?=n
+MODULE_TIMER?=n
+MODULE_GPIO?=n
+MODULE_SPI?=n
 MODULE_IR?=n
 MODULE_CLCD?=n
+MODULE_LED?=n
 
-# Third party modules
+# third party modules
 USE_CMSIS?=n
 USE_HAL?=n
 USE_EMWIN?=n
-USE_SHA256?=y
+USE_SHA256?=n
 USE_AES?=n
+
+
+
 
 ################################################################################
 # DO NOT EDIT BELOW THIS LINE
 ################################################################################
 
 # Define
+ifeq ($(CONFIG_DEBUG),n)
+	NDEBUG=y
+	DEFS += -DNDEBUG
+endif
 ifeq ($(CONFIG_SMP),y)
 	DEFS += -DCONFIG_SMP
 endif
@@ -58,6 +61,7 @@ ifeq ($(CONFIG_SYSCALL),y)
 endif
 ifeq ($(CONFIG_FS),y)
 	DEFS += -DCONFIG_FS
+	SRCS += $(BASEDIR)/fs/vfs.c
 endif
 ifeq ($(CONFIG_TIMER),y)
 	DEFS += -DCONFIG_TIMER
@@ -73,15 +77,6 @@ ifeq ($(CONFIG_CPU_LOAD),y)
 endif
 ifeq ($(CONFIG_SOFTIRQ_THREAD),y)
 	DEFS += -DCONFIG_SOFTIRQ_THREAD
-endif
-ifeq ($(CONFIG_DEBUG),y)
-	DEFS += -g -DCONFIG_DEBUG #-O0
-	ifeq ($(CONFIG_DEBUG_TASK),y)
-		DEFS += -DCONFIG_DEBUG_TASK
-	endif
-	ifeq ($(CONFIG_DEBUG_SYSCALL),y)
-		DEFS += -DCONFIG_DEBUG_SYSCALL
-	endif
 endif
 ifeq ($(CONFIG_SLEEP_LONG),y)
 	DEFS += -DCONFIG_SLEEP_LONG
@@ -112,5 +107,6 @@ endif
 ifeq ($(MODULE_CLCD),y)
 	SRCS += drivers/clcd.c
 endif
-
-SRCS += drivers/led.c
+ifeq ($(MODULE_LED),y)
+	SRCS += drivers/led.c
+endif

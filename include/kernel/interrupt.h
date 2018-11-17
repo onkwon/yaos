@@ -1,14 +1,7 @@
-#ifndef __INTERRUPT_H__
-#define __INTERRUPT_H__
+#ifndef __YAOS_INTERRUPT_H__
+#define __YAOS_INTERRUPT_H__
 
-enum {
-	__IRQ_PRIORITY_HIGHEST	= 0,
-	IRQ_PRIORITY_HIGHEST	= 1,
-	IRQ_PRIORITY_DEFAULT	= 4,
-	IRQ_PRIORITY_LOWEST	= 7,
-};
-
-#include <asm/interrupt.h>
+#include "arch/interrupt.h"
 
 #define irq_save(val)			__irq_save(val)
 #define irq_restore(val)		__irq_restore(val)
@@ -32,11 +25,4 @@ enum {
 #define ENTER_CRITICAL(val)		disable_irq(val)
 #define LEAVE_CRITICAL(val)		enable_irq(val)
 
-#define dmb()				__dmb()
-#define dsb()				__dsb()
-#define isb()				__isb()
-
-#define set_user_sp(val)		__set_usp(val)
-#define set_kernel_sp(val)		__set_ksp(val)
-
-#endif /* __INTERRUPT_H__ */
+#endif /* __YAOS_INTERRUPT_H__ */

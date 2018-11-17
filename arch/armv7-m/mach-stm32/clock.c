@@ -1,5 +1,10 @@
-#include <foundation.h>
-#include "include/clock.h"
+/** @file clock.c */
+
+#include "arch/mach/clock.h"
+#include "io.h"
+#include "arch/mach/regs.h"
+#include "arch/regs.h"
+#include <assert.h>
 
 #define PLLRDY			25
 #define PLLON			24
@@ -28,7 +33,9 @@
 #define PLLM			0
 #define PLLR			28
 
-#define MHZ			1000000
+#define MHZ			1000000UL
+#else
+#error undefined machine
 #endif
 
 /* SYSCLK */
@@ -40,13 +47,13 @@ unsigned int get_pllclk()
 #endif
 
 	switch ((RCC_CFGR >> SWS) & 0x3) {
-	case 0x00 :
+	case 0x00:
 		clk = HSI;
 		break;
-	case 0x01 :
+	case 0x01:
 		clk = HSE;
 		break;
-	case 0x02 :
+	case 0x02:
 #if defined(stm32f1) || defined(stm32f3)
 		pllm = ((RCC_CFGR >> PLLMUL) & 0xf) + 2;
 		if ((RCC_CFGR >> PLLSRC) & 1) { /* HSE selected */
@@ -61,16 +68,8 @@ unsigned int get_pllclk()
 		pllm = ((RCC_PLLCFGR >> PLLM) & 0x3f);
 		plln = (RCC_PLLCFGR >> PLLN) & 0x1ff;
 		pllp = (RCC_PLLCFGR >> PLLP) & 3;
-		switch (pllp) {
-		case 0: pllp = 2;
-			break;
-		case 1: pllp = 4;
-			break;
-		case 2: pllp = 6;
-			break;
-		case 3: pllp = 8;
-			break;
-		}
+		pllp = (pllp + 1) * 2;
+		assert(pllp && (pllp <= 8) && !(pllp & 1));
 
 		if ((RCC_PLLCFGR >> PLLSRC) & 1) /* HSE selected */
 			clk = HSE / pllm;
@@ -82,7 +81,7 @@ unsigned int get_pllclk()
 #error undefined machine
 #endif
 		break;
-	default   :
+	default:
 		clk = HSI;
 		break;
 	}
@@ -97,14 +96,14 @@ unsigned int get_hclk()
 
 	pllclk = get_pllclk();
 #if defined(stm32f1) || defined(stm32f3)
-	pre    = (RCC_CFGR >> HPRE) & 0xf; /* mask HPRE[7:4] */
-	pre    = pre? pre - 7 : 0;         /* get prescaler division factor */
+	pre = (RCC_CFGR >> HPRE) & 0xf; /* mask HPRE[7:4] */
+	pre = pre? pre - 7 : 0;         /* get prescaler division factor */
 #elif defined(stm32f4)
-	pre    = ((RCC_CFGR >> HPRE) & 0x8)? ((RCC_CFGR >> HPRE) & 0x7) + 1 : 0;
+	pre = ((RCC_CFGR >> HPRE) & 0x8) ? ((RCC_CFGR >> HPRE) & 0x7) + 1 : 0;
 #else
 #error undefined machine
 #endif
-	clk    = pllclk >> pre;
+	clk = pllclk >> pre;
 
 	return clk;
 }
@@ -116,14 +115,14 @@ unsigned int get_pclk1()
 
 	hclk = get_hclk();
 #if defined(stm32f1) || defined(stm32f3)
-	pre  = (RCC_CFGR >> PPRE1) & 0x7; /* mask PPRE1[10:8] */
-	pre  = pre? pre - 3 : 0;
+	pre = (RCC_CFGR >> PPRE1) & 0x7; /* mask PPRE1[10:8] */
+	pre = pre ? pre - 3 : 0;
 #elif defined(stm32f4)
-	pre  = ((RCC_CFGR >> PPRE1) & 0x4)? ((RCC_CFGR >> PPRE1) & 0x3) + 1 : 0;
+	pre = ((RCC_CFGR >> PPRE1) & 0x4)? ((RCC_CFGR >> PPRE1) & 0x3) + 1 : 0;
 #else
 #error undefined machine
 #endif
-	clk  = hclk >> pre;
+	clk = hclk >> pre;
 
 	return clk;
 }
@@ -135,14 +134,14 @@ unsigned int get_pclk2()
 
 	hclk = get_hclk();
 #if defined(stm32f1) || defined(stm32f3)
-	pre  = (RCC_CFGR >> PPRE2) & 0x7; /* mask PPRE2[13:11] */
-	pre  = pre? pre - 3 : 0;
+	pre = (RCC_CFGR >> PPRE2) & 0x7; /* mask PPRE2[13:11] */
+	pre = pre? pre - 3 : 0;
 #elif defined(stm32f4)
-	pre  = ((RCC_CFGR >> PPRE2) & 0x4)? ((RCC_CFGR >> PPRE2) & 0x3) + 1 : 0;
+	pre = ((RCC_CFGR >> PPRE2) & 0x4)? ((RCC_CFGR >> PPRE2) & 0x3) + 1 : 0;
 #else
 #error undefined machine
 #endif
-	clk  = hclk >> pre;
+	clk = hclk >> pre;
 
 	return clk;
 }
@@ -184,34 +183,34 @@ unsigned int get_sysclk_freq()
 	return get_stkclk();
 }
 
-void __turn_apb1_clock(unsigned int nbit, bool on)
+void __turn_apb1_clock(const unsigned int bit, const bool on)
 {
-	SET_CLOCK_APB1(nbit, on);
+	SET_CLOCK_APB1(bit, on);
 }
 
-void __turn_apb2_clock(unsigned int nbit, bool on)
+void __turn_apb2_clock(const unsigned int bit, const bool on)
 {
-	SET_CLOCK_APB2(nbit, on);
+	SET_CLOCK_APB2(bit, on);
 }
 
-void __turn_ahb1_clock(unsigned int nbit, bool on)
+void __turn_ahb1_clock(const unsigned int bit, const bool on)
 {
-	SET_CLOCK_AHB1(nbit, on);
+	SET_CLOCK_AHB1(bit, on);
 }
 
-void __turn_port_clock(reg_t *port, bool on)
+void __turn_port_clock(const reg_t * const port, const bool on)
 {
-	int nbit;
+	int bit;
 
-	nbit = (int)(((unsigned int)port >> 10) & 0xf);
+	bit = (int)(((unsigned int)port >> 10) & 0xf);
 #ifdef stm32f3
-	nbit += 17;
+	bit += 17;
 #endif
 
 #ifdef stm32f1
-	__turn_apb2_clock(nbit, on);
+	__turn_apb2_clock(bit, on);
 #elif defined(stm32f3) || defined(stm32f4)
-	__turn_ahb1_clock(nbit, on);
+	__turn_ahb1_clock(bit, on);
 #else
 #error undefined machine
 #endif
@@ -232,17 +231,17 @@ unsigned int __read_ahb1_clock()
 	return RCC_AHB1ENR;
 }
 
-void __reset_apb1_device(unsigned int nbit)
+void __reset_apb1_device(const unsigned int bit)
 {
-	RESET_PERI_APB1(nbit);
+	RESET_PERI_APB1(bit);
 }
 
-void __reset_apb2_device(unsigned int nbit)
+void __reset_apb2_device(const unsigned int bit)
 {
-	RESET_PERI_APB2(nbit);
+	RESET_PERI_APB2(bit);
 }
 
-#include <kernel/init.h>
+#include "kernel/init.h"
 
 #ifdef stm32f1	/* 72MHz */
 void __attribute__((weak)) clock_init()
@@ -254,7 +253,7 @@ void __attribute__((weak)) clock_init()
 	while ((FLASH_ACR & 7) != 2);
 
 	/* 1. Turn on HSE oscillator. */
-	BITBAND(&RCC_CR, HSEON, ON);
+	BITBAND(&RCC_CR, HSEON, true);
 
 	/* 2. Wait for HSE to be stable. */
 	while (!gbi(RCC_CR, HSERDY));
@@ -264,22 +263,22 @@ void __attribute__((weak)) clock_init()
 	/* APB1 <= 36MHz <= APB2 <= 72MHz <= AHB <= 72MHz
 	 * ADC <= 14MHz
 	 * USB = 48MHz */
-	RCC_CFGR = ((72000000 / HSE - 2) << PLLMUL) |
-		(4 << PPRE1) | (2 << ADCPRE) | (1 << PLLSRC);
+	RCC_CFGR = ((72000000UL / HSE - 2) << PLLMUL) |
+		(4UL << PPRE1) | (2UL << ADCPRE) | (1UL << PLLSRC);
 
 	/* 5. Turn on PLL. */
-	BITBAND(&RCC_CR, PLLON, ON);
+	BITBAND(&RCC_CR, PLLON, true);
 
 	/* 6. Wait for PLL to be stable. */
 	while (!gbi(RCC_CR, PLLRDY));
 
 	/* 7. Select PLL as system clock. */
-	RCC_CFGR |= 2 << SW;
+	RCC_CFGR |= 2UL << SW;
 
 	/* 8. Check if its change is done. */
 	while (((RCC_CFGR >> SWS) & 3) != 2);
 
-	//BITBAND(&RCC_CR, CSSON, ON);
+	//BITBAND(&RCC_CR, CSSON, true);
 }
 #elif defined(stm32f4)	/* 168MHz */
 void __attribute__((weak)) clock_init()
@@ -293,7 +292,7 @@ void __attribute__((weak)) clock_init()
 	/* Select power scale mode, PWR_CR */
 
 	/* 1. Turn on HSE oscillator. */
-	BITBAND(&RCC_CR, HSEON, ON);
+	BITBAND(&RCC_CR, HSEON, true);
 
 	/* 2. Wait for HSE to be stable. */
 	while (!gbi(RCC_CR, HSERDY));
@@ -301,25 +300,25 @@ void __attribute__((weak)) clock_init()
 	/* 3. Set PLL multification factor, and PLL source clock. */
 	/* 4. Set prescalers' factors. */
 	/* APB1 <= 42MHz <= APB2 <= 84MHz <= AHB <= 168MHz */
-	RCC_CFGR = (8 << RTCPRE) | (4 << PPRE2) | (5 << PPRE1);
-	RCC_PLLCFGR = (7 << PLLQ) | (1 << PLLSRC) | (336 << PLLN) | (8 << PLLM);
+	RCC_CFGR = (8UL << RTCPRE) | (4UL << PPRE2) | (5UL << PPRE1);
+	RCC_PLLCFGR = (7UL << PLLQ) | (1UL << PLLSRC) | (336UL << PLLN) | (8UL << PLLM);
 
 	/* 5. Turn on PLL. */
-	BITBAND(&RCC_CR, PLLON, ON);
+	BITBAND(&RCC_CR, PLLON, true);
 
 	/* 6. Wait for PLL to be stable. */
 	while (!gbi(RCC_CR, PLLRDY));
 
 	/* 7. Select PLL as system clock. */
-	RCC_CFGR |= 2 << SW;
+	RCC_CFGR |= 2UL << SW;
 
 	/* 8. Check if its change is done. */
 	while (((RCC_CFGR >> SWS) & 3) != 2);
 
 	/* 9. Turn off HSI */
-	RCC_CR &= ~1;
+	RCC_CR &= ~1UL;
 
-	//BITBAND(&RCC_CR, CSSON, ON);
+	//BITBAND(&RCC_CR, CSSON, true);
 }
 #elif defined(stm32f3)	/* 72MHz */
 void __attribute__((weak)) clock_init()
@@ -331,7 +330,7 @@ void __attribute__((weak)) clock_init()
 	while ((FLASH_ACR & 7) != 2);
 
 	/* 1. Turn on HSE oscillator. */
-	BITBAND(&RCC_CR, HSEON, ON);
+	BITBAND(&RCC_CR, HSEON, true);
 
 	/* 2. Wait for HSE to be stable. */
 	while (!gbi(RCC_CR, HSERDY));
@@ -341,21 +340,21 @@ void __attribute__((weak)) clock_init()
 	/* APB1 <= 36MHz <= APB2 <= 72MHz <= AHB <= 72MHz
 	 * ADC <= 14MHz
 	 * USB = 48MHz */
-	RCC_CFGR = (7 << PLLMUL) | (4 << PPRE1) | (2 << ADCPRE) | (1 << PLLSRC);
+	RCC_CFGR = (7UL << PLLMUL) | (4UL << PPRE1) | (2UL << ADCPRE) | (1UL << PLLSRC);
 
 	/* 5. Turn on PLL. */
-	BITBAND(&RCC_CR, PLLON, ON);
+	BITBAND(&RCC_CR, PLLON, true);
 
 	/* 6. Wait for PLL to be stable. */
 	while (!gbi(RCC_CR, PLLRDY));
 
 	/* 7. Select PLL as system clock. */
-	RCC_CFGR |= 2 << SW;
+	RCC_CFGR |= 2UL << SW;
 
 	/* 8. Check if its change is done. */
 	while (((RCC_CFGR >> SWS) & 3) != 2);
 
-	//BITBAND(&RCC_CR, CSSON, ON);
+	//BITBAND(&RCC_CR, CSSON, true);
 	/* For program and erase operations on the Flash memory (write/erase),
 	 * the internal RC oscillator (HSI) must be ON.  */
 }

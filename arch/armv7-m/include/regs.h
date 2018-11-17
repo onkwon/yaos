@@ -1,7 +1,7 @@
-#ifndef __ARMv7M_REGS_H__
-#define __ARMv7M_REGS_H__
+#ifndef __YAOS_ARMv7M_REGS_H__
+#define __YAOS_ARMv7M_REGS_H__
 
-#include <types.h>
+#include "types.h"
 
 /* System Control Block(SCB), Cortex-M3's internal peripherals */
 #define SCB_BASE		(0xE000E000)
@@ -118,4 +118,4 @@ struct ITM {
 #define COREDEBUG		((struct COREDEBUG *)DEBUG_BASE)
 #define ITM			((struct ITM *)ITM_BASE)
 
-#endif /* __ARMv7M_REGS_H__ */
+#endif /* __YAOS_ARMv7M_REGS_H__ */

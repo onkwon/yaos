@@ -1,0 +1,61 @@
+armv7-m4: armv7-m
+	@echo "CFLAGS += -mtune=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16" >> .config
+	@echo "CFLAGS += -fsingle-precision-constant -Wdouble-promotion" >> .config
+armv7-m3: armv7-m
+	@echo "CFLAGS += -mtune=cortex-m3" >> .config
+armv7-m:
+	@echo "ARCH = armv7-m" > .config
+	@echo "CFLAGS += -mthumb" >> .config
+
+stm32f4: armv7-m4 stm32
+	@echo "SOC = stm32f4" >> .config
+stm32f3: armv7-m4 stm32
+	@echo "SOC = stm32f3" >> .config
+stm32f1: armv7-m3 stm32
+	@echo "SOC = stm32f1" >> .config
+stm32:
+	@echo "MACH = stm32" >> .config
+
+mycortex-stm32f4: stm32f4
+	@echo "BOARD = mycortex-stm32f4" >> .config
+	@echo "LD_SCRIPT_MACH = stm32f4.ld" >> .config
+
+ust-mpb-stm32f103: stm32f1
+	@echo "BOARD = ust-mpb-stm32f103" >> .config
+	@echo "LD_SCRIPT_MACH = stm32f1.ld" >> .config
+
+stm32f1-min: stm32f1
+	@echo "BOARD = stm32f1-min" >> .config
+	@echo "LD_SCRIPT_MACH = board/stm32f1-min/memory.ld" >> .config
+
+stm32-lcd: stm32f1
+	@echo "BOARD = stm32-lcd" >> .config
+	@echo "LD_SCRIPT_MACH = stm32f1.ld" >> .config
+
+mango-z1: stm32f1
+	@echo "BOARD = mango-z1" >> .config
+	@echo "LD_SCRIPT_MACH = board/mango-z1/memory.ld" >> .config
+
+nrf52: armv7-m4
+	@echo "DEFS += -DNRF52832_XXAA" >> .config
+	@echo "LD_SCRIPT_MACH = nrf52.ld" >> .config
+	@echo "MACH = nrf5" >> .config
+	@echo "SOC = nrf52" >> .config
+
+stm32f469i-disco: stm32f4
+	@echo "BOARD = stm32f469i-disco" >> .config
+	@echo "LD_SCRIPT_MACH = board/stm32f469i-disco/memory.ld" >> .config
+stm32f429i-disco: stm32f4
+	@echo "BOARD = stm32f429i-disco" >> .config
+	@echo "LD_SCRIPT_MACH = board/stm32f429i-disco/memory.ld" >> .config
+
+rpi: rpi-common
+	@echo "SOC = bcm2835" >> .config
+	@echo "CFLAGS += -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp" >> .config
+	#@echo "ARCH = armv6zk" >> .config
+rpi2: rpi-common
+	@echo "SOC = bcm2836" >> .config
+	@echo "CFLAGS += -mtune=cortex-a7 -mfloat-abi=hard -mfpu=vfpv3-d16" >> .config
+rpi-common:
+	@echo "ARCH = armv7-a" >> .config
+	@echo "MACH = rpi" > .config

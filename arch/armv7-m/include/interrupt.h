@@ -1,11 +1,9 @@
-#ifndef __ARMv7M_INTERRUPT_H__
-#define __ARMv7M_INTERRUPT_H__
+#ifndef __YAOS_ARMv7M_INTERRUPT_H__
+#define __YAOS_ARMv7M_INTERRUPT_H__
 
-#define IRQ_MAX			128
-
-/* nvector : actual hardware vector number
- * lvector : logical vector number (primary + secondary)
- * nirq    : actual hardware interrupt number */
+/* nvec : exception number defined in ARMv7-M exception model
+ * lvec : logical vector number (primary + secondary)
+ * nirq : hardware interrupt number, starts from NVECTOR_IRQ */
 
 enum {
 	NVECTOR_RESET		= 1,
@@ -25,19 +23,21 @@ enum {
 #define irq2vec(nirq)		((nirq) + NVECTOR_IRQ)
 #define vec2irq(nvec)		((nvec) - NVECTOR_IRQ)
 
-#define SECONDARY_IRQ_BITS	16
+#define IRQ_MAX			128
+
+#define SECONDARY_IRQ_BITS	16U
 /* primary irq   : actual hardware interrupt number
  * secondary irq : logical interrupt number used by kernel itself
- *                 it would be a pin number+1 typically */
+ *                 typically it would be a pin number+1 */
 enum {
 	PRIMARY_IRQ_MAX		= IRQ_MAX,
 	SECONDARY_IRQ_MIN	= PRIMARY_IRQ_MAX,
 	/* make sure MSB(sign bit) is reserved as using `int` data type */
-	SECONDARY_IRQ_MAX	= (1 << (SECONDARY_IRQ_BITS - 1)),
+	SECONDARY_IRQ_MAX	= (1UL << (SECONDARY_IRQ_BITS - 1)),
 };
 
 #define mkvector(p, s)		((p) | (((s) + 1) << SECONDARY_IRQ_BITS))
-#define get_primary_vector(x)	((x) & ((1 << SECONDARY_IRQ_BITS) - 1UL))
+#define get_primary_vector(x)	((x) & ((1U << SECONDARY_IRQ_BITS) - 1U))
 #define get_secondary_vector(x)	(((x) >> SECONDARY_IRQ_BITS) - 1)
 
 /* isb should be used after cpsie/cpsid to catch the pended interrupt. Or it
@@ -56,10 +56,6 @@ enum {
 #define __cli()								\
 	__asm__ __volatile__("cpsid i" ::: "cc", "memory")
 
-#define __dmb()			__asm__ __volatile__("dmb" ::: "memory")
-#define __dsb()			__asm__ __volatile__("dsb" ::: "memory")
-#define __isb()			__asm__ __volatile__("isb" ::: "memory")
-
 #define __irq_save(flag)						\
 	__asm__ __volatile__("mrs %0, primask" : "=r"(flag) :: "memory")
 #define __irq_restore(flag)						\
@@ -68,13 +64,19 @@ enum {
 			"isb			\n\t"			\
 			:: "r"(flag) : "cc", "memory")
 
-#define __get_active_irq()	(__get_psr() & 0x1ff)
-#define __in_interrupt()	__get_active_irq()
+#include <stdbool.h>
 
-int register_isr(int lvector, void (*handler)(int));
-int register_isr_register(int lvector, int (*f)(int, void (*)(int)), bool force);
-int unregister_isr(int lvector);
-void nvic_enable(int nvec, int on);
-void nvic_pri_set(int nvec, int pri);
+int register_isr(const int lvec, void (*handler)(const int));
+int register_isr_constructor(const int lvec,
+		int (*f)(const int, void (*)(const int)), const bool force);
+int unregister_isr(const int lvec);
 
-#endif /* __ARMv7M_INTERRUPT_H__ */
+void nvic_set(const int nvec, const bool on);
+void nvic_set_pri(const int nvec, const int pri);
+
+void irq_init(void);
+void ISR_reset(void);
+
+void __reboot(void);
+
+#endif /* __YAOS_ARMv7M_INTERRUPT_H__ */

@@ -1,13 +1,13 @@
-#ifndef __INIT_H__
-#define __INIT_H__
+#ifndef __YAOS_INIT_H__
+#define __YAOS_INIT_H__
 
 #define __init			__attribute__((section(".text.init"), used))
 
 #define REGISTER_INIT(func, order) \
-	static void *init_##func \
+	static void (*init_##func)(void) \
 	__attribute__((section(".text.init."#order \
-					",\"ax\",\%progbits @"), used)) = func
+					",\"ax\",%progbits @"), used)) = func
 
-extern int kernel_init();
+int kernel_init(void);
 
-#endif /* __INIT_H__ */
+#endif /* __YAOS_INIT_H__ */

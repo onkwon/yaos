@@ -1,10 +1,10 @@
-#ifndef __STM32F4_IO_H__
-#define __STM32F4_IO_H__
+#ifndef __YAOS_STM32F4_IO_H__
+#define __YAOS_STM32F4_IO_H__
 
 #include <types.h>
 
 /* Reset and Clock Control */
-#define RCC_BASE		(0x40023800)
+#define RCC_BASE		(0x40023800UL)
 #define RCC_CR			(*(reg_t *)RCC_BASE)
 #define RCC_PLLCFGR		(*(reg_t *)(RCC_BASE + 4))
 #define RCC_CFGR 		(*(reg_t *)(RCC_BASE + 8))
@@ -34,7 +34,7 @@
 #define RCC_SYSCFGEN_BIT	14
 
 /* Embedded Flash memory */
-#define FLASH_BASE		(0x40023c00)
+#define FLASH_BASE		(0x40023c00UL)
 #define FLASH_ACR		(*(reg_t *)FLASH_BASE)
 #define FLASH_KEYR		(*(reg_t *)(FLASH_BASE + 0x4))
 #define FLASH_OPTKEYR		(*(reg_t *)(FLASH_BASE + 0x8))
@@ -42,7 +42,7 @@
 #define FLASH_CR		(*(reg_t *)(FLASH_BASE + 0x10))
 #define FLASH_OPTCR		(*(reg_t *)(FLASH_BASE + 0x14))
 
-#define FLASH_OPT_BASE		(0x1fffc000)
+#define FLASH_OPT_BASE		(0x1fffc000UL)
 #define FLASH_OPT_RDP		(*(volatile unsigned short int *)FLASH_OPT_BASE)
 
 /* GPIO */
@@ -60,15 +60,15 @@
 #define PORTG			PORTG_BASE
 #define PORTH			PORTH_BASE
 #define PORTI			PORTI_BASE
-#define PORTA_BASE		(0x40020000)
-#define PORTB_BASE		(0x40020400)
-#define PORTC_BASE		(0x40020800)
-#define PORTD_BASE		(0x40020c00)
-#define PORTE_BASE		(0x40021000)
-#define PORTF_BASE		(0x40021400)
-#define PORTG_BASE		(0x40021800)
-#define PORTH_BASE		(0x40021c00)
-#define PORTI_BASE		(0x40022000)
+#define PORTA_BASE		(0x40020000UL)
+#define PORTB_BASE		(0x40020400UL)
+#define PORTC_BASE		(0x40020800UL)
+#define PORTD_BASE		(0x40020c00UL)
+#define PORTE_BASE		(0x40021000UL)
+#define PORTF_BASE		(0x40021400UL)
+#define PORTG_BASE		(0x40021800UL)
+#define PORTH_BASE		(0x40021c00UL)
+#define PORTI_BASE		(0x40022000UL)
 
 #define PORTA_LCKR		(*(reg_t *)(PORTA_BASE + 0x1c))
 #define PORTB_LCKR		(*(reg_t *)(PORTB_BASE + 0x1c))
@@ -79,7 +79,7 @@
 #define PORTG_LCKR		(*(reg_t *)(PORTG_BASE + 0x1c))
 
 /* SYSCFG */
-#define SYSCFG_BASE		(0x40013800)
+#define SYSCFG_BASE		(0x40013800UL)
 #define SYSCFG_MEMRMP		(*(reg_t *)(SYSCFG_BASE + 0x00))
 #define SYSCFG_PMC		(*(reg_t *)(SYSCFG_BASE + 0x04))
 #define SYSCFG_EXTICR1		(*(reg_t *)(SYSCFG_BASE + 0x08))
@@ -89,7 +89,7 @@
 #define SYSCFG_CMPCR		(*(reg_t *)(SYSCFG_BASE + 0x20))
 
 /* EXTI */
-#define EXTI_BASE		(0x40013c00)
+#define EXTI_BASE		(0x40013c00UL)
 #define EXTI_IMR		(*(reg_t *)(EXTI_BASE + 0))
 #define EXTI_EMR		(*(reg_t *)(EXTI_BASE + 4))
 #define EXTI_RTSR		(*(reg_t *)(EXTI_BASE + 8))
@@ -97,17 +97,17 @@
 #define EXTI_PR			(*(reg_t *)(EXTI_BASE + 0x14))
 
 /* USART */
-#define USART1			(0x40011000)
-#define USART6			(0x40011400)
-#define USART2			(0x40004400)
-#define USART3			(0x40004800)
-#define UART4			(0x40004c00)
-#define UART5			(0x40005000)
-#define UART7			(0x40007800)
-#define UART8			(0x40007c00)
+#define USART1			(0x40011000UL)
+#define USART6			(0x40011400UL)
+#define USART2			(0x40004400UL)
+#define USART3			(0x40004800UL)
+#define UART4			(0x40004c00UL)
+#define UART5			(0x40005000UL)
+#define UART7			(0x40007800UL)
+#define UART8			(0x40007c00UL)
 
 /* I2C1 */
-#define I2C1_BASE		(0x40005400)
+#define I2C1_BASE		(0x40005400UL)
 #define I2C1_CR1		(*(reg_t *)(I2C1_BASE + 0))
 #define I2C1_CR2		(*(reg_t *)(I2C1_BASE + 4))
 #define I2C1_OAR1		(*(reg_t *)(I2C1_BASE + 8))
@@ -119,7 +119,7 @@
 #define I2C1_TRISE		(*(reg_t *)(I2C1_BASE + 0x20))
 
 /* Timers */
-#define TIM1_BASE		(0x40010000)
+#define TIM1_BASE		(0x40010000UL)
 #define TIM1_CR1		(*(reg_t *)TIM2_BASE)
 #define TIM1_CR2		(*(reg_t *)(TIM2_BASE + 4))
 #define TIM1_SMCR		(*(reg_t *)(TIM2_BASE + 8))
@@ -141,7 +141,7 @@
 #define TIM1_DCR		(*(reg_t *)(TIM2_BASE + 0x48))
 #define TIM1_DMAR		(*(reg_t *)(TIM2_BASE + 0x4c))
 
-#define TIM2_BASE		(0x40000000)
+#define TIM2_BASE		(0x40000000UL)
 #define TIM2_CR1		(*(reg_t *)TIM2_BASE)
 #define TIM2_CR2		(*(reg_t *)(TIM2_BASE + 4))
 #define TIM2_SMCR		(*(reg_t *)(TIM2_BASE + 8))
@@ -162,7 +162,7 @@
 #define TIM2_DMAR		(*(reg_t *)(TIM2_BASE + 0x4c))
 #define TIM2_OR			(*(reg_t *)(TIM2_BASE + 0x50))
 
-#define TIM3_BASE		(0x40000400)
+#define TIM3_BASE		(0x40000400UL)
 #define TIM3_CR1		(*(reg_t *)TIM3_BASE)
 #define TIM3_CR2		(*(reg_t *)(TIM3_BASE + 4))
 #define TIM3_SMCR		(*(reg_t *)(TIM3_BASE + 8))
@@ -180,7 +180,7 @@
 #define TIM3_CCR3		(*(reg_t *)(TIM3_BASE + 0x3c))
 #define TIM3_CCR4		(*(reg_t *)(TIM3_BASE + 0x40))
 
-#define TIM4_BASE		(0x40000800)
+#define TIM4_BASE		(0x40000800UL)
 #define TIM4_CR1		(*(reg_t *)TIM4_BASE)
 #define TIM4_CR2		(*(reg_t *)(TIM4_BASE + 4))
 #define TIM4_SMCR		(*(reg_t *)(TIM4_BASE + 8))
@@ -199,12 +199,12 @@
 #define TIM4_CCR4		(*(reg_t *)(TIM4_BASE + 0x40))
 
 /* ADC */
-#define ADC_BASE		(0x40012300)
+#define ADC_BASE		(0x40012300UL)
 #define ADC_CSR			(*(reg_t *)ADC_BASE)
 #define ADC_CCR			(*(reg_t *)(ADC_BASE + 4))
 #define ADC_CDR			(*(reg_t *)(ADC_BASE + 8))
 
-#define ADC1_BASE		(0x40012000)
+#define ADC1_BASE		(0x40012000UL)
 #define ADC1_SR			(*(reg_t *)ADC1_BASE)
 #define ADC1_CR1		(*(reg_t *)(ADC1_BASE + 4))
 #define ADC1_CR2		(*(reg_t *)(ADC1_BASE + 8))
@@ -227,13 +227,13 @@
 #define ADC1_DR 		(*(reg_t *)(ADC1_BASE + 0x4c))
 
 /* DAC */
-#define DAC_BASE		(0x40007400)
+#define DAC_BASE		(0x40007400UL)
 #define DAC_CR			(*(reg_t *)DAC_BASE)
 #define DAC_DHR8R2		(*(reg_t *)(DAC_BASE + 0x1c))
 
 /* POWER */
-#define PWR_BASE		(0x40007000)
+#define PWR_BASE		(0x40007000UL)
 #define PWR_CR			(*(reg_t *)PWR_BASE)
 #define PWR_CSR			(*(reg_t *)(PWR_BASE + 0x04))
 
-#endif /* __STM32F4_IO_H__ */
+#endif /* __YAOS_STM32F4_IO_H__ */
