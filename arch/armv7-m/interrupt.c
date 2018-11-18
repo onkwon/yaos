@@ -12,6 +12,7 @@
 #include "log.h"
 
 #include <errno.h>
+#include <assert.h>
 
 extern const char _ram_start, _rom_start;
 extern void *_ram_end;
@@ -58,7 +59,10 @@ void __attribute__((weak)) ISR_fault(void)
 }
 
 static void (* const vectors[])(void)
-__attribute__((section(".vector"), aligned(4), used)) = {
+#if !defined(TEST)
+__attribute__((section(".vector")))
+#endif
+__attribute__((aligned(4), used)) = {
 					/* nVEC   : addr  - desc. */
 					/* -------------------- */
 	(void (*)(void))&_ram_end,	/* 00     : 0x00  - Stack pointer */
@@ -79,7 +83,7 @@ __attribute__((section(".vector"), aligned(4), used)) = {
 	ISR_systick,			/* 15     : 0x3c  - SysTick */
 };
 
-#ifdef CONFIG_COMMON_IRQ_FRAMEWORK
+#if !defined(TEST) && defined(CONFIG_COMMON_IRQ_FRAMEWORK)
 static void __attribute__((naked)) ISR_irq(void)
 {
 	__asm__ __volatile__(
@@ -103,7 +107,10 @@ static void ISR_irq(void)
 #endif
 
 static void (* const irq_vectors[])(void)
-__attribute__((section(".vector_irq"), aligned(4), used)) = {
+#if !defined(TEST)
+__attribute__((section(".vector_irq")))
+#endif
+__attribute__((aligned(4), used)) = {
 			/* nVEC(nIRQ): ADDR - DESC */
 			/* ----------------------- */
 	ISR_irq,	/*  16(0)   : 0x40  - WWDG */
@@ -204,18 +211,21 @@ __attribute__((section(".vector_irq"), aligned(4), used)) = {
 #ifdef CONFIG_COMMON_IRQ_FRAMEWORK
 static int register_isr_primary(const int lvec, void (*handler)(const int))
 {
-	int *p;
+	int nvec = get_primary_vector(lvec);
 
-	if (lvec < NVECTOR_IRQ)
+	if (nvec < NVECTOR_IRQ)
 		return -EACCES;
 
-	p = (int *)&primary_isr_table[lvec - NVECTOR_IRQ];
+	if (nvec >= PRIMARY_IRQ_MAX)
+		return -ERANGE;
+
+	int *p = (int *)&primary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
 		void (*f)(void) = (void (*)(void))__ldrex(p);
 
-		if ((f != (void (*)(void))ISR_null)
-				&& (f != ISR_irq)) /* recursive if ISR_irq */
+		if ((f != (void (*)(void))ISR_irq)
+				&& ((void (*)(void))handler != ISR_irq))
 			return -EEXIST;
 	} while (__strex(handler, p));
 
@@ -227,6 +237,9 @@ static int register_isr_primary(const int nvec, void (*handler)(const int))
 	if (nvec < NVECTOR_IRQ)
 		return -EACCES;
 
+	if (nvec >= PRIMARY_IRQ_MAX)
+		return -ERANGE;
+
 	unsigned int *p = (unsigned int *)&_ram_start;
 
 	p += nvec;
@@ -234,7 +247,8 @@ static int register_isr_primary(const int nvec, void (*handler)(const int))
 	do {
 		void (*f)(int) = __ldrex(p);
 
-		if (f != ISR_irq)
+		if ((f != (void (*)(void))ISR_irq)
+				&& ((void (*)(void))handler != ISR_irq))
 			return -EEXIST;
 	} while (__strex(handler, p));
 
@@ -249,12 +263,19 @@ static int register_isr_primary(const int nvec, void (*handler)(const int))
 int register_isr_constructor(const int lvec,
 		int (*ctor)(const int, void (*)(const int)), const bool force)
 {
-	int *p;
+	int nvec = get_primary_vector(lvec);
 
 	if (!is_honored())
 		return -EPERM;
 
-	p = (int *)&secondary_isr_table[get_primary_vector(lvec) - NVECTOR_IRQ];
+	if (nvec < NVECTOR_IRQ)
+		return -EACCES;
+
+	if ((nvec >= PRIMARY_IRQ_MAX)
+			|| (get_secondary_vector(lvec) >= SECONDARY_IRQ_MAX))
+		return -ERANGE;
+
+	int *p = (int *)&secondary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
 		void (*f)(void) = (void (*)(void))__ldrex(p);
@@ -270,21 +291,23 @@ int register_isr_constructor(const int lvec,
 
 static int register_isr_secondary(const int lvec, void (*handler)(const int))
 {
-	if (get_secondary_vector(lvec) >= SECONDARY_IRQ_MAX)
-		return -ERANGE;
+	int nvec = get_primary_vector(lvec);
 
-	if (get_primary_vector(lvec) < NVECTOR_IRQ)
+	if (nvec < NVECTOR_IRQ)
 		return -EACCES;
+
+	if ((nvec >= PRIMARY_IRQ_MAX)
+			|| (get_secondary_vector(lvec) >= SECONDARY_IRQ_MAX))
+		return -ERANGE;
 
 	int (*f)(const int, void (*)(const int));
 
-	if ((f = secondary_isr_table[get_primary_vector(lvec) - NVECTOR_IRQ]))
+	if ((f = secondary_isr_table[nvec - NVECTOR_IRQ]))
 		return f(lvec, handler);
 
-	debug("no irq register for %d:%d",
-			get_primary_vector(lvec), get_secondary_vector(lvec));
+	debug("no irq register for %d:%d", nvec, get_secondary_vector(lvec));
 
-	return -EEXIST;
+	return -ENOENT;
 }
 
 int register_isr(const int lvec, void (*handler)(const int))
@@ -407,7 +430,9 @@ void __init irq_init(void)
 
 	__irq_init();
 
+#if !defined(TEST)
 	SCB_VTOR = (unsigned int)&_rom_start;
+#endif
 	dsb();
 	isb();
 }
@@ -425,8 +450,10 @@ void __init irq_init(void)
 
 	__irq_init();
 
+#if !defined(TEST)
 	/* activate vector table in sram */
 	SCB_VTOR = (unsigned int)&_ram_start;
+#endif
 
 	dsb();
 	isb();

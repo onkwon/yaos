@@ -1,6 +1,7 @@
 #ifndef __YAOS_ARMv7M_IO_H__
 #define __YAOS_ARMv7M_IO_H__
 
+#if !defined(TEST)
 /* Use these macros where needs atomic operation. */
 #define GET_BITBAND_ADDR(base, offset, bit) \
 	((base) + ((offset) << 5) + ((bit) << 2))
@@ -66,6 +67,8 @@
 	__asm__ __volatile__("msr msp, %0" :: "r"(sp))
 #define __set_usp(sp)							\
 	__asm__ __volatile__("msr psp, %0" :: "r"(sp))
+#endif /* !defined(TEST) */
+
 #define __get_ret_addr()	__get_lr()
 
 #define __get_active_irq()	(__get_psr() & 0x1ff)

@@ -31,16 +31,16 @@ TSTSRC = $(wildcard $(PATHT)*.c)
 COMPILE=gcc -c
 LINK=gcc
 DEPEND=gcc -MM -MG -MF
-TCFLAGS =-Iinclude -I$(PATHU) -I$(PATHS) -DTEST $(DEFS)
+TCFLAGS = -Iinclude -I$(PATHU) -I$(PATHS) -I$(PATHT)include -DTEST $(DEFS)
 
 RESULTS = $(patsubst $(PATHT)Test%.c,$(PATHR)Test%.txt,$(TSTSRC) )
 ORGSRC = $(patsubst $(PATHT)Test%.c,%.c,$(TSTSRC))
 ALLSRC = $(foreach w,$(ORGSRC),$(shell find . -name $(w)))
 ALLOBJ = $(foreach s,$(ALLSRC),$(PATHO)$(notdir $(s:.c=.o)))
 
-PASSED = `grep -s PASS $(PATHR)*.txt`
-FAIL = `grep -s FAIL $(PATHR)*.txt`
-IGNORE = `grep -s IGNORE $(PATHR)*.txt`
+PASSED = `grep -s PASS $(PATHR)*.txt | wc -l`
+FAIL = `grep -s FAIL $(PATHR)*.txt | wc -l`
+IGNORE = `grep -s IGNORE $(PATHR)*.txt | wc -l`
 
 define create_rule =
 $(eval test_o := $(PATHO)$(notdir $(1:.c=.o)))
@@ -49,12 +49,9 @@ $(test_o) : $(1)
 endef
 
 test: $(BUILD_PATHS) $(RESULTS)
-	@echo "\n  TEST     IGNORES:"
-	@echo "$(IGNORE)"
-	@echo "           FAILURES:"
-	@echo "$(FAIL)"
-	@echo "           PASSED:"
-	@echo "$(PASSED)"
+	@echo "\n  TEST     IGNORES  $(IGNORE)"
+	@echo "           FAILURES $(FAIL)"
+	@echo "           PASSED   $(PASSED)"
 
 $(PATHR)%.txt: $(PATHB)%.$(TARGET_EXTENSION)
 	@echo "  TESTING  " $@ $<

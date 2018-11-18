@@ -40,6 +40,7 @@ enum {
 #define get_primary_vector(x)	((x) & ((1U << SECONDARY_IRQ_BITS) - 1U))
 #define get_secondary_vector(x)	(((x) >> SECONDARY_IRQ_BITS) - 1)
 
+#if !defined(TEST)
 /* isb should be used after cpsie/cpsid to catch the pended interrupt. Or it
  * may execute up to two instructions before catching the interrupt. Refer to:
  * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHBFEIB.html
@@ -63,6 +64,7 @@ enum {
 			"msr primask, %0	\n\t"			\
 			"isb			\n\t"			\
 			:: "r"(flag) : "cc", "memory")
+#endif /* !defined(TEST) */
 
 #include <stdbool.h>
 

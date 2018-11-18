@@ -1,6 +1,7 @@
 #ifndef __YAOS_ARMv7M_ATOMIC_H__
 #define __YAOS_ARMv7M_ATOMIC_H__
 
+#if !defined(TEST)
 #define __ldrex(addr) __extension__ ({			\
 	unsigned int __result = 0;			\
 	__asm__ __volatile__("ldrex %0, [%1]"		\
@@ -22,5 +23,10 @@
 
 #define __clrex()					\
 	__asm__ __volatile__("clrex" ::: "cc", "memory")
+#else /* defined(TEST) */
+#define __ldrex(addr)		(*(addr))
+#define __strex(value, addr)	0
+#define __clrex()
+#endif
 
 #endif /* __YAOS_ARMv7M_ATOMIC_H__ */

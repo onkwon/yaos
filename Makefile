@@ -86,7 +86,7 @@ ifneq ($(Q),@)
 	override undefine Q
 endif
 
-all: $(BUILDIR) $(OUTPUTS) test
+all: $(BUILDIR) $(OUTPUTS)
 	@printf "\n  Version      : $(VERSION)\n"
 	@printf "  Architecture : $(ARCH)\n"
 	@printf "  Vendor       : $(MACH)\n"
