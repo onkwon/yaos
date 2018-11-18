@@ -24,7 +24,7 @@ BASEDIR := $(shell pwd)
 BUILDIR := build
 
 DEFS += -DVERSION=$(VERSION) -DMACHINE=$(MACH) -D$(SOC) -DLOADADDR=$(LOADADDR)
-LIBS += -lc -lm -lnosys
+LIBS += #-lc -lm -lnosys
 
 ARFLAGS = rcs
 OCFLAGS =
@@ -41,14 +41,14 @@ CFLAGS += -Wformat-nonliteral -Wcast-align -Wpointer-arith -Wbad-function-cast \
 ifndef NDEBUG
 	CFLAGS += -g -Og
 endif
-ifdef CONFIG_FLOAT
+ifeq ($(CONFIG_FLOAT),y)
 CFLAGS += -u _printf_float
 endif
 CFLAGS += -march=$(ARCH)
 
 LD_SCRIPT = $(BUILDIR)/generated.ld
 
-LDFLAGS += -specs=nano.specs -specs=nosys.specs
+LDFLAGS += -specs=nano.specs #-specs=nosys.specs
 LDFLAGS += -nostartfiles #-nostdlib
 LDFLAGS += -T$(LD_SCRIPT)
 ifdef LD_LIBRARY_PATH
@@ -139,7 +139,7 @@ $(BUILDIR)/$(TARGET).elf: $(OBJS) $(THIRD_PARTY_OBJS)
 $(BUILDIR)/$(TARGET).a: $(OBJS) $(THIRD_PARTY_OBJS)
 	@printf "  AR       $@\n"
 	$(Q)$(AR) $(ARFLAGS) -o $@ $^
-$(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config
+$(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config $(LD_SCRIPT)
 	@printf "  CC       $<\n"
 	@mkdir -p $(@D)
 	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -MMD -c $< -o $@
