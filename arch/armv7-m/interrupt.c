@@ -204,7 +204,6 @@ __attribute__((section(".vector_irq"), aligned(4), used)) = {
 #ifdef CONFIG_COMMON_IRQ_FRAMEWORK
 static int register_isr_primary(const int lvec, void (*handler)(const int))
 {
-	void (*f)(void);
 	int *p;
 
 	if (lvec < NVECTOR_IRQ)
@@ -213,7 +212,7 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 	p = (int *)&primary_isr_table[lvec - NVECTOR_IRQ];
 
 	do {
-		f = (void (*)(void))__ldrex(p);
+		void (*f)(void) = (void (*)(void))__ldrex(p);
 
 		if ((f != (void (*)(void))ISR_null)
 				&& (f != ISR_irq)) /* recursive if ISR_irq */
@@ -228,13 +227,13 @@ static int register_isr_primary(const int nvec, void (*handler)(const int))
 	if (nvec < NVECTOR_IRQ)
 		return -EACCES;
 
-	void (*f)(int);
 	unsigned int *p = (unsigned int *)&_ram_start;
 
 	p += nvec;
 
 	do {
-		f = __ldrex(p);
+		void (*f)(int) = __ldrex(p);
+
 		if (f != ISR_irq)
 			return -EEXIST;
 	} while (__strex(handler, p));
@@ -250,7 +249,6 @@ static int register_isr_primary(const int nvec, void (*handler)(const int))
 int register_isr_constructor(const int lvec,
 		int (*ctor)(const int, void (*)(const int)), const bool force)
 {
-	void (*f)(void);
 	int *p;
 
 	if (!is_honored())
@@ -259,7 +257,7 @@ int register_isr_constructor(const int lvec,
 	p = (int *)&secondary_isr_table[get_primary_vector(lvec) - NVECTOR_IRQ];
 
 	do {
-		f = (void (*)(void))__ldrex(p);
+		void (*f)(void) = (void (*)(void))__ldrex(p);
 
 		if (!force && f) {
 			debug("already exist or no room");
@@ -373,14 +371,13 @@ void nvic_set_pri(const int nvec, const int pri)
 {
 	reg_t *reg;
 	unsigned int bit, val;
-	int nirq;
 
 	if (nvec < NVECTOR_IRQ) {
 		reg = (reg_t *)SCB_SHPR;
 		reg = &reg[(nvec >> 2) - 1];
 		bit = (nvec & 3) * 8;
 	} else {
-		nirq = vec2irq(nvec);
+		int nirq = vec2irq(nvec);
 		bit = nirq % 4 * 8;
 		reg = (reg_t *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
 	}
