@@ -13,8 +13,10 @@
 
 #include <errno.h>
 #include <assert.h>
+#include <stdlib.h>
 
-extern const char _ram_start, _rom_start;
+extern long _ram_start;
+extern const long _rom_start;
 extern void *_ram_end;
 
 void ISR_svc(void);
@@ -211,7 +213,7 @@ __attribute__((aligned(4), used)) = {
 #ifdef CONFIG_COMMON_IRQ_FRAMEWORK
 static int register_isr_primary(const int lvec, void (*handler)(const int))
 {
-	int nvec = get_primary_vector(lvec);
+	int nvec = abs(lvec);
 
 	if (nvec < NVECTOR_IRQ)
 		return -EACCES;
@@ -219,38 +221,40 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 	if (nvec >= PRIMARY_IRQ_MAX)
 		return -ERANGE;
 
-	int *p = (int *)&primary_isr_table[nvec - NVECTOR_IRQ];
+	long *p = (long *)&primary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
 		void (*f)(void) = (void (*)(void))__ldrex(p);
 
-		if ((f != (void (*)(void))ISR_irq)
-				&& ((void (*)(void))handler != ISR_irq))
+		if (((long)f != (long)ISR_null)
+				&& ((long)handler != (long)ISR_null))
 			return -EEXIST;
 	} while (__strex(handler, p));
 
 	return 0;
 }
 #else /* !CONFIG_COMMON_IRQ_FRAMEWORK */
-static int register_isr_primary(const int nvec, void (*handler)(const int))
+static int register_isr_primary(const int lvec, void (*handler)(const int))
 {
+	int nvec = abs(lvec);
+
 	if (nvec < NVECTOR_IRQ)
 		return -EACCES;
 
 	if (nvec >= PRIMARY_IRQ_MAX)
 		return -ERANGE;
 
-	unsigned int *p = (unsigned int *)&_ram_start;
+	long *p = (long *)&_ram_start;
 
 	p += nvec;
 
 	do {
-		void (*f)(int) = __ldrex(p);
+		void (*f)(int) = (void (*)(int))__ldrex(&p);
 
-		if ((f != (void (*)(void))ISR_irq)
-				&& ((void (*)(void))handler != ISR_irq))
+		if (((long)f != (long)ISR_null)
+				&& ((long)handler != (long)ISR_null))
 			return -EEXIST;
-	} while (__strex(handler, p));
+	} while (__strex(handler, &p));
 
 	return 0;
 }
@@ -260,22 +264,19 @@ static int register_isr_primary(const int nvec, void (*handler)(const int))
  * which sounds flexible. but I don't think it would be useful since such use
  * cases don't look nice but causing latency and complexity. */
 /* Unregistering can be done to set ctor as intended with force=1 */
-int register_isr_constructor(const int lvec,
+int register_isr_register(const int nvec,
 		int (*ctor)(const int, void (*)(const int)), const bool force)
 {
-	int nvec = get_primary_vector(lvec);
-
 	if (!is_honored())
 		return -EPERM;
 
-	if (nvec < NVECTOR_IRQ)
+	if (abs(nvec) < NVECTOR_IRQ)
 		return -EACCES;
 
-	if ((nvec >= PRIMARY_IRQ_MAX)
-			|| (get_secondary_vector(lvec) >= SECONDARY_IRQ_MAX))
+	if (abs(nvec) >= PRIMARY_IRQ_MAX)
 		return -ERANGE;
 
-	int *p = (int *)&secondary_isr_table[nvec - NVECTOR_IRQ];
+	long *p = (long *)&secondary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
 		void (*f)(void) = (void (*)(void))__ldrex(p);
@@ -291,7 +292,7 @@ int register_isr_constructor(const int lvec,
 
 static int register_isr_secondary(const int lvec, void (*handler)(const int))
 {
-	int nvec = get_primary_vector(lvec);
+	int nvec = abs(get_primary_vector(lvec));
 
 	if (nvec < NVECTOR_IRQ)
 		return -EACCES;
@@ -317,7 +318,10 @@ int register_isr(const int lvec, void (*handler)(const int))
 	if (!is_honored())
 		return -EPERM;
 
-	if (lvec < PRIMARY_IRQ_MAX)
+	if (!handler)
+		handler = ISR_null;
+
+	if (abs(lvec) < PRIMARY_IRQ_MAX)
 		ret = register_isr_primary(lvec, handler);
 	else
 		ret = register_isr_secondary(lvec, handler);
@@ -340,15 +344,15 @@ int unregister_isr(const int lvec)
 	if (!is_honored())
 		return -EPERM;
 
-	if (lvec < PRIMARY_IRQ_MAX) {
+	if (abs(lvec) < PRIMARY_IRQ_MAX) {
 		/* unregister all the secondaries of it */
 		for (int i = 0; i < SECONDARY_IRQ_MAX; i++)
-			register_isr_secondary(mkvector(lvec, i), NULL);
+			register_isr_secondary(mkvector(lvec, i), ISR_null);
 
-		ret = register_isr_primary(lvec, (void (*)(const int))ISR_irq);
-		register_isr_constructor(lvec, NULL, 1);
+		ret = register_isr_primary(lvec, ISR_null);
+		register_isr_register(lvec, NULL, 1);
 	} else {
-		ret = register_isr_secondary(lvec, NULL);
+		ret = register_isr_secondary(lvec, ISR_null);
 	}
 
 	dsb();
@@ -366,15 +370,17 @@ int unregister_isr(const int lvec)
 void nvic_set(const int nvec, const bool on)
 {
 	reg_t *reg;
-	unsigned int bit, base;
-	int nirq;
+	unsigned long bit, base;
+	unsigned int nirq;
+	unsigned int n = abs(nvec);
 
-	if (nvec < NVECTOR_IRQ) {
-		debug("%d is system handler", nvec);
+	if ((n < NVECTOR_IRQ)
+			|| (n >= PRIMARY_IRQ_MAX)) {
+		debug("%d is out of range", nvec);
 		return;
 	}
 
-	nirq = vec2irq(nvec);
+	nirq = vec2irq(n);
 	bit  = nirq % 32;
 	nirq = nirq / 32 * 4;
 	base = on ? NVIC_BASE : NVIC_BASE + 0x80UL;
@@ -393,16 +399,20 @@ void nvic_set(const int nvec, const bool on)
 void nvic_set_pri(const int nvec, const int pri)
 {
 	reg_t *reg;
-	unsigned int bit, val;
+	unsigned long bit, val;
+	unsigned int n = abs(nvec);
 
-	if (nvec < NVECTOR_IRQ) {
+	if (n < NVECTOR_IRQ) {
 		reg = (reg_t *)SCB_SHPR;
-		reg = &reg[(nvec >> 2) - 1];
-		bit = (nvec & 3) * 8;
-	} else {
-		int nirq = vec2irq(nvec);
+		reg = &reg[(n >> 2) - 1];
+		bit = (n & 3) * 8;
+	} else if (n < PRIMARY_IRQ_MAX) {
+		unsigned int nirq = vec2irq(n);
 		bit = nirq % 4 * 8;
 		reg = (reg_t *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));
+	} else {
+		debug("%d is out of range", nvec);
+		return;
 	}
 
 	do {
@@ -431,19 +441,20 @@ void __init irq_init(void)
 	__irq_init();
 
 #if !defined(TEST)
-	SCB_VTOR = (unsigned int)&_rom_start;
+	SCB_VTOR = (unsigned long)&_rom_start;
 #endif
 	dsb();
 	isb();
 }
-#else
+#else /* !CONFIG_COMMON_IRQ_FRAMWORK */
 void __init irq_init(void)
 {
 	/* copy interrupt vector table to sram */
-	unsigned int *s, *d;
+	const long *s;
+	long *d;
 
-	s = (unsigned int *)&_rom_start;
-	d = (unsigned int *)&_ram_start;
+	s = (const long *)&_rom_start;
+	d = (long *)&_ram_start;
 
 	while (*s)
 		*d++ = *s++;
@@ -452,7 +463,7 @@ void __init irq_init(void)
 
 #if !defined(TEST)
 	/* activate vector table in sram */
-	SCB_VTOR = (unsigned int)&_ram_start;
+	SCB_VTOR = (unsigned long)&_ram_start;
 #endif
 
 	dsb();

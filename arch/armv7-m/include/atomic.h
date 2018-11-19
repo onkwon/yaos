@@ -25,8 +25,12 @@
 	__asm__ __volatile__("clrex" ::: "cc", "memory")
 #else /* defined(TEST) */
 #define __ldrex(addr)		(*(addr))
-#define __strex(value, addr)	0
 #define __clrex()
+static inline int __strex(long value, long *addr)
+{
+	*addr = value;
+	return 0;
+}
 #endif
 
 #endif /* __YAOS_ARMv7M_ATOMIC_H__ */

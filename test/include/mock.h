@@ -2,7 +2,8 @@
 #define __MOCK_H__
 
 char _ram_end;
-char _rom_start;
+long _ram_start;
+long _rom_start;
 
 void __nop(void) {}
 void __dmb(void) {}

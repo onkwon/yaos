@@ -25,7 +25,7 @@ enum {
 
 #define IRQ_MAX			128
 
-#define SECONDARY_IRQ_BITS	16U
+#define SECONDARY_IRQ_BITS	10U
 /* primary irq   : actual hardware interrupt number
  * secondary irq : logical interrupt number used by kernel itself
  *                 typically it would be a pin number+1 */
@@ -36,7 +36,8 @@ enum {
 	SECONDARY_IRQ_MAX	= (1UL << (SECONDARY_IRQ_BITS - 1)),
 };
 
-#define mkvector(p, s)		((p) | (((s) + 1) << SECONDARY_IRQ_BITS))
+#define mkvector(p, s)		(((unsigned int)(s) > SECONDARY_IRQ_MAX) \
+		? 0 : (p) | (((s) + 1) << SECONDARY_IRQ_BITS))
 #define get_primary_vector(x)	((x) & ((1U << SECONDARY_IRQ_BITS) - 1U))
 #define get_secondary_vector(x)	(((x) >> SECONDARY_IRQ_BITS) - 1)
 
@@ -69,7 +70,7 @@ enum {
 #include <stdbool.h>
 
 int register_isr(const int lvec, void (*handler)(const int));
-int register_isr_constructor(const int lvec,
+int register_isr_register(const int nvec,
 		int (*f)(const int, void (*)(const int)), const bool force);
 int unregister_isr(const int lvec);
 
