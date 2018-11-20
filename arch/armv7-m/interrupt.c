@@ -33,6 +33,7 @@ static int (*secondary_isr_table[PRIMARY_IRQ_MAX])(const int, void (*)(const int
 static void ISR_null(const int nvec)
 {
 	debug("ISR is not yet registered: %x", nvec);
+	(void)nvec;
 }
 
 void __attribute__((weak)) ISR_svc(void)
@@ -399,14 +400,14 @@ void nvic_set(const int nvec, const bool on)
 void nvic_set_pri(const int nvec, const int pri)
 {
 	reg_t *reg;
-	unsigned long bit, val;
+	unsigned int bit, val;
 	unsigned int n = abs(nvec);
 
 	if (n < NVECTOR_IRQ) {
 		reg = (reg_t *)SCB_SHPR;
 		reg = &reg[(n >> 2) - 1];
 		bit = (n & 3) * 8;
-	} else if (n < PRIMARY_IRQ_MAX) {
+	} else if (n < (NVECTOR_IRQ + IRQ_MAX)) {
 		unsigned int nirq = vec2irq(n);
 		bit = nirq % 4 * 8;
 		reg = (reg_t *)((NVIC_BASE + 0x300) + (nirq / 4 * 4));

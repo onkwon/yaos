@@ -13,6 +13,6 @@
 #define REGISTER_INIT(func, order)
 #endif
 
-int kernel_init(void);
+void kernel_init(void);
 
 #endif /* __YAOS_INIT_H__ */

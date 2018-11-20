@@ -52,8 +52,8 @@ enum {
  */
 #define __sei()								\
 	__asm__ __volatile__(						\
-			"cpsie i	\n\t"				\
-			"isb		\n\t"				\
+			"cpsie i		\n\t"			\
+			"isb			\n\t"			\
 			::: "cc", "memory")
 #define __cli()								\
 	__asm__ __volatile__("cpsid i" ::: "cc", "memory")
@@ -65,6 +65,14 @@ enum {
 			"msr primask, %0	\n\t"			\
 			"isb			\n\t"			\
 			:: "r"(flag) : "cc", "memory")
+  #if !defined(NDEBUG)
+    #define __trap(id)							\
+	__asm__ __volatile__(						\
+			"bkpt %0		\n\t"			\
+			:: "I"(id) : "cc", "memory")
+  #else
+    #define __trap(id)
+  #endif /* NDEBUG */
 #endif /* !defined(TEST) */
 
 #include <stdbool.h>

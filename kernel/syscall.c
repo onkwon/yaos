@@ -1,4 +1,6 @@
 #include "log.h"
+#include "kernel/interrupt.h"
+#include "kernel/debug.h"
 
 #include <errno.h>
 #include <stddef.h>
@@ -14,40 +16,48 @@ off_t _lseek(int fd, off_t pos, int whence);
 long _read(int fd, void *buf, size_t cnt);
 int _open(const char *pathname, int flags);
 
+extern uintptr_t _heap_start;
+
 void *_sbrk(ptrdiff_t increment)
 {
-	(void)increment;
-	debug("must not be called!");
-	return NULL;
+	static uintptr_t *brk = (uintptr_t *)&_heap_start;
+
+	brk += increment / sizeof(uintptr_t);
+
+	return brk;
 }
 
 long _write(int fd, const void *buf, size_t cnt)
 {
+	const char *dat = (const char *)buf;
+
+	for (size_t i = 0; i < cnt; i++)
+		debug_putc((int)dat[i]);
+
+	return cnt;
 	(void)fd;
-	(void)buf;
-	(void)cnt;
-	debug("must not be called!");
-	return -EFAULT;
 }
 
 int _close(int fd)
 {
 	(void)fd;
+	__trap(TRAP_SYSCALL_CLOSE);
 	return -EFAULT;
 }
 
 int _fstat(int fd, struct stat *pstat)
 {
+	pstat->st_mode = S_IFCHR;
+
+	__trap(TRAP_SYSCALL_FSTAT);
+	return 0;
 	(void)fd;
-	(void)pstat;
-	debug("must not be called!");
-	return -EFAULT;
 }
 
 int _isatty(int fd)
 {
 	(void)fd;
-	debug("must not be called!");
+	__trap(TRAP_SYSCALL_ISATTY);
 	return -EFAULT;
 }
 
@@ -56,7 +66,7 @@ off_t _lseek(int fd, off_t pos, int whence)
 	(void)fd;
 	(void)pos;
 	(void)whence;
-	debug("must not be called!");
+	__trap(TRAP_SYSCALL_LSEEK);
 	return -EFAULT;
 }
 
@@ -65,7 +75,7 @@ long _read(int fd, void *buf, size_t cnt)
 	(void)fd;
 	(void)buf;
 	(void)cnt;
-	debug("must not be called!");
+	__trap(TRAP_SYSCALL_READ);
 	return -EFAULT;
 }
 
@@ -73,6 +83,6 @@ int _open(const char *pathname, int flags)
 {
 	(void)pathname;
 	(void)flags;
-	debug("must not be called!");
+	__trap(TRAP_SYSCALL_OPEN);
 	return -EFAULT;
 }

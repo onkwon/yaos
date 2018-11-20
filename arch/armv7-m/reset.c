@@ -102,5 +102,5 @@ void __init __attribute__((naked, used)) ISR_reset(void)
 	mem_init();
 	irq_init();
 
-	//kernel_init();
+	kernel_init();
 }
