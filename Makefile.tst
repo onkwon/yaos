@@ -42,20 +42,31 @@ PASSED = `grep -s PASS $(PATHR)*.txt | wc -l`
 FAIL = `grep -s FAIL $(PATHR)*.txt | wc -l`
 IGNORE = `grep -s IGNORE $(PATHR)*.txt | wc -l`
 
-define create_rule =
+define create_rule
 $(eval test_o := $(PATHO)$(notdir $(1:.c=.o)))
 $(test_o) : $(1)
 	$(Q)$(COMPILE) $(TCFLAGS) $(1) -o $(test_o)
 endef
 
+define echo_color
+	tput setaf $1
+	tput bold
+	tput rev
+	echo $2
+	tput sgr0
+endef
+
+.ONESHELL:
 test: $(BUILD_PATHS) $(RESULTS)
 	@echo "\n  TEST     IGNORES  $(IGNORE)"
 	@echo "           FAILURES $(FAIL)"
 	@echo "           PASSED   $(PASSED)"
+	@if [ $(FAIL) -gt 0 ]; then $(call echo_color,1,"\n ERROR "); false; fi;
 
 $(PATHR)%.txt: $(PATHB)%.$(TARGET_EXTENSION)
-	@echo "  TESTING  " $@ $<
+	@echo "  TESTING " $@ $<
 	@-./$< > $@ 2>&1
+	@-if [ ! -s $@ ]; then echo "FAIL" > $@; fi;
 
 $(PATHB)Test%.$(TARGET_EXTENSION): $(PATHO)Test%.o $(PATHO)%.o $(PATHO)unity.o #$(PATHD)Test%.d
 	$(Q)$(LINK) -o $@ $^
@@ -81,7 +92,7 @@ $(PATHD):
 $(PATHO):
 	$(Q)$(MKDIR) $(PATHO)
 
-$(PATHR):
+$(PATHR): $(ARCH_INCDIR)
 	$(Q)$(MKDIR) $(PATHR)
 
 $(foreach test_s,$(ALLSRC),$(eval $(call create_rule,$(test_s))))
