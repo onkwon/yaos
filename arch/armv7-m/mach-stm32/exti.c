@@ -3,7 +3,7 @@
 #include "arch/mach/clock.h"
 #include "arch/atomic.h"
 
-void exti_enable(int pin, const bool enable)
+void exti_enable(unsigned int pin, const bool enable)
 {
 	reg_t *reg;
 	unsigned int port, bit, val;

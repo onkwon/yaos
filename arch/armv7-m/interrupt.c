@@ -15,9 +15,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
-extern long _ram_start;
-extern const long _rom_start;
-extern void *_ram_end;
+extern uintptr_t _ram_start, _ram_end;
+extern const uintptr_t _rom_start;
 
 void ISR_svc(void);
 void ISR_svc_pend(void);
@@ -222,13 +221,13 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 	if (nvec >= PRIMARY_IRQ_MAX)
 		return -ERANGE;
 
-	long *p = (long *)&primary_isr_table[nvec - NVECTOR_IRQ];
+	uintptr_t *p = (uintptr_t *)&primary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
 		void (*f)(void) = (void (*)(void))__ldrex(p);
 
-		if (((long)f != (long)ISR_null)
-				&& ((long)handler != (long)ISR_null))
+		if (((uintptr_t)f != (uintptr_t)ISR_null)
+				&& ((uintptr_t)handler != (uintptr_t)ISR_null))
 			return -EEXIST;
 	} while (__strex(handler, p));
 
@@ -245,15 +244,15 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 	if (nvec >= PRIMARY_IRQ_MAX)
 		return -ERANGE;
 
-	long *p = (long *)&_ram_start;
+	uintptr_t *p = (uintptr_t *)&_ram_start;
 
 	p += nvec;
 
 	do {
 		void (*f)(int) = (void (*)(int))__ldrex(&p);
 
-		if (((long)f != (long)ISR_null)
-				&& ((long)handler != (long)ISR_null))
+		if (((uintptr_t)f != (uintptr_t)ISR_null)
+				&& ((uintptr_t)handler != (uintptr_t)ISR_null))
 			return -EEXIST;
 	} while (__strex(handler, &p));
 
@@ -277,7 +276,7 @@ int register_isr_register(const int nvec,
 	if (abs(nvec) >= PRIMARY_IRQ_MAX)
 		return -ERANGE;
 
-	long *p = (long *)&secondary_isr_table[nvec - NVECTOR_IRQ];
+	uintptr_t *p = (uintptr_t *)&secondary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
 		void (*f)(void) = (void (*)(void))__ldrex(p);
@@ -442,7 +441,7 @@ void __init irq_init(void)
 	__irq_init();
 
 #if !defined(TEST)
-	SCB_VTOR = (unsigned long)&_rom_start;
+	SCB_VTOR = (uintptr_t)&_rom_start;
 #endif
 	dsb();
 	isb();
@@ -451,11 +450,11 @@ void __init irq_init(void)
 void __init irq_init(void)
 {
 	/* copy interrupt vector table to sram */
-	const long *s;
-	long *d;
+	const uintptr_t *s;
+	uintptr_t *d;
 
-	s = (const long *)&_rom_start;
-	d = (long *)&_ram_start;
+	s = (const uintptr_t *)&_rom_start;
+	d = (uintptr_t *)&_ram_start;
 
 	while (*s)
 		*d++ = *s++;
@@ -464,7 +463,7 @@ void __init irq_init(void)
 
 #if !defined(TEST)
 	/* activate vector table in sram */
-	SCB_VTOR = (unsigned long)&_ram_start;
+	SCB_VTOR = (uintptr_t)&_ram_start;
 #endif
 
 	dsb();

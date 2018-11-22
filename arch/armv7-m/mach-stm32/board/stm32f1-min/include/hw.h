@@ -3,13 +3,13 @@
 
 /* stm32f103c8t6 */
 
-#define VDD				33 /* 3.3V */
+#define VDD				33U /* 3.3V */
 
-#define HSE				8000000
-#define HSI				16000000
+#define HSE				8000000UL
+#define HSI				16000000UL
 
-#define NR_PORT				3
+#define NR_PORT				3U
 
-#define OPERATING_FREQUENCY_MHZ		72
+#define OPERATING_FREQUENCY_MHZ		72UL
 
 #endif /* __YAOS_HW_H__ */

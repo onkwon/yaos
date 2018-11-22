@@ -39,11 +39,11 @@
 #endif
 
 /* SYSCLK */
-unsigned int get_pllclk()
+unsigned long get_pllclk()
 {
-	unsigned int clk, pllm;
+	unsigned long clk, pllm;
 #ifdef stm32f4
-	unsigned int plln, pllp;
+	unsigned long plln, pllp;
 #endif
 
 	switch ((RCC_CFGR >> SWS) & 0x3) {
@@ -90,9 +90,9 @@ unsigned int get_pllclk()
 }
 
 /* AHB */
-unsigned int get_hclk()
+unsigned long get_hclk()
 {
-	unsigned int clk, pre, pllclk;
+	unsigned long clk, pre, pllclk;
 
 	pllclk = get_pllclk();
 #if defined(stm32f1) || defined(stm32f3)
@@ -109,9 +109,9 @@ unsigned int get_hclk()
 }
 
 /* APB1 */
-unsigned int get_pclk1()
+unsigned long get_pclk1()
 {
-	unsigned int clk, pre, hclk;
+	unsigned long clk, pre, hclk;
 
 	hclk = get_hclk();
 #if defined(stm32f1) || defined(stm32f3)
@@ -128,9 +128,9 @@ unsigned int get_pclk1()
 }
 
 /* APB2 */
-unsigned int get_pclk2()
+unsigned long get_pclk2()
 {
-	unsigned int clk, pre, hclk;
+	unsigned long clk, pre, hclk;
 
 	hclk = get_hclk();
 #if defined(stm32f1) || defined(stm32f3)
@@ -146,10 +146,10 @@ unsigned int get_pclk2()
 	return clk;
 }
 
-unsigned int get_adclk()
+unsigned long get_adclk()
 {
 #if defined(stm32f1) || defined(stm32f3)
-	unsigned int clk, pre, pclk2;
+	unsigned long clk, pre, pclk2;
 
 	pclk2 = get_pclk2();
 	pre = (RCC_CFGR >> ADCPRE) & 0x3; /* mask PPRE2[15:14] */
@@ -164,9 +164,9 @@ unsigned int get_adclk()
 #endif
 }
 
-unsigned int get_stkclk()
+unsigned long get_stkclk()
 {
-	unsigned int clk, hclk;
+	unsigned long clk, hclk;
 
 	hclk = get_hclk();
 
@@ -178,31 +178,31 @@ unsigned int get_stkclk()
 	return clk;
 }
 
-unsigned int get_sysclk_freq()
+unsigned long get_sysclk_freq()
 {
 	return get_stkclk();
 }
 
-void __turn_apb1_clock(const unsigned int bit, const bool on)
+void __turn_apb1_clock(const unsigned long bit, const bool on)
 {
 	SET_CLOCK_APB1(bit, on);
 }
 
-void __turn_apb2_clock(const unsigned int bit, const bool on)
+void __turn_apb2_clock(const unsigned long bit, const bool on)
 {
 	SET_CLOCK_APB2(bit, on);
 }
 
-void __turn_ahb1_clock(const unsigned int bit, const bool on)
+void __turn_ahb1_clock(const unsigned long bit, const bool on)
 {
 	SET_CLOCK_AHB1(bit, on);
 }
 
 void __turn_port_clock(const reg_t * const port, const bool on)
 {
-	int bit;
+	unsigned int bit;
 
-	bit = (int)(((unsigned int)port >> 10) & 0xf);
+	bit = (int)(((uintptr_t)port >> 10) & 0xf);
 #ifdef stm32f3
 	bit += 17;
 #endif
@@ -216,27 +216,27 @@ void __turn_port_clock(const reg_t * const port, const bool on)
 #endif
 }
 
-unsigned int __read_apb1_clock()
+unsigned long __read_apb1_clock()
 {
 	return RCC_APB1ENR;
 }
 
-unsigned int __read_apb2_clock()
+unsigned long __read_apb2_clock()
 {
 	return RCC_APB2ENR;
 }
 
-unsigned int __read_ahb1_clock()
+unsigned long __read_ahb1_clock()
 {
 	return RCC_AHB1ENR;
 }
 
-void __reset_apb1_device(const unsigned int bit)
+void __reset_apb1_device(const unsigned long bit)
 {
 	RESET_PERI_APB1(bit);
 }
 
-void __reset_apb2_device(const unsigned int bit)
+void __reset_apb2_device(const unsigned long bit)
 {
 	RESET_PERI_APB2(bit);
 }
@@ -247,7 +247,7 @@ void __reset_apb2_device(const unsigned int bit)
 void __attribute__((weak)) clock_init()
 {
 	/* flash access time adjustment */
-	FLASH_ACR |= 2; /* two wait states for flash access */
+	FLASH_ACR |= 2UL; /* two wait states for flash access */
 	/* prefetch buffer gets activated from reset. disable to avoid extra
 	 * flash access that consumes 20mA for 128-bit line fetching */
 	while ((FLASH_ACR & 7) != 2);

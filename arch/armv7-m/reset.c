@@ -8,28 +8,26 @@
 #include "arch/interrupt.h"
 #include "arch/regs.h"
 
-extern const unsigned int _etext, _edata;
-extern const unsigned int _ebss;
-extern const unsigned int _ram_end;
-extern unsigned int _data, _bss;
+extern const uintptr_t _etext, _edata, _ebss, _ram_end;
+extern uintptr_t _data, _bss;
 
 static inline void mem_init(void)
 {
-	const unsigned int *end, *src;
-	unsigned int *dst;
-	unsigned int i;
+	const uintptr_t *end, *src;
+	uintptr_t *dst;
+	uintptr_t i;
 
 	/* copy .data section from flash to sram */
-	dst = (unsigned int *)&_data;
-	end = (const unsigned int *)&_edata;
-	src = (const unsigned int *)&_etext;
+	dst = (uintptr_t *)&_data;
+	end = (const uintptr_t *)&_edata;
+	src = (const uintptr_t *)&_etext;
 
 	for (i = 0; &dst[i] < end; i++)
 		dst[i] = src[i];
 
 	/* clear .bss section */
-	dst = (unsigned int *)&_bss;
-	end = (const unsigned int *)&_ebss;
+	dst = (uintptr_t *)&_bss;
+	end = (const uintptr_t *)&_ebss;
 
 	for (i = 0; &dst[i] < end; i++)
 		dst[i] = 0;

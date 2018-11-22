@@ -1,6 +1,8 @@
 #ifndef __YAOS_ARMv7M_ATOMIC_H__
 #define __YAOS_ARMv7M_ATOMIC_H__
 
+#include <stdint.h>
+
 #if !defined(TEST)
 #define __ldrex(addr) __extension__ ({			\
 	unsigned int __result = 0;			\
@@ -26,7 +28,7 @@
 #else /* defined(TEST) */
 #define __ldrex(addr)		(*(addr))
 #define __clrex()
-static inline int __strex(long value, long *addr)
+static inline int __strex(uintptr_t value, uintptr_t *addr)
 {
 	*addr = value;
 	return 0;

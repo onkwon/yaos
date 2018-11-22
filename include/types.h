@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-typedef volatile unsigned int reg_t;
+typedef volatile uintptr_t reg_t;
 
 typedef enum {
 	SLEEP_NAP	= 1,
@@ -13,7 +13,7 @@ typedef enum {
 	SLEEP_BLACKOUT	= 3,
 } sleep_t;
 
-#define WORD_SIZE			sizeof(int)
+#define WORD_SIZE			sizeof(uintptr_t)
 #define WORD_BITS			(WORD_SIZE << 3)
 
 #define MASK(v, mask)			((v) & (mask))
@@ -33,16 +33,22 @@ typedef enum {
 #define container_of(ptr, type, member) \
 	((type *)((char *)(ptr) - (char *)&((type *)0)->member))
 
+#if 0
+#ifndef max
 #define max(a, b)			({ \
 		__typeof__(a) _a = (a); \
 		__typeof__(b) _b = (b); \
 		_a > _b ? _a : _b; \
 })
+#endif
+#ifndef min
 #define min(a, b)			({ \
 		__typeof__(a) _a = (a); \
 		__typeof__(b) _b = (b); \
 		_a < _b ? _a : _b; \
 })
+#endif
+#endif
 
 static inline bool is_pow2(const unsigned int x)
 {

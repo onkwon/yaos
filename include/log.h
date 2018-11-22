@@ -11,7 +11,7 @@
 		printf("\r\n"); \
 	} while (0)
 #else
-	#define debug(...)
+	#define debug(...)	((void)0)
 #endif
 
 #endif /* __YAOS_LOG_H__ */

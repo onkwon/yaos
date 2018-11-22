@@ -6,36 +6,36 @@
 #include <stdbool.h>
 
 #ifndef HSE
-#define HSE			8000000 /* 8MHz */
+#define HSE			8000000UL	/* 8MHz */
 #endif
 
 #ifndef HSI
   #if defined(stm32f1) || defined(stm32f3)
-  #define HSI			8000000	/* 8MHz */
+  #define HSI			8000000UL	/* 8MHz */
   #elif defined(stm32f4)
-  #define HSI			16000000
+  #define HSI			16000000UL
   #else
   #error undefined machine
   #endif
 #endif
 
-unsigned int get_pllclk(void);
-unsigned int get_sysclk_freq(void);
-unsigned int get_stkclk(void);
-unsigned int get_pclk2(void);
-unsigned int get_pclk1(void);
-unsigned int get_hclk(void);
-unsigned int get_adclk(void);
+unsigned long get_pllclk(void);
+unsigned long get_sysclk_freq(void);
+unsigned long get_stkclk(void);
+unsigned long get_pclk2(void);
+unsigned long get_pclk1(void);
+unsigned long get_hclk(void);
+unsigned long get_adclk(void);
 
-void __turn_apb1_clock(const unsigned int bit, const bool on);
-void __turn_apb2_clock(const unsigned int bit, const bool on);
-void __turn_ahb1_clock(const unsigned int bit, const bool on);
+void __turn_apb1_clock(const unsigned long bit, const bool on);
+void __turn_apb2_clock(const unsigned long bit, const bool on);
+void __turn_ahb1_clock(const unsigned long bit, const bool on);
 void __turn_port_clock(const reg_t * const port, const bool on);
-unsigned int __read_apb1_clock(void);
-unsigned int __read_apb2_clock(void);
-unsigned int __read_ahb1_clock(void);
-void __reset_apb1_device(const unsigned int bit);
-void __reset_apb2_device(const unsigned int bit);
+unsigned long __read_apb1_clock(void);
+unsigned long __read_apb2_clock(void);
+unsigned long __read_ahb1_clock(void);
+void __reset_apb1_device(const unsigned long bit);
+void __reset_apb2_device(const unsigned long bit);
 
 void clock_init(void);
 

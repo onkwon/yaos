@@ -1,14 +1,16 @@
 #ifndef __YAOS_ARMv7M_IO_H__
 #define __YAOS_ARMv7M_IO_H__
 
+#include <stdint.h>
+
 #if !defined(TEST)
 /* Use these macros where needs atomic operation. */
 #define GET_BITBAND_ADDR(base, offset, bit) \
 	((base) + ((offset) << 5) + ((bit) << 2))
 #define GET_BITBAND(addr, bit) \
-	GET_BITBAND_ADDR(((unsigned int)(addr) & 0xf0000000UL) \
+	GET_BITBAND_ADDR(((uintptr_t)(addr) & 0xf0000000UL) \
 			+ 0x02000000UL, \
-			((unsigned int)(addr) & 0xfffffUL), bit)
+			((uintptr_t)(addr) & 0xfffffUL), bit)
 #define BITBAND(addr, bit, on) \
 	(*(reg_t *)GET_BITBAND(addr, bit) = on)
 

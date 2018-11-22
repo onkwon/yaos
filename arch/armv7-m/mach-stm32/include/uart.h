@@ -2,9 +2,9 @@
 #define __YAOS_STM32_UART_H__
 
 #define __get_uart_channel_active(nvec)	\
-	((nvec < 68) ? nvec - 53 : \
-	 (nvec < 87) ? nvec - 68 + 3 : \
-	 (nvec < 98) ? nvec - 87 + 5 : \
+	((nvec < 68U) ? nvec - 53 : \
+	 (nvec < 87U) ? nvec - 68 + 3 : \
+	 (nvec < 98U) ? nvec - 87 + 5 : \
 	 nvec - 98 + 6);
 
 int  __uart_open(const int channel, struct uart conf);

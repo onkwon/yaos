@@ -47,13 +47,15 @@ int _close(int fd)
 
 int _fstat(int fd, struct stat *pstat)
 {
+	(void)fd;
+	(void)pstat;
 	return -EFAULT;
+#if 0
 	pstat->st_mode = S_IFCHR;
 
 	__trap(TRAP_SYSCALL_FSTAT);
 	return 0;
-	(void)fd;
-	(void)pstat;
+#endif
 }
 
 int _isatty(int fd)
