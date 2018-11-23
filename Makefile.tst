@@ -31,34 +31,42 @@ TSTSRC = $(wildcard $(PATHT)*.c)
 COMPILE=gcc -c
 LINK=gcc
 DEPEND=gcc -MM -MG -MF
-TCFLAGS =-Iinclude -I$(PATHU) -I$(PATHS) -DTEST $(DEFS)
+TCFLAGS = -Iinclude -I$(PATHU) -I$(PATHS) -I$(PATHT)include -DTEST $(DEFS)
 
 RESULTS = $(patsubst $(PATHT)Test%.c,$(PATHR)Test%.txt,$(TSTSRC) )
 ORGSRC = $(patsubst $(PATHT)Test%.c,%.c,$(TSTSRC))
 ALLSRC = $(foreach w,$(ORGSRC),$(shell find . -name $(w)))
 ALLOBJ = $(foreach s,$(ALLSRC),$(PATHO)$(notdir $(s:.c=.o)))
 
-PASSED = `grep -s PASS $(PATHR)*.txt`
-FAIL = `grep -s FAIL $(PATHR)*.txt`
-IGNORE = `grep -s IGNORE $(PATHR)*.txt`
+PASSED = `grep -s PASS $(PATHR)*.txt | wc -l`
+FAIL = `grep -s FAIL $(PATHR)*.txt | wc -l`
+IGNORE = `grep -s IGNORE $(PATHR)*.txt | wc -l`
 
-define create_rule =
+define create_rule
 $(eval test_o := $(PATHO)$(notdir $(1:.c=.o)))
 $(test_o) : $(1)
 	$(Q)$(COMPILE) $(TCFLAGS) $(1) -o $(test_o)
 endef
 
+define echo_color
+	tput setaf $1
+	tput bold
+	tput rev
+	echo $2
+	tput sgr0
+endef
+
+.ONESHELL:
 test: $(BUILD_PATHS) $(RESULTS)
-	@echo "\n  TEST IGNORES:"
-	@echo "$(IGNORE)"
-	@echo "  TEST FAILURES:"
-	@echo "$(FAIL)"
-	@echo "  TEST PASSED:"
-	@echo "$(PASSED)"
+	@echo "\n  TEST     IGNORES  $(IGNORE)"
+	@echo "           FAILURES $(FAIL)"
+	@echo "           PASSED   $(PASSED)"
+	@if [ $(FAIL) -gt 0 ]; then $(call echo_color,1,"\n ERROR "); false; fi;
 
 $(PATHR)%.txt: $(PATHB)%.$(TARGET_EXTENSION)
-	@echo "  TESTING  " $@ $<
+	@echo "  TESTING " $@ $<
 	@-./$< > $@ 2>&1
+	@-if [ ! -s $@ ]; then echo "FAIL" > $@; fi;
 
 $(PATHB)Test%.$(TARGET_EXTENSION): $(PATHO)Test%.o $(PATHO)%.o $(PATHO)unity.o #$(PATHD)Test%.d
 	$(Q)$(LINK) -o $@ $^
@@ -84,15 +92,15 @@ $(PATHD):
 $(PATHO):
 	$(Q)$(MKDIR) $(PATHO)
 
-$(PATHR):
+$(PATHR): $(ARCH_INCDIR)
 	$(Q)$(MKDIR) $(PATHR)
 
 $(foreach test_s,$(ALLSRC),$(eval $(call create_rule,$(test_s))))
 
 cleantest:
-	$(CLEANUP) $(PATHO)*.o
-	$(CLEANUP) $(PATHB)*.$(TARGET_EXTENSION)
-	$(CLEANUP) $(PATHR)*.txt
+	$(Q)$(CLEANUP) $(PATHO)*.o
+	$(Q)$(CLEANUP) $(PATHB)*.$(TARGET_EXTENSION)
+	$(Q)$(CLEANUP) $(PATHR)*.txt
 
 .PRECIOUS: $(PATHB)Test%.$(TARGET_EXTENSION)
 .PRECIOUS: $(PATHD)%.d

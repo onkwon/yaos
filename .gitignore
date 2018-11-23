@@ -3,4 +3,5 @@
 tags
 build
 cscope*
-include/asm
+include/arch
+tools/itm.fifo

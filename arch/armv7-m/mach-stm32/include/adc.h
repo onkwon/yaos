@@ -1,5 +1,5 @@
-#ifndef __STM32_ADC_H__
-#define __STM32_ADC_H__
+#ifndef __YAOS_STM32_ADC_H__
+#define __YAOS_STM32_ADC_H__
 
 enum {
 	ADC1 		= 1,
@@ -27,18 +27,11 @@ enum {
 	ADC_TRIGGER_MAX,
 };
 
-void __adc_init(int nadc, int trigger);
-void __adc_temperature_enable();
-void __adc_temperature_disable();
-void __adc_terminate(int nadc);
-void __adc_sampling_set(int nadc, int ch, int sample_time);
-void __adc_channel_set(int nadc, int ch);
-int __adc_start(int nadc, unsigned int timeout_ms);
+void __adc_init(const int num, int trigger);
+void __adc_temperature(const bool enable);
+void __adc_terminate(const int num);
+void __adc_sampling_set(const int num, int ch, int sample_time);
+void __adc_channel_set(const int num, int ch);
+int __adc_start(const int num, unsigned int timeout_ms);
 
-#define adc_init(adc, trig)		__adc_init(adc, trig)
-#define adc_sampling_set(adc, ch, samp)	__adc_sampling_set(adc, ch, samp)
-#define adc_channel_set(adc, ch)	__adc_channel_set(adc, ch)
-#define adc_start(adc, timeout)		__adc_start(adc, timeout)
-#define adc_convert(adc, timeout)	__adc_start(adc, timeout)
-
-#endif /* __STM32_ADC_H__ */
+#endif /* __YAOS_STM32_ADC_H__ */

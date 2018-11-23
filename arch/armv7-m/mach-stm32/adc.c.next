@@ -1,0 +1,153 @@
+/** @file adc.c */
+
+#include "arch/mach/adc.h"
+#include "log.h"
+#include "io.h"
+#include "delay.h"
+#include <stdbool.h>
+
+enum reg_index {
+	SR	= 0,  /* 0x00 */
+	CR1	= 1,  /* 0x04 */
+	CR2	= 2,  /* 0x08 */
+	SMPR1	= 3,  /* 0x0c */
+	SMPR2	= 4,  /* 0x10 */
+	SQR1	= 11, /* 0x2c */
+	SQR2	= 12, /* 0x30 */
+	SQR3	= 13, /* 0x34 */
+	DR	= 19, /* 0x4c */
+};
+
+enum reg_bit {
+	ADON	= 0,
+	CAL	= 2,
+	EOC	= 1,
+	TSVREFE	= 23,
+	EXTSEL	= 17,
+	SWSTART	= 22,
+	EXTTRIG	= 20,
+};
+
+#define idx2reg(n)	(reg_t *)(ADC1_BASE + (0x400 * (n - 1)))
+#define idx2clk(n)	(n + 8)
+
+void __adc_init(const int num, int trigger)
+{
+	reg_t *reg = idx2reg(num);
+
+	if (!num || num >= ADC_MAX)
+		return;
+
+	__turn_apb2_clock(idx2clk(num), ENABLE);
+	__reset_apb2_device(idx2clk(num));
+	reg[CR2] |= (1 << ADON);
+	udelay(1000);
+	reg[CR2] |= (1 << CAL); /* calibration */
+	while (reg[CR2] & 4) ;
+	debug("ADC calibration offset = %d", reg[DR]);
+
+	if (trigger >= ADC_TRIGGER_MAX)
+		trigger = ADC_TRIGGER_SOFT;
+
+	reg[CR2] |= trigger << EXTSEL; /* SWSTART */
+}
+
+void __adc_temperature(const bool enable)
+{
+	reg_t *reg;
+	unsigned int val;
+
+	reg = idx2reg(ADC1);
+	val = reg[CR2];
+	val &= ~(1UL << TSVREFE);
+	val |= (1UL * enable) << TSVREFE;
+	reg[CR2] = val;
+}
+
+void __adc_terminate(const int num)
+{
+	reg_t *reg = idx2reg(num);
+
+	if (!num || num >= ADC_MAX)
+		return;
+
+	while (reg[SR] & EOC);
+
+	__turn_apb2_clock(idx2clk(num), DISABLE);
+}
+
+void __adc_sampling_set(const int num, int ch, int sample_time)
+{
+#define SAMPLE_TIME_BIT		3
+#define SAMPLE_TIME_MASK	7UL
+	reg_t *reg = idx2reg(num);
+	int bit, i;
+
+	if (!num || num >= ADC_MAX)
+		return;
+
+	if (ch >= 10) {
+		ch -= 10;
+		i = SMPR1;
+	} else
+		i = SMPR2;
+
+	if (sample_time >= ADC_SAMPLE_CYCLE_MAX)
+		sample_time = ADC_SAMPLE_CYCLE_MAX - 1;
+
+	bit = ch * SAMPLE_TIME_BIT;
+	reg[i] &= ~(SAMPLE_TIME_MASK << bit);
+	reg[i] |= sample_time << bit;
+}
+
+void __adc_channel_set(const int num, int ch)
+{
+	reg_t *reg = idx2reg(num);
+	reg[SQR3] = ch;
+	return;
+
+#define CH_BIT	5
+#define CH_MASK	0x1fUL
+	int bit, i;
+
+	if (!num || num >= ADC_MAX)
+		return;
+
+	if (ch >= 13) {
+		ch -= 13;
+		i = SQR1;
+	} else if (ch >= 7) {
+		ch -= 7;
+		i = SQR2;
+	} else
+		i = SQR3;
+
+	bit = ch * CH_BIT;
+	reg[i] &= ~(CH_MASK << bit);
+	reg[i] |= ch << bit;
+}
+
+int __adc_start(const int num, unsigned int timeout_ms)
+{
+	reg_t *reg = idx2reg(num);
+	int ret;
+	unsigned int tout;
+
+	if (!num || num >= ADC_MAX)
+		return -ERANGE;
+
+	if (!timeout_ms)
+		timeout_ms = -1; /* infinite */
+
+	set_timeout(&tout, msec_to_ticks(timeout_ms));
+
+	reg[CR2] |= (1UL << SWSTART) | (1UL << EXTTRIG);
+	while (!(reg[SR] & (1UL << EOC))) {
+		if (is_timeout(tout))
+			break;
+	}
+
+	ret = reg[DR];
+
+	return ret;
+}

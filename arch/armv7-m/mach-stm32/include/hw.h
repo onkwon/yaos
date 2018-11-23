@@ -1,7 +1,7 @@
-#ifndef __HW_H__
-#define __HW_H__
+#ifndef __YAOS_HW_H__
+#define __YAOS_HW_H__
 
-#define HWCLOCK			8000000 /* 8MHz */
+#define HWCLOCK			8000000UL /* 8MHz */
 #define HSE			HWCLOCK
 
-#endif /* __HW_H__ */
+#endif /* __YAOS_HW_H__ */

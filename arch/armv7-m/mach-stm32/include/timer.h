@@ -1,12 +1,12 @@
-#ifndef __STM32_TIMER_H__
-#define __STM32_TIMER_H__
+#ifndef __YAOS_STM32_TIMER_H__
+#define __YAOS_STM32_TIMER_H__
 
-#define NR_TIMER_MAX		4
-#define TIM_COUNTER_MAX		(1 << 16) /* 65536 */
+#define NR_TIMER_MAX		4U
+#define TIM_COUNTER_MAX		(1UL << 16) /* 65536 */
 
-#define TIM_OVERCAPTURE_MASK	0x1e00
-#define TIM_COMPARE_MASK	0x1e
-#define TIM_UPDATE_MASK		0x1
+#define TIM_OVERCAPTURE_MASK	0x1e00U
+#define TIM_COMPARE_MASK	0x1eU
+#define TIM_UPDATE_MASK		0x1U
 
 struct __timer {
 	unsigned int cr1;
@@ -71,4 +71,4 @@ void __timer_match_set(int id, enum tim_iochannel ch, unsigned int v);
 void __timer_intr_set(int id, enum tim_iochannel ch);
 void __timer_reload(int id);
 
-#endif /* __STM32_TIMER_H__ */
+#endif /* __YAOS_STM32_TIMER_H__ */

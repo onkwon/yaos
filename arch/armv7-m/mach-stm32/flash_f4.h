@@ -1,10 +1,12 @@
 #ifndef __STM32F4_FLASH_H__
 #define __STM32F4_FLASH_H__
 
+#include <stdint.h>
+
 #define NSECTORS				24
 
-#define FLASH_OPT_UNLOCK_KEY1			0x08192A3B
-#define FLASH_OPT_UNLOCK_KEY2			0x4C5D6E7F
+#define FLASH_OPT_UNLOCK_KEY1			0x08192A3Bul
+#define FLASH_OPT_UNLOCK_KEY2			0x4C5D6E7Ful
 
 enum flash_control_bits {
 	BIT_FLASH_PROGRAM			= 0,
@@ -69,7 +71,7 @@ enum flash_status_bits {
  * Bank 2 | 0x1FFE_C000 - 0x1FFE_C00F | 16bytes
  */
 
-static inline unsigned int get_temporal_sector_addr(int size)
+static inline uintptr_t get_temporal_sector_addr(size_t size)
 {
 	/* TODO: do management algorithm to maximize lifetime
 	 * 1. when booting read all sectors and make a mapping of free sectors
@@ -80,28 +82,28 @@ static inline unsigned int get_temporal_sector_addr(int size)
 	 * or
 	 *
 	 * Reserve a flash sector to save mapping */
-	return 0x081e0000;
+	return 0x081e0000UL;
 	(void)size;
 }
 
-static inline int get_sector_size_kb(int sector)
+static inline size_t get_sector_size_kb(unsigned int sector)
 {
 	if ((sector >= 0 && sector < 4) || /* bank 1 */
 			(sector >= 12 && sector < 16)) /* bank 2 */
-		return 16;
+		return 16UL;
 	else if (sector == 4 || sector == 16)
-		return 64;
+		return 64UL;
 	else if ((sector >= 5 && sector <= 11) ||
 			(sector >= 17 && sector <= 23))
-		return 128;
+		return 128UL;
 
 	return 0;
 }
 
-static inline int addr2sector(void *p)
+static inline unsigned int addr2sector(void *p)
 {
-	unsigned int addr = (unsigned int)p;
-	int sector;
+	uintptr_t addr = (uintptr_t)p;
+	unsigned int sector;
 
 	if (addr & 0xe0000) /* sector[4|16] ~ sector[11|23] */
 		sector = ((addr & 0xe0000) >> 17) + 4;
@@ -114,9 +116,9 @@ static inline int addr2sector(void *p)
 	return sector;
 }
 
-static inline void flash_writesize_set(int bits)
+static inline void flash_writesize_set(unsigned int bits)
 {
-	unsigned int tmp;
+	uintptr_t tmp;
 
 	tmp = FLASH_CR;
 	tmp &= ~(3U << BIT_FLASH_PROGRAM_SIZE);
@@ -125,9 +127,9 @@ static inline void flash_writesize_set(int bits)
 	FLASH_CR = tmp;
 }
 
-static inline int flash_writesize_get()
+static inline size_t flash_writesize_get()
 {
-	int bits;
+	unsigned int bits;
 
 	switch (FLASH_CR & (3U << BIT_FLASH_PROGRAM_SIZE)) {
 	case 1:

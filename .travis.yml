@@ -1,0 +1,27 @@
+sudo: required
+language: c
+
+env:
+        global:
+                - CODECOV_TOKEN="598f067e-8da0-4fa8-8234-92c4930514c3"
+
+services:
+        - docker
+
+git:
+        submodules: false
+
+before_install:
+        - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
+        - git submodule update --init --recursive
+
+install:
+        - docker pull onkwon/yaos-build
+
+script:
+        - docker run -v $(pwd):/app onkwon/yaos-build make stm32f1-min
+        - docker run -v $(pwd):/app onkwon/yaos-build make
+        - docker run -v $(pwd):/app onkwon/yaos-build make test
+
+after_success:
+        - bash <(curl -s https://codecov.io/bash)
