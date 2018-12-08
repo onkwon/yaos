@@ -4,3 +4,6 @@
 [submodule "tools/tiny-AES-c"]
 	path = tools/tiny-AES-c
 	url = https://github.com/kokke/tiny-AES-c.git
+[submodule "tools/hawkmoth"]
+	path = tools/hawkmoth
+	url = git@github.com:jnikula/hawkmoth.git

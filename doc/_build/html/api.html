@@ -1,0 +1,399 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>API &mdash; yaos  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Getting Started" href="README.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> yaos
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#running-the-tests">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#deployment">Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#built-with">Built With</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#authors">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#acknowledgments">Acknowledgments</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#atomic-primitives">Atomic primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interrupt-service-routine">Interrupt service routine</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">yaos</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="api">
+<h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="atomic-primitives">
+<h2>Atomic primitives<a class="headerlink" href="#atomic-primitives" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="c.atomic_faa">
+intptr_t <code class="descname">atomic_faa</code><span class="sig-paren">(</span>intptr_t *<em>&nbsp;p</em>, intptr_t<em>&nbsp;inc</em><span class="sig-paren">)</span><a class="headerlink" href="#c.atomic_faa" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch and add</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> – Pointer to data</li>
+<li><strong>inc</strong> – Increment to be added</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Original value at <code class="xref c c-data docutils literal notranslate"><span class="pre">p</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.atomic_ll">
+uintptr_t <code class="descname">atomic_ll</code><span class="sig-paren">(</span>uintptr_t *<em>&nbsp;p</em><span class="sig-paren">)</span><a class="headerlink" href="#c.atomic_ll" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load linked</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">P:</th><td class="field-body">Pointer to data</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">0 on success</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.atomic_sc">
+uintptr_t <code class="descname">atomic_sc</code><span class="sig-paren">(</span>uintptr_t *<em>&nbsp;p</em>, uintptr_t<em>&nbsp;newval</em><span class="sig-paren">)</span><a class="headerlink" href="#c.atomic_sc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store conditional</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> – Pointer to data</li>
+<li><strong>newval</strong> – Value to store</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">0 on success</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="interrupt-service-routine">
+<h2>Interrupt service routine<a class="headerlink" href="#interrupt-service-routine" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="c.irq2vec">
+<code class="descname">irq2vec</code><span class="sig-paren">(</span>nirq<span class="sig-paren">)</span><a class="headerlink" href="#c.irq2vec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert an IRQ number to an exception vector number</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.vec2irq">
+<code class="descname">vec2irq</code><span class="sig-paren">(</span>nvec<span class="sig-paren">)</span><a class="headerlink" href="#c.vec2irq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert an exception vector number to an IRQ number</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.register_isr">
+int <code class="descname">register_isr</code><span class="sig-paren">(</span>const int<em>&nbsp;lvec</em>, void (*)(const int)<em>&nbsp;handler</em><span class="sig-paren">)</span><a class="headerlink" href="#c.register_isr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register an ISR.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lvec</strong> – Logical vector number</li>
+<li><strong>handler</strong> – Function pointer to a constructor</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Logical vector number on success or negative value in case of
+failure, refer to <cite>errno.h</cite></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.register_isr_register">
+int <code class="descname">register_isr_register</code><span class="sig-paren">(</span>const int<em>&nbsp;nvec</em>, int (*)(const<em>&nbsp;int</em>, void (*)(const int))<em>&nbsp;f</em>, const _Bool<em>&nbsp;force</em><span class="sig-paren">)</span><a class="headerlink" href="#c.register_isr_register" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a constructor of secondary ISRs. A secondary ISR gets registered by
+a constructor that is registered prior using this function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>nvec</strong> – Vector number. <code class="xref c c-data docutils literal notranslate"><span class="pre">nvec</span></code> is not an IRQ number but an
+exception number</li>
+<li><strong>f</strong> – Function pointer to a constructor</li>
+<li><strong>force</strong> – Force to register if true</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">0 on success</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.unregister_isr">
+int <code class="descname">unregister_isr</code><span class="sig-paren">(</span>const int<em>&nbsp;lvec</em><span class="sig-paren">)</span><a class="headerlink" href="#c.unregister_isr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unregister ISR</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lvec</strong> – Logical vector number</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">0 on success or refer to <cite>errno.h</cite></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.nvic_set">
+void <code class="descname">nvic_set</code><span class="sig-paren">(</span>const int<em>&nbsp;nvec</em>, const _Bool<em>&nbsp;on</em><span class="sig-paren">)</span><a class="headerlink" href="#c.nvic_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enable or disable nvic interrupts</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>nvec</strong> – Vector number. <code class="xref c c-data docutils literal notranslate"><span class="pre">nvec</span></code> is not an IRQ number but an
+exception number</li>
+<li><strong>on</strong> – true for enabling, false for disabling</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.nvic_set_pri">
+void <code class="descname">nvic_set_pri</code><span class="sig-paren">(</span>const int<em>&nbsp;nvec</em>, const int<em>&nbsp;pri</em><span class="sig-paren">)</span><a class="headerlink" href="#c.nvic_set_pri" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set interrupt priority</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>nvec</strong> – Vector number. <code class="xref c c-data docutils literal notranslate"><span class="pre">nvec</span></code> is not an IRQ number but an
+exception number</li>
+<li><strong>pri</strong> – Priority, from <code class="xref c c-macro docutils literal notranslate"><span class="pre">IRQ_PRIORITY_LOWEST</span></code> to
+<code class="xref c c-macro docutils literal notranslate"><span class="pre">IRQ_PRIORITY_HIGHEST</span></code></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="README.html" class="btn btn-neutral" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Kyunghwan Kwon
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
