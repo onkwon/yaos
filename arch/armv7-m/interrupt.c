@@ -257,7 +257,6 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 /* NOTE: calling multiple handlers is possible chaining handlers to a list,
  * which sounds flexible. but I don't think it would be useful since such use
  * cases don't look nice but causing latency and complexity. */
-/* Unregistering can be done to set ctor as intended with force=1 */
 int register_isr_register(const int nvec,
 		int (*ctor)(const int, void (*)(const int)), const bool force)
 {

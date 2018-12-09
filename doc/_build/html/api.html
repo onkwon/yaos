@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API &mdash; yaos  documentation</title>
+  <title>API &mdash; yaos 0.1 documentation</title>
   
 
   
@@ -56,6 +56,10 @@
           
             
             
+              <div class="version">
+                0.1
+              </div>
+            
           
 
           
@@ -87,8 +91,13 @@
 <li class="toctree-l1"><a class="reference internal" href="README.html#license">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="README.html#acknowledgments">Acknowledgments</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-types">Data types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#linked-list">Linked list</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#atomic-primitives">Atomic primitives</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#interrupt-service-routine">Interrupt service routine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#log">Log</a></li>
 </ul>
 </li>
 </ul>
@@ -157,6 +166,214 @@
             
   <div class="section" id="api">
 <h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="data-types">
+<h2>Data types<a class="headerlink" href="#data-types" title="Permalink to this headline">¶</a></h2>
+<dl class="type">
+<dt id="c.reg_t">
+<code class="descname">reg_t</code><a class="headerlink" href="#c.reg_t" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register type</p>
+</dd></dl>
+
+<dl class="type">
+<dt id="c.sleep_t">
+<code class="descname">sleep_t</code><a class="headerlink" href="#c.sleep_t" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sleep type</p>
+</dd></dl>
+
+<dl class="macro">
+<dt id="c.SLEEP_NAP">
+<code class="descname">SLEEP_NAP</code><a class="headerlink" href="#c.SLEEP_NAP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Only the core stopped while all peripherals continue to run</p>
+</dd></dl>
+
+<dl class="macro">
+<dt id="c.SLEEP_DEEP">
+<code class="descname">SLEEP_DEEP</code><a class="headerlink" href="#c.SLEEP_DEEP" title="Permalink to this definition">¶</a></dt>
+<dd><p>The core and peripherals stop to run including external clock while
+still retaining the SRAM and register contents</p>
+</dd></dl>
+
+<dl class="macro">
+<dt id="c.SLEEP_BLACKOUT">
+<code class="descname">SLEEP_BLACKOUT</code><a class="headerlink" href="#c.SLEEP_BLACKOUT" title="Permalink to this definition">¶</a></dt>
+<dd><p>RTC and watchdog are the only ones continue to run. All the
+contents of SRAM or the registers are not preserved</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.is_pow2">
+_Bool <code class="descname">is_pow2</code><span class="sig-paren">(</span>const uintptr_t<em>&nbsp;x</em><span class="sig-paren">)</span><a class="headerlink" href="#c.is_pow2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if integral power of two</p>
+</dd></dl>
+
+<div class="section" id="linked-list">
+<h3>Linked list<a class="headerlink" href="#linked-list" title="Permalink to this headline">¶</a></h3>
+<dl class="type">
+<dt id="c.llist">
+struct <code class="descname">llist</code><a class="headerlink" href="#c.llist" title="Permalink to this definition">¶</a></dt>
+<dd><p>doubly-linked list</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.DEFINE_LINKS_HEAD">
+<code class="descname">DEFINE_LINKS_HEAD</code><span class="sig-paren">(</span>name<span class="sig-paren">)</span><a class="headerlink" href="#c.DEFINE_LINKS_HEAD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a doubly-linked list initializing the links to itself</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.llist_init">
+void <code class="descname">llist_init</code><span class="sig-paren">(</span>struct <a class="reference internal" href="#c.llist" title="llist">llist</a> *<em>&nbsp;node</em><span class="sig-paren">)</span><a class="headerlink" href="#c.llist_init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize doubly-linked list pointing to itself</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.llist_add">
+void <code class="descname">llist_add</code><span class="sig-paren">(</span>struct <a class="reference internal" href="#c.llist" title="llist">llist</a> *<em>&nbsp;new</em>, struct <a class="reference internal" href="#c.llist" title="llist">llist</a> *<em>&nbsp;ref</em><span class="sig-paren">)</span><a class="headerlink" href="#c.llist_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Insert a node next to <code class="xref c c-data docutils literal notranslate"><span class="pre">ref</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>new</strong> – new entry to be added</li>
+<li><strong>ref</strong> – a reference to add it after</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.llist_del">
+void <code class="descname">llist_del</code><span class="sig-paren">(</span>struct <a class="reference internal" href="#c.llist" title="llist">llist</a> *<em>&nbsp;node</em><span class="sig-paren">)</span><a class="headerlink" href="#c.llist_del" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete entry from list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>node</strong> – the element to delete from the list</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.llist_empty">
+int <code class="descname">llist_empty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.llist_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>tests whether a list is empty</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>node</strong> – the list to test</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><cite>true</cite> if empty or <cite>false</cite></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="type">
+<dt id="c.list">
+struct <code class="descname">list</code><a class="headerlink" href="#c.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>singly-linked list</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.DEFINE_LINK_HEAD">
+<code class="descname">DEFINE_LINK_HEAD</code><span class="sig-paren">(</span>name<span class="sig-paren">)</span><a class="headerlink" href="#c.DEFINE_LINK_HEAD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a singly-linked list initializing the link to NULL</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.list_init">
+void <code class="descname">list_init</code><span class="sig-paren">(</span>struct <a class="reference internal" href="#c.list" title="list">list</a> *<em>&nbsp;node</em><span class="sig-paren">)</span><a class="headerlink" href="#c.list_init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize singly-linked list pointing to NULL</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.list_add">
+void <code class="descname">list_add</code><span class="sig-paren">(</span>struct <a class="reference internal" href="#c.list" title="list">list</a> *<em>&nbsp;new</em>, struct <a class="reference internal" href="#c.list" title="list">list</a> *<em>&nbsp;ref</em><span class="sig-paren">)</span><a class="headerlink" href="#c.list_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Insert a node next to <code class="xref c c-data docutils literal notranslate"><span class="pre">ref</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>new</strong> – new entry to be added</li>
+<li><strong>ref</strong> – a reference to add it after</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.list_add_tail">
+void <code class="descname">list_add_tail</code><span class="sig-paren">(</span>struct <a class="reference internal" href="#c.list" title="list">list</a> *<em>&nbsp;new</em>, struct <a class="reference internal" href="#c.list" title="list">list</a> *<em>&nbsp;head</em><span class="sig-paren">)</span><a class="headerlink" href="#c.list_add_tail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Insert an element at the end of the list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>new</strong> – new entery to be added</li>
+<li><strong>head</strong> – list head</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.list_del">
+void <code class="descname">list_del</code><span class="sig-paren">(</span>struct <a class="reference internal" href="#c.list" title="list">list</a> *<em>&nbsp;node</em>, struct <a class="reference internal" href="#c.list" title="list">list</a> *<em>&nbsp;ref</em><span class="sig-paren">)</span><a class="headerlink" href="#c.list_del" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete entry from list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>node</strong> – the element to delete from the list</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.list_empty">
+int <code class="descname">list_empty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.list_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>tests whether a list is empty</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>node</strong> – the list to test</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><cite>true</cite> if empty or <cite>false</cite></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
 <div class="section" id="atomic-primitives">
 <h2>Atomic primitives<a class="headerlink" href="#atomic-primitives" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
@@ -256,7 +473,7 @@ failure, refer to <cite>errno.h</cite></p>
 
 <dl class="function">
 <dt id="c.register_isr_register">
-int <code class="descname">register_isr_register</code><span class="sig-paren">(</span>const int<em>&nbsp;nvec</em>, int (*)(const<em>&nbsp;int</em>, void (*)(const int))<em>&nbsp;f</em>, const _Bool<em>&nbsp;force</em><span class="sig-paren">)</span><a class="headerlink" href="#c.register_isr_register" title="Permalink to this definition">¶</a></dt>
+int <code class="descname">register_isr_register</code><span class="sig-paren">(</span>const int<em>&nbsp;nvec</em>, int (*)(const<em>&nbsp;int</em>, void (*)(const int))<em>&nbsp;ctor</em>, const _Bool<em>&nbsp;force</em><span class="sig-paren">)</span><a class="headerlink" href="#c.register_isr_register" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register a constructor of secondary ISRs. A secondary ISR gets registered by
 a constructor that is registered prior using this function.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -266,7 +483,7 @@ a constructor that is registered prior using this function.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>nvec</strong> – Vector number. <code class="xref c c-data docutils literal notranslate"><span class="pre">nvec</span></code> is not an IRQ number but an
 exception number</li>
-<li><strong>f</strong> – Function pointer to a constructor</li>
+<li><strong>ctor</strong> – Function pointer to a constructor</li>
 <li><strong>force</strong> – Force to register if true</li>
 </ul>
 </td>
@@ -276,6 +493,8 @@ exception number</li>
 </tr>
 </tbody>
 </table>
+<p>Unregistering can be done to set <code class="xref c c-func docutils literal notranslate"><span class="pre">ctor()</span></code> as intended with
+<code class="xref c c-data docutils literal notranslate"><span class="pre">force</span></code> = 1.</p>
 </dd></dl>
 
 <dl class="function">
@@ -335,6 +554,77 @@ exception number</li>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.ISR_reset">
+void <code class="descname">ISR_reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.ISR_reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Booting starts from here</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.__reboot">
+void <code class="descname">__reboot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.__reboot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Software reset</p>
+<p>Bear in mind that all the work in progress should be done before rebooting.
+Be careful when it comes to syncronization and cache</p>
+</dd></dl>
+
+<dl class="type">
+<dt id="c.irq_pri">
+enum <code class="descname">irq_pri</code><a class="headerlink" href="#c.irq_pri" title="Permalink to this definition">¶</a></dt>
+<dd><p>IRQ priority</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.barrier">
+<code class="descname">barrier</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.barrier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compiler barrier</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.dmb">
+<code class="descname">dmb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.dmb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data memory barrier</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.dsb">
+<code class="descname">dsb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.dsb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data synchronization barrier</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.isb">
+<code class="descname">isb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.isb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instruction synchronization barrier</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.in_interrupt">
+<code class="descname">in_interrupt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.in_interrupt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test if in interrupt context</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.is_interrupt_disabled">
+<code class="descname">is_interrupt_disabled</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.is_interrupt_disabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test if interrupts disabled</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="c.is_honored">
+<code class="descname">is_honored</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#c.is_honored" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test if in privileged mode</p>
+</dd></dl>
+
+</div>
+<div class="section" id="log">
+<h2>Log<a class="headerlink" href="#log" title="Permalink to this headline">¶</a></h2>
+<dl class="macro">
+<dt id="c.debug">
+<code class="descname">debug</code><a class="headerlink" href="#c.debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print out debug messages using hardware debug port in early booting stage</p>
 </dd></dl>
 
 </div>

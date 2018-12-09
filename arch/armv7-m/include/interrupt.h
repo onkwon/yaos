@@ -94,12 +94,15 @@ int register_isr(const int lvec, void (*handler)(const int));
  *
  * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
  *        exception number
- * @param f Function pointer to a constructor
+ * @param ctor Function pointer to a constructor
  * @param force Force to register if true
  * @return 0 on success
+ *
+ * Unregistering can be done to set :c:func:`ctor` as intended with
+ * :c:data:`force` = 1.
  */
 int register_isr_register(const int nvec,
-		int (*f)(const int, void (*)(const int)), const bool force);
+		int (*ctor)(const int, void (*)(const int)), const bool force);
 /**
  * Unregister ISR
  *
@@ -127,8 +130,15 @@ void nvic_set(const int nvec, const bool on);
 void nvic_set_pri(const int nvec, const int pri);
 
 void irq_init(void);
+/** Booting starts from here */
 void ISR_reset(void);
 
+/**
+ * Software reset
+ *
+ * Bear in mind that all the work in progress should be done before rebooting.
+ * Be careful when it comes to syncronization and cache
+ */
 void __reboot(void);
 
 #endif /* __YAOS_ARMv7M_INTERRUPT_H__ */

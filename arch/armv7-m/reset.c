@@ -1,9 +1,3 @@
-/**
- * @file reset.c
- * @brief The file contains booting process
- * @author Kyunghwan Kwon
- */
-
 #include "io.h"
 #include "arch/interrupt.h"
 #include "arch/regs.h"
@@ -37,11 +31,6 @@ static inline void mem_init(void)
 
 #define VECTKEY		0x5faUL
 
-/**
- * @brief software reset
- * @note bear in mind that all the work in progress should be done before
- * rebooting. be careful when it comes to syncronization and cache
- */
 void __reboot(void)
 {
 	dsb();
@@ -54,7 +43,6 @@ void __reboot(void)
 
 #include "kernel/init.h"
 
-/** @brief the booting starts from here */
 void __init __attribute__((naked, used)) ISR_reset(void)
 {
 	__cli();

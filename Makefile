@@ -98,6 +98,10 @@ all: $(BUILDIR) $(OUTPUTS)
 	@wc -c $(BUILDIR)/$(TARGET).img | awk '{printf("  .img\t\t %8d\n", $$1)}'
 	@printf "\n  sha256: $(shell cat $(BUILDIR)/$(TARGET).sha256)\n"
 
+.PHONY: doc
+doc: $(ARCH_INCDIR)
+	$(Q)cd doc && LD_LIBRARY_PATH=/Library/Developer/CommandLineTools/usr/lib $(MAKE) html
+
 .PRECIOUS: $(BUILDIR)/%.signature $(BUILDIR)/%.enc
 $(BUILDIR)/%.img: $(BUILDIR)/%.enc $(BUILDIR)/%.signature
 	@printf "  IMAGE    $@\n"
