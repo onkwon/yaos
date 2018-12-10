@@ -4,4 +4,5 @@ tags
 build
 cscope*
 include/arch
+include/drivers
 tools/itm.fifo

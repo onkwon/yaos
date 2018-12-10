@@ -51,10 +51,17 @@ static inline uintptr_t get_temporal_sector_addr(size_t size)
 	 * or
 	 *
 	 * Reserve a flash sector to save mapping */
+#if 0
 	//return 0x08007c00UL; /* low-density */
+#elif 1
 	return 0x0801fc00UL; /* medium-density */
+#elif 0
 	return 0x0807f800UL; /* high-density */
+#elif 0
 	return 0x0803f800UL; /* connectivity line devices */
+#else
+#error unknown machine
+#endif
 	(void)size;
 }
 
