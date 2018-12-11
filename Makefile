@@ -99,8 +99,13 @@ all: $(BUILDIR) $(OUTPUTS)
 	@printf "\n  sha256: $(shell cat $(BUILDIR)/$(TARGET).sha256)\n"
 
 .PHONY: doc
+DOCTOOL_DIR := $(BASEDIR)/tools/Sphinx
+DOCDIR := $(BASEDIR)/Documentation/online
 doc: $(ARCH_INCDIR)
-	$(Q)cd doc && LD_LIBRARY_PATH=/Library/Developer/CommandLineTools/usr/lib $(MAKE) html
+	$(Q)rm -rf $(DOCDIR)
+	$(Q)cd $(DOCTOOL_DIR) && $(MAKE) clean \
+		&& LD_LIBRARY_PATH=/Library/Developer/CommandLineTools/usr/lib $(MAKE) html
+	$(Q)cp -R $(DOCTOOL_DIR)/_build/html $(DOCDIR)
 
 .PRECIOUS: $(BUILDIR)/%.signature $(BUILDIR)/%.enc
 $(BUILDIR)/%.img: $(BUILDIR)/%.enc $(BUILDIR)/%.signature

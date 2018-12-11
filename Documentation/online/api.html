@@ -92,12 +92,23 @@
 <li class="toctree-l1"><a class="reference internal" href="README.html#acknowledgments">Acknowledgments</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#data-types">Data types</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#linked-list">Linked list</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#include-types-h">include/types.h</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#include-list-h">include/list.h</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#atomic-primitives">Atomic primitives</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#interrupt-service-routine">Interrupt service routine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#log">Log</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#atomic-primitives">Atomic primitives</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#include-arch-atomic-h">include/arch/atomic.h</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#interrupt-service-routine">Interrupt service routine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#include-arch-interrupt-h">include/arch/interrupt.h</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#include-io-h">include/io.h</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#log">Log</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#include-log-h">include/log.h</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -168,6 +179,8 @@
 <h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="data-types">
 <h2>Data types<a class="headerlink" href="#data-types" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="include-types-h">
+<h3>include/types.h<a class="headerlink" href="#include-types-h" title="Permalink to this headline">¶</a></h3>
 <dl class="type">
 <dt id="c.reg_t">
 <code class="descname">reg_t</code><a class="headerlink" href="#c.reg_t" title="Permalink to this definition">¶</a></dt>
@@ -206,8 +219,9 @@ _Bool <code class="descname">is_pow2</code><span class="sig-paren">(</span>const
 <dd><p>Check if integral power of two</p>
 </dd></dl>
 
-<div class="section" id="linked-list">
-<h3>Linked list<a class="headerlink" href="#linked-list" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="include-list-h">
+<h3>include/list.h<a class="headerlink" href="#include-list-h" title="Permalink to this headline">¶</a></h3>
 <dl class="type">
 <dt id="c.llist">
 struct <code class="descname">llist</code><a class="headerlink" href="#c.llist" title="Permalink to this definition">¶</a></dt>
@@ -376,6 +390,8 @@ int <code class="descname">list_empty</code><span class="sig-paren">(</span><spa
 </div>
 <div class="section" id="atomic-primitives">
 <h2>Atomic primitives<a class="headerlink" href="#atomic-primitives" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="include-arch-atomic-h">
+<h3>include/arch/atomic.h<a class="headerlink" href="#include-arch-atomic-h" title="Permalink to this headline">¶</a></h3>
 <dl class="function">
 <dt id="c.atomic_faa">
 intptr_t <code class="descname">atomic_faa</code><span class="sig-paren">(</span>intptr_t *<em>&nbsp;p</em>, intptr_t<em>&nbsp;inc</em><span class="sig-paren">)</span><a class="headerlink" href="#c.atomic_faa" title="Permalink to this definition">¶</a></dt>
@@ -435,8 +451,11 @@ uintptr_t <code class="descname">atomic_sc</code><span class="sig-paren">(</span
 </dd></dl>
 
 </div>
+</div>
 <div class="section" id="interrupt-service-routine">
 <h2>Interrupt service routine<a class="headerlink" href="#interrupt-service-routine" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="include-arch-interrupt-h">
+<h3>include/arch/interrupt.h<a class="headerlink" href="#include-arch-interrupt-h" title="Permalink to this headline">¶</a></h3>
 <dl class="function">
 <dt id="c.irq2vec">
 <code class="descname">irq2vec</code><span class="sig-paren">(</span>nirq<span class="sig-paren">)</span><a class="headerlink" href="#c.irq2vec" title="Permalink to this definition">¶</a></dt>
@@ -570,6 +589,9 @@ void <code class="descname">__reboot</code><span class="sig-paren">(</span><span
 Be careful when it comes to syncronization and cache</p>
 </dd></dl>
 
+</div>
+<div class="section" id="include-io-h">
+<h3>include/io.h<a class="headerlink" href="#include-io-h" title="Permalink to this headline">¶</a></h3>
 <dl class="type">
 <dt id="c.irq_pri">
 enum <code class="descname">irq_pri</code><a class="headerlink" href="#c.irq_pri" title="Permalink to this definition">¶</a></dt>
@@ -619,14 +641,18 @@ enum <code class="descname">irq_pri</code><a class="headerlink" href="#c.irq_pri
 </dd></dl>
 
 </div>
+</div>
 <div class="section" id="log">
 <h2>Log<a class="headerlink" href="#log" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="include-log-h">
+<h3>include/log.h<a class="headerlink" href="#include-log-h" title="Permalink to this headline">¶</a></h3>
 <dl class="macro">
 <dt id="c.debug">
 <code class="descname">debug</code><a class="headerlink" href="#c.debug" title="Permalink to this definition">¶</a></dt>
 <dd><p>Print out debug messages using hardware debug port in early booting stage</p>
 </dd></dl>
 
+</div>
 </div>
 </div>
 

@@ -2,6 +2,7 @@
 .config
 tags
 build
+_build
 cscope*
 include/arch
 tools/itm.fifo
