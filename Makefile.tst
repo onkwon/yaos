@@ -48,20 +48,11 @@ $(test_o) : $(1)
 	$(Q)$(COMPILE) $(TCFLAGS) $(1) -o $(test_o)
 endef
 
-define echo_color
-	tput setaf $1
-	tput bold
-	tput rev
-	echo $2
-	tput sgr0
-endef
-
-.ONESHELL:
 test: $(BUILD_PATHS) $(RESULTS)
 	@echo "\n  TEST     IGNORES  $(IGNORE)"
 	@echo "           FAILURES $(FAIL)"
 	@echo "           PASSED   $(PASSED)"
-	@if [ $(FAIL) -gt 0 ]; then $(call echo_color,1,"\n ERROR "); false; fi;
+	@if [ $(FAIL) -gt 0 ]; then echo "\033[0;31m\n ERROR \033[0m"; false; fi;
 
 $(PATHR)%.txt: $(PATHB)%.$(TARGET_EXTENSION)
 	@echo "  TESTING " $@ $<
