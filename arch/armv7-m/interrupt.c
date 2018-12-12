@@ -224,12 +224,12 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 	uintptr_t *p = (uintptr_t *)&primary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
-		void (*f)(void) = (void (*)(void))__ldrex(p);
+		void (*f)(void) = (void (*)(void))ldrex(p);
 
 		if (((uintptr_t)f != (uintptr_t)ISR_null)
 				&& ((uintptr_t)handler != (uintptr_t)ISR_null))
 			return -EEXIST;
-	} while (__strex(handler, p));
+	} while (strex(handler, p));
 
 	return 0;
 }
@@ -249,12 +249,12 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 	p += nvec;
 
 	do {
-		void (*f)(int) = (void (*)(int))__ldrex(&p);
+		void (*f)(int) = (void (*)(int))ldrex(&p);
 
 		if (((uintptr_t)f != (uintptr_t)ISR_null)
 				&& ((uintptr_t)handler != (uintptr_t)ISR_null))
 			return -EEXIST;
-	} while (__strex(handler, &p));
+	} while (strex(handler, &p));
 
 	return 0;
 }
@@ -279,13 +279,13 @@ int register_isr_register(const int nvec,
 	uintptr_t *p = (uintptr_t *)&secondary_isr_table[nvec - NVECTOR_IRQ];
 
 	do {
-		void (*f)(void) = (void (*)(void))__ldrex(p);
+		void (*f)(void) = (void (*)(void))ldrex(p);
 
 		if (!force && f) {
 			debug("already exist or no room");
 			return -EEXIST;
 		}
-	} while (__strex(ctor, p));
+	} while (strex(ctor, p));
 
 	return 0;
 }
@@ -416,10 +416,10 @@ void nvic_set_pri(const int nvec, const int pri)
 	}
 
 	do {
-		val = __ldrex(reg);
+		val = ldrex(reg);
 		val &= ~(0xffUL << bit);
 		val |= (pri & 0xfUL) << (bit + 4);
-	} while (__strex(val, reg));
+	} while (strex(val, reg));
 
 	dsb();
 }

@@ -3,13 +3,13 @@
 #include "arch/mach/clock.h"
 #include "arch/atomic.h"
 
-void exti_enable(unsigned int pin, const bool enable)
+void exti_enable(uint16_t pin, const bool enable)
 {
 	reg_t *reg;
 	unsigned int port, bit, val;
 
-	port = pin2port(pin);
-	pin = pin2portpin(pin);
+	port = gpio_to_port(pin);
+	pin = gpio_to_ppin(pin);
 	bit = pin % 4 * 4;
 	pin = pin / 4 * 4;
 	reg = (reg_t *)((SYSCFG_BASE + 8) + pin);

@@ -1,55 +1,42 @@
-/*
- * "[...] Sincerity (comprising truth-to-experience, honesty towards the self,
- * and the capacity for human empathy and compassion) is a quality which
- * resides within the laguage of literature. It isn't a fact or an intention
- * behind the work [...]"
- *
- *             - An introduction to Literary and Cultural Theory, Peter Barry
- *
- *
- *                                                   o8o
- *                                                   `"'
- *     oooo    ooo  .oooo.    .ooooo.   .oooo.o     oooo   .ooooo.
- *      `88.  .8'  `P  )88b  d88' `88b d88(  "8     `888  d88' `88b
- *       `88..8'    .oP"888  888   888 `"Y88b.       888  888   888
- *        `888'    d8(  888  888   888 o.  )88b .o.  888  888   888
- *         .8'     `Y888""8o `Y8bod8P' 8""888P' Y8P o888o `Y8bod8P'
- *     .o..P'
- *     `Y8P'                   Kyunghwan Kwon <kwon@yaos.io>
- *
- *  Welcome aboard!
- */
+#include "drivers/gpio.h"
+#include "kernel/interrupt.h"
+#include "log.h"
+#include "io.h"
 
-#include "include/gpio.h"
-#include <types.h>
-#include <error.h>
 #include "include/exti.h"
-#include "include/io.h"
+#include "include/clock.h"
 
-static DEFINE_MUTEX(gpio_init_lock);
+#include <errno.h>
+#include <assert.h>
+
+#include "arch/mach/board/hw.h"
+
+#ifndef NR_PORT
+#define NR_PORT			5U
+#endif
 
 static struct gpio {
 	union {
 		struct {
-			unsigned int pin0: 1;
-			unsigned int pin1: 1;
-			unsigned int pin2: 1;
-			unsigned int pin3: 1;
-			unsigned int pin4: 1;
-			unsigned int pin5: 1;
-			unsigned int pin6: 1;
-			unsigned int pin7: 1;
-			unsigned int pin8: 1;
-			unsigned int pin9: 1;
-			unsigned int pin10: 1;
-			unsigned int pin11: 1;
-			unsigned int pin12: 1;
-			unsigned int pin13: 1;
-			unsigned int pin14: 1;
-			unsigned int pin15: 1;
+			uint16_t pin0: 1;
+			uint16_t pin1: 1;
+			uint16_t pin2: 1;
+			uint16_t pin3: 1;
+			uint16_t pin4: 1;
+			uint16_t pin5: 1;
+			uint16_t pin6: 1;
+			uint16_t pin7: 1;
+			uint16_t pin8: 1;
+			uint16_t pin9: 1;
+			uint16_t pin10: 1;
+			uint16_t pin11: 1;
+			uint16_t pin12: 1;
+			uint16_t pin13: 1;
+			uint16_t pin14: 1;
+			uint16_t pin15: 1;
 		};
 
-		unsigned int pins;
+		uint16_t pins;
 	};
 } state[NR_PORT];
 
@@ -57,9 +44,9 @@ static int nr_active; /* number of active pins */
 
 static void (*isr_table[PINS_PER_PORT])(int nvector);
 
-static int irq_register(int lvector, void (*handler)(int))
+static int irq_register(const int lvector, void (*handler)(const int))
 {
-	int pin = get_secondary_vector(lvector);
+	uint16_t pin = get_secondary_vector(lvector);
 
 	if (pin >= PINS_PER_PORT)
 		return -ERANGE;
@@ -74,7 +61,7 @@ static int irq_register(int lvector, void (*handler)(int))
 static void ISR_gpio(int nvector)
 {
 	unsigned int pending;
-	int pin, mask;
+	uint16_t pin, mask;
 
 #ifndef CONFIG_COMMON_IRQ_FRAMEWORK
 	nvector = get_active_irq();
@@ -91,7 +78,7 @@ static void ISR_gpio(int nvector)
 		pin = 10;
 		mask = 0x3f;
 	} else if (pin > 4) {
-		error("unknown interrupt vector %x\n", nvector);
+		debug("unknown interrupt vector %x\n", nvector);
 		return;
 	}
 
@@ -112,37 +99,37 @@ static void ISR_gpio(int nvector)
 
 static inline int gpio2exti(int n)
 {
-	return pin2portpin(n);
+	return gpio_to_ppin(n);
 }
 
-static inline unsigned int scan_port(reg_t *reg)
+static inline uintptr_t scan_port(reg_t *reg)
 {
-	int idx = 4;
+	uint8_t idx = 4;
 #if defined(stm32f1)
 	idx = 2;
 #endif
 	return reg[idx];
 }
 
-static inline void write_port(reg_t *reg, unsigned int data)
+static inline void write_port(reg_t *reg, reg_t data)
 {
-	int idx = 5;
+	uint8_t idx = 5;
 #if defined(stm32f1)
 	idx = 3;
 #endif
 	reg[idx] = data;
 }
 
-static inline void write_port_pin(reg_t *reg, int pin, bool on)
+static inline void write_port_pin(reg_t *reg, uint16_t pin, int val)
 {
-	int idx = 6;
+	uint8_t idx = 6;
 #if defined(stm32f1)
 	idx = 4;
 #endif
-	reg[idx] = on? 1 << pin : 1 << (pin + 16);
+	reg[idx] = (val == 1)? (1UL << pin) : (1UL << (pin + 16));
 }
 
-static void set_port_pin_conf(reg_t *reg, int pin, int mode)
+static void set_port_pin_conf(reg_t *reg, uint16_t pin, uint16_t mode)
 {
 	unsigned int idx, t, shift, mask;
 
@@ -157,22 +144,22 @@ static void set_port_pin_conf(reg_t *reg, int pin, int mode)
 #endif
 
 	t = reg[idx];
-	t = MASK_RESET(t, mask << shift) | (mode << shift);
+	t = MASK_RESET(t, mask << shift) | ((unsigned int)mode << shift);
 	reg[idx] = t;
 }
 
-static inline int pin2vec(int pin)
+static inline int pin2vec(uint16_t pin)
 {
 	int nvector = 0;
 
 	switch (pin) {
-	case 0 ... 4:
+	case 0: case 1: case 2: case 3: case 4:
 		nvector = pin + 22;
 		break;
-	case 5 ... 9:
+	case 5: case 6: case 7: case 8: case 9:
 		nvector = 39;
 		break;
-	case 10 ... 15:
+	case 10: case 11: case 12: case 13: case 14: case 15:
 		nvector = 56;
 		break;
 	default:
@@ -182,82 +169,62 @@ static inline int pin2vec(int pin)
 	return nvector;
 }
 
-int reg2port(reg_t *reg)
+int __gpio_get(const uint16_t index)
 {
-	switch ((unsigned int)reg) {
-	case PORTA: return 0;
-	case PORTB: return 1;
-	case PORTC: return 2;
-	case PORTD: return 3;
-	case PORTE: return 4;
-	case PORTF: return 5;
-	case PORTG: return 6;
-	default:
-		break;
-	}
-
-	return -ERANGE;
-}
-
-unsigned int gpio_get(unsigned int index)
-{
-	unsigned int port, pin;
+	uint16_t port, pin;
 	reg_t *reg;
 
-	if ((port = pin2port(index)) >= NR_PORT) {
-		error("not supported port: %d", port);
+	if ((port = gpio_to_port(index)) >= NR_PORT) {
+		debug("not supported port: %d", port);
 		return -ERANGE;
 	}
 
-	reg = port2reg(port);
-	pin = pin2portpin(index);
+	reg = gpio_to_reg(index);
+	pin = gpio_to_ppin(index);
 
-	return (scan_port(reg) >> pin) & 1;
+	return (int)((scan_port(reg) >> pin) & 1UL);
 }
 
-void gpio_put(unsigned int index, int v)
+void __gpio_put(const uint16_t index, const int val)
 {
-	unsigned int port, pin;
+	uint16_t port, pin;
 	reg_t *reg;
 
-	if ((port = pin2port(index)) >= NR_PORT) {
-		error("not supported port: %d", port);
+	if ((port = gpio_to_port(index)) >= NR_PORT) {
+		debug("not supported port: %d", port);
 		return;
 	}
 
-	reg = port2reg(port);
-	pin = pin2portpin(index);
+	reg = gpio_to_reg(index);
+	pin = gpio_to_ppin(index);
 
-	write_port_pin(reg, pin, v & 1);
+	write_port_pin(reg, pin, val);
 }
 
 #if defined(stm32f1)
-int gpio_init(unsigned int index, unsigned int flags)
+int __gpio_init(const uint16_t index, const uint32_t flags)
 {
-	unsigned int port, pin, mode;
+	uint16_t port, pin, mode;
 	int lvector;
 	reg_t *reg;
 
-	if ((port = pin2port(index)) >= NR_PORT) {
-		error("not supported port: %d", port);
+	if ((port = gpio_to_port(index)) >= NR_PORT) {
+		debug("not supported port: %d", port);
 		return -ERANGE;
 	}
 
 	lvector = 0;
 	mode = 0;
-	pin = pin2portpin(index);
-	reg = port2reg(port);
-
-
-	mutex_lock(&gpio_init_lock);
+	pin = gpio_to_ppin(index);
+	reg = gpio_to_reg(index);
 
 	if (state[port].pins & (1 << pin)) {
-		error("already taken: %d", index);
+		debug("already taken: %d", index);
 		lvector = -EEXIST;
 		goto out;
 	}
 
-	__turn_apb2_clock(port + 2, ON);
+	__turn_apb2_clock(port + 2, true);
 
 	if (flags & (GPIO_MODE_ALT | GPIO_MODE_OUTPUT)) {
 		switch (flags & GPIO_SPD_MASK) {
@@ -295,18 +262,18 @@ int gpio_init(unsigned int index, unsigned int flags)
 	} else if (flags & GPIO_CONF_PULLUP) {
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
-		write_port_pin(reg, pin, HIGH);
+		write_port_pin(reg, pin, 1);
 	} else if (flags & GPIO_CONF_PULLDOWN) {
 		mode &= ~(PIN_FLOATING);
 		mode |= PIN_PULL;
-		write_port_pin(reg, pin, LOW);
+		write_port_pin(reg, pin, 0);
 	}
 
 	set_port_pin_conf(reg, pin, mode);
 
 	if (flags & (GPIO_INT_FALLING | GPIO_INT_RISING)) {
 		/* AFIO deals with pin remapping and EXTI */
-		__turn_apb2_clock(0, ON);
+		__turn_apb2_clock(0, true);
 		EXTI_IMR |= 1 << pin;
 
 		if (flags & GPIO_INT_FALLING)
@@ -315,22 +282,20 @@ int gpio_init(unsigned int index, unsigned int flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		nvic_enable(pin2vec(pin), true);
+		nvic_set(pin2vec(pin), true);
 		lvector = mkvector(pin2vec(pin), pin);
 
-		exti_enable(index, ON);
+		exti_enable(index, true);
 	}
 
 	state[port].pins |= 1 << pin;
 	nr_active++;
 
 out:
-	mutex_unlock(&gpio_init_lock);
-
 	return lvector;
 }
 #elif defined(stm32f3) || defined(stm32f4)
-static void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
+static void set_port_pin_conf_alt(reg_t *reg, uint16_t pin, uint16_t mode)
 {
 	unsigned int idx, t, shift, mask;
 
@@ -340,39 +305,36 @@ static void set_port_pin_conf_alt(reg_t *reg, int pin, int mode)
 	mask = 0xf;
 
 	t = reg[idx];
-	t = MASK_RESET(t, mask << shift) | (mode << shift);
+	t = MASK_RESET(t, mask << shift) | ((unsigned int)mode << shift);
 	reg[idx] = t;
 }
 
-int gpio_init(unsigned int index, unsigned int flags)
+int __gpio_init(const uint16_t index, const uint32_t flags)
 {
-	unsigned int port, pin, mode;
+	uint16_t port, pin, mode;
 	int lvector;
 	reg_t *reg;
 
-	if ((port = pin2port(index)) >= NR_PORT) {
-		error("not supported port: %d", port);
+	if ((port = gpio_to_port(index)) >= NR_PORT) {
+		debug("not supported port: %d", port);
 		return -ERANGE;
 	}
 
 	lvector = 0;
 	mode = 0;
-	pin = pin2portpin(index);
-	reg = port2reg(port);
-
-
-	mutex_lock(&gpio_init_lock);
+	pin = gpio_to_ppin(index);
+	reg = gpio_to_reg(index);
 
 	if (state[port].pins & (1 << pin)) {
-		error("already taken: %d", index);
+		debug("already taken: %d", index);
 		lvector = -EEXIST;
 		goto out;
 	}
 
 #if defined(stm32f3)
-	__turn_ahb1_clock(port + 17, ON);
+	__turn_ahb1_clock(port + 17, true);
 #elif defined(stm32f4)
-	__turn_ahb1_clock(port, ON);
+	__turn_ahb1_clock(port, true);
 #else
 #error undefined machine
 #endif
@@ -417,17 +379,17 @@ int gpio_init(unsigned int index, unsigned int flags)
 		reg[1] |= 1 << pin;
 	} else if (flags & GPIO_CONF_PULLUP) {
 		reg[3] |= 1 << (pin * 2);
-		write_port_pin(reg, pin, HIGH);
+		write_port_pin(reg, pin, 1);
 	} else if (flags & GPIO_CONF_PULLDOWN) {
 		reg[3] |= 2 << (pin * 2);
-		write_port_pin(reg, pin, LOW);
+		write_port_pin(reg, pin, 0);
 	}
 
 	set_port_pin_conf(reg, pin, mode);
 
 	if (flags & (GPIO_INT_FALLING | GPIO_INT_RISING)) {
 		/* exti <- syscfg <- apb2 */
-		__turn_apb2_clock(14, ON);
+		__turn_apb2_clock(14, true);
 		EXTI_IMR |= 1 << pin;
 
 		if (flags & GPIO_INT_FALLING)
@@ -436,63 +398,58 @@ int gpio_init(unsigned int index, unsigned int flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		nvic_enable(pin2vec(pin), true);
+		nvic_set(pin2vec(pin), true);
 		lvector = mkvector(pin2vec(pin), pin);
 
-		exti_enable(index, ON);
+		exti_enable(index, true);
 	}
 
 	state[port].pins |= 1 << pin;
 	nr_active++;
 
 out:
-	mutex_unlock(&gpio_init_lock);
-
 	return lvector;
 }
 #endif
 
-void gpio_fini(unsigned int index)
+void __gpio_fini(const uint16_t index)
 {
-	unsigned int port, pin, lvector;
+	uint16_t port, pin;
+	unsigned int lvector;
 
-	if ((port = pin2port(index)) >= NR_PORT) {
-		error("not supported port: %d", port);
+	if ((port = gpio_to_port(index)) >= NR_PORT) {
+		debug("not supported port: %d", port);
 		return;
 	}
 
-	pin = pin2portpin(index);
+	pin = gpio_to_ppin(index);
 
-	mutex_lock(&gpio_init_lock);
-
-	state[port].pins &= ~(1 << pin);
+	state[port].pins &= ~(1U << pin);
 	nr_active--;
 	assert(nr_active >= 0);
 
 	barrier();
 	if (!state[port].pins) {
 #if defined(stm32f1)
-		__turn_apb2_clock(port + 2, OFF);
+		__turn_apb2_clock(port + 2, false);
 #elif defined(stm32f3)
-		__turn_ahb1_clock(port + 17, OFF);
+		__turn_ahb1_clock(port + 17, false);
 #elif defined(stm32f4)
-		__turn_ahb1_clock(port, OFF);
+		__turn_ahb1_clock(port, false);
 #else
 #error undefined machine
 #endif
 	}
 
-	exti_enable(index, OFF);
+	exti_enable(index, false);
 	lvector = mkvector(pin2vec(pin), pin);
 	unregister_isr(lvector);
-
-	mutex_unlock(&gpio_init_lock);
 }
 
-unsigned int get_gpio_state(int port)
+uint16_t __gpio_get_status(uint8_t port)
 {
 	if (port >= NR_PORT) {
-		error("not supported port: %d", port);
+		debug("not supported port: %d", port);
 		return -ERANGE;
 	}
 
@@ -501,7 +458,7 @@ unsigned int get_gpio_state(int port)
 
 #include <kernel/init.h>
 
-static inline void gpio_irq_init()
+static inline void gpio_irq_init(void)
 {
 	int i;
 
@@ -525,26 +482,26 @@ static inline void gpio_irq_init()
 	register_isr_register(56, irq_register, 0);
 }
 
-static void __init port_init()
+static void __init port_init(void)
 {
 	gpio_irq_init();
 
 	/* FIXME: initializing of ports makes JTAG not working */
 	return;
-	__turn_port_clock((reg_t *)PORTA, ON);
-	__turn_port_clock((reg_t *)PORTB, ON);
-	__turn_port_clock((reg_t *)PORTC, ON);
-	__turn_port_clock((reg_t *)PORTD, ON);
-	__turn_port_clock((reg_t *)PORTE, ON);
-	__turn_port_clock((reg_t *)PORTF, ON);
+	__turn_port_clock((reg_t *)PORTA, true);
+	__turn_port_clock((reg_t *)PORTB, true);
+	__turn_port_clock((reg_t *)PORTC, true);
+	__turn_port_clock((reg_t *)PORTD, true);
+	__turn_port_clock((reg_t *)PORTE, true);
+	__turn_port_clock((reg_t *)PORTF, true);
 
 	unsigned int mode   = 0;
 	unsigned int conf   = 0;
 	unsigned int offset = 4;
 #ifdef stm32f4
-	__turn_port_clock((reg_t *)PORTG, ON);
-	__turn_port_clock((reg_t *)PORTH, ON);
-	__turn_port_clock((reg_t *)PORTI, ON);
+	__turn_port_clock((reg_t *)PORTG, true);
+	__turn_port_clock((reg_t *)PORTH, true);
+	__turn_port_clock((reg_t *)PORTI, true);
 
 	mode   = 0xffffffff; /* analog mode */
 	offset = 0xc;
@@ -570,16 +527,16 @@ static void __init port_init()
 	*(reg_t *)PORTI = mode;
 	*(reg_t *)(PORTI + offset) = conf;
 
-	__turn_port_clock((reg_t *)PORTG, OFF);
-	__turn_port_clock((reg_t *)PORTH, OFF);
-	__turn_port_clock((reg_t *)PORTI, OFF);
+	__turn_port_clock((reg_t *)PORTG, false);
+	__turn_port_clock((reg_t *)PORTH, false);
+	__turn_port_clock((reg_t *)PORTI, false);
 #endif
 
-	__turn_port_clock((reg_t *)PORTA, OFF);
-	__turn_port_clock((reg_t *)PORTB, OFF);
-	__turn_port_clock((reg_t *)PORTC, OFF);
-	__turn_port_clock((reg_t *)PORTD, OFF);
-	__turn_port_clock((reg_t *)PORTE, OFF);
-	__turn_port_clock((reg_t *)PORTF, OFF);
+	__turn_port_clock((reg_t *)PORTA, false);
+	__turn_port_clock((reg_t *)PORTB, false);
+	__turn_port_clock((reg_t *)PORTC, false);
+	__turn_port_clock((reg_t *)PORTD, false);
+	__turn_port_clock((reg_t *)PORTE, false);
+	__turn_port_clock((reg_t *)PORTF, false);
 }
 REGISTER_INIT(port_init, 10);
