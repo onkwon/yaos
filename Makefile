@@ -63,6 +63,7 @@ SUBDIRS	 = lib kernel tasks
 INCS	+= -I$(BASEDIR)/include
 FILES	 = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call FILES,$d/,$2))
 
+DRV_INCDIR = include/drivers
 ARCH_INCDIR = include/arch
 INC_ARCH = $(call FILES,arch/$(ARCH)/include,*.h) \
 	   $(call FILES,arch/$(ARCH)/mach-$(MACH)/include,*.h) \
@@ -164,24 +165,27 @@ $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.ld
 .c.o:
 	@printf "  CC       $(<F)\n"
 	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -c $< -o $@
-$(BUILDIR): $(ARCH_INCDIR) $(LD_SCRIPT)
+$(BUILDIR): $(ARCH_INCDIR) $(DRV_INCDIR) $(LD_SCRIPT)
 
 -include $(DEPS)
 
 $(ARCH_INCDIR): $(INC_ARCH) .config
 	@printf "  COPY     $@\n"
-	@rm -rf $(ARCH_INCDIR)
-	$(Q)-cp -R arch/$(ARCH)/include $(ARCH_INCDIR)
-	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/include $(ARCH_INCDIR)/mach
-	$(Q)-cp $(ARCH_INCDIR)/mach/$(SOC).h $(ARCH_INCDIR)/mach/regs.h
+	@rm -rf $@
+	$(Q)-cp -R arch/$(ARCH)/include $@
+	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/include $@/mach
+	$(Q)-cp $@/mach/$(SOC).h $@/mach/regs.h
 ifdef BOARD
-	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/board/$(BOARD)/include $(ARCH_INCDIR)/mach/board
+	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/board/$(BOARD)/include $@/mach/board
 endif
+
+$(DRV_INCDIR):
+	$(Q)-cp -R drivers/include $@
 
 .PHONY: clean
 clean: cleantest
 	@rm -rf $(BUILDIR)
-	@rm -rf $(ARCH_INCDIR)
+	@rm -rf $(ARCH_INCDIR) $(DRV_INCDIR)
 
 ifneq ($(MAKECMDGOALS), clean)
 	ifneq ($(MAKECMDGOALS), depend)

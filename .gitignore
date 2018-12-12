@@ -5,5 +5,6 @@ build
 _build
 cscope*
 include/arch
+include/drivers
 tools/itm.fifo
 Documentation/online

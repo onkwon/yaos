@@ -1,3 +1,9 @@
+/**
+ * @file atomic.h
+ * @brief The file contains atomic primitives
+ * @author Kyunghwan Kwon
+ */
+
 #ifndef __YAOS_ARMv7M_ATOMIC_H__
 #define __YAOS_ARMv7M_ATOMIC_H__
 

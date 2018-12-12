@@ -88,7 +88,7 @@ static inline uintptr_t get_temporal_sector_addr(size_t size)
 
 static inline size_t get_sector_size_kb(unsigned int sector)
 {
-	if ((sector >= 0 && sector < 4) || /* bank 1 */
+	if ((sector < 4) || /* bank 1 */
 			(sector >= 12 && sector < 16)) /* bank 2 */
 		return 16UL;
 	else if (sector == 4 || sector == 16)
