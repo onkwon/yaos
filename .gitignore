@@ -6,3 +6,4 @@ _build
 cscope*
 include/arch
 tools/itm.fifo
+Documentation/online
