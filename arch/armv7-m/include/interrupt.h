@@ -20,7 +20,9 @@ enum {
 	NVECTOR_IRQ		= NVECTOR_MAX,
 };
 
+/** Convert an IRQ number to an exception vector number */
 #define irq2vec(nirq)		((nirq) + NVECTOR_IRQ)
+/** Convert an exception vector number to an IRQ number */
 #define vec2irq(nvec)		((nvec) - NVECTOR_IRQ)
 
 #define IRQ_MAX			128
@@ -77,17 +79,66 @@ enum {
 
 #include <stdbool.h>
 
+/**
+ * Register an ISR.
+ *
+ * @param lvec Logical vector number
+ * @param handler Function pointer to a constructor
+ * @return Logical vector number on success or negative value in case of
+ *         failure, refer to `errno.h`
+ */
 int register_isr(const int lvec, void (*handler)(const int));
+/**
+ * Register a constructor of secondary ISRs. A secondary ISR gets registered by
+ * a constructor that is registered prior using this function.
+ *
+ * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
+ *        exception number
+ * @param ctor Function pointer to a constructor
+ * @param force Force to register if true
+ * @return 0 on success
+ *
+ * Unregistering can be done to set :c:func:`ctor` as intended with
+ * :c:data:`force` = 1.
+ */
 int register_isr_register(const int nvec,
-		int (*f)(const int, void (*)(const int)), const bool force);
+		int (*ctor)(const int, void (*)(const int)), const bool force);
+/**
+ * Unregister ISR
+ *
+ * @param lvec Logical vector number
+ * @return 0 on success or refer to `errno.h`
+ */
 int unregister_isr(const int lvec);
 
+/**
+ * Enable or disable nvic interrupts
+ *
+ * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
+ *        exception number
+ * @param on true for enabling, false for disabling
+ */
 void nvic_set(const int nvec, const bool on);
+/**
+ * Set interrupt priority
+ *
+ * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
+ *        exception number
+ * @param pri Priority, from :c:macro:`IRQ_PRIORITY_LOWEST` to
+ *        :c:macro:`IRQ_PRIORITY_HIGHEST`
+ */
 void nvic_set_pri(const int nvec, const int pri);
 
 void irq_init(void);
+/** Booting starts from here */
 void ISR_reset(void);
 
+/**
+ * Software reset
+ *
+ * Bear in mind that all the work in progress should be done before rebooting.
+ * Be careful when it comes to syncronization and cache
+ */
 void __reboot(void);
 
 #endif /* __YAOS_ARMv7M_INTERRUPT_H__ */

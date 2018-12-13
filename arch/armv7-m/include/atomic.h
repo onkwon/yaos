@@ -45,32 +45,40 @@ static inline int __strex(uintptr_t value, uintptr_t *addr)
 #define strex(value, addr)	__strex(value, addr)
 
 /**
- * @brief Fetch and Add
- * @param *p a pointer to the variable to add
- * @param a add a to *p
- * @return returns *p + a
+ * Fetch and add
+ *
+ * @param p Pointer to data
+ * @param inc Increment to be added
+ * @return Original value at :c:data:`p`
  */
-static inline intptr_t atomic_faa(intptr_t *p, intptr_t a)
+static inline intptr_t atomic_faa(intptr_t *p, intptr_t inc)
 {
 	intptr_t val;
 
 	do {
-		val = ldrex(p) + a;
-	} while (strex(val, p));
+		val = ldrex(p);
+	} while (strex(val + inc, p));
 
 	return val;
 }
 
+/**
+ * Load linked
+ *
+ * @p Pointer to data
+ * @return 0 on success
+ */
 static inline uintptr_t atomic_ll(uintptr_t *p)
 {
 	return ldrex(p);
 }
 
 /**
- * @brief store conditional
- * @param *p
- * @param newval
- * @return returns 0 if succeed
+ * Store conditional
+ *
+ * @param p Pointer to data
+ * @param newval Value to store
+ * @return 0 on success
  */
 static inline uintptr_t atomic_sc(uintptr_t *p, uintptr_t newval)
 {

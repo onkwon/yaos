@@ -1,9 +1,3 @@
-/**
- * @file interrupt.c
- * @brief The file contains interrupt related code
- * @author Kyunghwan Kwon
- */
-
 #include "arch/interrupt.h"
 #include "arch/atomic.h"
 #include "arch/regs.h"
@@ -263,7 +257,6 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 /* NOTE: calling multiple handlers is possible chaining handlers to a list,
  * which sounds flexible. but I don't think it would be useful since such use
  * cases don't look nice but causing latency and complexity. */
-/* Unregistering can be done to set ctor as intended with force=1 */
 int register_isr_register(const int nvec,
 		int (*ctor)(const int, void (*)(const int)), const bool force)
 {
@@ -332,11 +325,6 @@ int register_isr(const int lvec, void (*handler)(const int))
 	return ret;
 }
 
-/**
- * @brief Unregister ISR
- * @param lvec Logical vector number
- * @return Return 0 on success or refer to @p errno.h
- */
 int unregister_isr(const int lvec)
 {
 	int ret;
@@ -361,12 +349,6 @@ int unregister_isr(const int lvec)
 	return ret;
 }
 
-/**
- * @brief enable or disable nvic interrupts
- * @param nvec vector number
- * @param on @p true for enabling, @p false for disabling
- * @details @p nvec is not IRQ number but exception number
- */
 void nvic_set(const int nvec, const bool on)
 {
 	reg_t *reg;
@@ -391,11 +373,6 @@ void nvic_set(const int nvec, const bool on)
 	dsb();
 }
 
-/**
- * @brief set interrupt priority
- * @param nvec vector number
- * @param pri priority, from @p IRQ_PRIORITY_LOWEST to @p IRQ_PRIORITY_HIGHEST
- */
 void nvic_set_pri(const int nvec, const int pri)
 {
 	reg_t *reg;

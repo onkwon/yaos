@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #if !defined(NDEBUG)
+/** Print out debug messages using hardware debug port in early booting stage */
 	#define debug(...)	do { \
 		printf("%p:%s():%d: ", \
 			__builtin_return_address(0), __func__, __LINE__); \
