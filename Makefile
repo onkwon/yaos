@@ -40,6 +40,8 @@ CFLAGS += -Wformat-nonliteral -Wcast-align -Wpointer-arith -Wbad-function-cast \
 	  -Wwrite-strings -Wno-conversion -Wstrict-aliasing -Wcast-qual
 ifndef NDEBUG
 	CFLAGS += -g -Og
+	#CFLAGS += -fprofile-arcs -ftest-coverage
+	#LDFLAGS += -fprofile-arcs
 endif
 ifeq ($(CONFIG_FLOAT),y)
 CFLAGS += -u _printf_float
