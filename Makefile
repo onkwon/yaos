@@ -185,7 +185,7 @@ $(DRV_INCDIR):
 	$(Q)-cp -R drivers/include $@
 
 .PHONY: clean
-clean: cleantest
+clean:
 	@rm -rf $(BUILDIR)
 	@rm -rf $(ARCH_INCDIR) $(DRV_INCDIR)
 
@@ -218,5 +218,10 @@ term:
 	minicom -D $(TTY)
 
 # Unit test
+.PHONY: test
+test: $(BUILDIR)
+	$(Q)cd test && ceedling clean && ceedling
 
-include Makefile.tst
+.PHONY: coverage
+coverage: $(BUILDIR)
+	$(Q)cd test && ceedling gcov:all
