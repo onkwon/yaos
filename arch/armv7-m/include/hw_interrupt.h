@@ -1,5 +1,5 @@
-#ifndef __YAOS_ARMv7M_INTERRUPT_H__
-#define __YAOS_ARMv7M_INTERRUPT_H__
+#ifndef __YAOS_ARMv7M_HW_INTERRUPT_H__
+#define __YAOS_ARMv7M_HW_INTERRUPT_H__
 
 /* nvec : exception number defined in ARMv7-M exception model
  * lvec : logical vector number (primary + secondary)
@@ -32,7 +32,7 @@ enum {
  * secondary irq : logical interrupt number used by kernel itself
  *                 typically it would be a pin number+1 */
 enum {
-	PRIMARY_IRQ_MAX		= IRQ_MAX,
+	PRIMARY_IRQ_MAX		= (NVECTOR_IRQ + IRQ_MAX),
 	SECONDARY_IRQ_MIN	= PRIMARY_IRQ_MAX,
 	/* make sure MSB(sign bit) is reserved as using `int` data type */
 	SECONDARY_IRQ_MAX	= (1UL << (SECONDARY_IRQ_BITS - 1)),
@@ -80,45 +80,13 @@ enum {
 #include <stdbool.h>
 
 /**
- * Register an ISR.
- *
- * @param lvec Logical vector number
- * @param handler Function pointer to a constructor
- * @return Logical vector number on success or negative value in case of
- *         failure, refer to `errno.h`
- */
-int register_isr(const int lvec, void (*handler)(const int));
-/**
- * Register a constructor of secondary ISRs. A secondary ISR gets registered by
- * a constructor that is registered prior using this function.
- *
- * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
- *        exception number
- * @param ctor Function pointer to a constructor
- * @param force Force to register if true
- * @return 0 on success
- *
- * Unregistering can be done to set :c:func:`ctor` as intended with
- * :c:data:`force` = 1.
- */
-int register_isr_register(const int nvec,
-		int (*ctor)(const int, void (*)(const int)), const bool force);
-/**
- * Unregister ISR
- *
- * @param lvec Logical vector number
- * @return 0 on success or refer to `errno.h`
- */
-int unregister_isr(const int lvec);
-
-/**
  * Enable or disable nvic interrupts
  *
  * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
  *        exception number
  * @param on true for enabling, false for disabling
  */
-void nvic_set(const int nvec, const bool on);
+void hw_irq_set(const int nvec, const bool on);
 /**
  * Set interrupt priority
  *
@@ -127,11 +95,13 @@ void nvic_set(const int nvec, const bool on);
  * @param pri Priority, from :c:macro:`IRQ_PRIORITY_LOWEST` to
  *        :c:macro:`IRQ_PRIORITY_HIGHEST`
  */
-void nvic_set_pri(const int nvec, const int pri);
+void hw_irq_set_pri(const int nvec, const int pri);
 
-void irq_init(void);
+void hw_irq_init(void);
 /** Booting starts from here */
 void ISR_reset(void);
+/** Initial interrupt service routine for unregistered */
+void ISR_null(const int nvec);
 
 /**
  * Software reset
@@ -139,6 +109,6 @@ void ISR_reset(void);
  * Bear in mind that all the work in progress should be done before rebooting.
  * Be careful when it comes to syncronization and cache
  */
-void __reboot(void);
+void hw_reboot(void);
 
-#endif /* __YAOS_ARMv7M_INTERRUPT_H__ */
+#endif /* __YAOS_ARMv7M_HW_INTERRUPT_H__ */

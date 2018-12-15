@@ -1,7 +1,7 @@
 #ifndef __YAOS_STM32_EXTI_H__
 #define __YAOS_STM32_EXTI_H__
 
-#include "arch/io.h"
+#include "arch/hw_io.h"
 #include "arch/mach/gpio.h"
 #include "arch/mach/regs.h"
 #include <stdbool.h>

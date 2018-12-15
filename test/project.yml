@@ -30,10 +30,9 @@
     - +:test/**
     - -:test/support
   :source:
-    - ../include/**
     - ../kernel/**
     - ../drivers/**
-    - ../arch/**
+    - ../include/**
   :support:
     - test/support
 
@@ -45,6 +44,15 @@
   :test:
     - *common_defines
     - TEST
+    - CONFIG_DEBUG
+    - CONFIG_REALTIME
+    - CONFIG_SLEEP_LONG
+    - CONFIG_SLEEP_DEEP
+    - CONFIG_COMMON_IRQ_FRAMEWORK
+    - CONFIG_SYSCALL
+    - CONFIG_TIMER
+    - CONFIG_FLOAT
+    - CONFIG_CPU_LOAD
   :test_preprocess:
     - *common_defines
     - TEST

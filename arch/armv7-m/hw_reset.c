@@ -1,37 +1,13 @@
 #include "io.h"
-#include "arch/interrupt.h"
 #include "arch/regs.h"
-
-extern const uintptr_t _etext, _edata, _ebss, _ram_end;
-extern uintptr_t _data, _bss;
-
-static inline void mem_init(void)
-{
-	const uintptr_t *end, *src;
-	uintptr_t *dst;
-	uintptr_t i;
-
-	/* copy .data section from flash to sram */
-	dst = (uintptr_t *)&_data;
-	end = (const uintptr_t *)&_edata;
-	src = (const uintptr_t *)&_etext;
-
-	for (i = 0; &dst[i] < end; i++)
-		dst[i] = src[i];
-
-	/* clear .bss section */
-	dst = (uintptr_t *)&_bss;
-	end = (const uintptr_t *)&_ebss;
-
-	for (i = 0; &dst[i] < end; i++)
-		dst[i] = 0;
-
-	dsb();
-}
+#include "kernel/interrupt.h"
+#include "kernel/init.h"
 
 #define VECTKEY		0x5faUL
 
-void __reboot(void)
+extern const uintptr_t _ram_end;
+
+void hw_reboot(void)
 {
 	dsb();
 	isb();
@@ -41,9 +17,7 @@ void __reboot(void)
 		| (1UL << 2); /* system reset request */
 }
 
-#include "kernel/init.h"
-
-void __init __attribute__((naked, used)) ISR_reset(void)
+void __attribute__((naked, used)) ISR_reset(void)
 {
 	__cli();
 
@@ -74,19 +48,16 @@ void __init __attribute__((naked, used)) ISR_reset(void)
 #endif
 
 	for (int i = NVECTOR_IRQ; i < (NVECTOR_IRQ + IRQ_MAX); i++)
-		nvic_set_pri(i, IRQ_PRIORITY_DEFAULT);
+		hw_irq_set_pri(i, IRQ_PRIORITY_DEFAULT);
 
 	/* the bigger number the lower priority while 0 is the highest
 	 * priority. */
-	nvic_set_pri(NVECTOR_SYSTICK, IRQ_PRIORITY_LOWEST);
-	nvic_set_pri(NVECTOR_SVC, IRQ_PRIORITY_LOWEST);
-	nvic_set_pri(NVECTOR_PENDSV, IRQ_PRIORITY_LOWEST);
+	hw_irq_set_pri(NVECTOR_SYSTICK, IRQ_PRIORITY_LOWEST);
+	hw_irq_set_pri(NVECTOR_SVC, IRQ_PRIORITY_LOWEST);
+	hw_irq_set_pri(NVECTOR_PENDSV, IRQ_PRIORITY_LOWEST);
 
 	dsb();
 	isb();
 
-	mem_init();
-	irq_init();
-
-	kernel_init();
+	system_init();
 }

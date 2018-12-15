@@ -1,5 +1,5 @@
-#ifndef __YAOS_ARMv7M_IO_H__
-#define __YAOS_ARMv7M_IO_H__
+#ifndef __YAOS_ARMv7M_HW_IO_H__
+#define __YAOS_ARMv7M_HW_IO_H__
 
 #include <stdint.h>
 
@@ -69,13 +69,21 @@
 	__asm__ __volatile__("msr msp, %0" :: "r"(sp))
 #define __set_usp(sp)							\
 	__asm__ __volatile__("msr psp, %0" :: "r"(sp))
+#else /* defined(TEST) */
+void __dmb(void);
+void __dsb(void);
+void __isb(void);
+uintptr_t __get_cntl(void);
+uintptr_t __get_psr(void);
 #endif /* !defined(TEST) */
 
-#define __get_ret_addr()	__get_lr()
+#define __get_ret_addr()		__get_lr()
 
-#define __get_active_irq()	(__get_psr() & 0x1ff)
-#define __in_interrupt()	__get_active_irq()
+#define __get_active_irq()		(__get_psr() & 0x1ff)
+#define __in_interrupt()		__get_active_irq()
+#define __is_interrupt_disabled()	(__get_primask() & 1UL)
+#define __is_privileged()		(!(__get_cntl() & 1UL))
 
 #include "arch/mach/io.h" 
 
-#endif /* __YAOS_ARMv7M_IO_H__ */
+#endif /* __YAOS_ARMv7M_HW_IO_H__ */
