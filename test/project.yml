@@ -44,6 +44,7 @@
   :test:
     - *common_defines
     - TEST
+    - NDEBUG
     - CONFIG_DEBUG
     - CONFIG_REALTIME
     - CONFIG_SLEEP_LONG
