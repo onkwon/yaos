@@ -8,3 +8,4 @@ include/arch
 include/drivers
 tools/itm.fifo
 Documentation/online
+cov-int

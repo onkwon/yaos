@@ -24,6 +24,9 @@ RUN wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-a
 	&& tar -jxvf gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 \
 	&& rm gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
 
-ENV PATH $PATH:/toolchain/gcc-arm-none-eabi-7-2018-q2-update/bin
+ENV PATH $PATH:/toolchain/gcc-arm-none-eabi-7-2018-q2-update/bin:/toolchain/cov-analysis-linux64-2017.07/bin
+
+ADD cov-analysis-linux64-2017.07.tar.gz ./
+RUN cov-configure --comptype gcc --compiler arm-none-eabi-gcc
 
 WORKDIR /app
