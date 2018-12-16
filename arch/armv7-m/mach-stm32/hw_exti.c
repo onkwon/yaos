@@ -1,9 +1,9 @@
 /** @file exti.c */
-#include "arch/mach/exti.h"
+#include "arch/mach/hw_exti.h"
 #include "arch/mach/clock.h"
 #include "arch/atomic.h"
 
-void exti_enable(uint16_t pin, const bool enable)
+void hw_exti_enable(uint16_t pin, const bool enable)
 {
 	reg_t *reg;
 	unsigned int port, bit, val;

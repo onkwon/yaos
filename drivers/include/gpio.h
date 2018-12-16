@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/** GPIO initialization options. Each options get combined by OR. For example
+/** GPIO initialization options. Each option gets combined by OR. For example
  * to initialize a gpio as an input with interrupt enabled at falling edge and
  * pull-up `gpio_init(pin_number, GPIO_MODE_INPUT | GPIO_CONF_PULLUP |
  * GPIO_INT_FALLING)`. */
