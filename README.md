@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/onkwon/yaos.svg?branch=master)](https://travis-ci.org/onkwon/yaos)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/69c0ee97ee2843d9ac4b415d9ee21b6f)](https://app.codacy.com/app/onkwon/yaos?utm_source=github.com&utm_medium=referral&utm_content=onkwon/yaos&utm_campaign=Badge_Grade_Dashboard)
+[![codecov](https://codecov.io/gh/onkwon/yaos/branch/master/graph/badge.svg)](https://codecov.io/gh/onkwon/yaos)
 
 This is an embedded operating system for Internet of Things(IoT) devices, specifically for a single-core processor without MMU virtualization. It is designed for energy efficiency and hardware independent development.
 

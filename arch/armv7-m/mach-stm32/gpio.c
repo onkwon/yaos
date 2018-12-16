@@ -3,7 +3,7 @@
 #include "log.h"
 #include "io.h"
 
-#include "include/exti.h"
+#include "include/hw_exti.h"
 #include "include/clock.h"
 
 #include <errno.h>
@@ -82,7 +82,7 @@ static void ISR_gpio(int nvector)
 		return;
 	}
 
-	pending = get_exti_pending();
+	pending = hw_exti_get_pending();
 
 	while (mask) {
 		if (pending & (1 << pin))
@@ -94,7 +94,7 @@ static void ISR_gpio(int nvector)
 	if (mask && isr_table[pin])
 		isr_table[pin](nvector);
 
-	clear_exti_pending(pin);
+	hw_exti_clear_pending(pin);
 }
 
 static inline int gpio2exti(int n)
@@ -282,10 +282,10 @@ int __gpio_init(const uint16_t index, const uint32_t flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		nvic_set(pin2vec(pin), true);
+		hw_irq_set(pin2vec(pin), true);
 		lvector = mkvector(pin2vec(pin), pin);
 
-		exti_enable(index, true);
+		hw_exti_enable(index, true);
 	}
 
 	state[port].pins |= 1 << pin;
@@ -398,10 +398,10 @@ int __gpio_init(const uint16_t index, const uint32_t flags)
 		if (flags & GPIO_INT_RISING)
 			EXTI_RTSR |= 1 << pin;
 
-		nvic_set(pin2vec(pin), true);
+		hw_irq_set(pin2vec(pin), true);
 		lvector = mkvector(pin2vec(pin), pin);
 
-		exti_enable(index, true);
+		hw_exti_enable(index, true);
 	}
 
 	state[port].pins |= 1 << pin;
@@ -441,7 +441,7 @@ void __gpio_fini(const uint16_t index)
 #endif
 	}
 
-	exti_enable(index, false);
+	hw_exti_enable(index, false);
 	lvector = mkvector(pin2vec(pin), pin);
 	unregister_isr(lvector);
 }

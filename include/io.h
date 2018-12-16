@@ -1,7 +1,7 @@
 #ifndef __YAOS_IO_H__
 #define __YAOS_IO_H__
 
-#include "arch/io.h"
+#include "arch/hw_io.h"
 
 /** IRQ priority */
 enum irq_pri {
@@ -27,9 +27,11 @@ enum irq_pri {
 /** Test if in interrupt context */
 #define in_interrupt()			__in_interrupt()
 /** Test if interrupts disabled */
-#define is_interrupt_disabled()		(__get_primask() & 1UL)
-
+#define is_interrupt_disabled()		__is_interrupt_disabled()
 /** Test if in privileged mode */
-#define is_honored()			(in_interrupt() || !(__get_cntl() & 1UL))
+#define is_privileged()			__is_privileged()
+
+/** Test if it has the right permission */
+#define is_honored()			(in_interrupt() || is_privileged())
 
 #endif /* __YAOS_IO_H__ */

@@ -1,9 +1,10 @@
-sudo: required
-language: c
-
 env:
         global:
-                - CODECOV_TOKEN="598f067e-8da0-4fa8-8234-92c4930514c3"
+                - secure: "howVDNjF5ERo66sm74igAgZ+cvATNVBz2BmCgoED/vPbf/HP31r8BDwzFFc5DyGdzwcANyZDHD3YZ7UuUYYcxeopURpDJUaPF6vwlkL1VJq8yrldA9Q+Q3HBJjko3FnuoHLznoJcYUxDXsOSiPwYZM1Q0awyij7xyPLpg66EythC8ScEtxIeKmis4QaBqEbaM2fCOof9ejZwm3pMOpXgRNuysptAQrJVkRIt5tLwbdp1ByCjoCw3/7Q0BoYspj7BxEkiXNWCShJK89JWoqPHfOkU+rrQdL65/MW6sTKROX9TmpUHpuhQvxBtKegXUyLVbu7UzaSsJLWkx6ic6trXIALHdZYLtisC4Vih5hrPongrlieUF380bhMBEnqtVg69so42uCJNSL2z4b3YEZ1D+nvvZQ4YEm/MXRR+cLmFUHEF5765NB2X8catqdwh2bVpkRhJY+yKgNqfpMqBmfKzWkg4YDXQIJap5WwYwjnwOFaV1H84iaoqRk4J2GGy69GDkFc7xm+6VtXrBZYq7LGRI2HQ1CTDYGG9WpxlzOJpHYpIZFUl2dN0neQCWjwUe01eAtl0xDubRy0K52bVGS+oJrZsakNen2fm1qwy0h3x8WZQW7wREQWO8tnSZphCI8uGLK0IBq7pNbEc6Hwh3r9toydrcFhimTSc90N8IstQzqA="
+
+sudo: required
+
+language: c
 
 services:
         - docker
@@ -14,6 +15,7 @@ git:
 before_install:
         - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
         - git submodule update --init --recursive
+        - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
 
 install:
         - docker pull onkwon/yaos-build
@@ -22,6 +24,17 @@ script:
         - docker run -v $(pwd):/app onkwon/yaos-build make stm32f1-min
         - docker run -v $(pwd):/app onkwon/yaos-build make
         - docker run -v $(pwd):/app onkwon/yaos-build make test
+        - docker run -v $(pwd):/app onkwon/yaos-build make coverage
+        - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then docker run -v $(pwd):/app onkwon/yaos-build cov-build --dir cov-int make test && tar --exclude emit-db.write-lock -czvf yaos-cov.tgz cov-int; fi
 
 after_success:
         - bash <(curl -s https://codecov.io/bash)
+
+addons:
+        coverity_scan:
+                project:
+                        name: "onkwon/yaos"
+                notification_email: kwon@toanyone.net
+                build_command_prepend: "docker run -v $(pwd):/app onkwon/yaos-build make stm32f1-min"
+                build_command: "docker run -v $(pwd):/app onkwon/yaos-build cov-build --dir cov-int make test"
+                branch_pattern: coverity_scan

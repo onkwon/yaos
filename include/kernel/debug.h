@@ -8,7 +8,7 @@
 #define TRAP_SYSCALL_FSTAT		5
 #define TRAP_SYSCALL_ISATTY		6
 
-#include "arch/debug.h"
+#include "arch/hw_debug.h"
 
 #define debug_putc			hw_debug_putc
 

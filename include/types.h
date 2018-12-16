@@ -40,7 +40,6 @@ typedef enum {
 #define container_of(ptr, type, member) \
 	((type *)((char *)(ptr) - (char *)&((type *)0)->member))
 
-#if 0
 #ifndef max
 #define max(a, b)			({ \
 		__typeof__(a) _a = (a); \
@@ -54,7 +53,6 @@ typedef enum {
 		__typeof__(b) _b = (b); \
 		_a < _b ? _a : _b; \
 })
-#endif
 #endif
 
 /** Check if integral power of two */
