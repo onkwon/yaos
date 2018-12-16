@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+/** The maxmium number of gpio. Increase when needed more to support */
+#define GPIO_MAX			256
+
 /** GPIO initialization options. Each option gets combined by OR. For example
  * to initialize a gpio as an input with interrupt enabled at falling edge and
  * pull-up `gpio_init(pin_number, GPIO_MODE_INPUT | GPIO_CONF_PULLUP |

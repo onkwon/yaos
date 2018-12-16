@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <limits.h>
 
 /** Register type */
 typedef volatile uintptr_t reg_t;
@@ -21,7 +22,7 @@ typedef enum {
 } sleep_t;
 
 #define WORD_SIZE			sizeof(uintptr_t)
-#define WORD_BITS			(WORD_SIZE << 3)
+#define WORD_BITS			(WORD_SIZE * CHAR_BIT)
 
 #define MASK(v, mask)			((v) & (mask))
 #define MASK_RESET(v, mask)		((v) & ~(mask))

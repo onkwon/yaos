@@ -12,6 +12,10 @@ include/list.h
 ^^^^^^^^^^^^^^
 .. c:autodoc:: ../../include/list.h
 
+include/bitmap.h
+^^^^^^^^^^^^^^^^
+.. c:autodoc:: ../../include/bitmap.h
+
 Atomic primitives
 -----------------
 
@@ -39,7 +43,6 @@ include/log.h
 
 include/kernel/debug.h
 ^^^^^^^^^^^^^^^^^^^^^^
-
 .. c:autodoc:: ../../include/kernel/debug.h
 
 String
@@ -47,5 +50,4 @@ String
 
 include/strext.h
 ^^^^^^^^^^^^^^^^
-
 .. c:autodoc:: ../../include/strext.h

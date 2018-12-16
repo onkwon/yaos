@@ -10,3 +10,4 @@ tools/itm.fifo
 Documentation/online
 cov-int
 .DS_Store
+.*.swp
