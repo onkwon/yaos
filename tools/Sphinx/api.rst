@@ -22,17 +22,30 @@ include/arch/atomic.h
 Interrupt service routine
 -------------------------
 
-include/arch/interrupt.h
-^^^^^^^^^^^^^^^^^^^^^^^^
-.. c:autodoc:: ../../include/arch/interrupt.h
+include/kernel/interrupt.h
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. c:autodoc:: ../../include/kernel/interrupt.h
 
 include/io.h
 ^^^^^^^^^^^^
 .. c:autodoc:: ../../include/io.h
 
-Log
----
+Log / Debug
+-----------
 
 include/log.h
 ^^^^^^^^^^^^^
 .. c:autodoc:: ../../include/log.h
+
+include/kernel/debug.h
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. c:autodoc:: ../../include/kernel/debug.h
+
+String
+------
+
+include/strext.h
+^^^^^^^^^^^^^^^^
+
+.. c:autodoc:: ../../include/strext.h
