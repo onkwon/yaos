@@ -1,5 +1,8 @@
 #include "unity.h"
 #include "bitmap.h"
+#include <errno.h>
+
+#define BITMAP_TESTSIZE_MAX		4096 // bits
 
 void setUp(void)
 {
@@ -9,32 +12,32 @@ void tearDown(void)
 {
 }
 
-void test_bitmap_init(void)
+void test_bitmap(void)
 {
-	TEST_IGNORE();
-	// return -EINVAL when array is null
-	// return 0 with array initialized as 0
-	// return 0 with array initialized as 1
-	// check boundary bits
-}
+	for (int bits = 0; bits < BITMAP_TESTSIZE_MAX; bits++) {
+		DEFINE_BITMAP(bitmap, bits);
 
-void test_bitmap_set(void)
-{
-	TEST_IGNORE();
-	// return -ERANGE when pos is bigger than max
-	// return -EINVAL when not initialized
-	// return 0 when ok, assert the result
-}
+		bitmap_init(bitmap, bits, 0);
+		for (int i = 0; i < bits; i++)
+			TEST_ASSERT_EQUAL(0, bitmap_get(bitmap, i));
+		bitmap_init(bitmap, bits, 1);
+		for (int i = 0; i < bits; i++)
+			TEST_ASSERT_EQUAL(1, bitmap_get(bitmap, i));
+	}
 
-void test_bitmap_get(void)
-{
-	TEST_IGNORE();
-	// return -ERANGE when pos is bigger than max
-	// return -ENOENT when not initialized
-}
+	DEFINE_BITMAP(bitmap, BITMAP_TESTSIZE_MAX);
+	bitmap_init(bitmap, BITMAP_TESTSIZE_MAX, 0);
 
-void test_template(void)
-{
-	TEST_IGNORE();
-	TEST_IGNORE_MESSAGE("Implement me!");
+	for (int i = 0; i < BITMAP_TESTSIZE_MAX; i++) {
+		if (i % 2)
+			continue;
+		bitmap_set(bitmap, i, 1);
+	}
+
+	for (int i = 0; i < BITMAP_TESTSIZE_MAX; i++) {
+		if (i % 2)
+			TEST_ASSERT_EQUAL(0, bitmap_get(bitmap, i));
+		else
+			TEST_ASSERT_EQUAL(1, bitmap_get(bitmap, i));
+	}
 }

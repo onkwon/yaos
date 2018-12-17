@@ -3,45 +3,45 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
-typedef struct {
-	unsigned int max;
-	uintptr_t *arr;
-} bitmap_t;
+typedef uintptr_t bitmap_t;
 
-/** Get a value of the bit in the bitmap array
+/** Bitmap unit size in bytes, that shows each one in array can hold at most */
+#define BITMAP_UNIT			(sizeof(bitmap_t) * CHAR_BIT)
+#define BITMAP_SIZE(nbits)		((nbits) / BITMAP_UNIT)
+#define BITMAP_ARRAY_SIZE(nbits)	\
+	(BITMAP_SIZE(nbits) + (1 * !!((nbits) % BITMAP_UNIT)))
+
+/** Define a bitmap
+ * @param name name of bitmap
+ * @param nbits number of bits to use
+ */
+#define DEFINE_BITMAP(name, nbits)				\
+	bitmap_t name[BITMAP_ARRAY_SIZE(nbits)]
+
+/** Get a value of bit in the bitmap array
  *
  * @param bitmap a pointer to `bitmap_t`
  * @param pos bit position to set or clear
- * @return negative on failure otherwise 1 or 0
+ * @return 1 or 0
  */
-int bitmap_get(bitmap_t * const bitmap, const unsigned int pos);
+bool bitmap_get(bitmap_t * const bitmap, const unsigned int pos);
 /** Set or clear a bit in the bitmap array
  *
  * @param bitmap a pointer to `bitmap_t`
  * @param pos bit position to set or clear
- * @param torf true or false to set or clear
- * @return 0 on success
+ * @param zerone zero or one to clear or set
  */
-int bitmap_set(bitmap_t * const bitmap,
+void bitmap_set(bitmap_t * const bitmap,
 		const unsigned int pos,
-		const bool torf);
+		const bool zerone);
 /** Initialize bitmap
  *
  * @param bitmap a pointer to `bitmap_t`
- * @param arr `uintptr_t` type array. It must be big enough to contain :c:data:`bitmax` number of bits
- * @param bitmax number of bits to allocate in the array
+ * @param bitmax number of bits to initialize in the array
  * @param val initial value in the array
- * @return 0 on success
  */
-int bitmap_init_static(bitmap_t * const bitmap,
-		uintptr_t * const arr,
-		const unsigned int bitmax,
-		const bool val);
-#if 0 // TODO: implement dynamic allocation for bitmap array
-int bitmap_init(bitmap_t *const bitmap,
-		const unsigned int bitmax,
-		const bool val);
-#endif
+void bitmap_init(bitmap_t * const bitmap, const unsigned int bitmax, const bool val);
 
 #endif /* __YAOS_BITMAP_H__ */
