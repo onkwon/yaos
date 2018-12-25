@@ -29,6 +29,7 @@ static void ISR_gpio(int vector)
 	}
 #endif
 
+	// lock free here for `_cb_dict` as it only reads
 	if (0 != idict_get(&_cb_dict, pin, &addr)) {
 		syslog("WARN: no isr registered for gpio(%u)", pin);
 		goto out;
@@ -56,7 +57,7 @@ int gpio_init(const uint16_t pin, const uint32_t flags, void (*f)(const int))
 			rc = 0;
 	}
 
-	bitmap_set(_gpiomap, pin, true);
+	bitmap_set(_gpiomap, pin);
 out:
 	// TODO: UNLOCK
 	return rc;
@@ -68,7 +69,7 @@ void gpio_fini(const uint16_t pin)
 	// TODO: LOCK
 	hw_gpio_fini(pin);
 	idict_del(&_cb_dict, pin);
-	bitmap_set(_gpiomap, pin, false);
+	bitmap_clear(_gpiomap, pin);
 	// TODO: UNLOCK
 }
 
