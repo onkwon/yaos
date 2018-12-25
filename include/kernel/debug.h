@@ -10,8 +10,7 @@
 
 #include "arch/hw_debug.h"
 
-#define debug_putc			hw_debug_putc
-
 void debug_init(void);
+void debug_putc(const int c);
 
 #endif /* __YAOS_DEBUG_H__ */

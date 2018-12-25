@@ -6,10 +6,10 @@ struct llist {
 	struct llist *next, *prev;
 };
 
-#define INIT_LINKS_HEAD(name) 		{ &(name), &(name) }
+#define INIT_LLIST_HEAD(name) 		{ &(name), &(name) }
 /** Define a doubly-linked list initializing the links to itself */
-#define DEFINE_LINKS_HEAD(name)		\
-	struct llist name = INIT_LINKS_HEAD(name)
+#define DEFINE_LLIST_HEAD(name)		\
+	struct llist name = INIT_LLIST_HEAD(name)
 
 /** Initialize doubly-linked list pointing to itself */
 static inline void llist_init(struct llist *node)
@@ -58,7 +58,7 @@ struct list {
 };
 
 /** Define a singly-linked list initializing the link to NULL */
-#define DEFINE_LINK_HEAD(name)		struct list name = { NULL }
+#define DEFINE_LIST_HEAD(name)		struct list name = { NULL }
 
 /** Initialize singly-linked list pointing to NULL */
 static inline void list_init(struct list *node)

@@ -2,7 +2,7 @@
 #include "arch/atomic.h"
 #include "arch/regs.h"
 #include "io.h"
-#include "log.h"
+#include "syslog.h"
 
 #include <stdlib.h>
 

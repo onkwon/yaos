@@ -11,10 +11,13 @@
 #define gpio_to_reg(pin)	\
 	((reg_t *)((((gpio_to_port(pin)) * WORD_SIZE) << 8) + PORTA))
 
-int __gpio_get(const uint16_t index);
-void __gpio_put(const uint16_t index, const int val);
-int __gpio_init(const uint16_t index, const uint32_t flags);
-void __gpio_fini(const uint16_t index);
-uint16_t __gpio_get_status(const uint8_t port);
+int hw_gpio_init(const uint16_t index, const uint32_t flags);
+void hw_gpio_fini(const uint16_t index);
+int hw_gpio_get(const uint16_t index);
+void hw_gpio_put(const uint16_t index, const int val);
+uint16_t hw_gpio_get_event_source(int vector);
+void hw_gpio_clear_event(uint16_t pin);
+
+void hw_gpio_driver_init(void (*f)(int));
 
 #endif /* __YAOS_STM32_GPIO_H__ */

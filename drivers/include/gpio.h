@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+/** The maxmium number of gpio. Increase when needed more to support */
+#define GPIO_MAX			256U
+
 /** GPIO initialization options. Each option gets combined by OR. For example
  * to initialize a gpio as an input with interrupt enabled at falling edge and
  * pull-up `gpio_init(pin_number, GPIO_MODE_INPUT | GPIO_CONF_PULLUP |
@@ -61,32 +64,33 @@ enum gpio_mode {
 /**
  * Initialize a gpio
  *
- * @param npin Number of pin
+ * @param pin Number of pin
  * @param flags Refer to :c:type:`enum gpio_mode`
+ * @param f Interrupt callback function. NULL if not interrupt enabled
  * @return Logical interrupt vector number
  */
-int gpio_init(const uint16_t npin, const uint32_t flags);
+int gpio_init(const uint16_t pin, const uint32_t flags, void (*f)(const int));
 /**
  * Deinitialize a gpio
  *
- * @param npin Number of pin
+ * @param pin Number of pin
  */
-void gpio_fini(const uint16_t npin);
+void gpio_fini(const uint16_t pin);
 /**
  * Write logical value to GPIO output pin
  *
- * @param npin Number of pin
+ * @param pin Number of pin
  * @param val Logical value to write
  */
-void gpio_put(const uint16_t npin, const int val);
+void gpio_put(const uint16_t pin, const int val);
 /**
  * Read logical value of GPIO input pin
  *
- * @param npin Number of pin
+ * @param pin Number of pin
  * @return Current level of GPIO
  */
-uint16_t gpio_get(const uint16_t npin);
+int gpio_get(const uint16_t pin);
 
-#include "arch/mach/gpio.h"
+#include "arch/mach/hw_gpio.h"
 
 #endif /* __YAOS_GPIO_H__ */
