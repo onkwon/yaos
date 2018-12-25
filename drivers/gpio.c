@@ -15,6 +15,7 @@ static DEFINE_DICTIONARY(_cb_dict, SLOT_MAX); // isr callback dictionary for eac
 static void ISR_gpio(int vector)
 {
 	void (*f)(const int pin) = NULL;
+	uintptr_t addr;
 	uint16_t pin;
 
 	vector = get_active_irq_from_isr(vector); // TODO: try define(...)
@@ -28,12 +29,12 @@ static void ISR_gpio(int vector)
 	}
 #endif
 
-	if (0 != idict_get(&_cb_dict, pin, (void *)f)) {
+	if (0 != idict_get(&_cb_dict, pin, &addr)) {
 		syslog("WARN: no isr registered for gpio(%u)", pin);
 		goto out;
 	}
 
-	if (f)
+	if ((f = (void (*)(int))addr))
 		f(pin);
 out:
 	hw_gpio_clear_event(pin);
