@@ -32,7 +32,10 @@ void test_bitmap(void)
 		if (i % 2)
 			continue;
 		bitmap_set(bitmap, i, 1);
+		TEST_ASSERT_EQUAL(i/2+1, bitmap_count(bitmap, BITMAP_TESTSIZE_MAX));
 	}
+
+	TEST_ASSERT_EQUAL(BITMAP_TESTSIZE_MAX / 2, bitmap_count(bitmap, BITMAP_TESTSIZE_MAX));
 
 	for (int i = 0; i < BITMAP_TESTSIZE_MAX; i++) {
 		if (i % 2)
@@ -40,4 +43,7 @@ void test_bitmap(void)
 		else
 			TEST_ASSERT_EQUAL(1, bitmap_get(bitmap, i));
 	}
+
+	bitmap_set(bitmap, 2, 0);
+	TEST_ASSERT_EQUAL(BITMAP_TESTSIZE_MAX / 2 - 1, bitmap_count(bitmap, BITMAP_TESTSIZE_MAX));
 }

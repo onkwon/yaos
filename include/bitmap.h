@@ -26,7 +26,7 @@ typedef uintptr_t bitmap_t;
  * @param pos bit position to set or clear
  * @return 1 or 0
  */
-bool bitmap_get(bitmap_t * const bitmap, const unsigned int pos);
+bool bitmap_get(const bitmap_t * const bitmap, const unsigned int pos);
 /** Set or clear a bit in the bitmap array
  *
  * @param bitmap a pointer to `bitmap_t`
@@ -36,6 +36,13 @@ bool bitmap_get(bitmap_t * const bitmap, const unsigned int pos);
 void bitmap_set(bitmap_t * const bitmap,
 		const unsigned int pos,
 		const bool zerone);
+/** Count number of bits set in a bitmap
+ *
+ * @param bitmap a pointer to `bitmap_t`
+ * @param bits number of bits used
+ * @return number of bits set
+ */
+unsigned int bitmap_count(const bitmap_t * const bitmap, const unsigned bits);
 /** Initialize bitmap
  *
  * @param bitmap a pointer to `bitmap_t`

@@ -1,7 +1,27 @@
 #include "bitmap.h"
 #include <errno.h>
 
-bool bitmap_get(bitmap_t * const bitmap, const unsigned int pos)
+unsigned int bitmap_count(const bitmap_t * const bitmap, const unsigned bits)
+{
+	unsigned int cnt = 0;
+	int nword = bits / BITMAP_UNIT;
+	int remain = bits % BITMAP_UNIT;
+
+	for (int i = 0; i < nword; i++) {
+		for (int j = 0; bitmap[i] >> j; j++)
+			if ((bitmap[i] >> j) & 1U)
+				cnt++;
+	}
+
+	for (int i = 0; (i < remain) && (bitmap[nword] >> i); i++) {
+		if ((bitmap[nword] >> i) & 1U)
+			cnt++;
+	}
+
+	return cnt;
+}
+
+bool bitmap_get(const bitmap_t * const bitmap, const unsigned int pos)
 {
 	bitmap_t val = bitmap[pos / BITMAP_UNIT]
 		& (1UL << (pos % BITMAP_UNIT));
