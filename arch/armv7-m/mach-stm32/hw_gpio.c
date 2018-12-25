@@ -1,6 +1,6 @@
 #include "drivers/gpio.h"
 #include "kernel/interrupt.h"
-#include "log.h"
+#include "syslog.h"
 #include "io.h"
 
 #include "include/hw_exti.h"
@@ -14,88 +14,6 @@
 #ifndef NR_PORT
 #define NR_PORT			5U
 #endif
-
-static struct gpio {
-	union {
-		struct {
-			uint16_t pin0: 1;
-			uint16_t pin1: 1;
-			uint16_t pin2: 1;
-			uint16_t pin3: 1;
-			uint16_t pin4: 1;
-			uint16_t pin5: 1;
-			uint16_t pin6: 1;
-			uint16_t pin7: 1;
-			uint16_t pin8: 1;
-			uint16_t pin9: 1;
-			uint16_t pin10: 1;
-			uint16_t pin11: 1;
-			uint16_t pin12: 1;
-			uint16_t pin13: 1;
-			uint16_t pin14: 1;
-			uint16_t pin15: 1;
-		};
-
-		uint16_t pins;
-	};
-} state[NR_PORT];
-
-static int nr_active; /* number of active pins */
-
-static void (*isr_table[PINS_PER_PORT])(int nvector);
-
-static int irq_register(const int lvector, void (*handler)(const int))
-{
-	uint16_t pin = get_secondary_vector(lvector);
-
-	if (pin >= PINS_PER_PORT)
-		return -ERANGE;
-
-	/* NOTE: maybe you can make handler list so that multiple user handlers
-	 * get called. we call only one here however. */
-	isr_table[pin] = handler;
-
-	return 0;
-}
-
-static void ISR_gpio(int nvector)
-{
-	unsigned int pending;
-	uint16_t pin, mask;
-
-#ifndef CONFIG_COMMON_IRQ_FRAMEWORK
-	nvector = get_active_irq();
-#endif
-	pin = nvector;
-	mask = 1;
-
-	pin -= 22; /* EXTI0~4 */
-
-	if (pin == 17) { /* EXTI5~9 */
-		pin = 5;
-		mask = 0x1f;
-	} else if (pin == 34) { /* EXTI10~15 */
-		pin = 10;
-		mask = 0x3f;
-	} else if (pin > 4) {
-		debug("unknown interrupt vector %x\n", nvector);
-		return;
-	}
-
-	pending = hw_exti_get_pending();
-
-	while (mask) {
-		if (pending & (1 << pin))
-			break;
-		mask >>= 1;
-		pin++;
-	}
-
-	if (mask && isr_table[pin])
-		isr_table[pin](nvector);
-
-	hw_exti_clear_pending(pin);
-}
 
 static inline int gpio2exti(int n)
 {
@@ -129,25 +47,6 @@ static inline void write_port_pin(reg_t *reg, uint16_t pin, int val)
 	reg[idx] = (val == 1)? (1UL << pin) : (1UL << (pin + 16));
 }
 
-static void set_port_pin_conf(reg_t *reg, uint16_t pin, uint16_t mode)
-{
-	unsigned int idx, t, shift, mask;
-
-#if defined(stm32f1)
-	idx = pin / 8;
-	shift = (pin % 8) * 4;
-	mask = 0xf;
-#else
-	idx = pin / 16;
-	shift = (pin % 16) * 2;
-	mask = 0x3;
-#endif
-
-	t = reg[idx];
-	t = MASK_RESET(t, mask << shift) | ((unsigned int)mode << shift);
-	reg[idx] = t;
-}
-
 static inline int pin2vec(uint16_t pin)
 {
 	int nvector = 0;
@@ -169,7 +68,68 @@ static inline int pin2vec(uint16_t pin)
 	return nvector;
 }
 
-int __gpio_get(const uint16_t index)
+static void set_port_pin_conf(reg_t *reg, uint16_t pin, uint16_t mode)
+{
+	unsigned int idx, t, shift, mask;
+
+#if defined(stm32f1)
+	idx = pin / 8;
+	shift = (pin % 8) * 4;
+	mask = 0xf;
+#else
+	idx = pin / 16;
+	shift = (pin % 16) * 2;
+	mask = 0x3;
+#endif
+
+	t = reg[idx];
+	t = MASK_RESET(t, mask << shift) | ((unsigned int)mode << shift);
+	reg[idx] = t;
+}
+
+void hw_gpio_clear_event(uint16_t pin)
+{
+	hw_exti_clear_pending(pin);
+}
+
+uint16_t hw_gpio_get_event_source(int vector)
+{
+	unsigned int pending;
+	uint16_t pin, mask;
+
+	pin = vector;
+	mask = 1;
+
+	pin -= 22; /* EXTI0~4 */
+
+	if (pin == 17) { /* EXTI5~9 */
+		pin = 5;
+		mask = 0x1f;
+	} else if (pin == 34) { /* EXTI10~15 */
+		pin = 10;
+		mask = 0x3f;
+	} else if (pin > 4) {
+		debug("unknown interrupt vector %x\n", vector);
+		pin = -ENOENT;
+		goto out;
+	}
+
+	pending = hw_exti_get_pending();
+
+	while (mask) {
+		if (pending & (1 << pin))
+			break;
+		mask >>= 1;
+		pin++;
+	}
+
+	if (!mask)
+		pin = -ERANGE;
+out:
+	return pin;
+}
+
+int hw_gpio_get(const uint16_t index)
 {
 	uint16_t port, pin;
 	reg_t *reg;
@@ -185,7 +145,7 @@ int __gpio_get(const uint16_t index)
 	return (int)((scan_port(reg) >> pin) & 1UL);
 }
 
-void __gpio_put(const uint16_t index, const int val)
+void hw_gpio_put(const uint16_t index, const int val)
 {
 	uint16_t port, pin;
 	reg_t *reg;
@@ -202,7 +162,7 @@ void __gpio_put(const uint16_t index, const int val)
 }
 
 #if defined(stm32f1)
-int __gpio_init(const uint16_t index, const uint32_t flags)
+int hw_gpio_init(const uint16_t index, const uint32_t flags)
 {
 	uint16_t port, pin, mode;
 	int lvector;
@@ -217,12 +177,6 @@ int __gpio_init(const uint16_t index, const uint32_t flags)
 	mode = 0;
 	pin = gpio_to_ppin(index);
 	reg = gpio_to_reg(index);
-
-	if (state[port].pins & (1 << pin)) {
-		debug("already taken: %d", index);
-		lvector = -EEXIST;
-		goto out;
-	}
 
 	__turn_apb2_clock(port + 2, true);
 
@@ -283,15 +237,12 @@ int __gpio_init(const uint16_t index, const uint32_t flags)
 			EXTI_RTSR |= 1 << pin;
 
 		hw_irq_set(pin2vec(pin), true);
-		lvector = mkvector(pin2vec(pin), pin);
+		//lvector = mkvector(pin2vec(pin), pin);
+		lvector = (int)pin + 1;
 
 		hw_exti_enable(index, true);
 	}
 
-	state[port].pins |= 1 << pin;
-	nr_active++;
-
-out:
 	return lvector;
 }
 #elif defined(stm32f3) || defined(stm32f4)
@@ -309,7 +260,7 @@ static void set_port_pin_conf_alt(reg_t *reg, uint16_t pin, uint16_t mode)
 	reg[idx] = t;
 }
 
-int __gpio_init(const uint16_t index, const uint32_t flags)
+int hw_gpio_init(const uint16_t index, const uint32_t flags)
 {
 	uint16_t port, pin, mode;
 	int lvector;
@@ -324,12 +275,6 @@ int __gpio_init(const uint16_t index, const uint32_t flags)
 	mode = 0;
 	pin = gpio_to_ppin(index);
 	reg = gpio_to_reg(index);
-
-	if (state[port].pins & (1 << pin)) {
-		debug("already taken: %d", index);
-		lvector = -EEXIST;
-		goto out;
-	}
 
 #if defined(stm32f3)
 	__turn_ahb1_clock(port + 17, true);
@@ -399,20 +344,18 @@ int __gpio_init(const uint16_t index, const uint32_t flags)
 			EXTI_RTSR |= 1 << pin;
 
 		hw_irq_set(pin2vec(pin), true);
-		lvector = mkvector(pin2vec(pin), pin);
+		//lvector = mkvector(pin2vec(pin), pin);
+		lvector = (int)pin + 1;
 
 		hw_exti_enable(index, true);
 	}
-
-	state[port].pins |= 1 << pin;
-	nr_active++;
 
 out:
 	return lvector;
 }
 #endif
 
-void __gpio_fini(const uint16_t index)
+void hw_gpio_fini(const uint16_t index)
 {
 	uint16_t port, pin;
 	unsigned int lvector;
@@ -424,11 +367,8 @@ void __gpio_fini(const uint16_t index)
 
 	pin = gpio_to_ppin(index);
 
-	state[port].pins &= ~(1U << pin);
-	nr_active--;
-	assert(nr_active >= 0);
-
 	barrier();
+#if 0
 	if (!state[port].pins) {
 #if defined(stm32f1)
 		__turn_apb2_clock(port + 2, false);
@@ -440,51 +380,28 @@ void __gpio_fini(const uint16_t index)
 #error undefined machine
 #endif
 	}
+#endif
 
+	// FIXME: disable only if enable
 	hw_exti_enable(index, false);
 	lvector = mkvector(pin2vec(pin), pin);
 	unregister_isr(lvector);
 }
 
-uint16_t __gpio_get_status(uint8_t port)
+static inline void hw_gpio_irq_init(void (*f)(int))
 {
-	if (port >= NR_PORT) {
-		debug("not supported port: %d", port);
-		return -ERANGE;
-	}
-
-	return state[port].pins;
+	register_isr(22, f); /* EXTI0 */
+	register_isr(23, f); /* EXTI1 */
+	register_isr(24, f); /* EXTI2 */
+	register_isr(25, f); /* EXTI3 */
+	register_isr(26, f); /* EXTI4 */
+	register_isr(39, f); /* EXTI5~9 */
+	register_isr(56, f); /* EXTI10~15 */
 }
 
-#include <kernel/init.h>
-
-static inline void gpio_irq_init(void)
+void hw_gpio_driver_init(void (*f)(int))
 {
-	int i;
-
-	for (i = 0; i < PINS_PER_PORT; i++)
-		isr_table[i] = NULL;
-
-	register_isr(22, ISR_gpio); /* EXTI0 */
-	register_isr(23, ISR_gpio); /* EXTI1 */
-	register_isr(24, ISR_gpio); /* EXTI2 */
-	register_isr(25, ISR_gpio); /* EXTI3 */
-	register_isr(26, ISR_gpio); /* EXTI4 */
-	register_isr(39, ISR_gpio); /* EXTI5~9 */
-	register_isr(56, ISR_gpio); /* EXTI10~15 */
-
-	register_isr_register(22, irq_register, 0);
-	register_isr_register(23, irq_register, 0);
-	register_isr_register(24, irq_register, 0);
-	register_isr_register(25, irq_register, 0);
-	register_isr_register(26, irq_register, 0);
-	register_isr_register(39, irq_register, 0);
-	register_isr_register(56, irq_register, 0);
-}
-
-static void __init port_init(void)
-{
-	gpio_irq_init();
+	hw_gpio_irq_init(f);
 
 	/* FIXME: initializing of ports makes JTAG not working */
 	return;
@@ -539,4 +456,3 @@ static void __init port_init(void)
 	__turn_port_clock((reg_t *)PORTE, false);
 	__turn_port_clock((reg_t *)PORTF, false);
 }
-REGISTER_INIT(port_init, 10);

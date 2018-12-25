@@ -1,3 +1,4 @@
+//TODO: Implement lock-free
 #include "dict.h"
 #include "hash.h"
 

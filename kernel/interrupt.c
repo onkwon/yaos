@@ -1,7 +1,7 @@
 #include "kernel/interrupt.h"
 #include "arch/atomic.h"
 #include "io.h"
-#include "log.h"
+#include "syslog.h"
 
 #include <errno.h>
 #include <stdlib.h>

@@ -13,7 +13,7 @@ struct dict_item {
 /** Dictionary data type */
 typedef struct dict {
 	uint16_t slot; /** Size of the pointer table */
-	uint16_t n; /** Number of items stored */
+	volatile uint16_t n; /** Number of items stored */
 	struct dict_item *table; /** Table */
 } dict_t;
 

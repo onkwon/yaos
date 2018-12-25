@@ -1,4 +1,4 @@
-#include "log.h"
+#include "syslog.h"
 
 #if !defined(NDEBUG)
 void __assert_func(const char * const file, const int line,

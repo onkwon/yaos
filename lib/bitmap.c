@@ -1,3 +1,4 @@
+// Implement lock-free
 #include "bitmap.h"
 #include <errno.h>
 

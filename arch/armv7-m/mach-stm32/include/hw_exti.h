@@ -2,7 +2,7 @@
 #define __YAOS_STM32_HW_EXTI_H__
 
 #include "arch/hw_io.h"
-#include "arch/mach/gpio.h"
+#include "arch/mach/hw_gpio.h"
 #include "arch/mach/regs.h"
 #include <stdbool.h>
 #include <stdint.h>
