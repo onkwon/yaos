@@ -11,12 +11,14 @@ void fifo_init(struct fifo *q, void *queue, size_t n)
 
 void fifo_flush(struct fifo *q)
 {
-	q->front = q->rear = 0;
+	*(volatile uintptr_t *)&q->front =
+		*(volatile uintptr_t *)&q->rear = 0;
 }
 
 bool fifo_empty(struct fifo *q)
 {
-	return q->front == q->rear;
+	return *(volatile uintptr_t *)&q->front
+		== *(volatile uintptr_t *)&q->rear;
 }
 
 int fifo_getb(struct fifo *q)
