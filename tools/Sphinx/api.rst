@@ -37,9 +37,9 @@ include/io.h
 Log / Debug
 -----------
 
-include/log.h
-^^^^^^^^^^^^^
-.. c:autodoc:: ../../include/log.h
+include/syslog.h
+^^^^^^^^^^^^^^^^
+.. c:autodoc:: ../../include/syslog.h
 
 include/kernel/debug.h
 ^^^^^^^^^^^^^^^^^^^^^^
