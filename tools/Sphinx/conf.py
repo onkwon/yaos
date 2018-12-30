@@ -57,17 +57,6 @@ extensions = [
     'hawkmoth',
 ]
 
-# Handle failing hawkmoth.cautodoc import gracefully to be able to build the
-# documentation on e.g. https://readthedocs.org/ which would otherwise fail due
-# to missing clang. This may not be a good example to follow in regular
-# documentation.
-try:
-    import hawkmoth
-    extensions.append('hawkmoth')
-    tags.add('have_hawkmoth')
-except ImportError:
-    sys.stderr.write('Warning: Failed to import hawkmoth.\n')
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
