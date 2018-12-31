@@ -2,6 +2,7 @@
 #define __YAOS_IO_H__
 
 #include "arch/hw_io.h"
+#include "arch/atomic.h"
 
 /** IRQ priority */
 enum irq_pri {

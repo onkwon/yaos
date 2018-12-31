@@ -216,6 +216,9 @@ erase:
 .PHONY: term
 term:
 	minicom -D $(TTY)
+.PHONY: debug
+debug:
+	gdbgui -g $(CROSS_COMPILE)-gdb
 
 # Unit test
 .PHONY: test
