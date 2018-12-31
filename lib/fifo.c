@@ -1,24 +1,22 @@
 #include "fifo.h"
-#include "arch/atomic.h"
+#include "io.h"
 #include <errno.h>
 
-void fifo_init(struct fifo *q, void *queue, size_t n)
+void fifo_init(struct fifo *q, void *arr, size_t n)
 {
 	q->n = n;
-	q->buf = queue;
+	q->data = arr;
 	q->front = q->rear = 0;
 }
 
 void fifo_flush(struct fifo *q)
 {
-	*(volatile uintptr_t *)&q->front =
-		*(volatile uintptr_t *)&q->rear = 0;
+	ACCESS_ONCE(q->front) = ACCESS_ONCE(q->rear) = 0;
 }
 
 bool fifo_empty(struct fifo *q)
 {
-	return *(volatile uintptr_t *)&q->front
-		== *(volatile uintptr_t *)&q->rear;
+	return ACCESS_ONCE(q->front) == ACCESS_ONCE(q->rear);
 }
 
 int fifo_getb(struct fifo *q)
@@ -27,15 +25,15 @@ int fifo_getb(struct fifo *q)
 	uint8_t *buf;
 	int val;
 
-	if (!q || !q->buf)
+	if (!q || !q->data)
 		return -EINVAL;
 
-	buf = q->buf;
+	buf = q->data;
 
 	do {
 		pos = atomic_ll(&q->front);
 
-		if (pos == *(volatile typeof(q->rear) *)&q->rear)
+		if (pos == ACCESS_ONCE(q->rear))
 			return -ENOENT; /* empty */
 
 		val = (typeof(val))buf[pos];
@@ -50,15 +48,14 @@ int fifo_putb(struct fifo *q, int val)
 	uintptr_t pos;
 	uint8_t *buf;
 
-	if (!q || !q->buf)
+	if (!q || !q->data)
 		return -EINVAL;
 
-	buf = q->buf;
+	buf = q->data;
 
 	do {
 		pos = atomic_ll(&q->rear);
-		if (((pos + 1) % q->n) ==
-				*(volatile typeof(q->front) *)&q->front)
+		if (((pos + 1) % q->n) == ACCESS_ONCE(q->front))
 			return -ENOSPC; /* no more room */
 
 		buf[pos] = (typeof(*buf))val;
@@ -72,15 +69,15 @@ static inline int fifo_getw_core(struct fifo *q, uintptr_t *p)
 {
 	uintptr_t pos, *buf;
 
-	if (!q || !q->buf || !p)
+	if (!q || !q->data || !p)
 		return -EINVAL;
 
-	buf = q->buf;
+	buf = q->data;
 
 	do {
 		pos = atomic_ll(&q->front);
 
-		if (pos == *(volatile typeof(q->rear) *)&q->rear)
+		if (pos == ACCESS_ONCE(q->rear))
 			return -ENOENT; /* empty */
 
 		*p = buf[pos];
@@ -99,15 +96,15 @@ static inline int fifo_putw_core(struct fifo *q, uintptr_t val)
 {
 	uintptr_t pos, *buf;
 
-	if (!q || !q->buf)
+	if (!q || !q->data)
 		return -EINVAL;
 
-	buf = q->buf;
+	buf = q->data;
 
 	do {
 		pos = atomic_ll(&q->rear);
 
-		if (((pos + 1) % q->n) == *(volatile typeof(q->front) *)&q->front)
+		if (((pos + 1) % q->n) == ACCESS_ONCE(q->front))
 			return -ENOSPC; /* no more room */
 
 		buf[pos] = (typeof(*buf))val;

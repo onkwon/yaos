@@ -6,12 +6,18 @@
 #include <stdint.h>
 
 struct fifo {
-	void *buf;
+	void *data;
 	size_t n; /* number of items */
 	uintptr_t front, rear;
 };
 
-void fifo_init(struct fifo *q, void *queue, size_t n);
+/** Initialize a fifo
+ *
+ * @param q A pointer to :c:data:`struct fifo`
+ * @param arr A pointer to an array to store data
+ * @param n Number of items that can be stored in :c:data:`arr`
+ */
+void fifo_init(struct fifo *q, void *arr, size_t n);
 void fifo_flush(struct fifo *q);
 
 int fifo_get(struct fifo *q, void *p);
