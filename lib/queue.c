@@ -17,9 +17,6 @@ int enqueue(queue_t *q, const queue_item_t item)
 		if (((pos + 1) % q->n) == ACCESS_ONCE(q->front))
 			return -ENOSPC; /* full */
 
-		assert(q->itemsize <= sizeof(uintptr_t));
-		assert(((uintptr_t)&arr[pos * q->itemsize] + q->itemsize) <=
-				((uintptr_t)q->data + (q->n * q->itemsize)));
 		memcpy(&arr[pos * q->itemsize], &item, q->itemsize);
 		pos = (pos + 1) % q->n;
 	} while (atomic_sc(&q->rear, pos));
@@ -43,9 +40,6 @@ int dequeue(queue_t *q, void * const buf)
 		if (pos == ACCESS_ONCE(q->rear))
 			return -ENOENT; /* empty */
 
-		assert(q->itemsize <= sizeof(uintptr_t));
-		assert(((uintptr_t)&arr[pos * q->itemsize] + q->itemsize) <=
-				((uintptr_t)q->data + (q->n * q->itemsize)));
 		memcpy(p, &arr[pos * q->itemsize], q->itemsize);
 		pos = (pos + 1) % q->n;
 	} while (atomic_sc(&q->front, pos));
