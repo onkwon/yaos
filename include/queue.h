@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define QUEUE_MAX_ITEM			((1UL << 31) - 1)
+
 /** A FIFO queue. It can holds (2^31 - 1) items at most.
  * The maximum item size is up to 2^8. */
 typedef struct queue {
