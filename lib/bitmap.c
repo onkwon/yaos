@@ -39,7 +39,7 @@ void bitmap_set(bitmap_t * const bitmap, const unsigned int pos)
 	do {
 		t = atomic_ll(&bitmap[pos / BITMAP_UNIT]);
 		t |= 1UL << (pos % BITMAP_UNIT);
-	} while (atomic_sc(&bitmap[pos / BITMAP_UNIT], t));
+	} while (atomic_sc(t, &bitmap[pos / BITMAP_UNIT]));
 }
 
 void bitmap_clear(bitmap_t * const bitmap, const unsigned int pos)
@@ -49,7 +49,7 @@ void bitmap_clear(bitmap_t * const bitmap, const unsigned int pos)
 	do {
 		t = atomic_ll(&bitmap[pos / BITMAP_UNIT]);
 		t &= ~(1UL << (pos % BITMAP_UNIT));
-	} while (atomic_sc(&bitmap[pos / BITMAP_UNIT], t));
+	} while (atomic_sc(t, &bitmap[pos / BITMAP_UNIT]));
 }
 
 void bitmap_init(bitmap_t * const bitmap, const unsigned int bitmax, const bool val)
