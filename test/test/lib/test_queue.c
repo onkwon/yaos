@@ -12,7 +12,7 @@ void tearDown(void)
 {
 }
 
-#define ARR_SIZE	1000000UL
+#define ARR_SIZE	QUEUE_MAX_ITEM
 
 void test_queue(void)
 {

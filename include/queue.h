@@ -4,15 +4,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define QUEUE_MAX_ITEM			((1UL << 31) - 1)
+#define QUEUE_MAX_ITEM			((1UL << 16) - 1)
 
-/** A FIFO queue. It can holds (2^31 - 1) items at most.
- * The maximum item size is up to 2^8. */
+/** A FIFO queue. It can holds (2^16 - 1) items at most.
+ * The maximum item size is up to (2^8 - 1). */
 typedef struct queue {
 	void *data;
-	uintptr_t front;
-	uintptr_t rear;
-	uintptr_t n; /** Number of items */
+	uint16_t front;
+	uint16_t rear;
+	uint16_t n; /** Number of items */
 	uint8_t itemsize;
 } queue_t;
 
@@ -43,7 +43,7 @@ int enqueue(queue_t *q, const queue_item_t item);
  */
 int dequeue(queue_t *q, void * const buf);
 
-int queue_init(queue_t *q, uintptr_t n, uint8_t itemsize);
+int queue_init(queue_t *q, uint16_t n, uint8_t itemsize);
 /** Initialize a queue statically
  *
  * @param q A pointer to a queue
@@ -52,7 +52,7 @@ int queue_init(queue_t *q, uintptr_t n, uint8_t itemsize);
  * @param arr An array to store data in the queue.
  *            It must be big enough to save :c:data:`n` items
  */
-void queue_init_static(queue_t *q, uintptr_t n, uint8_t itemsize, void *arr);
+void queue_init_static(queue_t *q, uint16_t n, uint8_t itemsize, void *arr);
 /** Flush a queue
  *
  * @param q A pointer to a queue
