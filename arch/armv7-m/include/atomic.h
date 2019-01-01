@@ -94,9 +94,9 @@
  * @param inc Increment to be added
  * @return Original value at :c:data:`p`
  */
-static inline uintptr_t atomic_faa(uintptr_t *p, uintptr_t inc)
+static inline int atomic_faa(int *p, int inc)
 {
-	uintptr_t val;
+	int val;
 
 	do {
 		val = __ldrex(p);

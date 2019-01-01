@@ -1,6 +1,10 @@
 #ifndef __YAOS_LLIST_H__
 #define __YAOS_LLIST_H__
 
+#if !defined(NULL)
+#include <stddef.h>
+#endif
+
 /** doubly-linked list */
 struct llist {
 	struct llist *next, *prev;
