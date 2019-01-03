@@ -95,7 +95,15 @@ int queue_count(const queue_t * const q)
 	return cnt;
 }
 
-void queue_init_static(queue_t *q, uint16_t n, uint8_t itemsize, void *arr)
+bool queue_is_initialized(const queue_t * const q)
+{
+	if (!q || !q->data || (0 == q->n) || (0 == q->itemsize))
+		return false;
+
+	return true;
+}
+
+void queue_init_static(queue_t *q, void *arr, uint16_t n, uint8_t itemsize)
 {
 	assert(q);
 

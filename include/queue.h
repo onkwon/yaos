@@ -38,7 +38,7 @@ int enqueue(queue_t *q, const queue_item_t item);
 /** Dequeue an item from a queue
  *
  * @param q A pointer to a queue
- * @param buf A buffer to save an item from a queue
+ * @param buf A buffer to move an item to
  * @return 0 on success or negative errno, `-ENOENT` when empty
  */
 int dequeue(queue_t *q, void * const buf);
@@ -47,12 +47,12 @@ int queue_init(queue_t *q, uint16_t n, uint8_t itemsize);
 /** Initialize a queue statically
  *
  * @param q A pointer to a queue
+ * @param arr An array to store data.
+ *            It must be big enough to save :c:data:`n` * itemsize
  * @param n Number of items the queue holds up to
- * @param itemsize Number of items the queue holds up to
- * @param arr An array to store data in the queue.
- *            It must be big enough to save :c:data:`n` items
+ * @param itemsize Size of an item
  */
-void queue_init_static(queue_t *q, uint16_t n, uint8_t itemsize, void *arr);
+void queue_init_static(queue_t *q, void *arr, uint16_t n, uint8_t itemsize);
 /** Flush a queue
  *
  * @param q A pointer to a queue
@@ -67,15 +67,20 @@ bool queue_empty(const queue_t * const q);
 /** Count a number of items stored in a queue
  *
  * @param q A pointer to a queue
- * @return Number of items stored at the moment
+ * @return Number of items stored in the queue at the moment
  */
 int queue_count(const queue_t * const q);
 /** Peek an oldest item in a queue
  *
  * @param q A pointer to a queue
- * @param buf A buffer to save an item from a queue
+ * @param buf A buffer to move an item to
  * @return 0 on success or negative errno
  */
 int queue_peek(queue_t *q, void * const buf);
+/** Check if initialized
+ *
+ * @param q A pointer to a queue
+ */
+bool queue_is_initialized(const queue_t * const q);
 
 #endif /* __YAOS_QUEUE_H__ */

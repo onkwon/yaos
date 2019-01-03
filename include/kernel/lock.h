@@ -27,10 +27,10 @@ static inline void spin_unlock(struct lock * const lock)
 }
 
 #if defined(CONFIG_SMP)
-#error No support for SMP
+# error "No support for SMP"
 #else
-#define spin_lock_isr(x)
-#define spin_unlock_isr(x)
+# define spin_lock_isr(x)
+# define spin_unlock_isr(x)
 #endif
 
 #if !defined(TEST)
@@ -66,10 +66,10 @@ static inline void mutex_unlock(struct lock * const lock)
 	spin_unlock(lock);
 }
 #else // defined(TEST)
-#define spin_lock_irqsave(lock, flag)
-#define spin_unlock_irqrestore(lock, flag)
-#define mutex_lock(lock)
-#define mutex_unlock(lock)
+# define spin_lock_irqsave(lock, flag)
+# define spin_unlock_irqrestore(lock, flag)
+# define mutex_lock(lock)
+# define mutex_unlock(lock)
 #endif
 
 void lock_init(struct lock * const lock);

@@ -20,7 +20,7 @@ void test_queue(void)
 	uint32_t val;
 	queue_t q;
 
-	queue_init_static(&q, ARR_SIZE, sizeof(*arr), arr);
+	queue_init_static(&q, arr, ARR_SIZE, sizeof(*arr));
 	TEST_ASSERT_EQUAL(arr, q.data);
 	TEST_ASSERT_EQUAL(sizeof(*arr), q.itemsize);
 	TEST_ASSERT_EQUAL(ARR_SIZE, q.n);
