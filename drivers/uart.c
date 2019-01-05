@@ -4,6 +4,7 @@
 #include "queue.h"
 #include <errno.h>
 #include <assert.h>
+#include <string.h>
 
 static struct _uart {
 	queue_t rxq, txq;
@@ -212,6 +213,22 @@ out:
 	return i;
 }
 
+static void uart_close(const uart_t * const self)
+{
+	struct _uart *p;
+
+	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
+		return;
+
+	if (!(p = &_uart[self->ch]))
+		return;
+
+	// FIXME: Lock!
+	hw_uart_close(self->ch);
+
+	memset(p, 0, sizeof(*p));
+}
+
 uart_t uart_new(const enum uart_channel ch)
 {
 	assert(ch < UART_MAX_CHANNEL);
@@ -226,162 +243,6 @@ uart_t uart_new(const enum uart_channel ch)
 		.write = uart_write,
 		.readb = uart_readb,
 		.read = uart_read,
+		.close = uart_close,
 	};
 }
-
-#if 0
-/* TODO: API, design the interface */
-static int uart_ioctl(struct file *file, int request, void *data)
-{
-	unsigned int *brr;
-
-	switch (request) {
-	case C_FLUSH:
-		uart_flush(file);
-		return 0;
-	case C_EVENT:
-		*(int *)data = uart_kbhit(file)? 1 : 0;
-		return 0;
-	case C_FREQ:
-		brr = (unsigned int *)data;
-		if (*brr)
-			return __uart_set_baudrate(CHANNEL(file->inode->dev),
-					*brr);
-		else
-			*brr = __uart_get_baudrate(CHANNEL(file->inode->dev));
-		return 0;
-	case C_BUFSIZE:
-		break;
-	default:
-		break;
-	}
-
-	return -ERANGE;
-}
-
-static void do_uart_close(struct file *file)
-{
-	struct device *dev;
-	struct uart_buffer *buf;
-
-	dev = getdev(file->inode->dev);
-	buf = dev->buffer;
-
-	mutex_lock(&dev->mutex);
-	if (--dev->refcount == 0) {
-		__uart_close(CHANNEL(dev->id));
-
-		kfree(buf->rxq.buf);
-		kfree(buf->txq.buf);
-	}
-	mutex_unlock(&dev->mutex);
-
-#ifdef CONFIG_SYSCALL_THREAD
-	syscall_delegate_return(current->parent, 0);
-#endif
-}
-
-#ifdef CONFIG_SYSCALL_THREAD
-static int uart_close(struct file *file)
-{
-	struct task *thread;
-
-	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
-					do_uart_close, current)) == NULL)
-		return -ENOMEM;
-
-	syscall_put_arguments(thread, file, NULL, NULL, NULL);
-	syscall_delegate(current, thread);
-
-	return 0;
-}
-#else
-static int uart_close(struct file *file)
-{
-	syscall_delegate_atomic(do_uart_close, &current->mm.sp, &current->flags);
-
-	(void)file;
-	return 0;
-}
-#endif
-
-static inline size_t uart_read_core(struct file *file, void *buf, size_t len)
-{
-	struct device *dev;
-	struct uart_buffer *uartq;
-	char *p;
-	int data;
-
-	dev = getdev(file->inode->dev);
-	uartq = dev->buffer;
-	p = (char *)buf;
-	data = fifo_getb(&uartq->rxq);
-
-	if (data < 0)
-		return 0;
-
-	if (p)
-		*p = data & 0xff;
-
-	(void)len;
-	return 1;
-}
-
-static size_t do_uart_read(struct file *file, void *buf, size_t len)
-{
-#ifndef CONFIG_SYSCALL_THREAD
-	if (file->flags & O_NONBLOCK)
-		return uart_read_core(file, buf, len);
-#endif
-
-	struct device *dev;
-	struct uart_buffer *uartq;
-	size_t total, d;
-
-	dev = getdev(file->inode->dev);
-	uartq = dev->buffer;
-
-	for (total = 0; total < len && file->offset < file->inode->size;) {
-		if ((d = uart_read_core(file, buf + total, len - total)) <= 0) {
-			wq_wait(&uartq->waitq);
-			continue;
-		}
-		total += d;
-	}
-
-#ifdef CONFIG_SYSCALL_THREAD
-	syscall_delegate_return(current->parent, total);
-#endif
-	return total;
-}
-
-#ifdef CONFIG_SYSCALL_THREAD
-static size_t uart_read(struct file *file, void *buf, size_t len)
-{
-	struct task *thread;
-
-	if (file->flags & O_NONBLOCK)
-		return uart_read_core(file, buf, len);
-
-	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
-					do_uart_read, current)) == NULL)
-		return -ENOMEM;
-
-	syscall_put_arguments(thread, file, buf, len, NULL);
-	syscall_delegate(current, thread);
-
-	return 0;
-}
-#else
-size_t uart_read(struct file *file, void *buf, size_t len)
-{
-	syscall_delegate_atomic(do_uart_read, &current->mm.sp, &current->flags);
-
-	(void)file;
-	(void)(int)buf;
-	(void)len;
-	return 0;
-}
-#endif
-
-#endif

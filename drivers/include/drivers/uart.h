@@ -65,6 +65,7 @@ typedef struct uart_t {
 	int (*readb)(const struct uart_t * const self, void * const byte);
 	long (*read)(const struct uart_t * const self,
 			void * const buf, size_t len);
+	void (*close)(const struct uart_t * const self);
 	void (*flush)(const struct uart_t * const self);
 	bool (*kbhit)(const struct uart_t * const self);
 } uart_t;
