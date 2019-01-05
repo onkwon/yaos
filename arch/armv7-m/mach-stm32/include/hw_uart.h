@@ -9,10 +9,10 @@
 	 ((nvec) < 98U) ? (nvec) - 87 + 5 : \
 	 (nvec) - 98 + 6)
 
-int hw_uart_open(const int channel, struct uart conf);
+int hw_uart_open(const int channel, struct uart_conf conf);
 void hw_uart_close(const int channel);
-int hw_uart_putb(const int channel, const uint8_t byte);
-int hw_uart_getb(const int channel, uint8_t * const byte);
+int hw_uart_writeb(const int channel, const uint8_t byte);
+int hw_uart_readb(const int channel, uint8_t * const byte);
 void hw_uart_flush(const int channel);
 int hw_uart_baudrate_set(const int channel, uintptr_t baudrate);
 uintptr_t hw_uart_baudrate_get(const int channel);

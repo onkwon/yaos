@@ -25,7 +25,7 @@ static void ISR_uart(int vector)
 	assert(p);
 
 	if (hw_uart_has_received(channel)) {
-		if ((1 != hw_uart_getb(channel, &data))
+		if (hw_uart_readb(channel, &data)
 				|| !queue_is_initialized(&p->rxq))
 			p->rxerr++;
 		else if (enqueue(&p->rxq, &data))
@@ -38,7 +38,7 @@ static void ISR_uart(int vector)
 		} else {
 			if (dequeue(&p->txq, &data))
 				p->txerr++;
-			else if (1 != hw_uart_putb(channel, data))
+			else if (hw_uart_writeb(channel, data))
 				p->txerr++;
 		}
 	}
@@ -57,14 +57,14 @@ static int uart_open_static(const uart_t * const self,
 	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
 		goto errout;
 
-	if ((UART_INTERRUPT == self->conf.rx)) {
+	if ((UART_INTERRUPT & self->conf.rx)) {
 		if (!rxbuf || (0 >= rxbufsize))
 			goto errout;
 
 		queue_init_static(&_uart[self->ch].rxq,
 				rxbuf, rxbufsize, 1U);
 	}
-	if (UART_INTERRUPT == self->conf.tx) {
+	if (UART_INTERRUPT & self->conf.tx) {
 		if (!txbuf || (0 >= txbufsize))
 			goto errout;
 
@@ -72,7 +72,7 @@ static int uart_open_static(const uart_t * const self,
 				txbuf, txbufsize, 1U);
 	}
 
-	// TODO: lock
+	// FIXME: lock
 	// mutex_lock();
 	vector = hw_uart_open(self->ch, self->conf);
 	// mutex_unlock();
@@ -128,6 +128,90 @@ static void uart_flush(const uart_t * const self)
 		queue_flush(&p->txq);
 }
 
+static int uart_writeb(const uart_t * const self, const uint8_t byte)
+{
+	int rc = -EINVAL;
+
+	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
+		goto out;
+
+	if (UART_INTERRUPT & self->conf.tx) {
+		struct _uart *p = &_uart[self->ch];
+		if (!p)
+			goto out;
+
+		do {
+			rc = enqueue(&p->txq, &byte);
+		} while (rc && !(UART_NONBLOCK & self->conf.tx));
+	} else if (UART_POLLING & self->conf.tx) {
+		do {
+			// FIXME: Lock!
+			rc = hw_uart_writeb(self->ch, byte);
+		} while (rc && !(UART_NONBLOCK & self->conf.tx));
+	}
+
+out:
+	return rc;
+}
+
+static long uart_write(const uart_t * const self,
+		const void * const data, size_t len)
+{
+	size_t i = 0;
+	const uint8_t *byte = data;
+
+	if (!byte)
+		goto out;
+
+	for (i = 0; i < len; i++) {
+		if (uart_writeb(self, byte[i]))
+			break;
+	}
+out:
+	return i;
+}
+
+static int uart_readb(const uart_t * const self, void *ptrb)
+{
+	int rc = -EINVAL;
+
+	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
+		goto out;
+
+	if (UART_INTERRUPT & self->conf.rx) {
+		struct _uart *p = &_uart[self->ch];
+		if (!p)
+			goto out;
+
+		do {
+			rc = dequeue(&p->rxq, ptrb);
+		} while (rc && !(UART_NONBLOCK & self->conf.rx));
+	} else if (UART_POLLING & self->conf.rx) {
+		do {
+			// FIXME: Lock!
+			rc = hw_uart_readb(self->ch, ptrb);
+		} while (rc && !(UART_NONBLOCK & self->conf.rx));
+	}
+
+out:
+	return rc;
+}
+
+static long uart_read(const uart_t * const self, void * const buf, size_t len)
+{
+	size_t i = 0;
+	uint8_t *byte = buf;
+
+	if (!byte)
+		goto out;
+
+	for (i = 0; i < len; i++) {
+		while (uart_readb(self, &byte[i]));
+	}
+out:
+	return i;
+}
+
 uart_t uart_new(const enum uart_channel ch)
 {
 	assert(ch < UART_MAX_CHANNEL);
@@ -138,6 +222,10 @@ uart_t uart_new(const enum uart_channel ch)
 		.open_static = uart_open_static,
 		.flush = uart_flush,
 		.kbhit = uart_kbhit,
+		.writeb = uart_writeb,
+		.write = uart_write,
+		.readb = uart_readb,
+		.read = uart_read,
 	};
 }
 
@@ -296,80 +384,4 @@ size_t uart_read(struct file *file, void *buf, size_t len)
 }
 #endif
 
-static size_t uart_write_int(struct file *file, void *data)
-{
-	struct device *dev;
-	struct uart_buffer *buf;
-	char c;
-
-	dev = getdev(file->inode->dev);
-	buf = dev->buffer;
-	c = *(char *)data;
-
-	/* ring buffer: if full, throw the oldest one for new one */
-	while (fifo_putb(&buf->txq, c) == -ENOSPC)
-		fifo_getb(&buf->txq);
-
-	__uart_tx_irq_raise(CHANNEL(file->inode->dev));
-
-	return 1;
-}
-
-static size_t uart_write_polling(struct file *file, void *data)
-{
-	int res;
-
-	char c = *(char *)data;
-
-	do {
-		res = __uart_putc(CHANNEL(file->inode->dev), c);
-	} while (!res);
-
-	return res;
-}
-
-static size_t do_uart_write(struct file *file, void *buf, size_t len)
-{
-	size_t written, (*f)(struct file *file, void *data);
-
-	if (file->flags & O_NONBLOCK)
-		f = uart_write_polling;
-	else
-		f = uart_write_int;
-
-	for (written = 0; written < len && file->offset < file->inode->size;)
-		if (f(file, buf + written) >= 1)
-			written++;
-
-#ifdef CONFIG_SYSCALL_THREAD
-	syscall_delegate_return(current->parent, written);
-#endif
-	return written;
-}
-
-#ifdef CONFIG_SYSCALL_THREAD
-static size_t uart_write(struct file *file, void *buf, size_t len)
-{
-	struct task *thread;
-
-	if ((thread = make(TASK_HANDLER | STACK_SHARED, STACK_SIZE_MIN,
-					do_uart_write, current)) == NULL)
-		return -ENOMEM;
-
-	syscall_put_arguments(thread, file, buf, len, NULL);
-	syscall_delegate(current, thread);
-
-	return 0;
-}
-#else
-size_t uart_write(struct file *file, void *buf, size_t len)
-{
-	syscall_delegate_atomic(do_uart_write, &current->mm.sp, &current->flags);
-
-	(void)file;
-	(void)(int)buf;
-	(void)len;
-	return 0;
-}
-#endif
 #endif

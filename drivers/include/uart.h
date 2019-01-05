@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 enum uart_channel {
 	UART1			= 0,
@@ -17,9 +18,10 @@ enum uart_channel {
 };
 
 enum uart_mode {
-	UART_DISABLED		= 0,
-	UART_INTERRUPT,
-	UART_POLLING,
+	UART_DISABLED		= 0x00,
+	UART_INTERRUPT		= 0x01,
+	UART_POLLING		= 0x02,
+	UART_NONBLOCK		= 0x04,
 };
 
 enum uart_flow {
@@ -34,7 +36,7 @@ enum uart_parity {
 	UART_PARITY_ODD,
 };
 
-struct uart {
+struct uart_conf {
 	enum uart_mode rx, tx;
 	enum uart_flow flow;
 	enum uart_parity parity;
@@ -44,25 +46,37 @@ struct uart {
 
 typedef struct uart_t {
 	enum uart_channel ch;
-	struct uart conf;
+	struct uart_conf conf;
 
-	int (*open)(const struct uart_t * const self,
-			int rxbufsize, int txbufsize);
 	int (*open_static)(const struct uart_t * const self,
 			void *rxbuf, int rxbufsize,
 			void *txbuf, int txbufsize);
+	int (*open)(const struct uart_t * const self,
+			int rxbufsize, int txbufsize);
+	int (*writeb)(const struct uart_t * const self, const uint8_t byte);
+	long (*write)(const struct uart_t * const self,
+			const void * const data, size_t len);
+	/** Read a byte
+	 *
+	 * @param self A pointer to an instance of :c:data:`uart_t`
+	 * @param byte A buffer to store byte string
+	 * @return 0 on success
+	 */
+	int (*readb)(const struct uart_t * const self, void * const byte);
+	long (*read)(const struct uart_t * const self,
+			void * const buf, size_t len);
 	void (*flush)(const struct uart_t * const self);
 	bool (*kbhit)(const struct uart_t * const self);
 } uart_t;
 
-#define UART_DEFAULT_CONF() {		\
-	.rx = UART_INTERRUPT,		\
-	.tx = UART_POLLING,		\
-	.flow = UART_FLOW_NONE,		\
-	.parity = UART_PARITY_NONE,	\
-	.cts = false,			\
-	.rts = false,			\
-	.baudrate = 115200UL,		\
+#define UART_DEFAULT_CONF() {				\
+	.rx = UART_INTERRUPT | UART_NONBLOCK,		\
+	.tx = UART_POLLING,				\
+	.flow = UART_FLOW_NONE,				\
+	.parity = UART_PARITY_NONE,			\
+	.cts = false,					\
+	.rts = false,					\
+	.baudrate = 115200UL,				\
 }
 
 uart_t uart_new(const enum uart_channel ch);

@@ -87,6 +87,18 @@ static inline reg_t *ch2reg(const int channel)
 	return reg;
 }
 
+static inline bool has_received(reg_t * const reg)
+{
+#ifdef stm32f3
+	if (reg[7] & (1UL << RXNE))
+		return true;
+#else
+	if (reg[0] & (1UL << RXNE))
+		return true;
+#endif
+	return false;
+}
+
 static inline int rx_pin(const int channel)
 {
 	int rxpin = -ENOENT;
@@ -151,7 +163,7 @@ static inline int tx_pin(const int channel)
 	return txpin;
 }
 
-static inline int hw_uart_gpio_init(const int channel, struct uart conf)
+static inline int hw_uart_gpio_init(const int channel, struct uart_conf conf)
 {
 	int rxpin, txpin;
 
@@ -169,7 +181,8 @@ static inline int hw_uart_gpio_init(const int channel, struct uart conf)
 
 		/* TODO: FOR TEST, use rx pin as wake-up source */
 		/* FIXME: register handler */
-		hw_exti_enable(rxpin, true);
+		if (UART_INTERRUPT & conf.rx)
+			hw_exti_enable(rxpin, true);
 	}
 
 	if (conf.tx) {
@@ -196,7 +209,7 @@ errout:
 }
 
 /* TODO: support flow control and parity */
-int hw_uart_open(const int channel, struct uart conf)
+int hw_uart_open(const int channel, struct uart_conf conf)
 {
 	uintptr_t cr1, cr2, cr3, gtpr, brr;
 	reg_t *reg;
@@ -206,10 +219,13 @@ int hw_uart_open(const int channel, struct uart conf)
 	if (hw_uart_gpio_init(channel, conf))
 		return -ERANGE;
 
-	if (conf.rx)
-		cr1 |= (1UL << RE) | (1UL << RXNEIE);
-	if (conf.tx)
+	if (conf.rx) {
+		cr1 |= (1UL << RE);
+		if (UART_INTERRUPT & conf.rx)
+			cr1 |= (1UL << RXNEIE);
+	} if (conf.tx) {
 		cr1 |= 1UL << TE;
+	}
 
 	cr1 |= 1UL << UE;
 
@@ -287,19 +303,19 @@ void hw_uart_close(const int channel)
 	/* TODO: gpio_fini() and hw_exti_enable(false) */
 }
 
-int hw_uart_putb(const int channel, const uint8_t byte)
+int hw_uart_writeb(const int channel, const uint8_t byte)
 {
 	reg_t *reg;
 
 	if (!(reg = ch2reg(channel)))
-		return 0;
+		return -EINVAL;
 
 #ifdef stm32f3
 	if (!gbi(reg[7], TXE))
-		return 0;
+		return -EBUSY;
 #else
 	if (!gbi(reg[0], TXE))
-		return 0;
+		return -EBUSY;
 #endif
 
 #ifdef stm32f3
@@ -308,22 +324,25 @@ int hw_uart_putb(const int channel, const uint8_t byte)
 	reg[1] = (uintptr_t)byte;
 #endif
 
-	return 1;
+	return 0;
 }
 
-int hw_uart_getb(const int channel, uint8_t * const byte)
+int hw_uart_readb(const int channel, uint8_t * const byte)
 {
 	reg_t *reg;
 
 	if (!byte || !(reg = ch2reg(channel)))
-		return 0;
+		return -EINVAL;
+
+	if (!has_received(reg))
+		return -ENOENT;
 
 #ifdef stm32f3
 	*byte = (uint8_t)reg[9];
 #else
 	*byte = (uint8_t)reg[1];
 #endif
-	return 1;
+	return 0;
 }
 
 void hw_uart_flush(const int channel)
@@ -380,15 +399,7 @@ bool hw_uart_has_received(const int channel)
 	if (!(reg = ch2reg(channel)))
 		return false;
 
-#ifdef stm32f3
-	if (reg[7] & (1UL << RXNE))
-		return true;
-#else
-	if (reg[0] & (1UL << RXNE))
-		return true;
-#endif
-
-	return false;
+	return has_received(reg);
 }
 
 bool hw_uart_is_tx_ready(const int channel)
