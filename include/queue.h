@@ -16,25 +16,13 @@ typedef struct queue {
 	uint8_t itemsize;
 } queue_t;
 
-typedef struct queue_item {
-	union {
-		uint8_t _d8;
-		uint16_t _d16;
-		uint32_t _d32;
-		uint8_t _d[1];
-	} s;
-} queue_item_t;
-
-/** Make a parameter to the :c:data:`queue_item_t` type. */
-#define QUEUE_ITEM(x)			(*(queue_item_t *)&(x))
-
 /** Enqueue an item in a queue
  *
  * @param q A pointer to a queue
- * @param item An item to store in a queue, use the :c:data:`QUEUE_ITEM()` macro
+ * @param item A pointer to an item to store in a queue
  * @return 0 on success or negative errno, `-ENOSPC` when full
  */
-int enqueue(queue_t *q, const queue_item_t item);
+int enqueue(queue_t *q, const void * const item);
 /** Dequeue an item from a queue
  *
  * @param q A pointer to a queue

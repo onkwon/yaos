@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <string.h>
 
-int enqueue(queue_t *q, const queue_item_t item)
+int enqueue(queue_t *q, const void * const item)
 {
 	assert(q && q->data);
 
@@ -17,7 +17,7 @@ int enqueue(queue_t *q, const queue_item_t item)
 		if (((pos + 1) % q->n) == ACCESS_ONCE(q->front))
 			return -ENOSPC; /* full */
 
-		memcpy(&arr[pos * q->itemsize], &item, q->itemsize);
+		memcpy(&arr[pos * q->itemsize], item, q->itemsize);
 		pos = (pos + 1) % q->n;
 	} while (atomic_sch(pos, &q->rear));
 
@@ -29,10 +29,9 @@ int dequeue(queue_t *q, void * const buf)
 	assert(q && q->data && buf);
 
 	uint16_t pos;
-	uint8_t *arr, *p;
+	uint8_t *arr;
 	
 	arr = q->data;
-	p = buf;
 
 	do {
 		pos = atomic_llh(&q->front);
@@ -40,7 +39,7 @@ int dequeue(queue_t *q, void * const buf)
 		if (pos == ACCESS_ONCE(q->rear))
 			return -ENOENT; /* empty */
 
-		memcpy(p, &arr[pos * q->itemsize], q->itemsize);
+		memcpy(buf, &arr[pos * q->itemsize], q->itemsize);
 		pos = (pos + 1) % q->n;
 	} while (atomic_sch(pos, &q->front));
 
@@ -52,10 +51,9 @@ int queue_peek(queue_t *q, void * const buf)
 	assert(q && q->data && buf);
 
 	uint16_t pos;
-	uint8_t *arr, *p;
+	uint8_t *arr;
 	
 	arr = q->data;
-	p = buf;
 
 	do {
 		pos = atomic_llh(&q->front);
@@ -63,7 +61,7 @@ int queue_peek(queue_t *q, void * const buf)
 		if (pos == ACCESS_ONCE(q->rear))
 			return -ENOENT; /* empty */
 
-		memcpy(p, &arr[pos * q->itemsize], q->itemsize);
+		memcpy(buf, &arr[pos * q->itemsize], q->itemsize);
 	} while (atomic_sch(pos, &q->front));
 
 	return 0;

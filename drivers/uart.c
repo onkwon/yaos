@@ -28,7 +28,7 @@ static void ISR_uart(int vector)
 		if ((1 != hw_uart_getb(channel, &data))
 				|| !queue_is_initialized(&p->rxq))
 			p->rxerr++;
-		else if (enqueue(&p->rxq, QUEUE_ITEM(data)))
+		else if (enqueue(&p->rxq, &data))
 			p->rxovf++;
 	}
 
