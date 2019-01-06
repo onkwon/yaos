@@ -26,11 +26,11 @@ Give examples
 
 ### Build
 
-```bash
-	$ git clone https://github.com/onkwon/yaos.git
-	$ cd yaos
-	$ make stm32f1-min (or specify your board. e.g. stm32f429i-disco)
-	$ make
+```
+$ git clone https://github.com/onkwon/yaos.git
+$ cd yaos
+$ make stm32f1-min (or specify your board. e.g. stm32f429i-disco)
+$ make
 ```
 
 #### Supported boards at the moment
