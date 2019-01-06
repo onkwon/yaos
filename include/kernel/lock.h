@@ -6,17 +6,21 @@
 #include "list.h"
 #include <stdint.h>
 
-#define DEFINE_LOCK(name)	struct lock name = { 0, 0, { NULL } }
+#define DEFINE_LOCK(name)	struct lock name = { { NULL }, 0, 0 }
 
-struct lock {
-	int ticket;
-	int turn;
+/**
+ * The number of threads that accesses the same resouce must not exceed
+ * (2^8 - 1) as the data type of `ticket` is `int8_t`.
+ */
+typedef struct lock {
 	struct list waitq; // FIXME: the data type must be lock-free
-};
+	int8_t ticket;
+	int8_t turn;
+} lock_t;
 
 static inline void spin_lock(struct lock * const lock)
 {
-	int myturn = atomic_faa(&lock->ticket, 1);
+	int8_t myturn = atomic_faab(&lock->ticket, 1);
 	while (ACCESS_ONCE(lock->turn) != myturn) ;
 }
 
@@ -73,6 +77,7 @@ static inline void mutex_unlock(struct lock * const lock)
 #endif
 
 void lock_init(struct lock * const lock);
+void mutex_init(struct lock * const lock);
 
 #if 0
 int semaphore_dec(struct semaphore *sem, int timeout_ms)

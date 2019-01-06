@@ -73,6 +73,9 @@ void gpio_fini(const uint16_t pin)
 {
 	uintptr_t irqflag;
 
+	if (!bitmap_get(_gpiomap, pin))
+		return;
+
 	hw_gpio_fini(pin);
 
 	spin_lock_irqsave(&_cb_dict_lock, &irqflag);

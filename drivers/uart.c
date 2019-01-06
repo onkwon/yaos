@@ -11,6 +11,7 @@ static struct _uart {
 	uint16_t rxerr, txerr;
 	uint16_t rxovf;
 	bool active;
+	lock_t lock;
 } _uart[UART_MAX_CHANNEL];
 
 static void ISR_uart(int vector)
@@ -62,32 +63,28 @@ static int uart_open_static(const uart_t * const self,
 			|| !(p = &_uart[self->ch]))
 		goto out;
 
+	mutex_lock(&p->lock);
 	if (p->active) {
 		rc = -EEXIST;
-		goto out;
+		goto out_unlock;
 	}
 
 	if ((UART_INTERRUPT & self->conf.rx)) {
 		if (!rxbuf || (0 >= rxbufsize))
-			goto out;
+			goto out_unlock;
 
 		queue_init_static(&p->rxq,
 				rxbuf, rxbufsize, 1U);
 	}
 	if (UART_INTERRUPT & self->conf.tx) {
 		if (!txbuf || (0 >= txbufsize))
-			goto out;
+			goto out_unlock;
 
 		queue_init_static(&p->txq,
 				txbuf, txbufsize, 1U);
 	}
 
-	// FIXME: lock
-	// mutex_lock();
-	p->active = true;
 	vector = hw_uart_open(self->ch, self->conf);
-	// mutex_unlock();
-
 	/* FIXME: Interrupt must be prevented before its handler registered.
 	 * If an interrupt occurs first before its isr registered, the
 	 * interrupt is going to be handled by the default isr doing noting on
@@ -97,7 +94,10 @@ static int uart_open_static(const uart_t * const self,
 	if (vector > 0)
 		register_isr(vector, ISR_uart);
 
+	p->active = true;
 	rc = 0;
+out_unlock:
+	mutex_unlock(&p->lock);
 out:
 	return rc;
 }
@@ -105,24 +105,34 @@ out:
 static bool uart_kbhit(const uart_t * const self)
 {
 	struct _uart *p;
+	bool rc = false;
 
 	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
-		return false;
+		goto out;
+
+	if (!(p = &_uart[self->ch]))
+		goto out;
+
+	mutex_lock(&p->lock);
+	if (!p->active)
+		goto out_unlock;
 
 	if (UART_INTERRUPT & self->conf.rx) {
-		p = &_uart[self->ch];
-
-		if (!p || !queue_is_initialized(&p->rxq))
-			return false;
+		if (!queue_is_initialized(&p->rxq))
+			goto out_unlock;
 
 		if (queue_empty(&p->rxq))
-			return false;
+			goto out_unlock;
 	} else if (UART_POLLING & self->conf.rx) {
 		if (!hw_uart_has_received(self->ch))
-			return false;
+			goto out_unlock;
 	}
 
-	return true;
+	rc = true;
+out_unlock:
+	mutex_unlock(&p->lock);
+out:
+	return rc;
 }
 
 static void uart_flush(const uart_t * const self)
@@ -135,6 +145,10 @@ static void uart_flush(const uart_t * const self)
 	if (!(p = &_uart[self->ch]))
 		return;
 
+	mutex_lock(&p->lock);
+	if (!p->active)
+		goto out_unlock;
+
 	// rx flush
 	if (queue_is_initialized(&p->rxq))
 		queue_flush(&p->rxq);
@@ -143,30 +157,42 @@ static void uart_flush(const uart_t * const self)
 	hw_uart_flush(self->ch);
 	if (queue_is_initialized(&p->txq))
 		queue_flush(&p->txq);
+
+out_unlock:
+	mutex_unlock(&p->lock);
 }
 
 static int uart_writeb(const uart_t * const self, const uint8_t byte)
 {
+	struct _uart *p;
 	int rc = -EINVAL;
 
 	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
 		goto out;
 
-	if (UART_INTERRUPT & self->conf.tx) {
-		struct _uart *p = &_uart[self->ch];
-		if (!p || !p->active)
-			goto out;
+	if (!(p = &_uart[self->ch]))
+		goto out;
 
+	mutex_lock(&p->lock);
+	if (!p->active)
+		goto out_unlock;
+
+	if (UART_INTERRUPT & self->conf.tx) {
 		do {
 			rc = enqueue(&p->txq, &byte);
 		} while (rc && !(UART_NONBLOCK & self->conf.tx));
 	} else if (UART_POLLING & self->conf.tx) {
 		do {
-			// FIXME: Lock!
+			/* Don't need to disable the local interrupts as the
+			 * code below never gets executed when tx is set as
+			 * UART_INTERRUPT. Mutual exclusive needed only for
+			 * multi threads */
 			rc = hw_uart_writeb(self->ch, byte);
 		} while (rc && !(UART_NONBLOCK & self->conf.tx));
 	}
 
+out_unlock:
+	mutex_unlock(&p->lock);
 out:
 	return rc;
 }
@@ -190,26 +216,31 @@ out:
 
 static int uart_readb(const uart_t * const self, void *ptrb)
 {
+	struct _uart *p;
 	int rc = -EINVAL;
 
 	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
 		goto out;
 
-	if (UART_INTERRUPT & self->conf.rx) {
-		struct _uart *p = &_uart[self->ch];
-		if (!p || !p->active)
-			goto out;
+	if (!(p = &_uart[self->ch]))
+		goto out;
 
+	mutex_lock(&p->lock);
+	if (!p->active)
+		goto out_unlock;
+
+	if (UART_INTERRUPT & self->conf.rx) {
 		do {
 			rc = dequeue(&p->rxq, ptrb);
 		} while (rc && !(UART_NONBLOCK & self->conf.rx));
 	} else if (UART_POLLING & self->conf.rx) {
 		do {
-			// FIXME: Lock!
 			rc = hw_uart_readb(self->ch, ptrb);
 		} while (rc && !(UART_NONBLOCK & self->conf.rx));
 	}
 
+out_unlock:
+	mutex_unlock(&p->lock);
 out:
 	return rc;
 }
@@ -236,11 +267,16 @@ static void uart_close(const uart_t * const self)
 	if (!self || (UART_MAX_CHANNEL <= (unsigned int)self->ch))
 		return;
 
-	if (!(p = &_uart[self->ch]) || !p->active)
+	if (!(p = &_uart[self->ch]))
 		return;
 
-	// FIXME: Lock!
-	hw_uart_close(self->ch);
+	mutex_lock(&p->lock);
+	if (p->active)
+		hw_uart_close(self->ch);
+
+	p->active = false;
+	mutex_unlock(&p->lock);
+
 	memset(p, 0, sizeof(*p));
 }
 

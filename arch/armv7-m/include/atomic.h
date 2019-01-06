@@ -106,6 +106,42 @@ static inline int atomic_faa(int *p, int inc)
 }
 
 /**
+ * Fetch and add byte
+ *
+ * @param p Pointer to data
+ * @param inc Increment to be added
+ * @return Original value at :c:data:`p`
+ */
+static inline int8_t atomic_faab(int8_t *p, int8_t inc)
+{
+	int8_t val;
+
+	do {
+		val = __ldrexb(p);
+	} while (__strexb(val + inc, p));
+
+	return val;
+}
+
+/**
+ * Fetch and add half word
+ *
+ * @param p Pointer to data
+ * @param inc Increment to be added
+ * @return Original value at :c:data:`p`
+ */
+static inline int16_t atomic_faah(int16_t *p, int16_t inc)
+{
+	int16_t val;
+
+	do {
+		val = __ldrexh(p);
+	} while (__strexh(val + inc, p));
+
+	return val;
+}
+
+/**
  * Load linked
  *
  * @p Pointer to data

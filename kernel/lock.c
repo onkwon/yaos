@@ -2,7 +2,11 @@
 
 void lock_init(struct lock * const lock)
 {
-	lock->ticket = 0;
-	lock->turn = 0;
 	list_init(&lock->waitq);
+	lock->ticket = lock->turn = 0;
+}
+
+void mutex_init(struct lock * const lock)
+{
+	lock_init(lock);
 }
