@@ -1,5 +1,5 @@
-// Implement lock-free
 #include "bitmap.h"
+#include "arch/atomic.h"
 #include <errno.h>
 
 unsigned int bitmap_count(const bitmap_t * const bitmap, const unsigned bits)
@@ -24,18 +24,32 @@ unsigned int bitmap_count(const bitmap_t * const bitmap, const unsigned bits)
 
 bool bitmap_get(const bitmap_t * const bitmap, const unsigned int pos)
 {
-	bitmap_t val = bitmap[pos / BITMAP_UNIT]
-		& (1UL << (pos % BITMAP_UNIT));
+	bitmap_t val;
+
+	val = bitmap[pos / BITMAP_UNIT];
+	val &= (1UL << (pos % BITMAP_UNIT));
 
 	return val != 0;
 }
 
-void bitmap_set(bitmap_t * const bitmap, const unsigned int pos, const bool zerone)
+void bitmap_set(bitmap_t * const bitmap, const unsigned int pos)
 {
-	bitmap[pos / BITMAP_UNIT]
-		&= ~(1UL << (pos % BITMAP_UNIT));
-	bitmap[pos / BITMAP_UNIT]
-		|= (1UL * zerone) << (pos % BITMAP_UNIT);
+	bitmap_t t;
+
+	do {
+		t = atomic_ll(&bitmap[pos / BITMAP_UNIT]);
+		t |= 1UL << (pos % BITMAP_UNIT);
+	} while (atomic_sc(t, &bitmap[pos / BITMAP_UNIT]));
+}
+
+void bitmap_clear(bitmap_t * const bitmap, const unsigned int pos)
+{
+	bitmap_t t;
+
+	do {
+		t = atomic_ll(&bitmap[pos / BITMAP_UNIT]);
+		t &= ~(1UL << (pos % BITMAP_UNIT));
+	} while (atomic_sc(t, &bitmap[pos / BITMAP_UNIT]));
 }
 
 void bitmap_init(bitmap_t * const bitmap, const unsigned int bitmax, const bool val)

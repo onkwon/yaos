@@ -1,3 +1,3 @@
 [submodule "tools/hawkmoth"]
 	path = tools/hawkmoth
-	url = git@github.com:jnikula/hawkmoth.git
+	url = https://github.com/jnikula/hawkmoth.git

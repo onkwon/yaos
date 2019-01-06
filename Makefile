@@ -62,10 +62,9 @@ LDFLAGS += $(LIBS)
 
 TARGET   = yaos
 SUBDIRS	 = lib kernel tasks
-INCS	+= -I$(BASEDIR)/include
+INCS	+= -I$(BASEDIR)/include -I$(BASEDIR)/drivers/include
 FILES	 = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call FILES,$d/,$2))
 
-DRV_INCDIR = include/drivers
 ARCH_INCDIR = include/arch
 INC_ARCH = $(call FILES,arch/$(ARCH)/include,*.h) \
 	   $(call FILES,arch/$(ARCH)/mach-$(MACH)/include,*.h) \
@@ -158,7 +157,7 @@ $(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config $(LD_SCRIPT)
 $(THIRD_PARTY_OBJS): $(BUILDIR)/3rd/%.o: %.c Makefile Makefile.3rd CONFIGURE .config
 	@printf "  CC       $(<F)\n"
 	@mkdir -p $(@D)
-	$(Q)$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) $(DEFS) -c $< -o $@
+	$(Q)$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) $(DEFS) -MMD -c $< -o $@
 $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.ld .config
 	@printf "  GEN      $@\n"
 	@mkdir -p $(@D)
@@ -167,9 +166,13 @@ $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.ld
 .c.o:
 	@printf "  CC       $(<F)\n"
 	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -c $< -o $@
-$(BUILDIR): $(ARCH_INCDIR) $(DRV_INCDIR) $(LD_SCRIPT)
+$(BUILDIR): $(ARCH_INCDIR) $(LD_SCRIPT)
 
+ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), depend)
 -include $(DEPS)
+endif
+endif
 
 $(ARCH_INCDIR): $(INC_ARCH) .config
 	@printf "  COPY     $@\n"
@@ -181,21 +184,10 @@ ifdef BOARD
 	$(Q)-cp -R arch/$(ARCH)/mach-$(MACH)/board/$(BOARD)/include $@/mach/board
 endif
 
-$(DRV_INCDIR):
-	$(Q)-cp -R drivers/include $@
-
 .PHONY: clean
 clean:
 	@rm -rf $(BUILDIR)
-	@rm -rf $(ARCH_INCDIR) $(DRV_INCDIR)
-
-ifneq ($(MAKECMDGOALS), clean)
-	ifneq ($(MAKECMDGOALS), depend)
-		ifneq ($(SRCS),)
-			-include $(BUILDIR)/$(TARGET).dep
-		endif
-	endif
-endif
+	@rm -rf $(ARCH_INCDIR)
 
 # .config
 
@@ -216,6 +208,9 @@ erase:
 .PHONY: term
 term:
 	minicom -D $(TTY)
+.PHONY: debug
+debug:
+	gdbgui -g $(CROSS_COMPILE)-gdb
 
 # Unit test
 .PHONY: test

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "mock_hw_gpio.h"
+#include "mock_lock.h"
 
 void setUp(void)
 {

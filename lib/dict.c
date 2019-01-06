@@ -1,4 +1,3 @@
-//TODO: Implement lock-free
 #include "dict.h"
 #include "hash.h"
 
@@ -32,18 +31,22 @@ static inline void clear_item(struct dict_item * const item)
 int idict_get(const dict_t * const dict, const uintptr_t key, void *value)
 {
 	const struct dict_item *item;
+	int rc;
 	uintptr_t *p = value;
-	uint16_t i;
 
-	if (!dict || !p)
-		return -EINVAL;
+	if (!dict || !p) {
+		rc = -EINVAL;
+		goto out;
+	}
 
-	if (!dict->table || !dict->n)
-		return -ENOENT;
+	if (!dict->table || !dict->n) {
+		rc = -ENOENT;
+		goto out;
+	}
 
 	item = &dict->table[hash_key(key, dict->slot)];
 
-	for (i = 0; i < dict->slot; i++) {
+	for (uint16_t i = 0; i < dict->slot; i++) {
 #if defined(NO_DELETION)
 		if (is_item_empty(item)) {
 			break;
@@ -52,66 +55,80 @@ int idict_get(const dict_t * const dict, const uintptr_t key, void *value)
 		if ((key == (uintptr_t)item->key)
 				&& !is_item_empty(item)) {
 			*p = (uintptr_t)item->value;
-			return 0;
+			rc = 0;
+			goto out;
 		}
 
 		item = &dict->table[(hash_key(key, dict->slot) + i) % dict->slot];
 	}
 
-	return -ENODATA;
+	rc = -ENODATA;
+out:
+	return rc;
 }
 
 int idict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value)
 {
 	struct dict_item *item;
-	uint16_t i;
+	int rc;
 
-	if (!dict || !dict->table)
-		return -EINVAL;
+	if (!dict || !dict->table) {
+		rc = -EINVAL;
+		goto out;
+	}
 
 	item = &dict->table[hash_key(key, dict->slot)];
 
-	for (i = 0; i < dict->slot; i++) {
+	for (uint16_t i = 0; i < dict->slot; i++) {
 		if (is_item_empty(item)) {
 			item->key = (void *)key;
 			item->value = (void *)value;
 			mark_item(item);
 			dict->n++;
-			return 0;
+			rc = 0;
+			goto out;
 		} else if (key == (uintptr_t)item->key) {
-			return -EEXIST;
+			rc = -EEXIST;
+			goto out;
 		}
 
 		item = &dict->table[(hash_key(key, dict->slot) + i) % dict->slot];
 	}
 
-	return -ENOSPC;
+	rc = -ENOSPC;
+out:
+	return rc;
 }
 
 int idict_del(dict_t * const dict, const uintptr_t key)
 {
 	struct dict_item *item;
-	uint16_t i;
+	int rc;
 
-	if (!dict || !dict->table)
-		return -EINVAL;
+	if (!dict || !dict->table) {
+		rc = -EINVAL;
+		goto out;
+	}
 
 	item = &dict->table[hash_key(key, dict->slot)];
 
-	for (i = 0; i < dict->slot; i++) {
+	for (uint16_t i = 0; i < dict->slot; i++) {
 		if ((key == (uintptr_t)item->key)
 				&& !is_item_empty(item)) {
 			item->key = NULL;
 			item->value = NULL;
 			clear_item(item);
 			dict->n--;
-			return 0;
+			rc = 0;
+			goto out;
 		}
 
 		item = &dict->table[(hash_key(key, dict->slot) + i) % dict->slot];
 	}
 
-	return -ENODATA;
+	rc = -ENODATA;
+out:
+	return rc;
 }
 
 #else // Chaining
