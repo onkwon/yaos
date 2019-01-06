@@ -30,12 +30,29 @@ void *_sbrk(ptrdiff_t increment)
 long _write(int fd, const void *buf, size_t cnt)
 {
 	const char *dat = (const char *)buf;
+	void (*put)(const int c) = NULL;
+	size_t i;
 
-	for (size_t i = 0; i < cnt; i++)
-		debug_putc((int)dat[i]);
+	switch (fd) {
+	case SYSLOG_FD_DEBUG:
+		put = debug_putc;
+		break;
+	case SYSLOG_FD_STDOUT:
+	case SYSLOG_FD_BUFFER:
+		if (printc)
+			put = printc;
+		break;
+	default:
+		break;
+	}
 
-	return cnt;
-	(void)fd;
+	if (!put)
+		return 0;
+
+	for (i = 0; i < cnt; i++)
+		put((int)dat[i]);
+
+	return i;
 }
 
 int _close(int fd)

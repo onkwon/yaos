@@ -2,7 +2,6 @@
 
 void debug_putc(const int c)
 {
-	//TODO: Lock
 	hw_debug_putc(c);
 }
 

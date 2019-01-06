@@ -56,6 +56,9 @@ typedef enum {
 })
 #endif
 
+#define KHZ				1000UL
+#define MHZ				(KHZ * KHZ)
+
 /** Check if integral power of two */
 static inline bool is_pow2(const uintptr_t x)
 {

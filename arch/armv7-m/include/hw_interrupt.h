@@ -96,12 +96,17 @@ void hw_irq_set(const int nvec, const bool on);
  *        :c:macro:`IRQ_PRIORITY_HIGHEST`
  */
 void hw_irq_set_pri(const int nvec, const int pri);
-
 void hw_irq_init(void);
+
 /** Booting starts from here */
 void ISR_reset(void);
 /** Initial interrupt service routine for unregistered */
 void ISR_null(const int nvec);
+void ISR_svc(void);
+void ISR_svc_pend(void);
+void ISR_dbgmon(void);
+void ISR_systick(void);
+void ISR_fault(void);
 
 /**
  * Software reset

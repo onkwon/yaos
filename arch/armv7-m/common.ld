@@ -1,6 +1,8 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
+systick = systick64;
+
 PROVIDE(_rom_start   = LOADADDR);
 PROVIDE(_rom_size    = LENGTH(rom) - (LOADADDR - ORIGIN(rom)));
 PROVIDE(_ram_start   = ORIGIN(ram));

@@ -27,16 +27,9 @@ enum {
 extern uintptr_t _ram_start, _ram_end;
 extern const uintptr_t _rom_start;
 
-void ISR_svc(void);
-void ISR_svc_pend(void);
-void ISR_dbgmon(void);
-void ISR_systick(void);
-void ISR_fault(void);
-
 void __attribute__((weak)) ISR_null(const int nvec)
 {
 	debug("ISR is not yet registered: %x", nvec);
-	(void)nvec;
 }
 
 void __attribute__((weak)) ISR_svc(void)

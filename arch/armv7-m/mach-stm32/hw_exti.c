@@ -1,6 +1,6 @@
 /** @file exti.c */
 #include "arch/mach/hw_exti.h"
-#include "arch/mach/clock.h"
+#include "arch/mach/hw_clock.h"
 #include "arch/atomic.h"
 
 void hw_exti_enable(uint16_t pin, const bool enable)
@@ -20,6 +20,6 @@ void hw_exti_enable(uint16_t pin, const bool enable)
 		val |= (port * enable) << bit;
 	} while (__strex(val, reg));
 
-	if (!(__read_apb2_clock() & (1UL << RCC_SYSCFGEN_BIT)))
-		__turn_apb2_clock(RCC_SYSCFGEN_BIT, true);
+	if (!(hw_clock_get_apb2() & (1UL << RCC_SYSCFGEN_BIT)))
+		hw_clock_set_apb2(RCC_SYSCFGEN_BIT, true);
 }

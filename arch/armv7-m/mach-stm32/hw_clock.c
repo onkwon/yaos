@@ -1,8 +1,6 @@
-/** @file clock.c */
-
-#include "arch/mach/clock.h"
-#include "io.h"
+#include "include/hw_clock.h"
 #include "arch/mach/regs.h"
+#include "io.h"
 #include "arch/regs.h"
 #include <assert.h>
 
@@ -16,30 +14,28 @@
 #define SWS			2
 #define HPRE			4
 #if defined(stm32f1) || defined(stm32f3)
-#define PLLMUL			18
-#define PLLSRC			16
-#define ADCPRE			14
-#define PPRE2			11
-#define PPRE1			8
+ #define PLLMUL			18
+ #define PLLSRC			16
+ #define ADCPRE			14
+ #define PPRE2			11
+ #define PPRE1			8
 #elif defined(stm32f4)
-#define RTCPRE			16
-#define PPRE2			13
-#define PPRE1			10
+ #define RTCPRE			16
+ #define PPRE2			13
+ #define PPRE1			10
 
-#define PLLQ			24
-#define PLLSRC			22
-#define PLLP			16
-#define PLLN			6
-#define PLLM			0
-#define PLLR			28
-
-#define MHZ			1000000UL
+ #define PLLQ			24
+ #define PLLSRC			22
+ #define PLLP			16
+ #define PLLN			6
+ #define PLLM			0
+ #define PLLR			28
 #else
-#error undefined machine
+ #error "undefined machine"
 #endif
 
 /* SYSCLK */
-unsigned long get_pllclk()
+unsigned long hw_clock_get_pll(void)
 {
 	unsigned long clk, pllm;
 #ifdef stm32f4
@@ -78,7 +74,7 @@ unsigned long get_pllclk()
 
 		clk = clk * plln / pllp;
 #else
-#error undefined machine
+#error "undefined machine"
 #endif
 		break;
 	default:
@@ -90,18 +86,18 @@ unsigned long get_pllclk()
 }
 
 /* AHB */
-unsigned long get_hclk()
+unsigned long hw_clock_get_hclk(void)
 {
 	unsigned long clk, pre, pllclk;
 
-	pllclk = get_pllclk();
+	pllclk = hw_clock_get_pll();
 #if defined(stm32f1) || defined(stm32f3)
 	pre = (RCC_CFGR >> HPRE) & 0xf; /* mask HPRE[7:4] */
 	pre = pre? pre - 7 : 0;         /* get prescaler division factor */
 #elif defined(stm32f4)
 	pre = ((RCC_CFGR >> HPRE) & 0x8) ? ((RCC_CFGR >> HPRE) & 0x7) + 1 : 0;
 #else
-#error undefined machine
+#error "undefined machine"
 #endif
 	clk = pllclk >> pre;
 
@@ -109,18 +105,18 @@ unsigned long get_hclk()
 }
 
 /* APB1 */
-unsigned long get_pclk1()
+unsigned long hw_clock_get_pclk1(void)
 {
 	unsigned long clk, pre, hclk;
 
-	hclk = get_hclk();
+	hclk = hw_clock_get_hclk();
 #if defined(stm32f1) || defined(stm32f3)
 	pre = (RCC_CFGR >> PPRE1) & 0x7; /* mask PPRE1[10:8] */
 	pre = pre ? pre - 3 : 0;
 #elif defined(stm32f4)
 	pre = ((RCC_CFGR >> PPRE1) & 0x4)? ((RCC_CFGR >> PPRE1) & 0x3) + 1 : 0;
 #else
-#error undefined machine
+#error "undefined machine"
 #endif
 	clk = hclk >> pre;
 
@@ -128,30 +124,30 @@ unsigned long get_pclk1()
 }
 
 /* APB2 */
-unsigned long get_pclk2()
+unsigned long hw_clock_get_pclk2(void)
 {
 	unsigned long clk, pre, hclk;
 
-	hclk = get_hclk();
+	hclk = hw_clock_get_hclk();
 #if defined(stm32f1) || defined(stm32f3)
 	pre = (RCC_CFGR >> PPRE2) & 0x7; /* mask PPRE2[13:11] */
 	pre = pre? pre - 3 : 0;
 #elif defined(stm32f4)
 	pre = ((RCC_CFGR >> PPRE2) & 0x4)? ((RCC_CFGR >> PPRE2) & 0x3) + 1 : 0;
 #else
-#error undefined machine
+#error "undefined machine"
 #endif
 	clk = hclk >> pre;
 
 	return clk;
 }
 
-unsigned long get_adclk()
+unsigned long hw_clock_get_adc(void)
 {
 #if defined(stm32f1) || defined(stm32f3)
 	unsigned long clk, pre, pclk2;
 
-	pclk2 = get_pclk2();
+	pclk2 = hw_clock_get_pclk2();
 	pre = (RCC_CFGR >> ADCPRE) & 0x3; /* mask PPRE2[15:14] */
 	pre = (pre + 1) << 1;             /* get prescaler division factor */
 	clk = pclk2 / pre;
@@ -160,15 +156,15 @@ unsigned long get_adclk()
 #elif defined(stm32f4)
 	return 0;
 #else
-#error undefined machine
+#error "undefined machine"
 #endif
 }
 
-unsigned long get_stkclk()
+unsigned long hw_clock_get_stk(void)
 {
 	unsigned long clk, hclk;
 
-	hclk = get_hclk();
+	hclk = hw_clock_get_hclk();
 
 	if (STK_CTRL & 4)
 		clk = hclk;
@@ -178,27 +174,22 @@ unsigned long get_stkclk()
 	return clk;
 }
 
-unsigned long get_sysclk_freq()
-{
-	return get_stkclk();
-}
-
-void __turn_apb1_clock(const unsigned long bit, const bool on)
+void hw_clock_set_apb1(const unsigned long bit, const bool on)
 {
 	SET_CLOCK_APB1(bit, on);
 }
 
-void __turn_apb2_clock(const unsigned long bit, const bool on)
+void hw_clock_set_apb2(const unsigned long bit, const bool on)
 {
 	SET_CLOCK_APB2(bit, on);
 }
 
-void __turn_ahb1_clock(const unsigned long bit, const bool on)
+void hw_clock_set_ahb1(const unsigned long bit, const bool on)
 {
 	SET_CLOCK_AHB1(bit, on);
 }
 
-void __turn_port_clock(const reg_t * const port, const bool on)
+void hw_clock_set_port(const reg_t * const port, const bool on)
 {
 	unsigned int bit;
 
@@ -208,35 +199,35 @@ void __turn_port_clock(const reg_t * const port, const bool on)
 #endif
 
 #ifdef stm32f1
-	__turn_apb2_clock(bit, on);
+	hw_clock_set_apb2(bit, on);
 #elif defined(stm32f3) || defined(stm32f4)
-	__turn_ahb1_clock(bit, on);
+	hw_clock_set_ahb1(bit, on);
 #else
-#error undefined machine
+#error "undefined machine"
 #endif
 }
 
-unsigned long __read_apb1_clock()
+unsigned long hw_clock_get_apb1(void)
 {
 	return RCC_APB1ENR;
 }
 
-unsigned long __read_apb2_clock()
+unsigned long hw_clock_get_apb2(void)
 {
 	return RCC_APB2ENR;
 }
 
-unsigned long __read_ahb1_clock()
+unsigned long hw_clock_get_ahb1(void)
 {
 	return RCC_AHB1ENR;
 }
 
-void __reset_apb1_device(const unsigned long bit)
+void hw_clock_reset_apb1_conf(const unsigned long bit)
 {
 	RESET_PERI_APB1(bit);
 }
 
-void __reset_apb2_device(const unsigned long bit)
+void hw_clock_reset_apb2_conf(const unsigned long bit)
 {
 	RESET_PERI_APB2(bit);
 }
@@ -359,6 +350,6 @@ void __attribute__((weak)) clock_init()
 	 * the internal RC oscillator (HSI) must be ON.  */
 }
 #else
-#error undefined machine
+#error "undefined machine"
 #endif
 REGISTER_INIT(clock_init, 0);
