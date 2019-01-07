@@ -1,5 +1,5 @@
-#ifndef __YAOS_SYSCLK_H__
-#define __YAOS_SYSCLK_H__
+#ifndef __YAOS_SYSTICK_H__
+#define __YAOS_SYSTICK_H__
 
 /**
  * kerenl runs on systick and the systick gets counted on sysclk. sysclk comes
@@ -17,11 +17,10 @@
 
 #define SYSCLK_MAX			(HW_SYSCLK_MAXFREQ_KHZ * KHZ)
 
-unsigned long sysclk_init(unsigned long hz);
+unsigned long systick_init(unsigned long hz);
+unsigned long sysclk_to_ticks(unsigned long clks);
+unsigned long systick_to_clks(unsigned long ticks);
 unsigned long sysclk_get(void);
 unsigned long sysclk_get_period(void);
 
-unsigned long sysclk_to_ticks(unsigned long clks);
-unsigned long systick_to_clks(unsigned long ticks);
-
-#endif /* __YAOS_SYSCLK_H__ */
+#endif /* __YAOS_SYSTICK_H__ */

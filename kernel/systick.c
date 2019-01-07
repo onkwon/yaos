@@ -1,4 +1,4 @@
-#include "kernel/sysclk.h"
+#include "kernel/systick.h"
 #include "arch/hw_sysclk.h"
 #include "kernel/lock.h"
 #include "kernel/sched.h"
@@ -46,7 +46,7 @@ unsigned long systick_to_clks(unsigned long ticks)
 	return ticks * _sysclk_period;
 }
 
-unsigned long sysclk_init(unsigned long hz)
+unsigned long systick_init(unsigned long hz)
 {
 	unsigned long sysclk, period;
 
