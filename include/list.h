@@ -4,6 +4,7 @@
 #if !defined(NULL)
 #include <stddef.h>
 #endif
+#include <stdbool.h>
 
 /** doubly-linked list */
 struct llist {

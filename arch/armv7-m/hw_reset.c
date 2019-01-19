@@ -59,5 +59,5 @@ void __attribute__((naked, used)) ISR_reset(void)
 	dsb();
 	isb();
 
-	system_init();
+	kernel_init();
 }

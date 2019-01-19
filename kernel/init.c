@@ -1,7 +1,19 @@
+/*
+ * init.c - kernel initializaion
+ *
+ * (C) 2015-2019 Kyunghwan Kwon <kwon@toanyone.net>
+ *
+ * This code is licensed under the Apache License, Version 2.0.
+ */
+
 #include "kernel/init.h"
 #include "kernel/interrupt.h"
 #include "kernel/debug.h"
+#include "kernel/task.h"
+#include "kernel/systick.h"
+#include "kernel/sched.h"
 #include "io.h"
+#include "syslog.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -36,7 +48,7 @@ static inline void mem_init(void)
 
 #include "kernel/init.h"
 
-static void __init sys_init(void)
+static void __init drv_init(void)
 {
 	uintptr_t *p = (uintptr_t *)&_init_func_list;
 
@@ -44,20 +56,31 @@ static void __init sys_init(void)
 		((void (*)(void))*p++)();
 }
 
-void kernel_init(void)
+void freeze(void)
 {
-	sys_init();
-	debug_init(); /* must follow sys_init() because of clock frequency dependency */
-
-	while (1) {
-		printf("Hello, World!\r\n");
-	};
+	debug("freeze");
+	while (1);
 }
 
-void __init system_init(void)
+void __init kernel_init(void)
 {
 	mem_init();
 	irq_init();
+	drv_init();
 
-	kernel_init();
+	debug_init(); /* it must be called after drv_init() because of clock
+			 frequency dependency */
+	task_init();
+	systick_init(1);
+	set_user_sp(current->stack.p);
+	set_kernel_sp(current->kstack.p);
+	systick_start();
+
+	sei();
+
+	resched();
+
+	/* it doesn't really reach up to this point. init task becomes idle as
+	 * its context is already set so */
+	freeze();
 }

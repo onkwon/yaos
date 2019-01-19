@@ -17,6 +17,7 @@
 
 #define SYSCLK_MAX			(HW_SYSCLK_MAXFREQ_KHZ * KHZ)
 
+void systick_start(void);
 unsigned long systick_init(unsigned long hz);
 unsigned long sysclk_to_ticks(unsigned long clks);
 unsigned long systick_to_clks(unsigned long ticks);

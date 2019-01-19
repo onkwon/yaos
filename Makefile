@@ -33,11 +33,12 @@ ODFLAGS = -Dsx
 CFLAGS += -std=gnu99 -O2 \
 	  -fno-builtin -ffunction-sections -fdata-sections \
 	  -Wl,--gc-sections #-flto
-CFLAGS += -pedantic -W -Wall -Wunused-parameter -Wno-main -Wextra #-Werror -Wpointer-arith
-CFLAGS += -Wformat-nonliteral -Wcast-align -Wpointer-arith -Wbad-function-cast \
+CFLAGS += -W -Wall -Wunused-parameter -Wno-main -Wextra -Wformat-nonliteral \
+	  -Wcast-align -Wpointer-arith -Wbad-function-cast \
 	  -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations \
 	  -Winline -Wundef -Wnested-externs -Wshadow -Wconversion \
 	  -Wwrite-strings -Wno-conversion -Wstrict-aliasing -Wcast-qual
+CFLAGS += #-Werror -Wpointer-arith -pedantic
 ifndef NDEBUG
 	CFLAGS += -g -Og
 	#CFLAGS += -fprofile-arcs -ftest-coverage

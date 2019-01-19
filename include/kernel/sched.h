@@ -5,4 +5,6 @@
 
 #define resched()		hw_raise_sched()
 
+void schedule(void);
+
 #endif /* __YAOS_SCHED_H__ */

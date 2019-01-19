@@ -74,7 +74,10 @@ unsigned long systick_init(unsigned long hz)
 	hw_sysclk_reset();
 	hw_sysclk_set_period(period);
 
-	hw_sysclk_run();
-
 	return sysclk_get();
+}
+
+void systick_start(void)
+{
+	hw_sysclk_run();
 }

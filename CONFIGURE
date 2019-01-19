@@ -3,6 +3,7 @@ UPLOAD   ?= 0x08020000
 
 # 'y' to enable the functionality while 'n' to disable
 CONFIG_DEBUG?=y
+CONFIG_SCHEDULER?=y
 CONFIG_REALTIME?=y
 CONFIG_SLEEP_LONG?=y
 CONFIG_SLEEP_DEEP?=y
@@ -15,6 +16,7 @@ CONFIG_FLOAT?=n
 CONFIG_FPU?=n
 CONFIG_CPU_LOAD?=y
 CONFIG_SOFTIRQ_THREAD?=n
+CONFIG_MEM_WATERMARK=y
 
 # modules
 MODULE_UART?=n
@@ -43,6 +45,9 @@ USE_AES?=n
 ifeq ($(CONFIG_DEBUG),n)
 	NDEBUG=y
 	DEFS += -DNDEBUG
+endif
+ifeq ($(CONFIG_SCHEDULER),y)
+	DEFS += -DCONFIG_SCHEDULER
 endif
 ifeq ($(CONFIG_SMP),y)
 	DEFS += -DCONFIG_SMP
@@ -86,6 +91,9 @@ ifeq ($(CONFIG_SLEEP_DEEP),y)
 endif
 ifeq ($(CONFIG_COMMON_IRQ_FRAMEWORK),y)
 	DEFS += -DCONFIG_COMMON_IRQ_FRAMEWORK
+endif
+ifeq ($(CONFIG_MEM_WATERMARK),y)
+	DEFS += -DCONFIG_MEM_WATERMARK
 endif
 
 # Compile
