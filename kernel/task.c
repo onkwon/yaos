@@ -48,16 +48,16 @@ static void idle(void)
 	uart1.open_static(&uart1, &t, sizeof(t), NULL, 0);
 	printc = myputc;
 
-	uart1.write(&uart1, str, strlen(str));
-	sprintf(mybuf, "clk %lu\r\n", hw_clock_get_hclk());
-	uart1.write(&uart1, mybuf, strlen(mybuf));
+	uart1.write(&uart1, str, strnlen(str, 20));
+	snprintf(mybuf, 80, "clk %lu\r\n", hw_clock_get_hclk());
+	uart1.write(&uart1, mybuf, strnlen(mybuf, 80));
 
 	while (1) {
 		syslog("syslog %lu", systick);
 		syslog("stack used %d", (uintptr_t)current->stack.base + STACK_SIZE_MIN - (uintptr_t)current->stack.watermark);
-		syslog("stack margin left %ld", current->stack.watermark - current->stack.base);
+		syslog("stack margin left %d", (uintptr_t)current->stack.watermark - (uintptr_t)current->stack.base);
 		syslog("kernel stack used %d", (uintptr_t)current->kstack.base + STACK_SIZE_MIN - (uintptr_t)current->kstack.watermark);
-		syslog("kernel stack margin left %ld", current->kstack.watermark - current->kstack.base);
+		syslog("kernel stack margin left %d", (uintptr_t)current->kstack.watermark - (uintptr_t)current->kstack.base);
 		uart1.write(&uart1, "ON\r\n", 4);
 		while (uart1.readb(&uart1, &byte));
 		uart1.write(&uart1, ">> ", 3);
