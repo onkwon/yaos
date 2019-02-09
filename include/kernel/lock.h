@@ -20,13 +20,17 @@ typedef struct lock {
 
 static inline void spin_lock(struct lock * const lock)
 {
-	int8_t myturn = atomic_faab(&lock->ticket, 1);
+	int8_t myturn;
+
+	dmb();
+	myturn = atomic_faab(&lock->ticket, 1);
 	while (ACCESS_ONCE(lock->turn) != myturn) ;
 }
 
 static inline void spin_unlock(struct lock * const lock)
 {
 	dmb();
+	// guaranteed only the winner can write at a time
 	ACCESS_ONCE(lock->turn) += 1;
 }
 

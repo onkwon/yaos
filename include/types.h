@@ -28,7 +28,9 @@ typedef enum {
 #define MASK_RESET(v, mask)		((v) & ~(mask))
 #define MASK_SET(v, mask)		((v) | (mask))
 
+/** Align down */
 #define BASE(x, a)			((x) & ~((typeof(x))(a) - 1UL))
+/** Align up */
 #define ALIGN(x, a)			BASE((x) + ((typeof(x))(a) - 1UL), a)
 
 #define stringify(x)			#x

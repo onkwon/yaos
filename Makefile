@@ -34,11 +34,13 @@ CFLAGS += -std=gnu99 -O2 \
 	  -fno-builtin -ffunction-sections -fdata-sections \
 	  -Wl,--gc-sections #-flto
 CFLAGS += -W -Wall -Wunused-parameter -Wno-main -Wextra -Wformat-nonliteral \
-	  -Wcast-align -Wpointer-arith -Wbad-function-cast \
+	  -Wcast-align -Wpointer-arith -Wbad-function-cast -Wnested-externs \
 	  -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations \
-	  -Winline -Wundef -Wnested-externs -Wshadow -Wconversion \
-	  -Wwrite-strings -Wno-conversion -Wstrict-aliasing -Wcast-qual
-CFLAGS += #-Werror -Wpointer-arith -pedantic
+	  -Winline -Wundef -Wshadow -Wwrite-strings -Wstrict-aliasing \
+	  -Wcast-qual -Wmissing-format-attribute -Wmissing-include-dirs \
+	  -Waggregate-return -Winit-self -Wlogical-op -Wredundant-decls \
+	  -Wstrict-overflow=5 -Wabi -Wfloat-equal
+CFLAGS += #-pedantic #-Wsign-conversion #-Werror #-Wno-conversion
 ifndef NDEBUG
 	CFLAGS += -g -Og
 	#CFLAGS += -fprofile-arcs -ftest-coverage
