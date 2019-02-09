@@ -22,27 +22,33 @@ static inline int gpio2exti(int n)
 
 static inline uintptr_t scan_port(reg_t *reg)
 {
-	uint8_t idx = 4;
+	uint8_t idx;
 #if defined(stm32f1)
 	idx = 2;
+#else
+	idx = 4;
 #endif
 	return reg[idx];
 }
 
 static inline void write_port(reg_t *reg, reg_t data)
 {
-	uint8_t idx = 5;
+	uint8_t idx;
 #if defined(stm32f1)
 	idx = 3;
+#else
+	idx = 5;
 #endif
 	reg[idx] = data;
 }
 
 static inline void write_port_pin(reg_t *reg, uint16_t pin, int val)
 {
-	uint8_t idx = 6;
+	uint8_t idx;
 #if defined(stm32f1)
 	idx = 4;
+#else
+	idx = 6;
 #endif
 	reg[idx] = (val == 1)? (1UL << pin) : (1UL << (pin + 16));
 }
@@ -350,7 +356,6 @@ int hw_gpio_init(const uint16_t index, const uint32_t flags)
 		hw_exti_enable(index, true);
 	}
 
-out:
 	return lvector;
 }
 #endif
@@ -404,6 +409,7 @@ void hw_gpio_driver_init(void (*f)(int))
 	hw_gpio_irq_init(f);
 
 	/* FIXME: initializing of ports makes JTAG not working */
+#if 0
 	return;
 	hw_clock_set_port((reg_t *)PORTA, true);
 	hw_clock_set_port((reg_t *)PORTB, true);
@@ -455,4 +461,5 @@ void hw_gpio_driver_init(void (*f)(int))
 	hw_clock_set_port((reg_t *)PORTD, false);
 	hw_clock_set_port((reg_t *)PORTE, false);
 	hw_clock_set_port((reg_t *)PORTF, false);
+#endif
 }
