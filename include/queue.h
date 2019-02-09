@@ -10,8 +10,8 @@
  * The maximum item size is up to (2^8 - 1). */
 typedef struct queue {
 	void *data;
-	uint16_t front;
-	uint16_t rear;
+	uint16_t index;
+	uint16_t outdex;
 	uint16_t n; /** Number of items */
 	uint8_t itemsize;
 } queue_t;
