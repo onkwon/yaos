@@ -148,9 +148,6 @@ void test_unregister_isr_primary(void)
 		take_permission();
 		__dsb_Ignore();
 		__isb_Ignore();
-		take_permission();
-		__dsb_Ignore();
-		__isb_Ignore();
 		TEST_ASSERT_EQUAL(0, unregister_isr(i));
 	}
 
