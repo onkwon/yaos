@@ -10,11 +10,11 @@ enum {
 };
 
 enum {
-	SYSLOG_ALERT,	// "ALERT:"
-	SYSLOG_ERROR,	// "ERROR:"
-	SYSLOG_WARN,	// "WARN:"
-	SYSLOG_NOTICE,	// "NOTICE:"
-	SYSLOG_INFO,	// "INFO:"
+	SYSLOG_ALERT,
+	SYSLOG_ERROR,
+	SYSLOG_WARN,
+	SYSLOG_NOTICE,
+	SYSLOG_INFO,
 	SYSLOG_DEFAULT,
 };
 
@@ -34,6 +34,22 @@ enum {
 #define syslog(...)	do { \
 	dprintf(SYSLOG_FD_STDOUT, __VA_ARGS__); \
 	dprintf(SYSLOG_FD_STDOUT, "\r\n"); \
+} while (0)
+#define syserr(...)	do { \
+	dprintf(SYSLOG_FD_STDOUT, "[ERROR] "); \
+	syslog(__VA_ARGS__); \
+} while (0)
+#define syswarn(...)	do { \
+	dprintf(SYSLOG_FD_STDOUT, "[WARN]  "); \
+	syslog(__VA_ARGS__); \
+} while (0)
+#define sysinfo(...)	do { \
+	dprintf(SYSLOG_FD_STDOUT, "[INFO]  "); \
+	syslog(__VA_ARGS__); \
+} while (0)
+#define alert(...)	do { \
+	dprintf(SYSLOG_FD_STDOUT, "[ALERT] "); \
+	syslog(__VA_ARGS__); \
 } while (0)
 
 /** Custom logging function

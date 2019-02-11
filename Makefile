@@ -39,7 +39,7 @@ CFLAGS += -W -Wall -Wunused-parameter -Wno-main -Wextra -Wformat-nonliteral \
 	  -Winline -Wundef -Wshadow -Wwrite-strings -Wstrict-aliasing \
 	  -Wcast-qual -Wmissing-format-attribute -Wmissing-include-dirs \
 	  -Waggregate-return -Winit-self -Wlogical-op -Wredundant-decls \
-	  -Wstrict-overflow=5 -Wabi -Wfloat-equal
+	  -Wstrict-overflow=5 -Wfloat-equal -Wabi=11
 CFLAGS += #-pedantic #-Wsign-conversion #-Werror #-Wno-conversion
 ifndef NDEBUG
 	CFLAGS += -g -Og

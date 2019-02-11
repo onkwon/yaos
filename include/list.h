@@ -107,7 +107,8 @@ static inline void list_del(struct list *node, struct list *ref)
 	while (*curr && *curr != node)
 		curr = &(*curr)->next;
 
-	*curr = node->next;
+	if (*curr)
+		*curr = node->next;
 }
 
 /**
