@@ -1,4 +1,6 @@
-## Fix #
+Enter concise *title* on top, update *reviewers*, *labels*, *milestone* on the side, and write up *description* below.
+
+## Issue
 
 - Describe why this change is necessary. If it's a bug, why did it happen?
 - What did you fix via this PR? Describe it from business logic perspective.
@@ -16,12 +18,12 @@ Delete options that are not relevant.
 
 ## How Verified
 
-### (Automated Tests)
+### Automated Tests
 
 - make test (0% passed)
 - make lint (0 error/warning)
 
-### (Manual Tests)
+### Manual Tests
 
 - List all test cases you have run manually
 
