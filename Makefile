@@ -222,4 +222,9 @@ test: $(BUILDIR)
 
 .PHONY: coverage
 coverage: $(BUILDIR)
-	$(Q)cd test && ceedling gcov:all
+	$(Q)cd test && ceedling gcov:all && ceedling utils:gcov
+
+.PHONY: check
+check: $(BUILDIR)
+	$(Q)cppcheck ./ -itest -itools --enable=all --inconclusive --check-config --suppress=missingIncludeSystem -Iinclude -Idrivers/include
+	#$(Q)python tools/cppcheck/addons/misra.py --rule-texts= *.dump
