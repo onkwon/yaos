@@ -1,10 +1,5 @@
-/*
- * init.c - kernel initializaion
- *
- * (C) 2015-2019 Kyunghwan Kwon <kwon@toanyone.net>
- *
- * This code is licensed under the Apache License, Version 2.0.
- */
+#include "io.h"
+#include "syslog.h"
 
 #include "kernel/init.h"
 #include "kernel/interrupt.h"
@@ -12,8 +7,6 @@
 #include "kernel/task.h"
 #include "kernel/systick.h"
 #include "kernel/sched.h"
-#include "io.h"
-#include "syslog.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -21,6 +14,9 @@
 extern const uintptr_t _etext, _edata, _ebss;
 extern uintptr_t _data, _bss;
 extern uintptr_t _init_func_list;
+#if !defined(CONFIG_SCHEDULER)
+extern int main(void);
+#endif
 
 static inline void mem_init(void)
 {
@@ -46,14 +42,12 @@ static inline void mem_init(void)
 	dsb();
 }
 
-#include "kernel/init.h"
-
 static void __init drv_init(void)
 {
-	uintptr_t *p = (uintptr_t *)&_init_func_list;
+	uintptr_t *func = (uintptr_t *)&_init_func_list;
 
-	while (*p)
-		((void (*)(void))*p++)();
+	while (*func)
+		((void (*)(void))*func++)();
 }
 
 void freeze(void)
@@ -70,15 +64,27 @@ void __init kernel_init(void)
 
 	debug_init(); /* it must be called after drv_init() because of clock
 			 frequency dependency */
+	info("yaos %s %s, %s", def2str(VERSION), def2str(MACHINE), __DATE__);
+
+	systick_init(SYSTICK_HZ);
+	systick_start();
+
+#if !defined(CONFIG_SCHEDULER)
+	sei();
+
+	main();
+#else
+
+	sched_init();
 	task_init();
-	systick_init(1);
+
 	set_user_sp(current->stack.p);
 	set_kernel_sp(current->kstack.p);
-	systick_start();
 
 	sei();
 
 	resched();
+#endif
 
 	/* it doesn't really reach up to this point. init task becomes idle as
 	 * its context is already set so */

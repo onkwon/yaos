@@ -30,7 +30,7 @@ typedef struct dict {
  * @param value The value associated with the key
  * @return 0 on success or negative error code
  */
-int idict_get(const dict_t * const dict, const uintptr_t key, void *value);
+int dict_get(const dict_t * const dict, const uintptr_t key, void *value);
 /**
  * Add a key-value pair to a dictionary
  *
@@ -39,7 +39,7 @@ int idict_get(const dict_t * const dict, const uintptr_t key, void *value);
  * @param value The value associated with the key
  * @return 0 on success or negative error code
  */
-int idict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value);
+int dict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value);
 /**
  * Delete a key-value pair in a dictionary
  *
@@ -47,7 +47,7 @@ int idict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value);
  * @param key key to delete
  * @return 0 on success or negative error code
  */
-int idict_del(dict_t * const dict, const uintptr_t key);
+int dict_del(dict_t * const dict, const uintptr_t key);
 /**
  * Clear a dictionary
 dict_clear();

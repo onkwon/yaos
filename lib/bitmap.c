@@ -55,15 +55,15 @@ void bitmap_clear(bitmap_t * const bitmap, const unsigned int pos)
 void bitmap_init(bitmap_t * const bitmap, const unsigned int bitmax, const bool val)
 {
 	int nword = bitmax / BITMAP_UNIT;
-	int remained = bitmax % BITMAP_UNIT;
+	int remain = bitmax % BITMAP_UNIT;
 
 	for (int i = 0; i < nword; i++)
 		bitmap[i] = (-1UL * val);
 
-	if (remained) {
+	if (remain) {
 		bitmap_t t = 0;
 
-		for (int i = 0; i < remained; i++)
+		for (int i = 0; i < remain; i++)
 			t = (t << 1UL) | (1UL * val);
 
 		bitmap[nword] = t;

@@ -7,7 +7,7 @@ void hw_sysclk_reset(void)
 	STK_VAL = 0;
 }
 
-void hw_sysclk_set_period(unsigned long period)
+void hw_sysclk_period_set(unsigned long period)
 {
 	STK_LOAD = period;
 }
@@ -23,7 +23,7 @@ void hw_sysclk_stop(void)
 	STK_CTRL &= ~3UL;
 }
 
-unsigned long hw_sysclk_get_freq(void)
+unsigned long hw_sysclk_freq_get(void)
 {
 	return hw_clock_get_stk();
 }

@@ -2,8 +2,10 @@
 #define __YAOS_LOCK_H__
 
 #include "io.h"
-#include "kernel/interrupt.h"
 #include "list.h"
+
+#include "kernel/interrupt.h"
+
 #include <stdint.h>
 
 #define DEFINE_LOCK(name)	struct lock name = { { NULL }, 0, 0 }

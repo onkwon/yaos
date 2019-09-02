@@ -8,6 +8,8 @@
 
 #include "types.h"
 
+#define SYSTICK_HZ			1000U
+
 #if !defined(HW_SYSCLK_MAX_KHZ)
 #define HW_SYSCLK_MAXFREQ_KHZ		(100U)
 #endif
@@ -17,11 +19,16 @@
 
 #define SYSCLK_MAX			(HW_SYSCLK_MAXFREQ_KHZ * KHZ)
 
-void systick_start(void);
+#define TICKS_TO_MSEC(ticks)		(1000 * ticks / SYSTICK_HZ)
+#define MSEC_TO_TICKS(msec)		(msec * SYSTICK_HZ / 1000)
+
 unsigned long systick_init(unsigned long hz);
-unsigned long sysclk_to_ticks(unsigned long clks);
+void systick_start(void);
+unsigned long get_systick(void);
+
+unsigned long get_systick_clk(void);
+unsigned long get_systick_clk_period(void);
 unsigned long systick_to_clks(unsigned long ticks);
-unsigned long sysclk_get(void);
-unsigned long sysclk_get_period(void);
+unsigned long systick_clk_to_ticks(unsigned long clks);
 
 #endif /* __YAOS_SYSTICK_H__ */

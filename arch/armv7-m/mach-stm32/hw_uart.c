@@ -223,7 +223,9 @@ int hw_uart_open(const int channel, struct uart_conf conf)
 		cr1 |= (1UL << RE);
 		if (UART_INTERRUPT & conf.rx)
 			cr1 |= (1UL << RXNEIE);
-	} if (conf.tx) {
+	}
+
+	if (conf.tx) {
 		cr1 |= 1UL << TE;
 	}
 
