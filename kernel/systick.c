@@ -3,6 +3,7 @@
 #include "kernel/lock.h"
 #include "kernel/sched.h"
 #include "syslog.h"
+
 #include <stdint.h>
 #include <assert.h>
 
@@ -31,6 +32,16 @@ void __attribute__((used)) ISR_systick(void)
 unsigned long get_systick(void)
 {
 	return systick;
+}
+
+uint64_t get_systick64_isr(void)
+{
+	/* to be in interrupt service routine guarantees that systick64
+	 * is not being updated at the same time */
+	if (in_interrupt())
+		return systick64;
+
+	return 0;
 }
 
 unsigned long get_systick_clk(void)
@@ -87,4 +98,24 @@ unsigned long systick_init(unsigned long hz)
 void systick_start(void)
 {
 	hw_sysclk_run();
+}
+
+void set_timeout(unsigned long *goal, unsigned long msec)
+{
+	*goal = get_systick() + MSEC_TO_TICKS(msec) - 1;
+}
+
+bool is_timedout(unsigned long goal)
+{
+	if (time_after(goal, get_systick()))
+		return true;
+
+	return false;
+}
+
+void mdelay(unsigned long msec)
+{
+	unsigned long tout;
+	set_timeout(&tout, msec);
+	while (!is_timedout(tout));
 }

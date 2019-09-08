@@ -1,7 +1,9 @@
 #include "firstfit.h"
+
 #include "list.h"
 #include "types.h"
 #include "syslog.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -18,7 +20,7 @@ struct freelist {
 // TODO: Implement coalesce()
 static inline void coalesce(void *head)
 {
-	sysinfo("coalescing");
+	debug("coalescing");
 	(void)head;
 }
 
@@ -42,7 +44,7 @@ int firstfit_init(void *head, void *addr, size_t size)
 
 	list_add(&new->node, list);
 
-	debug("%zu bytes from %p added", size, new);
+	debug("%u bytes from %p added", size, new);
 
 	return 0;
 }
@@ -70,7 +72,7 @@ retry:
 
 	if (!list) {
 		if (coalesced) {
-			alert("out of memory");
+			error("out of memory");
 			goto out;
 		}
 

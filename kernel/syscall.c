@@ -1,6 +1,8 @@
-#include "syslog.h"
+#include "kernel/syscall.h"
 #include "kernel/interrupt.h"
 #include "kernel/debug.h"
+#include "kernel/systick.h"
+#include "syslog.h"
 
 #include <errno.h>
 #include <stddef.h>
@@ -106,4 +108,13 @@ int _open(const char *pathname, int flags)
 	(void)flags;
 	__trap(TRAP_SYSCALL_OPEN);
 	return -EFAULT;
+}
+
+int reboot(unsigned long msec)
+{
+	mdelay(msec);
+
+	hw_reboot();
+
+	return 0;
 }

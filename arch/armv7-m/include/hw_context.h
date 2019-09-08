@@ -70,6 +70,29 @@ struct regs {
 
 #include "kernel/task.h"
 
+#define task_decorator_prepare() do {					\
+	__asm__ __volatile__(						\
+			"push	{r0-r3}		\n\t"			\
+			::: "r0", "r1", "r2", "r3", "memory");		\
+} while (0)
+
+#define task_decorator_run_helper(addr)	do {				\
+	__asm__ __volatile__(						\
+			"mov	r4, %0		\n\t"			\
+			"blx	r4		\n\t"			\
+			:: "r"(addr)					\
+			: "r4", "memory");				\
+} while (0)
+
+#define task_decorator_exec(addr) do {					\
+	__asm__ __volatile__(						\
+			"mov	r4, %0		\n\t"			\
+			"pop 	{r0-r3}		\n\t"			\
+			"blx	r4		\n\t"			\
+			:: "r"(addr)					\
+			: "r0", "r1", "r2", "r3", "r4", "memory");	\
+} while (0)
+
 void set_task_context_hard(struct task *p, void *addr);
 void set_task_context_soft(struct task *p);
 void set_task_context(struct task *p, void *addr);

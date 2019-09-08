@@ -1,4 +1,5 @@
 LOADADDR ?= 0x08000000
+PLAYADDR ?= 0x08000000
 UPLOAD   ?= 0x08020000
 
 # 'y' to enable the functionality while 'n' to disable
@@ -17,6 +18,7 @@ CONFIG_FPU?=n
 CONFIG_CPU_LOAD?=y
 CONFIG_SOFTIRQ_THREAD?=n
 CONFIG_MEM_WATERMARK=y
+CONFIG_TASK_EXECUTION_TIME=y
 
 # modules
 MODULE_UART?=y
@@ -33,8 +35,6 @@ USE_HAL?=n
 USE_EMWIN?=n
 USE_SHA256?=n
 USE_AES?=n
-
-
 
 
 ################################################################################
@@ -94,6 +94,9 @@ ifeq ($(CONFIG_COMMON_IRQ_FRAMEWORK),y)
 endif
 ifeq ($(CONFIG_MEM_WATERMARK),y)
 	DEFS += -DCONFIG_MEM_WATERMARK
+endif
+ifeq ($(CONFIG_TASK_EXECUTION_TIME),y)
+	DEFS += -DCONFIG_TASK_EXECUTION_TIME
 endif
 
 # Compile

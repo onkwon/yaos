@@ -1,5 +1,6 @@
 #include "io.h"
 #include "syslog.h"
+#include "heap.h"
 
 #include "kernel/init.h"
 #include "kernel/interrupt.h"
@@ -65,6 +66,8 @@ void __init kernel_init(void)
 	debug_init(); /* it must be called after drv_init() because of clock
 			 frequency dependency */
 	info("yaos %s %s, %s", def2str(VERSION), def2str(MACHINE), __DATE__);
+
+	heap_init();
 
 	systick_init(SYSTICK_HZ);
 	systick_start();

@@ -1,171 +1,222 @@
 #include "kernel/task.h"
 #include "kernel/sched.h"
-#include "syslog.h"
-
-struct task *current, init;
-
 #include "kernel/systick.h"
-#include "drivers/gpio.h"
-#include "drivers/uart.h"
+#include "kernel/lock.h"
+#include "syslog.h"
+#include "heap.h"
+
 #include <string.h>
-#include "arch/mach/hw_clock.h"
-static uart_t uart1;
-static char mybuf[80];
-extern unsigned long systick;
+#include <errno.h>
 
-static void myputc(const int c)
+static void set_task_dressed(struct task *task, unsigned long flags,
+		const void *addr)
 {
-	uart1.writeb(&uart1, c);
-}
+	uintptr_t irqflag;
 
-void cb(int vector)
-{
-	static int val = 0;
-	val ^= 1;
-	gpio_put(45, val);
-
-	debug("VECTOR %d", vector);
-}
-
-static void idle(void)
-{
-	gpio_init(45, GPIO_MODE_OUTPUT, NULL);
-	gpio_init(20, GPIO_MODE_INPUT | GPIO_CONF_PULLUP | GPIO_INT_FALLING, cb);
-
-	do {
-		gpio_put(45, 0);
-		for (unsigned int i = 0; i < 0xfffff; i++) ;
-		gpio_put(45, 1);
-		for (unsigned int i = 0; i < 0xfffff; i++) ;
-		printf("Hello, World!\r\n");
-	//	test();
-	} while (0);
-
-	const char *str = "Hello, World!\r\n";
-	uint32_t t;
-	char byte;
-	uart1 = uart_new(UART1);
-	uart1.open_static(&uart1, &t, sizeof(t), NULL, 0);
-	printc = myputc;
-
-	uart1.write(&uart1, str, strnlen(str, 20));
-	snprintf(mybuf, 80, "clk %lu\r\n", hw_clock_get_hclk());
-	uart1.write(&uart1, mybuf, strnlen(mybuf, 80));
-
-	while (1) {
-		syslog("syslog %lu", systick);
-		syslog("stack used %d", (uintptr_t)current->stack.base + STACK_SIZE_MIN - (uintptr_t)current->stack.watermark);
-		syslog("stack margin left %d", (uintptr_t)current->stack.watermark - (uintptr_t)current->stack.base);
-		syslog("kernel stack used %d", (uintptr_t)current->kstack.base + STACK_SIZE_MIN - (uintptr_t)current->kstack.watermark);
-		syslog("kernel stack margin left %d", (uintptr_t)current->kstack.watermark - (uintptr_t)current->kstack.base);
-		uart1.write(&uart1, "ON\r\n", 4);
-		while (uart1.readb(&uart1, &byte));
-		uart1.write(&uart1, ">> ", 3);
-		uart1.writeb(&uart1, byte);
-		uart1.write(&uart1, "\r\n", 2);
-		gpio_put(45, 0);
-		uart1.write(&uart1, "OFF\r\n", 5);
-		while (uart1.readb(&uart1, &byte));
-		uart1.write(&uart1, ">> ", 3);
-		uart1.writeb(&uart1, byte);
-		uart1.write(&uart1, "\r\n", 2);
-		gpio_put(45, 1);
-	}
-}
-
-static void set_task_dressed(struct task *task, unsigned long flags, void *addr)
-{
 	set_task_flags(task, flags);
 	set_task_state(task, TASK_STOPPED);
-	set_task_pri(task, TP_DEFAULT);
+	set_task_pri(task, TASK_PRIORITY_DEFAULT);
 	task->addr = addr;
 	task->irqflag = INITIAL_IRQFLAG;
 
+	lock_init(&task->lock);
+
 	task->parent = current;
 	list_init(&task->children);
-	/* FIXME: lock before adding to parent children list */
+
+	spin_lock_irqsave(&current->lock, &irqflag);
 	list_add(&task->sibling, &current->children);
+	spin_unlock_irqrestore(&current->lock, irqflag);
+
+#if defined(CONFIG_TASK_EXECUTION_TIME)
+	task->sum_exec_runtime = 0;
+#endif
 	//links_init(&task->rq);
 
 	//INIT_SCHED_ENTITY(task->se);
 	//task->se.vruntime = current->se.vruntime;
 
-	lock_init(&task->lock);
-
 	//link_init(&task->timer_head);
 }
 
-#if 0
-static void __attribute__((noinline, used)) wrapper_info(void)
+static void __attribute__((noinline)) task_ctor(void)
 {
-	debug("[%08x] New task %x started, type:%x state:%x pri:%x rank:%s",
-	      systick, current->addr, get_task_type(current),
-	      get_task_state(current), get_task_pri(current),
-	      get_current_rank() == TF_USER? "Unprivileged" : "Privileged");
+	debug("[%08lx] %s task %s@%p newly started, f:%lx s:%lx p:%x",
+			get_systick(),
+			is_privileged()?  "Privileged" : "Unprivileged",
+			current->name, current->addr, get_task_flags(current),
+			get_task_state(current), get_task_pri(current));
 }
 
-static void __attribute__((noinline, used)) wrapper_info_dtor(void)
+static void __attribute__((noinline)) task_dtor(void)
 {
-	debug("[%08x] The task %x done", systick, current->addr);
+	debug("[%08lx] %s task %s@%p done",
+			get_systick(),
+			is_privileged()?  "Privileged" : "Unprivileged",
+			current->name, current->addr);
 }
 
-void __attribute__((naked)) task_wrapper(void)
+static void __attribute__((naked)) task_decorator(void)
 {
-	__wrapper_save_regs();
-#ifdef CONFIG_DEBUG_TASK
-	__wrapper_jump(wrapper_info);
-	__wrapper_restore_regs_and_exec(current->addr);
-	__wrapper_jump(wrapper_info_dtor);
-#else
-	__wrapper_restore_regs_and_exec(current->addr);
+	task_decorator_prepare();
+
+	task_decorator_run_helper(task_ctor);
+	task_decorator_exec(current->addr);
+	task_decorator_run_helper(task_dtor);
+}
+
+static inline int task_alloc(struct task *task, unsigned int flags, void *ref)
+{
+	uintptr_t *stack, *heap;
+	uintptr_t *kstack = NULL;
+
+	if (!task)
+		return -EFAULT;
+
+	if ((stack = kmalloc(task->size)) == NULL)
+		return -ENOMEM;
+
+	if ((heap = kmalloc(HEAP_SIZE_DEFAULT)) == NULL) {
+		kfree(stack);
+		return -ENOMEM;
+	}
+
+	/* NOTE: full descending stack */
+	task->stack.base = stack;
+	task->stack.p = (void *)BASE((uintptr_t)
+			&stack[task->size / sizeof(*stack)], STACK_ALIGNMENT);
+	task->heap.base = heap;
+	task->heap.limit = (void *)BASE((uintptr_t)
+			&heap[HEAP_SIZE_DEFAULT / sizeof(*heap)], STACK_ALIGNMENT);
+
+	if (ref && (flags & TF_SHARED)) {
+		task->kstack.base = ((struct task *)ref)->kstack.base;
+		task->kstack.p = ((struct task *)ref)->kstack.p;
+	} else {
+		size_t kernel_stack_size = STACK_SIZE_MIN;
+
+		if ((kstack = kmalloc(kernel_stack_size)) == NULL) {
+			kfree(stack);
+			kfree(heap);
+			return -ENOMEM;
+		}
+
+		task->kstack.base = kstack;
+		task->kstack.p = (void *)BASE((uintptr_t)
+				&kstack[kernel_stack_size / sizeof(*kstack)],
+				STACK_ALIGNMENT);
+	}
+
+#if defined(CONFIG_MEM_WATERMARK)
+	while ((uintptr_t)stack < (uintptr_t)task->stack.p)
+		*stack++ = STACK_WATERMARK;
+	while ((uintptr_t)heap < (uintptr_t)task->heap.limit)
+		*heap++ = STACK_WATERMARK;
+	if (kstack) {
+		while ((uintptr_t)kstack < (uintptr_t)task->kstack.p)
+			*kstack++ = STACK_WATERMARK;
+	}
 #endif
 
-	kill(current);
-	freeze(); /* never reaches here */
+	return 0;
 }
-#endif
 
-#if defined(CONFIG_SCHEDULER)
-#define NR_SP		(STACK_SIZE_MIN / sizeof(uintptr_t))
-#define NR_KSP		(STACK_SIZE_DEFAULT / sizeof(uintptr_t))
-#define NR_HEAP		(HEAP_SIZE_MIN / sizeof(uintptr_t))
+static void task_destroy(struct task *task)
+{
+	if (!task || task == &init_task)
+		return;
 
-static uintptr_t _init_sp[NR_SP],
-		 _init_ksp[NR_KSP],
-		 _init_heap[NR_HEAP];
+	// TODO: implement
+	// 1. change task state first to TASK_STOPPED to make sure nothing shared with others
+	// 2. remove from wait queue
+	// 3. clean its relationship, child and siblings
+	// 4. free stack, heap, and kstack if not shared one
+
+	uintptr_t stack = (uintptr_t)task->stack.base;
+	uintptr_t heap = (uintptr_t)task->heap.base;
+	uintptr_t kstack = (uintptr_t)task->kstack.base;
+
+	kfree((void *)stack);
+	kfree((void *)heap);
+
+	if (!(get_task_flags(task) & TF_SHARED))
+		kfree((void *)kstack);
+}
+
+extern struct task _user_task_list;
+
+static void load_user_tasks(void)
+{
+	struct task *task;
+	int pri;
+
+	for (task = (struct task *)&_user_task_list; *(uintptr_t *)task; task++) {
+		if (task->addr == NULL)
+			continue;
+
+		if (task_alloc(task, TF_SHARED, &init_task)) {
+			error("failed loading task %s@%p",
+					task->name, task->addr);
+			continue;
+		}
+
+		pri = get_task_pri(task);
+		set_task_dressed(task, task->flags | TF_SHARED, task->addr);
+		set_task_pri(task, pri);
+		set_task_context(task, task_decorator);
+
+		/* make it runnable, and add into runqueue */
+		set_task_state(task, TASK_RUNNING);
+		if (runqueue_add(task)) {
+			task_destroy(task);
+		}
+	}
+}
 
 void task_init(void)
 {
+#define NR_SP_ITEMS		(STACK_SIZE_MIN / sizeof(uintptr_t))
+#define NR_KSP_ITEMS		(STACK_SIZE_DEFAULT / sizeof(uintptr_t))
+#define NR_HEAP_ITEMS		(HEAP_SIZE_MIN / sizeof(uintptr_t))
+
+	static uintptr_t init_task_sp[NR_SP_ITEMS],
+			 init_task_ksp[NR_KSP_ITEMS],
+			 init_task_heap[NR_HEAP_ITEMS];
+
 #if defined(CONFIG_MEM_WATERMARK)
-	for (unsigned int i = 0; i < NR_SP; i++)
-		_init_sp[i] = STACK_WATERMARK;
-	for (unsigned int i = 0; i < NR_KSP; i++)
-		_init_ksp[i] = STACK_WATERMARK;
-	for (unsigned int i = 0; i < NR_HEAP; i++)
-		_init_heap[i] = STACK_WATERMARK;
+	for (unsigned int i = 0; i < NR_SP_ITEMS; i++)
+		init_task_sp[i] = STACK_WATERMARK;
+	for (unsigned int i = 0; i < NR_KSP_ITEMS; i++)
+		init_task_ksp[i] = STACK_WATERMARK;
+	for (unsigned int i = 0; i < NR_HEAP_ITEMS; i++)
+		init_task_heap[i] = STACK_WATERMARK;
 #endif
 	/* stack must be allocated first. and to build root relationship
 	 * properly `current` must be set to `init`. */
-	current = &init;
+	current = &init_task;
 
-	init.stack.base = _init_sp;
-	init.stack.p = (void *)
-		BASE((uintptr_t)&_init_sp[NR_SP - 1], STACK_ALIGNMENT);
-	init.kstack.base = _init_ksp;
-	init.kstack.p = (void *)
-		BASE((uintptr_t)&_init_ksp[NR_KSP - 1], STACK_ALIGNMENT);
-	init.heap.base = _init_heap;
-	init.heap.limit = (void *)
-		BASE((uintptr_t)&_init_heap[NR_HEAP - 1], STACK_ALIGNMENT);
+	init_task.stack.base = init_task_sp;
+	init_task.stack.p = (void *)
+		BASE((uintptr_t)&init_task_sp[NR_SP_ITEMS - 1], STACK_ALIGNMENT);
+	init_task.kstack.base = init_task_ksp;
+	init_task.kstack.p = (void *)
+		BASE((uintptr_t)&init_task_ksp[NR_KSP_ITEMS - 1], STACK_ALIGNMENT);
+	init_task.heap.base = init_task_heap;
+	init_task.heap.limit = (void *)
+		BASE((uintptr_t)&init_task_heap[NR_HEAP_ITEMS - 1], STACK_ALIGNMENT);
 
-	set_task_dressed(&init, TASK_KERNEL | TASK_STATIC, idle);
-	set_task_context_hard(&init, idle); // TODO: wrapper
-	set_task_state(&init, TASK_RUNNING);
+	set_task_dressed(&init_task, TASK_KERNEL | TASK_STATIC, idle_task);
+	set_task_context_hard(&init_task, task_decorator);
+	set_task_state(&init_task, TASK_RUNNING);
 
-	init.name = "idle";
+	init_task.name = "idle";
+	init_task.sched = NULL;
 
 	/* make it the sole */
-	list_init(&init.children);
-	list_init(&init.sibling);
+	list_init(&init_task.children);
+	list_init(&init_task.sibling);
+
+	/* done setting the init task
+	 * now load user tasks registered statically */
+	load_user_tasks();
 }
-#endif
