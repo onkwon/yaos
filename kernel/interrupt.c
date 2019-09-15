@@ -6,15 +6,12 @@
 #include <errno.h>
 #include <stdlib.h>
 
-extern uintptr_t _ram_start;
-
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 void (*primary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int);
 #endif
-static int (*secondary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int, void (*)(const int));
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
-static int register_isr_primary(const int lvec, void (*handler)(const int))
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
+static int register_isr_core(const int lvec, void (*handler)(const int))
 {
 	int nvec = abs(lvec);
 
@@ -36,8 +33,10 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 
 	return 0;
 }
-#else /* !CONFIG_COMMON_IRQ_FRAMEWORK */
-static int register_isr_primary(const int lvec, void (*handler)(const int))
+#else /* !CONFIG_COMMON_IRQ_HANDLER */
+extern uintptr_t _ram_start;
+
+static int register_isr_core(const int lvec, void (*handler)(const int))
 {
 	int nvec = abs(lvec);
 
@@ -49,69 +48,19 @@ static int register_isr_primary(const int lvec, void (*handler)(const int))
 
 	uintptr_t *p = (uintptr_t *)&_ram_start;
 
-	p += nvec - NVECTOR_IRQ;
+	p += nvec;
 
 	do {
 		void (*f)(int) = (void (*)(int))ldrex(p);
 
-		if (((uintptr_t)f != (uintptr_t)ISR_null)
-				&& ((uintptr_t)handler != (uintptr_t)ISR_null))
+		if (((uintptr_t)f != (uintptr_t)ISR_irq)
+				&& ((uintptr_t)handler != (uintptr_t)ISR_irq))
 			return -EEXIST;
 	} while (strex(handler, p));
 
 	return 0;
 }
-#endif /* CONFIG_COMMON_IRQ_FRAMEWORK */
-
-/* NOTE: calling multiple handlers is possible chaining handlers to a list,
- * which sounds flexible. but I don't think it would be useful since such use
- * cases don't look nice but causing latency and complexity. */
-int register_isr_register(const int nvec,
-		int (*ctor)(const int, void (*)(const int)), const bool force)
-{
-	if (!is_honored())
-		return -EPERM;
-
-	if (abs(nvec) < NVECTOR_IRQ)
-		return -EACCES;
-
-	if (abs(nvec) >= PRIMARY_IRQ_MAX)
-		return -ERANGE;
-
-	uintptr_t *p = (uintptr_t *)&secondary_isr_table[nvec - NVECTOR_IRQ];
-
-	do {
-		void (*f)(void) = (void (*)(void))ldrex(p);
-
-		if (!force && f) {
-			debug("already exist or no room");
-			return -EEXIST;
-		}
-	} while (strex(ctor, p));
-
-	return 0;
-}
-
-static int register_isr_secondary(const int lvec, void (*handler)(const int))
-{
-	int nvec = get_primary_vector(lvec);
-
-	if (nvec < NVECTOR_IRQ)
-		return -EACCES;
-
-	if ((nvec >= PRIMARY_IRQ_MAX)
-			|| (get_secondary_vector(lvec) >= SECONDARY_IRQ_MAX))
-		return -ERANGE;
-
-	int (*f)(const int, void (*)(const int));
-
-	if ((f = secondary_isr_table[nvec - NVECTOR_IRQ]))
-		return f(lvec, handler);
-
-	debug("no irq register for %d:%d", nvec, get_secondary_vector(lvec));
-
-	return -ENOENT;
-}
+#endif /* CONFIG_COMMON_IRQ_HANDLER */
 
 int register_isr(const int lvec, void (*handler)(const int))
 {
@@ -121,12 +70,12 @@ int register_isr(const int lvec, void (*handler)(const int))
 		return -EPERM;
 
 	if (!handler)
-		handler = ISR_null;
+		handler = (void (*)(const int))ISR_irq;
 
-	if (abs(lvec) < PRIMARY_IRQ_MAX)
-		ret = register_isr_primary(lvec, handler);
-	else
-		ret = register_isr_secondary(lvec, handler);
+	if (abs(lvec) >= PRIMARY_IRQ_MAX)
+		return -ERANGE;
+
+	ret = register_isr_core(lvec, handler);
 
 	if (ret >= 0) {
 		dsb();
@@ -143,17 +92,10 @@ int unregister_isr(const int lvec)
 	if (!is_honored())
 		return -EPERM;
 
-	if (abs(lvec) < PRIMARY_IRQ_MAX) {
-		if ((ret = register_isr_primary(lvec, ISR_null)) == 0) {
-			/* unregister all the secondaries of it */
-			for (int i = 0; i < SECONDARY_IRQ_MAX; i++)
-				register_isr_secondary(mkvector(lvec, i), ISR_null);
+	if (abs(lvec) >= PRIMARY_IRQ_MAX)
+		return -ERANGE;
 
-			register_isr_register(lvec, NULL, 1);
-		}
-	} else {
-		ret = register_isr_secondary(lvec, ISR_null);
-	}
+	ret = register_isr_core(lvec, (void (*)(const int))ISR_irq);
 
 	if (ret >= 0) {
 		dsb();
@@ -167,15 +109,12 @@ int unregister_isr(const int lvec)
 
 void __init irq_init(void)
 {
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 	for (int i = 0; i < (PRIMARY_IRQ_MAX - NVECTOR_IRQ); i++)
 		primary_isr_table[i] = ISR_null;
 #endif
 
 	hw_irq_init();
-
-	for (int i = 0; i < (PRIMARY_IRQ_MAX - NVECTOR_IRQ); i++)
-		secondary_isr_table[i] = NULL;
 
 	dsb();
 	isb();
