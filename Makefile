@@ -60,6 +60,7 @@ ifdef LD_LIBRARY_PATH
 	LDFLAGS += -L$(LD_LIBRARY_PATH) -lgcc
 endif
 LDFLAGS += $(LIBS)
+LDFLAGS += -Wl,-wrap,malloc -Wl,-wrap,free
 
 # Build
 

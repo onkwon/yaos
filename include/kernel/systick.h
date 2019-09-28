@@ -30,7 +30,7 @@
 unsigned long systick_init(unsigned long hz);
 void systick_start(void);
 unsigned long get_systick(void);
-uint64_t get_systick64_isr(void);
+uint64_t get_systick64_core(void);
 
 unsigned long get_systick_clk(void);
 unsigned long get_systick_clk_period(void);

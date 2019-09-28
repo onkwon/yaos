@@ -43,7 +43,7 @@ void *pbrr_dequeue(struct scheduler *sched)
 	if (!sched)
 		return NULL;
 
-	for (pri = 0; pri < TASK_PRIORITY_MAX; pri++) {
+	for (pri = TASK_PRIORITY_MAX - 1; pri >= 0; pri--) {
 		q = sched->rq;
 		q = &q[pri];
 		if (dequeue(q, &task) == 0) {

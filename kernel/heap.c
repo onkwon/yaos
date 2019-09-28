@@ -1,10 +1,11 @@
 #include "heap.h"
-#include "firstfit.h"
 #include "types.h"
 #include "kernel/lock.h"
 #include "kernel/init.h"
+#include "kernel/task.h"
 
 #include <assert.h>
+#include <string.h>
 
 extern char _ram_end, _heap_start;
 
@@ -13,29 +14,26 @@ static lock_t freelist_global_lock;
 
 void *kmalloc(size_t size)
 {
-	uintptr_t irqflag;
 	void *p = NULL;
 
 	if (!is_honored())
 		return NULL;
 
-	spin_lock_irqsave(&freelist_global_lock, &irqflag);
+	spin_lock_irqsave(&freelist_global_lock);
 	p = firstfit_alloc(&freelist, size);
-	spin_unlock_irqrestore(&freelist_global_lock, irqflag);
+	spin_unlock_irqrestore(&freelist_global_lock);
 
 	return p;
 }
 
 void kfree(void *ptr)
 {
-	uintptr_t irqflag;
-
 	if (!ptr || !is_honored())
 		return;
 
-	spin_lock_irqsave(&freelist_global_lock, &irqflag);
+	spin_lock_irqsave(&freelist_global_lock);
 	firstfit_free(&freelist, ptr);
-	spin_unlock_irqrestore(&freelist_global_lock, irqflag);
+	spin_unlock_irqrestore(&freelist_global_lock);
 }
 
 void heap_init(void)
@@ -47,7 +45,25 @@ void heap_init(void)
 	//size = BASE((uintptr_t)&_ram_end - (uintptr_t)from, WORD_SIZE);
 
 	/* TODO: preserve initial kernel stack to be free later */
-	size = BASE((uintptr_t)&_ram_end - 2048 - (uintptr_t)from, WORD_SIZE);
+	size = BASE((uintptr_t)&_ram_end - STACK_SIZE_DEFAULT - (uintptr_t)from, WORD_SIZE);
 
 	assert(firstfit_init(&freelist, from, size) == 0);
+}
+
+void *__wrap_malloc(size_t size)
+{
+	void *p = firstfit_alloc(&current->heap.freelist, size);
+
+	if (p)
+		memset(p, 0, size);
+
+	return p;
+}
+
+void __wrap_free(void *ptr)
+{
+	if (!ptr)
+		return;
+
+	firstfit_free(&current->heap.freelist, ptr);
 }

@@ -4,14 +4,14 @@
 #include "arch/hw_context.h"
 #include <stdint.h>
 
-#define MAX_NR_TASKS			4
+#define MAX_NR_TASKS			8
 
 #define resched()			hw_raise_sched()
 
 struct scheduler {
 	int nr_running;
-	int pri;
-	uint64_t vruntime_base;
+	//int pri;
+	//uint64_t vruntime_base;
 	void *rq;
 
 	int (*add)(struct scheduler *self, void *new);
@@ -20,6 +20,7 @@ struct scheduler {
 
 void schedule(void);
 void sched_init(void);
+int sched_yield(void);
 
 int runqueue_add(void *task);
 int runqueue_del(void *task);

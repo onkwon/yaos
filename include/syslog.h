@@ -9,53 +9,31 @@ enum {
 	SYSLOG_FD_BUFFER,
 };
 
-enum {
-	SYSLOG_ALERT,
-	SYSLOG_ERROR,
-	SYSLOG_WARN,
-	SYSLOG_NOTICE,
-	SYSLOG_INFO,
-	SYSLOG_DEFAULT,
-};
-
 #if !defined(NDEBUG)
 /** Print out debug messages using hardware debug port in early booting stage */
-	#define debug(...)	do { \
+	#define debug(...)		do { \
 		dprintf(SYSLOG_FD_DEBUG, "%p:%s():%d: ", \
 			__builtin_return_address(0), __func__, __LINE__); \
 		dprintf(SYSLOG_FD_DEBUG, __VA_ARGS__); \
 		dprintf(SYSLOG_FD_DEBUG, "\r\n"); \
 	} while (0)
-
+	#define info(...)		debug(__VA_ARGS__)
+	#define warn(...)		debug(__VA_ARGS__)
+	#define error(...)		debug(__VA_ARGS__)
+	#define alert(...)		debug(__VA_ARGS__)
 #else
-	#define debug(...)	((void)0)
+	#define debug(...)		((void)0)
+	#define info(...)		((void)0)
+	#define warn(...)		((void)0)
+	#define error(...)		((void)0)
+	#define alert(...)		((void)0)
 #endif
 
-#define syslog(...)	do { \
-	dprintf(SYSLOG_FD_STDOUT, __VA_ARGS__); \
-	dprintf(SYSLOG_FD_STDOUT, "\r\n"); \
-} while (0)
-#define syserr(...)	do { \
-	dprintf(SYSLOG_FD_STDOUT, "[ERROR] "); \
-	syslog(__VA_ARGS__); \
-} while (0)
-#define syswarn(...)	do { \
-	dprintf(SYSLOG_FD_STDOUT, "[WARN]  "); \
-	syslog(__VA_ARGS__); \
-} while (0)
-#define sysinfo(...)	do { \
-	dprintf(SYSLOG_FD_STDOUT, "[INFO]  "); \
-	syslog(__VA_ARGS__); \
-} while (0)
-#define alert(...)	do { \
-	dprintf(SYSLOG_FD_STDOUT, "[ALERT] "); \
-	syslog(__VA_ARGS__); \
-} while (0)
+#define syslog(...)		((void)0)
 
 /** Custom logging function
  *
- * ram buffer, flash memory, uart stream anything can be done implementing
- * your own function and put it in.
+ * ram buffer, flash memory, uart stream, or anything can be binded.
  */
 void (*printc)(const int c);
 

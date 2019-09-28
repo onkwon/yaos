@@ -34,9 +34,9 @@ static void ISR_gpio(int vector)
 	}
 #endif
 
-	spin_lock_isr(&cb_dict_lock);
+	spin_lock_critical(&cb_dict_lock);
 	int t = dict_get(&cb_dict, pin, &addr);
-	spin_unlock_isr(&cb_dict_lock);
+	spin_unlock_critical(&cb_dict_lock);
 
 	if (t != 0) {
 		warn("no isr registered for gpio(%u)", pin);
@@ -51,7 +51,6 @@ out:
 
 int gpio_init(const uint16_t pin, const uint32_t flags, void (*cb)(const int))
 {
-	uintptr_t irqflag;
 	int rc = -EEXIST;
 
 	if (bitmap_get(gpiomap, pin))
@@ -61,10 +60,10 @@ int gpio_init(const uint16_t pin, const uint32_t flags, void (*cb)(const int))
 		goto out;
 
 	if (rc > 0) { // interrupt enabled
-		spin_lock_irqsave(&cb_dict_lock, &irqflag);
+		spin_lock_irqsave(&cb_dict_lock);
 		if (dict_add(&cb_dict, rc - 1, (uintptr_t)cb) == 0)
 			rc = 0;
-		spin_unlock_irqrestore(&cb_dict_lock, irqflag);
+		spin_unlock_irqrestore(&cb_dict_lock);
 	}
 
 	bitmap_set(gpiomap, pin);
@@ -74,16 +73,14 @@ out:
 
 void gpio_fini(const uint16_t pin)
 {
-	uintptr_t irqflag;
-
 	if (!bitmap_get(gpiomap, pin))
 		return;
 
 	hw_gpio_fini(pin);
 
-	spin_lock_irqsave(&cb_dict_lock, &irqflag);
+	spin_lock_irqsave(&cb_dict_lock);
 	dict_del(&cb_dict, pin);
-	spin_unlock_irqrestore(&cb_dict_lock, irqflag);
+	spin_unlock_irqrestore(&cb_dict_lock);
 
 	bitmap_clear(gpiomap, pin);
 }

@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <assert.h>
+#include <errno.h>
 
 /** doubly-linked list */
 struct llist {
@@ -44,8 +46,7 @@ static inline void llist_del(struct llist *node)
 	node->next->prev = node->prev;
 }
 
-/**
- * tests whether a list is empty
+/** tests whether a list is empty
  *
  * @param node the list to test
  * @return `true` if empty or `false`
@@ -100,19 +101,22 @@ static inline void list_add_tail(struct list *new, struct list *head)
  *
  * @param node the element to delete from the list
  */
-static inline void list_del(struct list *node, struct list *ref)
+static inline int list_del(struct list *node, struct list *ref)
 {
 	struct list **curr = &ref;
 
 	while (*curr && *curr != node)
 		curr = &(*curr)->next;
 
-	if (*curr)
-		*curr = node->next;
+	if (!*curr)
+		return -ENOENT;
+
+	*curr = node->next;
+
+	return 0;
 }
 
-/**
- * tests whether a list is empty
+/** tests whether a list is empty
  *
  * @param node the list to test
  * @return `true` if empty or `false`
@@ -120,6 +124,57 @@ static inline void list_del(struct list *node, struct list *ref)
 static inline bool list_empty(const struct list *node)
 {
 	return node->next == NULL;
+}
+
+/** list queue head
+ * queue implemented by singly linked list */
+struct listq_head {
+	struct list *next;
+	struct list **last;
+};
+
+#define INIT_LISTQ_HEAD(name)		{ NULL, &((name).next)}
+#define DEFINE_LISTQ_HEAD(name)		struct listq_head name = INIT_LISTQ_HEAD(name)
+
+/* initialize list queue head */
+static inline void listq_init(struct listq_head *head)
+{
+	head->next = NULL;
+	head->last = &head->next;
+}
+
+/** push an entry into a list queue
+ *
+ * @param new entry to be added
+ * @param head list queue head */
+static inline void listq_push(struct list *new, struct listq_head *head)
+{
+	new->next = *head->last;
+	assert(new->next == NULL);
+	*head->last = new;
+	head->last = &new;
+}
+
+/** pop an entry from a list queue
+ *
+ * @return an item or NULL if empty */
+static inline struct list *listq_pop(struct listq_head *head)
+{
+	struct list *p = head->next;
+
+	if (p) {
+		head->next = p->next;
+
+		if (p->next == NULL)
+			head->last = &head->next;
+	}
+
+	return p;
+}
+
+static inline bool listq_empty(const struct listq_head *head)
+{
+	return head->next == NULL;
 }
 
 #endif /* __YAOS_LLIST_H__ */

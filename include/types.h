@@ -40,6 +40,7 @@ typedef enum {
 #define cbi(v, bit)			(v &= ~(1U << (bit)))
 #define gbi(v, bit)			(((v) >> (bit)) & 1)
 
+#define countof(arr)			(sizeof(arr) / sizeof(*(arr)))
 #define container_of(ptr, type, member) \
 	((type *)((char *)(ptr) - (char *)&((type *)0)->member))
 

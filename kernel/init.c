@@ -8,6 +8,8 @@
 #include "kernel/task.h"
 #include "kernel/systick.h"
 #include "kernel/sched.h"
+#include "kernel/timer.h"
+#include "arch/mach/hw_clock.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -65,9 +67,12 @@ void __init kernel_init(void)
 
 	debug_init(); /* it must be called after drv_init() because of clock
 			 frequency dependency */
-	info("yaos %s %s, %s", def2str(VERSION), def2str(MACHINE), __DATE__);
+	info("yaos %s %s running at %lu MHz, %s",
+			def2str(VERSION), def2str(MACHINE),
+			hw_clock_get_hclk() / MHZ, __DATE__);
 
 	heap_init();
+	timer_init();
 
 	systick_init(SYSTICK_HZ);
 	systick_start();

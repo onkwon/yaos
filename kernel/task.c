@@ -1,18 +1,18 @@
 #include "kernel/task.h"
 #include "kernel/sched.h"
 #include "kernel/systick.h"
+#include "kernel/syscall.h"
 #include "kernel/lock.h"
 #include "syslog.h"
 #include "heap.h"
 
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 static void set_task_dressed(struct task *task, unsigned long flags,
 		const void *addr)
 {
-	uintptr_t irqflag;
-
 	set_task_flags(task, flags);
 	set_task_state(task, TASK_STOPPED);
 	set_task_pri(task, TASK_PRIORITY_DEFAULT);
@@ -24,14 +24,14 @@ static void set_task_dressed(struct task *task, unsigned long flags,
 	task->parent = current;
 	list_init(&task->children);
 
-	spin_lock_irqsave(&current->lock, &irqflag);
+	spin_lock_irqsave(&current->lock);
 	list_add(&task->sibling, &current->children);
-	spin_unlock_irqrestore(&current->lock, irqflag);
+	spin_unlock_irqrestore(&current->lock);
 
 #if defined(CONFIG_TASK_EXECUTION_TIME)
 	task->sum_exec_runtime = 0;
 #endif
-	//links_init(&task->rq);
+	list_init(&task->rq);
 
 	//INIT_SCHED_ENTITY(task->se);
 	//task->se.vruntime = current->se.vruntime;
@@ -69,6 +69,7 @@ static inline int task_alloc(struct task *task, unsigned int flags, void *ref)
 {
 	uintptr_t *stack, *heap;
 	uintptr_t *kstack = NULL;
+	size_t heap_size = HEAP_SIZE_DEFAULT;
 
 	if (!task)
 		return -EFAULT;
@@ -76,7 +77,7 @@ static inline int task_alloc(struct task *task, unsigned int flags, void *ref)
 	if ((stack = kmalloc(task->size)) == NULL)
 		return -ENOMEM;
 
-	if ((heap = kmalloc(HEAP_SIZE_DEFAULT)) == NULL) {
+	if ((heap = kmalloc(heap_size)) == NULL) {
 		kfree(stack);
 		return -ENOMEM;
 	}
@@ -87,7 +88,7 @@ static inline int task_alloc(struct task *task, unsigned int flags, void *ref)
 			&stack[task->size / sizeof(*stack)], STACK_ALIGNMENT);
 	task->heap.base = heap;
 	task->heap.limit = (void *)BASE((uintptr_t)
-			&heap[HEAP_SIZE_DEFAULT / sizeof(*heap)], STACK_ALIGNMENT);
+			&heap[heap_size / sizeof(*heap)], STACK_ALIGNMENT);
 
 	if (ref && (flags & TF_SHARED)) {
 		task->kstack.base = ((struct task *)ref)->kstack.base;
@@ -107,11 +108,11 @@ static inline int task_alloc(struct task *task, unsigned int flags, void *ref)
 				STACK_ALIGNMENT);
 	}
 
+	assert(firstfit_init(&task->heap.freelist, task->heap.base, heap_size) == 0);
+
 #if defined(CONFIG_MEM_WATERMARK)
 	while ((uintptr_t)stack < (uintptr_t)task->stack.p)
 		*stack++ = STACK_WATERMARK;
-	while ((uintptr_t)heap < (uintptr_t)task->heap.limit)
-		*heap++ = STACK_WATERMARK;
 	if (kstack) {
 		while ((uintptr_t)kstack < (uintptr_t)task->kstack.p)
 			*kstack++ = STACK_WATERMARK;
@@ -143,6 +144,44 @@ static void task_destroy(struct task *task)
 		kfree((void *)kstack);
 }
 
+/* assume that the task itself is to be locked and the wait queue is also
+ * to be locked here, meaning nothing is holdind the locks so that the locks
+ * can be obtained immediately here */
+int task_wait(void *waitqueue, struct task *task)
+{
+	assert(waitqueue && task && get_task_state(task) == TASK_RUNNING);
+
+	set_task_state(task, TASK_WAITING);
+	listq_push(&task->rq, waitqueue);
+
+	resched();
+
+	return 0;
+}
+
+int task_wake(void *waitqueue)
+{
+	assert(waitqueue);
+
+	struct listq_head *q = waitqueue;
+
+	if (listq_empty(q))
+		return -ENOENT;
+
+	struct task *task;
+	struct list *node;
+
+	node = listq_pop(q);
+	assert(node && node != (struct list *)&q->next);
+
+	task = container_of(node, struct task, rq);
+	assert(get_task_state(task) == TASK_WAITING);
+	set_task_state(task, TASK_RUNNING);
+	runqueue_add(task);
+
+	return 0;
+}
+
 extern struct task _user_task_list;
 
 static void load_user_tasks(void)
@@ -165,11 +204,15 @@ static void load_user_tasks(void)
 		set_task_pri(task, pri);
 		set_task_context(task, task_decorator);
 
-		/* make it runnable, and add into runqueue */
-		set_task_state(task, TASK_RUNNING);
-		if (runqueue_add(task)) {
-			task_destroy(task);
+		if (!(get_task_flags(task) & TF_MANUAL)) {
+			/* make it runnable, and add into runqueue */
+			set_task_state(task, TASK_RUNNING);
+			if (runqueue_add(task)) {
+				task_destroy(task);
+			}
 		}
+
+		set_task_flags(task, get_task_flags(task) & ~TF_MANUAL);
 	}
 }
 
@@ -188,8 +231,6 @@ void task_init(void)
 		init_task_sp[i] = STACK_WATERMARK;
 	for (unsigned int i = 0; i < NR_KSP_ITEMS; i++)
 		init_task_ksp[i] = STACK_WATERMARK;
-	for (unsigned int i = 0; i < NR_HEAP_ITEMS; i++)
-		init_task_heap[i] = STACK_WATERMARK;
 #endif
 	/* stack must be allocated first. and to build root relationship
 	 * properly `current` must be set to `init`. */
@@ -197,13 +238,15 @@ void task_init(void)
 
 	init_task.stack.base = init_task_sp;
 	init_task.stack.p = (void *)
-		BASE((uintptr_t)&init_task_sp[NR_SP_ITEMS - 1], STACK_ALIGNMENT);
+		BASE((uintptr_t)&init_task_sp[NR_SP_ITEMS], STACK_ALIGNMENT);
 	init_task.kstack.base = init_task_ksp;
 	init_task.kstack.p = (void *)
-		BASE((uintptr_t)&init_task_ksp[NR_KSP_ITEMS - 1], STACK_ALIGNMENT);
+		BASE((uintptr_t)&init_task_ksp[NR_KSP_ITEMS], STACK_ALIGNMENT);
 	init_task.heap.base = init_task_heap;
 	init_task.heap.limit = (void *)
-		BASE((uintptr_t)&init_task_heap[NR_HEAP_ITEMS - 1], STACK_ALIGNMENT);
+		BASE((uintptr_t)&init_task_heap[NR_HEAP_ITEMS], STACK_ALIGNMENT);
+
+	assert(firstfit_init(&init_task.heap.freelist, init_task.heap.base, HEAP_SIZE_MIN) == 0);
 
 	set_task_dressed(&init_task, TASK_KERNEL | TASK_STATIC, idle_task);
 	set_task_context_hard(&init_task, task_decorator);

@@ -24,13 +24,15 @@ static inline void coalesce(void *head)
 	(void)head;
 }
 
-int firstfit_init(void *head, void *addr, size_t size)
+int firstfit_init(void *head, const void * const addr, size_t size)
 {
 	struct freelist *new;
 	struct list *list;
 
 	if (!addr || !head || 0 >= (ssize_t)size)
 		return -EINVAL;
+
+	list_init(head);
 
 	list = head;
 	new = (struct freelist *)ALIGN((uintptr_t)addr, ALIGNMENT);

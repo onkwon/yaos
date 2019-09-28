@@ -2,13 +2,15 @@
 #include "arch/hw_sysclk.h"
 #include "kernel/lock.h"
 #include "kernel/sched.h"
+#include "kernel/timer.h"
 #include "syslog.h"
 
 #include <stdint.h>
 #include <assert.h>
 
 unsigned long systick;
-uint64_t systick64;
+uint64_t systick64 = 0xFFFFEC77; /* makes 32bit overflow in 5sec at 1Khz for
+				    the system validation */
 
 static unsigned long systick_clk, systick_clk_period;
 
@@ -24,6 +26,7 @@ void __attribute__((used)) ISR_systick(void)
 #else
 #endif
 	update_tick(1);
+	timer_run();
 #if defined(CONFIG_SCHEDULER)
 	resched();
 #endif
@@ -34,14 +37,14 @@ unsigned long get_systick(void)
 	return systick;
 }
 
-uint64_t get_systick64_isr(void)
+/** return 64-bit system ticks
+ * call only in a user task or in system call handler. calling it in higher
+ * priority interrupt would cause problem somthine like time jump to way back
+ * past or future. when priority interrupt comes in systick update would loose
+ * its operation atomicity */
+uint64_t get_systick64_core(void)
 {
-	/* to be in interrupt service routine guarantees that systick64
-	 * is not being updated at the same time */
-	if (in_interrupt())
-		return systick64;
-
-	return 0;
+	return systick64;
 }
 
 unsigned long get_systick_clk(void)

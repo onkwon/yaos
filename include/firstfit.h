@@ -52,7 +52,7 @@
  * @param size Size of memory block to add
  * @return 0 on success
  */
-int firstfit_init(void *head, void *addr, size_t size);
+int firstfit_init(void *head, const void * const addr, size_t size);
 void *firstfit_alloc(void *head, size_t size);
 void firstfit_free(void *head, void *addr);
 void firstfit_coalesce(void *head);

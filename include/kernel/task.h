@@ -5,28 +5,32 @@
 #include "compiler.h"
 #include "kernel/lock.h"
 
-#define STACK_ALIGNMENT			8 /* bytes */
-#define STACK_SIZE_DEFAULT		2048 /* bytes */
-#define STACK_SIZE_MIN			2048 /* bytes */
+#define STACK_ALIGNMENT			8U /* bytes */
+#define STACK_SIZE_DEFAULT		2048U /* bytes */
+#define STACK_SIZE_MIN			2048U /* bytes */
 
-#define HEAP_SIZE_DEFAULT		128 /* bytes */
-#define HEAP_SIZE_MIN			128 /* bytes */
+#define HEAP_SIZE_DEFAULT		128U /* bytes */
+#define HEAP_SIZE_MIN			128U /* bytes */
 
 #define STACK_SENTINEL			0xdeadc0deUL
 #define STACK_WATERMARK			0x5a5a5a5aUL
 
 /** Task type & flag */
 enum {
-	TF_USER			= 0x0000,
-	TF_KERNEL		= 0x0001,
-	TF_STATIC		= 0x0002,
-	TF_SYSCALL		= 0x0004,
-	TF_CLONED		= 0x0008,
-	TF_HANDLER		= 0x0010,
-	TF_PRIVILEGED		= 0x0020,
-	TF_ATOMIC		= 0x0040,
-	TF_SHARED		= 0x0080, /* kernel stack sharing */
-	TF_TRANSIT		= 0x0100,
+	TF_USER			= 0x0000U,
+	TF_KERNEL		= 0x0001U,
+	TF_STATIC		= 0x0002U,
+	TF_SYSCALL		= 0x0004U,
+	TF_CLONED		= 0x0008U,
+	TF_HANDLER		= 0x0010U,
+	TF_PRIVILEGED		= 0x0020U,
+	TF_ATOMIC		= 0x0040U,
+	TF_SHARED		= 0x0080U, /* kernel stack sharing */
+	TF_TRANSIT		= 0x0100U,
+	TF_MANUAL		= TF_TRANSIT, /* do not make it runnable
+						 creating new task. but keep it
+						 out of runqueue so that it can
+						 run just at time needed */
 
 	TASK_USER		= TF_USER,
 	TASK_KERNEL		= TF_KERNEL | TF_PRIVILEGED,
@@ -39,24 +43,29 @@ enum {
 
 /** Task state */
 enum {
-	TASK_RUNNING		= 0x00,
-	TASK_STOPPED		= 0x01,
-	TASK_WAITING		= 0x02,
-	TASK_SLEEPING		= 0x04,
-	TASK_ZOMBIE		= 0x08,
-	TASK_BACKGROUND		= 0x10,
+	TASK_RUNNING		= 0x00U,
+	TASK_STOPPED		= 0x01U,
+	TASK_WAITING		= 0x02U,
+	TASK_SLEEPING		= 0x04U,
+	TASK_ZOMBIE		= 0x08U,
+	TASK_BACKGROUND		= 0x10U,
 };
 
 enum task_priority {
 	TASK_PRIORITY_LOW,
 	/* TASK_PRIORITY_NORMAL, */
 	/* TASK_PRIORITY_HIGH, */
+	TASK_PRIORITY_HIGHEST,
 	TASK_PRIORITY_MAX,
 	TASK_PRIORITY_DEFAULT = TASK_PRIORITY_LOW,
 };
 
 struct mm {
-	const void *base;
+	union {
+		const void *base;
+		struct list freelist;
+	};
+
 	union {
 		const void *limit;
 		void *p;
@@ -88,6 +97,7 @@ struct task {
 	struct list sibling;
 
 	struct scheduler *sched;
+	struct list rq;
 
 #if defined(CONFIG_TASK_EXECUTION_TIME)
 	uint64_t sum_exec_runtime;
@@ -117,7 +127,15 @@ struct task {
 
 struct task *current, init_task;
 
+/* task_wait() and task_wake() are system calls. don't call it directly */
+int task_wait(void *waitqueue, struct task *task);
+int task_wake(void *waitqueue);
 void task_init(void);
+
+/** runs when no task is running
+ *
+ * low power feature could be achieved by the idle task.
+ */
 void idle_task(void);
 
 #endif /* __YAOS_TASK_H__ */

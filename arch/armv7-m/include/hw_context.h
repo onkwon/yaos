@@ -5,7 +5,7 @@
 #include "types.h"
 
 /* raise pendsv for scheduling */
-#define hw_raise_sched()		(SCB_ICSR |= 1UL << 28)
+#define hw_raise_sched()		(SCB_ICSR |= 1UL << 28) /* PendSV */
 
 #define NR_CONTEXT_SOFT			9 /* r4-r11, EXC_RETURN */
 #define NR_CONTEXT_HARD			8 /* r0-r3, r12, lr, pc, psr */

@@ -12,6 +12,8 @@
 #include <stdlib.h>
 static void gpio_interrupt_callback(const int pin)
 {
+	(void)pin;
+
 	static bool pin_level_saved = true;
 	static unsigned long stamp_saved;
 	static unsigned long high, low;
@@ -64,6 +66,10 @@ int main(void)
 		led_state++;
 		debug("%d", led_state);
 
-		for (int i = 0; i < 0x1fffff; i++); // put some delay
+		mdelay(1000);
 	}
 }
+#if defined(CONFIG_SCHEDULER)
+#include "kernel/task.h"
+REGISTER_TASK(main, TASK_KERNEL, 0, STACK_SIZE_DEFAULT);
+#endif
