@@ -16,7 +16,7 @@
 
 extern const uintptr_t _etext, _edata, _ebss;
 extern uintptr_t _data, _bss;
-extern uintptr_t _init_func_list;
+extern uintptr_t _init_func_list, _driver_list;
 #if !defined(CONFIG_SCHEDULER)
 extern int main(void);
 #endif
@@ -45,9 +45,17 @@ static inline void mem_init(void)
 	dsb();
 }
 
-static void __init drv_init(void)
+static void __init early_drv_init(void)
 {
 	uintptr_t *func = (uintptr_t *)&_init_func_list;
+
+	while (*func)
+		((void (*)(void))*func++)();
+}
+
+static void __init drv_init(void)
+{
+	uintptr_t *func = (uintptr_t *)&_driver_list;
 
 	while (*func)
 		((void (*)(void))*func++)();
@@ -63,7 +71,7 @@ void __init kernel_init(void)
 {
 	mem_init();
 	irq_init();
-	drv_init();
+	early_drv_init();
 
 	debug_init(); /* it must be called after drv_init() because of clock
 			 frequency dependency */
@@ -76,6 +84,8 @@ void __init kernel_init(void)
 
 	systick_init(SYSTICK_HZ);
 	systick_start();
+
+	drv_init();
 
 #if !defined(CONFIG_SCHEDULER)
 	sei();

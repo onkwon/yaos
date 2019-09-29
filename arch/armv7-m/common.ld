@@ -46,11 +46,6 @@ SECTIONS
 		KEEP(*(.driver_list))
 		LONG(0);
 
-		. = ALIGN(4);
-		_device_list = .;
-		KEEP(*(.device_list))
-		LONG(0);
-
 		_shell_cmdlist = .;
 		KEEP(*(.shell_cmdlist))
 		LONG(0);
