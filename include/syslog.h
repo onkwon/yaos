@@ -29,7 +29,9 @@ enum {
 	#define alert(...)		((void)0)
 #endif
 
-#define syslog(...)		((void)0)
+//#define syslog(...)		((void)0)
+#define syslog(...)		dprintf(SYSLOG_FD_DEBUG, __VA_ARGS__)
+#define printk(...)		syslog(__VA_ARGS__)
 
 /** Custom logging function
  *

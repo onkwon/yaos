@@ -68,6 +68,39 @@ struct regs {
 	 * FPSCR */
 };
 
+#define hw_context_save(task)				do {		\
+	__asm__ __volatile__(						\
+			"mrs	r12, psp		\n\t"		\
+			"stmdb	r12!, {r4-r11, lr}	\n\t"		\
+			::: "r4", "r5", "r6", "r7", "r8",		\
+			"r9", "r10", "r11", "r12", "memory");		\
+	__asm__ __volatile__(						\
+			"mov	%0, r12			\n\t"		\
+			: "=&r"(task->stack.p)				\
+			:: "r12", "memory");				\
+} while (0)
+
+#define hw_context_restore(task)			do {		\
+	__asm__ __volatile__(						\
+			"msr	msp, %0			\n\t"		\
+			"mov	r12, #3			\n\t"		\
+			"tst	%1, %2			\n\t"		\
+			"it	ne			\n\t"		\
+			"movne	r12, #2			\n\t"		\
+			:: "r"(task->kstack.p)				\
+			, "r"(get_task_flags(task))			\
+			, "I"(TF_PRIVILEGED)				\
+			: "r12", "memory");				\
+	__asm__ __volatile__(						\
+			"msr	control, r12		\n\t"		\
+			"ldmia	%0!, {r4-r11, lr}	\n\t"		\
+			"msr	psp, %0			\n\t"		\
+			"ldr	lr, =0xfffffffd		\n\t"		\
+			:: "r"(task->stack.p)				\
+			: "r4", "r5", "r6", "r7", "r8", "r9",		\
+			"r10", "r11", "r12", "lr", "memory");		\
+} while (0)
+
 #include "kernel/task.h"
 
 #define task_decorator_prepare() do {					\
