@@ -25,7 +25,7 @@
 #define ENTER_CRITICAL(val)			disable_irq(val)
 #define LEAVE_CRITICAL(val)			enable_irq(val)
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 #define get_active_irq_from_isr(vector)		vector
 #else
 #define get_active_irq_from_isr(vector)		get_active_irq()

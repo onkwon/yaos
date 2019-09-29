@@ -6,8 +6,8 @@
 #include "kernel/lock.h"
 
 #define STACK_ALIGNMENT			8U /* bytes */
-#define STACK_SIZE_DEFAULT		2048U /* bytes */
-#define STACK_SIZE_MIN			2048U /* bytes */
+#define STACK_SIZE_DEFAULT		1536U /* bytes */
+#define STACK_SIZE_MIN			1280U /* bytes */
 
 #define HEAP_SIZE_DEFAULT		128U /* bytes */
 #define HEAP_SIZE_MIN			128U /* bytes */

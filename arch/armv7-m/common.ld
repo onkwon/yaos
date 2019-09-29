@@ -59,7 +59,7 @@ SECTIONS
 		_etext = .;
 	} > rom
 
-#ifdef CONFIG_COMMON_IRQ_FRAMEWORK
+#ifdef CONFIG_COMMON_IRQ_HANDLER
 	.data :
 #else
 	.data _ram_start + _vector_size :

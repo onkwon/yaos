@@ -75,11 +75,10 @@ void schedule(void)
 			current->stack.p, STACK_WATERMARK);
 	current->kstack.watermark = read_watermark(current->kstack.base,
 			current->kstack.p, STACK_WATERMARK);
-#if 0
-	debug("%s stack left %d", current->name,
-			(uintptr_t)current->stack.watermark -
-			(uintptr_t)current->stack.base);
-#endif
+	int left = (uintptr_t)current->stack.watermark -
+		(uintptr_t)current->stack.base;
+	if (left <= 0)
+		debug("%s stack left %d", current->name, left);
 #endif
 	//debug("stack %lx k %lx", (unsigned long)current->stack.p, (unsigned long)current->kstack.p);
 

@@ -63,6 +63,10 @@ static void __attribute__((naked)) task_decorator(void)
 	task_decorator_run_helper(task_ctor);
 	task_decorator_exec(current->addr);
 	task_decorator_run_helper(task_dtor);
+
+	// TODO: clean tasks done up
+	set_task_state(current, TASK_ZOMBIE);
+	yield();
 }
 
 static inline int task_alloc(struct task *task, unsigned int flags, void *ref)
