@@ -43,21 +43,6 @@
  */
 int register_isr(const int lvec, void (*handler)(const int));
 /**
- * Register a constructor of secondary ISRs. A secondary ISR gets registered by
- * a constructor that is registered prior using this function.
- *
- * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
- *        exception number
- * @param ctor Function pointer to a constructor
- * @param force Force to register if true
- * @return 0 on success
- *
- * Unregistering can be done to set :c:func:`ctor` as intended with
- * :c:data:`force` = 1.
- */
-int register_isr_register(const int nvec,
-		int (*ctor)(const int, void (*)(const int)), const bool force);
-/**
  * Unregister ISR
  *
  * @param lvec Logical vector number

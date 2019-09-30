@@ -95,7 +95,11 @@ int unregister_isr(const int lvec)
 	if (abs(lvec) >= PRIMARY_IRQ_MAX)
 		return -ERANGE;
 
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
+	ret = register_isr_core(lvec, (void (*)(const int))ISR_null);
+#else
 	ret = register_isr_core(lvec, (void (*)(const int))ISR_irq);
+#endif
 
 	if (ret >= 0) {
 		dsb();
