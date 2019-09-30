@@ -87,23 +87,12 @@ void schedule(void)
 	prev = current;
 
 #if defined(CONFIG_REALTIME)
-	if (!(next = pbrr_dequeue(&pbrr))) {
-		if (current->sched == &pbrr &&
-				get_task_state(current) == TASK_RUNNING)
-			goto out;
-
-		goto next_scheduler;
+	if ((next = pbrr_dequeue(&pbrr))) {
+		pbrr_enqueue(&pbrr, current);
+		current = next;
 	}
-
-	if (current->sched) //TODO: remove the condition after putting idle task in another schedule class
-		current->sched->add(current->sched, current);
-	current = next;
-	goto out;
 #endif
 
-next_scheduler: /* other schedule classes may take place here */
-	current = &init_task; /* idle task */
-out:
 	update_runtime(current, prev);
 }
 

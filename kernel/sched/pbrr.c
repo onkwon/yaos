@@ -1,20 +1,14 @@
 #include "pbrr.h"
-
-#include "queue.h"
-#include "syslog.h"
-#include "kernel/lock.h"
+#include "list.h"
 #include "kernel/task.h"
 
-#include <assert.h>
-#include <errno.h>
-
-static queue_t runqueue[TASK_PRIORITY_MAX];
+static struct listq_head runq_head[TASK_PRIORITY_MAX];
 
 int pbrr_enqueue(struct scheduler *sched, void *node)
 {
 	struct task *new = node;
-	queue_t *q;
-	int pri, err;
+	struct listq_head *q;
+	int pri;
 
 	if (!sched || !new || get_task_state(new))
 		return -EINVAL;
@@ -24,11 +18,7 @@ int pbrr_enqueue(struct scheduler *sched, void *node)
 	q = sched->rq;
 	q = &q[pri];
 
-	if ((err = enqueue(q, &new))) {
-		error("failed adding in queue: %d", err);
-		return -ENOSPC;
-	}
-
+	listq_push(&new->rq, q);
 	atomic_faa(&sched->nr_running, 1);
 
 	return 0;
@@ -36,18 +26,23 @@ int pbrr_enqueue(struct scheduler *sched, void *node)
 
 void *pbrr_dequeue(struct scheduler *sched)
 {
-	queue_t *q;
+	struct listq_head *q;
 	int pri;
-	struct task *task = NULL;
 
 	if (!sched)
 		return NULL;
 
 	for (pri = TASK_PRIORITY_MAX - 1; pri >= 0; pri--) {
+		struct list *node;
+
 		q = sched->rq;
 		q = &q[pri];
-		if (dequeue(q, &task) == 0) {
+		node = listq_pop(q);
+		if (node) {
+			struct task *task
+				= container_of(node, struct task, rq);
 			atomic_faa(&sched->nr_running, -1);
+
 			return task;
 		}
 	}
@@ -57,14 +52,12 @@ void *pbrr_dequeue(struct scheduler *sched)
 
 void pbrr_init(struct scheduler *pbrr)
 {
-	static uintptr_t arr[TASK_PRIORITY_MAX][MAX_NR_TASKS];
-
 	pbrr->nr_running = 0;
-	pbrr->rq = &runqueue;
+	pbrr->rq = &runq_head;
 
-	for (int i = 0; i < TASK_PRIORITY_MAX; i++)
-		queue_init_static(&runqueue[i], arr[i], MAX_NR_TASKS,
-				sizeof(**arr));
+	for (int i = 0; i < TASK_PRIORITY_MAX; i++) {
+		listq_init(&runq_head[i]);
+	}
 
 	pbrr->add = pbrr_enqueue;
 	pbrr->next = pbrr_dequeue;
