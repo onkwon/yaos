@@ -152,7 +152,7 @@ static inline void listq_push(struct list *new, struct listq_head *head)
 	new->next = *head->last;
 	assert(new->next == NULL);
 	*head->last = new;
-	head->last = &new;
+	head->last = &new->next;
 }
 
 /** pop an entry from a list queue
