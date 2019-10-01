@@ -133,7 +133,7 @@ static void task_destroy(struct task *task)
 
 	// TODO: implement
 	// 1. change task state first to TASK_STOPPED to make sure nothing shared with others
-	// 2. remove from wait queue
+	// 2. remove from wait queue and run queue
 	// 3. clean its relationship, child and siblings
 	// 4. free stack, heap, and kstack if not shared one
 
@@ -146,6 +146,13 @@ static void task_destroy(struct task *task)
 
 	if (!(get_task_flags(task) & TF_SHARED))
 		kfree((void *)kstack);
+}
+
+// TODO: Implement
+// it only marks the task to be destroyed later, actually doing nothing
+void task_kill(struct task *task)
+{
+	set_task_state(task, TASK_ZOMBIE);
 }
 
 /* assume that the task itself is to be locked and the wait queue is also

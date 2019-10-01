@@ -122,7 +122,7 @@ void __attribute__((naked)) ISR_fault(void)
 #endif
 			error("Kill current %s(%p)", current->name, current);
 
-			sys_kill_core(current, current);
+			task_kill(current);
 			schedule();
 		}
 
