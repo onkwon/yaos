@@ -219,13 +219,13 @@ debug:
 # Unit test
 .PHONY: test
 test: $(BUILDIR)
-	$(Q)cd test && ceedling clean && ceedling
+	$(Q)cd tests && ceedling clean && ceedling
 
 .PHONY: coverage
 coverage: $(BUILDIR)
-	$(Q)cd test && ceedling gcov:all && ceedling utils:gcov
+	$(Q)cd tests && ceedling gcov:all && ceedling utils:gcov
 
 .PHONY: check
 check: $(BUILDIR)
-	$(Q)cppcheck ./ -itest -itools --enable=all --inconclusive --check-config --suppress=missingIncludeSystem -Iinclude -Idrivers/include
+	$(Q)cppcheck ./ -itests -itools --enable=all --inconclusive --check-config --suppress=missingIncludeSystem -Iinclude -Idrivers/include
 	#$(Q)python tools/cppcheck/addons/misra.py --rule-texts= *.dump
