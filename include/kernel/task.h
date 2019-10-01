@@ -116,9 +116,16 @@ struct task {
 #define set_task_pri(p, v)		((p)->pri = v)
 #define get_task_pri(p)			(ACCESS_ONCE((p)->pri))
 
+#if defined(__APPLE__) && defined(__MACH__)
+#define USER_TASK_SECTION		\
+	__attribute__((section(".__DUMMY,__dummy")))
+#else
+#define USER_TASK_SECTION		\
+	__attribute__((section(".user_task_list"), aligned(4), used))
+#endif
+
 #define REGISTER_TASK(func, f, p, s) \
-	static struct task task_##func \
-	__attribute__((section(".user_task_list"), aligned(4), used)) = { \
+	static struct task task_##func USER_TASK_SECTION = { \
 		.state = TASK_STOPPED, \
 		.flags = TASK_STATIC | (f), \
 		.pri   = p, \
