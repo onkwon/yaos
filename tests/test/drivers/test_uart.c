@@ -8,6 +8,7 @@
 #include "mock_hw_uart.h"
 #include "mock_hw_interrupt.h"
 #include "mock_hw_io.h"
+#include "mock_lock.h"
 
 void setUp(void)
 {
