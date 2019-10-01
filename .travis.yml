@@ -16,10 +16,10 @@ install:
         - docker pull onkwon/yaos
 
 script:
-        - docker run -v $(pwd):/app onkwon/yaos make stm32f1-min
-        - docker run -v $(pwd):/app onkwon/yaos make
-        - docker run -v $(pwd):/app onkwon/yaos make test
-        - docker run -v $(pwd):/app onkwon/yaos make coverage
+        - docker run -v $(pwd):/work onkwon/yaos make stm32f1-min
+        - docker run -v $(pwd):/work onkwon/yaos make
+        - docker run -v $(pwd):/work onkwon/yaos make test
+        - docker run -v $(pwd):/work onkwon/yaos make coverage
 
 after_success:
         - bash <(curl -s https://codecov.io/bash)
