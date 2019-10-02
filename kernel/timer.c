@@ -3,10 +3,24 @@
 #include "kernel/task.h"
 #include "kernel/sched.h"
 #include "kernel/syscall.h"
+#include "list.h"
 #include "heap.h"
 #include "syslog.h"
 
 #include <errno.h>
+
+typedef struct ktimer {
+	uint8_t run; /* 0 when it's done or removed otherwise counted down
+			each time run. in case of TIMER_MAX_RERUN it reruns
+			forever, not counting down */
+	uint16_t round;
+	uint32_t interval;
+	uint32_t expires; /* for latency compensation */
+	void (*cb)(void);
+	void *task;
+
+	struct list q;
+} ktimer_t;
 
 static struct list timers[TIMER_NR_SLOTS];
 static int overflow;
@@ -46,10 +60,10 @@ static inline int update_timer(ktimer_t *timer, uint32_t interval_ticks, uint32_
 
 	timer->round = get_round(left);
 	timer->interval = interval_ticks;
-	timer->goal = goal;
+	timer->expires = goal;
 
 	assert(!(timer->run == 0));
-	//debug("interval %lu, now %lu goal %lu left %d", timer->interval, now, timer->goal, left);
+	//debug("interval %lu, now %lu goal %lu left %d", timer->interval, now, timer->expires, left);
 
 	return next_slot;
 }
@@ -63,12 +77,16 @@ static inline void insert(ktimer_t *timer, int slot)
 
 static inline void delete(ktimer_t *timer, void *slot)
 {
-	struct list *list = slot;
 	// TODO: optimize O(N)
-	assert(list_del(&timer->q, list) == 0);
+	int res = list_del(&timer->q, slot);
+	assert(res == 0);
 }
 
+#if defined(TEST)
+void timer_handler(uint32_t now)
+#else
 static void timer_handler(uint32_t now)
+#endif
 {
 	int current_slot = now % TIMER_NR_SLOTS;
 
@@ -77,32 +95,30 @@ static void timer_handler(uint32_t now)
 
 	while (node) {
 		ktimer_t *timer = container_of(node, ktimer_t, q);
-		int left = calc_left(timer->goal, now);
+		int left = calc_left(timer->expires, now);
 		uint16_t round = get_round(left);
+
+		node = node->next;
 
 		if (timer->run == 0) {
 			debug("delete timer: %p", timer);
 			delete(timer, slot);
 			free(timer);
-
-			node = node->next;
 			continue;
 		} else if (left >= TIMER_NR_SLOTS && round) {
 			//return; // TODO: return if ordered
-			node = node->next;
 			continue;
 		}
 
-		node = node->next;
 		delete(timer, slot);
 		/* TODO: remove security vulnerability adjusting task priority */
 		timer->cb();
 
-		if (timer->run != TIMER_MAX_RERUN)
+		if (timer->run != TIMER_REPEAT)
 			timer->run--;
 		if (timer->run) {
 			insert(timer, update_timer(timer, timer->interval,
-						timer->goal));
+						timer->expires));
 		}
 	}
 }
@@ -154,7 +170,7 @@ int timer_create_core(uint32_t interval_ticks, void (*cb)(void), uint8_t run)
 {
 	ktimer_t *new;
 
-	if (interval_ticks == 0 || run == 0)
+	if (interval_ticks == 0 || run == 0 || !cb)
 		return -EINVAL;
 
 	if ((new = malloc(sizeof(*new))) == NULL)
@@ -177,6 +193,12 @@ int timer_create_core(uint32_t interval_ticks, void (*cb)(void), uint8_t run)
 int timer_delete_core(int timerid)
 {
 	return timerid;
+}
+
+/* TODO: implement */
+uint32_t timer_nearest(void)
+{
+	return 0;
 }
 
 void timer_init(void)
