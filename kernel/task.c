@@ -112,7 +112,8 @@ static inline int task_alloc(struct task *task, unsigned int flags, void *ref)
 				STACK_ALIGNMENT);
 	}
 
-	assert(firstfit_init(&task->heap.freelist, task->heap.base, heap_size) == 0);
+	int res = firstfit_init(&task->heap.freelist, task->heap.base, heap_size);
+	assert(res == 0);
 
 #if defined(CONFIG_MEM_WATERMARK)
 	while ((uintptr_t)stack < (uintptr_t)task->stack.p)
@@ -257,7 +258,8 @@ void task_init(void)
 	init_task.heap.limit = (void *)
 		BASE((uintptr_t)&init_task_heap[NR_HEAP_ITEMS], STACK_ALIGNMENT);
 
-	assert(firstfit_init(&init_task.heap.freelist, init_task.heap.base, HEAP_SIZE_MIN) == 0);
+	int res = firstfit_init(&init_task.heap.freelist, init_task.heap.base, HEAP_SIZE_MIN);
+	assert(res == 0);
 
 	set_task_dressed(&init_task, TASK_KERNEL | TASK_STATIC, idle_task);
 	set_task_context_hard(&init_task, task_decorator);

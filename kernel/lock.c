@@ -51,7 +51,8 @@ int sem_post(sem_t * const sem)
 
 void mutex_init(struct lock * const lock)
 {
-	assert(sem_init(lock, 0, 1) == 0);
+	int res = sem_init(lock, 0, 1);
+	assert(res == 0);
 }
 
 void mutex_lock(struct lock * const lock)

@@ -47,7 +47,8 @@ void heap_init(void)
 	/* TODO: preserve initial kernel stack to be free later */
 	size = BASE((uintptr_t)&_ram_end - STACK_SIZE_DEFAULT - (uintptr_t)from, WORD_SIZE);
 
-	assert(firstfit_init(&freelist, from, size) == 0);
+	int res = firstfit_init(&freelist, from, size);
+	assert(res == 0);
 }
 
 void *__wrap_malloc(size_t size)
