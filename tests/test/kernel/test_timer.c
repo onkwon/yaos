@@ -4,9 +4,11 @@
 
 #include "mock_systick.h"
 #include "mock_sched.h"
+#include "mock_task.h"
 
 void setUp(void)
 {
+	current = &init_task;
 	timer_init();
 }
 
@@ -95,7 +97,7 @@ void test_timer_create_several(void)
 	for (int i = 0; i < TEST_TIMER_CREATE_100*TIMER_MAX_RERUN; i++) {
 		timer_handler(i+1);
 	}
-	TEST_ASSERT(done == TEST_TIMER_CREATE_100 * (TIMER_MAX_RERUN));
+	TEST_ASSERT(done == TEST_TIMER_CREATE_100 * TIMER_MAX_RERUN);
 }
 
 void test_timer_create_repeat(void)

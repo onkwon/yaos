@@ -109,6 +109,8 @@ struct task {
 	lock_t lock;
 };
 
+/* TODO: FIXME: make it system calls since even user task can raise its
+ * priority and permission itself */
 #define set_task_flags(p, v)		((p)->flags = v)
 #define get_task_flags(p)		(ACCESS_ONCE((p)->flags))
 #define set_task_state(p, s)		((p)->state = s)

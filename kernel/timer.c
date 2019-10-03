@@ -82,6 +82,28 @@ static inline void delete(ktimer_t *timer, void *slot)
 	assert(res == 0);
 }
 
+/* a trick to change task authority to avoid security vulnerability, taking
+ * context switch overhead */
+static inline void adjust_task_authority_from(struct task *task)
+{
+	if (get_task_flags(current) != get_task_flags(task) ||
+			get_task_pri(current) != get_task_pri(task)) {
+		set_task_flags(current, get_task_flags(task));
+		set_task_pri(current, get_task_pri(task));
+		yield();
+	}
+}
+
+static inline void adjust_task_authority_to(unsigned long flags, int pri)
+{
+	if (get_task_flags(current) != flags ||
+			get_task_pri(current) != pri) {
+		set_task_flags(current, flags);
+		set_task_pri(current, pri);
+		yield();
+	}
+}
+
 #if defined(TEST)
 void timer_handler(uint32_t now)
 #else
@@ -92,6 +114,8 @@ static void timer_handler(uint32_t now)
 
 	struct list *slot = &timers[current_slot];
 	struct list *node = slot->next;
+	unsigned long flags = get_task_flags(current);
+	int pri = get_task_pri(current);
 
 	while (node) {
 		ktimer_t *timer = container_of(node, ktimer_t, q);
@@ -111,8 +135,10 @@ static void timer_handler(uint32_t now)
 		}
 
 		delete(timer, slot);
-		/* TODO: remove security vulnerability adjusting task priority */
+
+		adjust_task_authority_from(timer->task);
 		timer->cb();
+		adjust_task_authority_to(flags, pri);
 
 		if (timer->run != TIMER_REPEAT)
 			timer->run--;
