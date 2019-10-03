@@ -4,8 +4,6 @@
 #include "arch/hw_context.h"
 #include <stdint.h>
 
-#define MAX_NR_TASKS			8
-
 #define resched()			hw_raise_sched()
 
 struct scheduler {
