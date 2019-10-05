@@ -145,6 +145,16 @@ int timer_create(uint32_t interval_ticks, void (*cb)(void), uint8_t run)
 	return syscall(SYSCALL_TIMER_CREATE, interval_ticks, cb, run);
 }
 
+int timer_delete(int timerid)
+{
+	return syscall(SYSCALL_TIMER_DELETE, timerid);
+}
+
+int32_t timer_nearest(void)
+{
+	return syscall(SYSCALL_TIMER_NEAREST);
+}
+
 static int sys_reserved(void)
 {
 	return -EFAULT;
@@ -168,4 +178,5 @@ void *syscall_table[] = {
 	get_systick64_core,		/*  6: SYSCALL_SYSTICK */
 	timer_create_core,		/*  7: SYSCALL_TIMER_CREATE */
 	timer_delete_core,		/*  8: SYSCALL_TIMER_DELETE */
+	timer_nearest_core,		/*  8: SYSCALL_TIMER_NEAREST */
 };

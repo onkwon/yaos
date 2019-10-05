@@ -9,7 +9,7 @@
 #define STACK_SIZE_DEFAULT		1536U /* bytes */
 #define STACK_SIZE_MIN			1280U /* bytes */
 
-#define HEAP_SIZE_DEFAULT		128U /* bytes */
+#define HEAP_SIZE_DEFAULT		512U /* bytes */
 #define HEAP_SIZE_MIN			128U /* bytes */
 
 #define STACK_SENTINEL			0xdeadc0deUL

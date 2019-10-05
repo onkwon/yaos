@@ -11,5 +11,6 @@ void __init heap_init(void);
 
 void *__wrap_malloc(size_t size);
 void __wrap_free(void *ptr);
+void free_to(void *ptr, void *task);
 
 #endif /* __HEAP_H__ */

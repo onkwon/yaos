@@ -5,6 +5,7 @@
 #include "mock_systick.h"
 #include "mock_sched.h"
 #include "mock_task.h"
+#include "mock_heap.h"
 
 void setUp(void)
 {
@@ -16,10 +17,10 @@ void tearDown(void)
 {
 }
 
-// including syscall.h causes build error because of timer function conflict
-// which is already declared in standard time.h. so not include syscall.h but
-// implement empty yield() which is only function defined in syscall.c that
-// called from timer.c.
+/* including syscall.h causes build error because of timer function conflict
+ * which is already declared in standard time.h. so not include syscall.h but
+ * implement empty yield() which is only function defined in syscall.c that
+ * called from timer.c. */
 void yield(void) {}
 
 static unsigned int done;
@@ -29,12 +30,12 @@ void test_timer_create_invalid(void)
 {
 	void (*dummy_callback)(void) = do_nothing;
 
-	TEST_ASSERT(timer_create_core(0, NULL, 0));
-	TEST_ASSERT(timer_create_core(0, dummy_callback, 0));
-	TEST_ASSERT(timer_create_core(0, dummy_callback, TIMER_REPEAT));
-	TEST_ASSERT(timer_create_core(1, NULL, 0));
-	TEST_ASSERT(timer_create_core(1, NULL, TIMER_REPEAT));
-	TEST_ASSERT(timer_create_core(1, dummy_callback, 0));
+	TEST_ASSERT(timer_create_core(0, NULL, 0) == -EINVAL);
+	TEST_ASSERT(timer_create_core(0, dummy_callback, 0) == -EINVAL);
+	TEST_ASSERT(timer_create_core(0, dummy_callback, TIMER_REPEAT) == -EINVAL);
+	TEST_ASSERT(timer_create_core(1, NULL, 0) == -EINVAL);
+	TEST_ASSERT(timer_create_core(1, NULL, TIMER_REPEAT) == -EINVAL);
+	TEST_ASSERT(timer_create_core(1, dummy_callback, 0) == -EINVAL);
 }
 
 #define TEST_TIMER_CREATE_100		100
@@ -42,6 +43,8 @@ void test_timer_create_invalid(void)
 void test_timer_create_once(void)
 {
 	uintptr_t timer[TEST_TIMER_CREATE_100];
+
+	free_to_Ignore();
 
 	for (int i = 0; i < TEST_TIMER_CREATE_100; i++) {
 		get_systick_ExpectAndReturn(0);
@@ -59,6 +62,8 @@ void test_timer_create_once(void)
 void test_timer_create_several(void)
 {
 	uintptr_t timer[TEST_TIMER_CREATE_100];
+
+	free_to_Ignore();
 
 	done = 0;
 	for (int i = 0; i < TEST_TIMER_CREATE_100; i++) {
@@ -116,4 +121,12 @@ void test_timer_create_repeat(void)
 	for (int i = 0; i < TEST_TIMER_CREATE_100; i++) {
 		timer_handler(i+1);
 	}
+}
+
+void test_timer_nearest(void)
+{
+}
+
+void test_timer_delete(void)
+{
 }

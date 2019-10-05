@@ -68,3 +68,13 @@ void __wrap_free(void *ptr)
 
 	firstfit_free(&current->heap.freelist, ptr);
 }
+
+void free_to(void *ptr, void *task)
+{
+	if (!ptr)
+		return;
+
+	struct task *t = task;
+
+	firstfit_free(&t->heap.freelist, ptr);
+}

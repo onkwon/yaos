@@ -1,3 +1,15 @@
+/*
+ * The timer handler MUST be the only highest priority task not being preempted
+ * by other tasks but only by an interrupt. And `timer_create()` only can be
+ * called in thread mode, never call it in an interrupt. A lock must take place
+ * if any other task need to be running over timer handler.
+ *
+ * TODO: improve time complexity
+ *
+ * timer_create() timer_delete() timer_handler() timer_nearest()
+ *      O(N)           O(N)           O(1)            O(N)
+ */
+
 #include "kernel/timer.h"
 #include "kernel/systick.h"
 #include "kernel/task.h"
@@ -6,6 +18,7 @@
 #include "list.h"
 #include "heap.h"
 #include "syslog.h"
+#include "compiler.h"
 
 #include <errno.h>
 
@@ -13,6 +26,7 @@ typedef struct ktimer {
 	uint8_t run; /* 0 when it's done or removed otherwise counted down
 			each time run. in case of TIMER_MAX_RERUN it reruns
 			forever, not counting down */
+	uint8_t slot;
 	uint16_t round;
 	uint32_t interval;
 	uint32_t expires; /* for latency compensation */
@@ -23,7 +37,6 @@ typedef struct ktimer {
 } ktimer_t;
 
 static struct list timers[TIMER_NR_SLOTS];
-static int overflow;
 
 static inline int calc_left(uint32_t goal, uint32_t now)
 {
@@ -31,7 +44,6 @@ static inline int calc_left(uint32_t goal, uint32_t now)
 
 	if (goal < now) {
 		left = (uint32_t)-1 - now + goal;
-		//debug("overflow: %d, now %lu, goal %lu", left, now, goal);
 	} else {
 		left = goal - now;
 	}
@@ -55,36 +67,56 @@ static inline int update_timer(ktimer_t *timer, uint32_t interval_ticks, uint32_
 	int next_slot, left;
 
 	goal = now + interval_ticks;
-	left = min((uint32_t)calc_left(goal, now), interval_ticks);
+	left = calc_left(goal, now);
+	left = min((uint32_t)left, interval_ticks); // in case time passed
 	next_slot = get_slot(left, now);
+
+	assert(next_slot >= 0 && next_slot <= TIMER_MAX_NR_SLOTS);
 
 	timer->round = get_round(left);
 	timer->interval = interval_ticks;
 	timer->expires = goal;
+	timer->slot = next_slot;
 
 	assert(!(timer->run == 0));
-	//debug("interval %lu, now %lu goal %lu left %d", timer->interval, now, timer->expires, left);
 
 	return next_slot;
 }
 
-static inline void insert(ktimer_t *timer, int slot)
+static inline void insert(ktimer_t *timer, int slot, uint32_t now)
 {
 	assert(&timer->q != timers[slot].next);
-	// TODO: make it ordered list. it takes O(N) now
-	list_add(&timer->q, &timers[slot]);
+	struct list *head, **curr;
+
+	head = &timers[slot];
+	curr = &head;
+
+	while ((*curr)->next) {
+		curr = &(*curr)->next;
+
+		ktimer_t *p = container_of((*curr), ktimer_t, q);
+		if (calc_left(timer->expires, now) < calc_left(p->expires, now)) {
+			timer->q.next = *curr;
+			*curr = &timer->q;
+			return;
+		} else if ((*curr)->next == NULL) {
+			break;
+		}
+	}
+
+	timer->q.next = (*curr)->next;
+	(*curr)->next = &timer->q;
 }
 
 static inline void delete(ktimer_t *timer, void *slot)
 {
-	// TODO: optimize O(N)
 	int res = list_del(&timer->q, slot);
 	assert(res == 0);
 }
 
 /* a trick to change task authority to avoid security vulnerability, taking
  * context switch overhead */
-static inline void adjust_task_authority_from(struct task *task)
+static inline void turn_task_permission_from(struct task *task)
 {
 	if (get_task_flags(current) != get_task_flags(task) ||
 			get_task_pri(current) != get_task_pri(task)) {
@@ -94,7 +126,7 @@ static inline void adjust_task_authority_from(struct task *task)
 	}
 }
 
-static inline void adjust_task_authority_to(unsigned long flags, int pri)
+static inline void turn_task_permission_to(unsigned long flags, int pri)
 {
 	if (get_task_flags(current) != flags ||
 			get_task_pri(current) != pri) {
@@ -104,18 +136,17 @@ static inline void adjust_task_authority_to(unsigned long flags, int pri)
 	}
 }
 
-#if defined(TEST)
-void timer_handler(uint32_t now)
-#else
-static void timer_handler(uint32_t now)
-#endif
+STATIC void timer_handler(uint32_t now)
 {
-	int current_slot = now % TIMER_NR_SLOTS;
-
-	struct list *slot = &timers[current_slot];
-	struct list *node = slot->next;
 	unsigned long flags = get_task_flags(current);
 	int pri = get_task_pri(current);
+
+	struct list *slot, *node;
+	int current_slot;
+
+	current_slot = now % TIMER_NR_SLOTS;
+	slot = &timers[current_slot];
+	node = slot->next;
 
 	while (node) {
 		ktimer_t *timer = container_of(node, ktimer_t, q);
@@ -125,41 +156,41 @@ static void timer_handler(uint32_t now)
 		node = node->next;
 
 		if (timer->run == 0) {
-			debug("delete timer: %p", timer);
 			delete(timer, slot);
-			free(timer);
+			free_to(timer, timer->task);
 			continue;
 		} else if (left >= TIMER_NR_SLOTS && round) {
-			//return; // TODO: return if ordered
-			continue;
+			return;
 		}
 
 		delete(timer, slot);
 
-		adjust_task_authority_from(timer->task);
+		turn_task_permission_from(timer->task);
 		timer->cb();
-		adjust_task_authority_to(flags, pri);
+		turn_task_permission_to(flags, pri);
 
 		if (timer->run != TIMER_REPEAT)
 			timer->run--;
 		if (timer->run) {
 			insert(timer, update_timer(timer, timer->interval,
-						timer->expires));
+						timer->expires), timer->expires);
+			continue;
 		}
+
+		free_to(timer, timer->task);
 	}
 }
 
 static void timer_process(void)
 {
+	uint32_t prev;
+
+	prev = get_systick();
+
 	while (1) {
-		uint32_t now = get_systick();
-		int cnt = overflow;
-
-		for (int i = cnt; i; i--) {
-			timer_handler(now - i);
+		for (uint32_t now = get_systick(); prev != now; prev++) {
+			timer_handler(prev + 1);
 		}
-
-		atomic_faa(&overflow, -cnt);
 
 		set_task_state(current, TASK_WAITING);
 		yield();
@@ -172,8 +203,6 @@ REGISTER_TASK(timer_process, TASK_KERNEL | TF_MANUAL, TASK_PRIORITY_HIGHEST,
  * overhead which results in power saving */
 int timer_run(void)
 {
-	atomic_faa(&overflow, 1);
-
 	if (get_task_state(&task_timer_process) == TASK_RUNNING) {
 		/* NOTE: timers registered are not being processed in time
 		 * because it exceeds number of timers that cpu power can
@@ -202,29 +231,60 @@ int timer_create_core(uint32_t interval_ticks, void (*cb)(void), uint8_t run)
 	if ((new = malloc(sizeof(*new))) == NULL)
 		return -ENOMEM;
 
+	uint32_t now = get_systick();
 	int next_slot;
 
 	new->run = run;
 	new->cb = cb;
-	next_slot = update_timer(new, interval_ticks, get_systick());
+	next_slot = update_timer(new, interval_ticks, now);
 	new->task = current;
 	list_init(&new->q);
 
-	insert(new, next_slot);
+	insert(new, next_slot, now);
 
 	return (int)new;
 }
 
-/* TODO: implement */
 int timer_delete_core(int timerid)
 {
-	return timerid;
+	ktimer_t *p = (ktimer_t *)timerid;
+
+	if (p) {
+		p->run = 0;
+		struct list *slot = &timers[p->slot];
+		delete(p, slot);
+		free(p);
+
+		return 0;
+	}
+
+	return -EINVAL;
 }
 
-/* TODO: implement */
-uint32_t timer_nearest(void)
+int32_t timer_nearest_core(void)
 {
-	return 0;
+	int32_t nearest = TIMER_EMPTY;
+	uint32_t now = get_systick();
+
+	for (unsigned int i = 0; i < TIMER_NR_SLOTS; i++) {
+		struct list *slot = &timers[i];
+		if (slot->next == NULL)
+			continue;
+
+		ktimer_t *p = container_of(slot->next, ktimer_t, q);
+		int32_t diff = p->expires - now;
+
+		if (diff < 0)
+			diff = (uint32_t)-1 - now + p->expires;
+
+		if (diff == TIMER_EMPTY)
+			diff -= 1;
+
+		if (nearest > diff)
+			nearest = diff;
+	}
+
+	return nearest;
 }
 
 void timer_init(void)
