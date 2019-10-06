@@ -1,6 +1,10 @@
-#include "syslog.h"
+#include "kernel/syscall.h"
 #include "kernel/interrupt.h"
 #include "kernel/debug.h"
+#include "kernel/systick.h"
+#include "kernel/timer.h"
+#include "syslog.h"
+#include "io.h"
 
 #include <errno.h>
 #include <stddef.h>
@@ -27,15 +31,41 @@ void *_sbrk(ptrdiff_t increment)
 	return brk;
 }
 
-long _write(int fd, const void *buf, size_t cnt)
+static long sys_write(int fd, const void *buf, size_t cnt)
 {
 	const char *dat = (const char *)buf;
+	void (*put)(const int c) = NULL;
+	size_t i;
 
-	for (size_t i = 0; i < cnt; i++)
-		debug_putc((int)dat[i]);
+	switch (fd) {
+	case SYSLOG_FD_DEBUG:
+		put = debug_putc;
+		break;
+	case SYSLOG_FD_STDOUT:
+	case SYSLOG_FD_BUFFER:
+		if (printc)
+			put = printc;
+		break;
+	default:
+		break;
+	}
 
-	return cnt;
-	(void)fd;
+	if (!put)
+		return 0;
+
+	for (i = 0; i < cnt; i++)
+		put((int)dat[i]);
+
+	return i;
+}
+
+long _write(int fd, const void *buf, size_t cnt)
+{
+	/* if not initialized yet or called from ISR like scheduler */
+	if (is_interrupt_disabled() || in_interrupt())
+		return sys_write(fd, buf, cnt);
+
+	return syscall(SYSCALL_WRITE, fd, buf, cnt);
 }
 
 int _close(int fd)
@@ -90,3 +120,63 @@ int _open(const char *pathname, int flags)
 	__trap(TRAP_SYSCALL_OPEN);
 	return -EFAULT;
 }
+
+int reboot(unsigned long msec)
+{
+	mdelay(msec);
+
+	hw_reboot();
+
+	return 0;
+}
+
+int yield(void)
+{
+	return syscall(SYSCALL_YIELD);
+}
+
+uint64_t get_systick64(void)
+{
+	return syscall(SYSCALL_SYSTICK);
+}
+
+int timer_create(uint32_t interval_ticks, void (*cb)(void), uint8_t run)
+{
+	return syscall(SYSCALL_TIMER_CREATE, interval_ticks, cb, run);
+}
+
+int timer_delete(int timerid)
+{
+	return syscall(SYSCALL_TIMER_DELETE, timerid);
+}
+
+int32_t timer_nearest(void)
+{
+	return syscall(SYSCALL_TIMER_NEAREST);
+}
+
+static int sys_reserved(void)
+{
+	return -EFAULT;
+}
+
+static int sys_test(int a, int b)
+{
+	debug("a + b = %d", a + b);
+	return 0;
+}
+
+#include "kernel/sched.h"
+
+void *syscall_table[] = {
+	sys_reserved,			/*  0: SYSCALL_RESERVED */
+	sys_test,			/*  1: SYSCALL_TEST */
+	sched_yield,			/*  2: SYSCALL_YIELD */
+	sys_write,			/*  3: SYSCALL_WRITE */
+	task_wait,			/*  4: SYSCALL_WAIT */
+	task_wake,			/*  5: SYSCALL_WAKE */
+	get_systick64_core,		/*  6: SYSCALL_SYSTICK */
+	timer_create_core,		/*  7: SYSCALL_TIMER_CREATE */
+	timer_delete_core,		/*  8: SYSCALL_TIMER_DELETE */
+	timer_nearest_core,		/*  8: SYSCALL_TIMER_NEAREST */
+};

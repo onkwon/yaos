@@ -1,6 +1,8 @@
 #ifndef __YAOS_ARMv7M_HW_INTERRUPT_H__
 #define __YAOS_ARMv7M_HW_INTERRUPT_H__
 
+#include "arch/mach/board/hw.h"
+
 /* nvec : exception number defined in ARMv7-M exception model
  * lvec : logical vector number (primary + secondary)
  * nirq : hardware interrupt number, starts from NVECTOR_IRQ */
@@ -25,7 +27,9 @@ enum {
 /** Convert an exception vector number to an IRQ number */
 #define vec2irq(nvec)		((nvec) - NVECTOR_IRQ)
 
+#if !defined(IRQ_MAX)
 #define IRQ_MAX			128
+#endif
 
 #define SECONDARY_IRQ_BITS	10U
 /* primary irq   : actual hardware interrupt number
@@ -96,12 +100,18 @@ void hw_irq_set(const int nvec, const bool on);
  *        :c:macro:`IRQ_PRIORITY_HIGHEST`
  */
 void hw_irq_set_pri(const int nvec, const int pri);
-
 void hw_irq_init(void);
+
 /** Booting starts from here */
 void ISR_reset(void);
 /** Initial interrupt service routine for unregistered */
 void ISR_null(const int nvec);
+void ISR_svc(void);
+void ISR_svc_pend(void);
+void ISR_dbgmon(void);
+void ISR_systick(void);
+void ISR_fault(void);
+void ISR_irq(void);
 
 /**
  * Software reset

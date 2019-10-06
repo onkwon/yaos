@@ -1,6 +1,6 @@
 #include "include/hw_uart.h"
 #include "include/hw_exti.h"
-#include "include/clock.h"
+#include "include/hw_clock.h"
 #include "syslog.h"
 #include "drivers/gpio.h"
 #include "kernel/interrupt.h"
@@ -223,7 +223,9 @@ int hw_uart_open(const int channel, struct uart_conf conf)
 		cr1 |= (1UL << RE);
 		if (UART_INTERRUPT & conf.rx)
 			cr1 |= (1UL << RXNEIE);
-	} if (conf.tx) {
+	}
+
+	if (conf.tx) {
 		cr1 |= 1UL << TE;
 	}
 
@@ -234,20 +236,20 @@ int hw_uart_open(const int channel, struct uart_conf conf)
 
 	if ((uintptr_t)reg & 0x10000UL) { /* if USART1 or USART6 */
 #if defined(stm32f1) || defined(stm32f3)
-		__turn_apb2_clock(14, true);
-		__reset_apb2_device(14);
+		hw_clock_set_apb2(14, true);
+		hw_clock_reset_apb2_conf(14);
 #elif defined(stm32f4)
-		__turn_apb2_clock(4 + (channel >> 2), true);
-		__reset_apb2_device(4 + (channel >> 2));
+		hw_clock_set_apb2(4 + (channel >> 2), true);
+		hw_clock_reset_apb2_conf(4 + (channel >> 2));
 #else
 #error "undefined machine"
 #endif
-		brr = brr2reg(conf.baudrate, get_pclk2());
+		brr = brr2reg(conf.baudrate, hw_clock_get_pclk2());
 	} else {
-		__turn_apb1_clock(channel + 16, true);
-		__reset_apb1_device(channel + 16);
+		hw_clock_set_apb1(channel + 16, true);
+		hw_clock_reset_apb1_conf(channel + 16);
 
-		brr = brr2reg(conf.baudrate, get_pclk1());
+		brr = brr2reg(conf.baudrate, hw_clock_get_pclk1());
 	}
 
 #ifdef stm32f3
@@ -289,14 +291,14 @@ void hw_uart_close(const int channel)
 
 	if ((uintptr_t)reg & 0x10000UL) { /* if USART1 or USART6 */
 #if defined(stm32f1) || defined(stm32f3)
-		__turn_apb2_clock(14, false);
+		hw_clock_set_apb2(14, false);
 #elif defined(stm32f4)
-		__turn_apb2_clock(4 + (channel >> 3), false);
+		hw_clock_set_apb2(4 + (channel >> 3), false);
 #else
 #error "undefined machine"
 #endif
 	} else {
-		__turn_apb1_clock(channel + 16, false);
+		hw_clock_set_apb1(channel + 16, false);
 	}
 
 	hw_irq_set(ch2vec(channel), false);
@@ -368,9 +370,9 @@ int hw_uart_baudrate_set(const int channel, uintptr_t baudrate)
 		return -EINVAL;
 
 	if (!channel) /* USART1 */
-		baudrate = brr2reg(baudrate, get_pclk2());
+		baudrate = brr2reg(baudrate, hw_clock_get_pclk2());
 	else
-		baudrate = brr2reg(baudrate, get_pclk1());
+		baudrate = brr2reg(baudrate, hw_clock_get_pclk1());
 
 	// FIXME: 1. wait until ongoing transmission complete
 	//        2. deactivate uart

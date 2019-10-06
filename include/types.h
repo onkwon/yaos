@@ -28,7 +28,9 @@ typedef enum {
 #define MASK_RESET(v, mask)		((v) & ~(mask))
 #define MASK_SET(v, mask)		((v) | (mask))
 
-#define BASE(x, a)			((x) & ~(typeof(x)(a) - 1UL))
+/** Align down */
+#define BASE(x, a)			((x) & ~((typeof(x))(a) - 1UL))
+/** Align up */
 #define ALIGN(x, a)			BASE((x) + ((typeof(x))(a) - 1UL), a)
 
 #define stringify(x)			#x
@@ -38,6 +40,7 @@ typedef enum {
 #define cbi(v, bit)			(v &= ~(1U << (bit)))
 #define gbi(v, bit)			(((v) >> (bit)) & 1)
 
+#define countof(arr)			(sizeof(arr) / sizeof(*(arr)))
 #define container_of(ptr, type, member) \
 	((type *)((char *)(ptr) - (char *)&((type *)0)->member))
 
@@ -55,6 +58,9 @@ typedef enum {
 		_a < _b ? _a : _b; \
 })
 #endif
+
+#define KHZ				1000UL
+#define MHZ				(KHZ * KHZ)
 
 /** Check if integral power of two */
 static inline bool is_pow2(const uintptr_t x)

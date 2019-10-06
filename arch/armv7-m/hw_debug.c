@@ -1,6 +1,6 @@
 #include "arch/hw_debug.h"
 #include "arch/regs.h"
-#include "arch/mach/clock.h"
+#include "arch/mach/hw_clock.h"
 
 void hw_debug_putc(const int v)
 {
@@ -22,7 +22,7 @@ void hw_debug_putc(const int v)
 
 void hw_debug_init(uint32_t ch, uint32_t baudrate)
 {
-	uint32_t prescaler = (get_hclk() / baudrate) - 1;
+	uint32_t prescaler = (hw_clock_get_hclk() / baudrate) - 1;
 
 	COREDEBUG->DEMCR = 1UL << 24; // enable DWT and ITM
 

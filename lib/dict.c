@@ -28,7 +28,7 @@ static inline void clear_item(struct dict_item * const item)
 }
 
 #if defined(OPEN_ADDRESSING)
-int idict_get(const dict_t * const dict, const uintptr_t key, void *value)
+int dict_get(const dict_t * const dict, const uintptr_t key, void *value)
 {
 	const struct dict_item *item;
 	int rc;
@@ -67,7 +67,7 @@ out:
 	return rc;
 }
 
-int idict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value)
+int dict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value)
 {
 	struct dict_item *item;
 	int rc;
@@ -100,7 +100,7 @@ out:
 	return rc;
 }
 
-int idict_del(dict_t * const dict, const uintptr_t key)
+int dict_del(dict_t * const dict, const uintptr_t key)
 {
 	struct dict_item *item;
 	int rc;
@@ -132,7 +132,7 @@ out:
 }
 
 #else // Chaining
-int idict_get(const dict_t * const dict, const uintptr_t key, void *value)
+int dict_get(const dict_t * const dict, const uintptr_t key, void *value)
 {
 	const struct dict_item *item;
 	uintptr_t *p = value;
@@ -155,7 +155,7 @@ int idict_get(const dict_t * const dict, const uintptr_t key, void *value)
 	return -ENODATA;
 }
 
-int idict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value)
+int dict_add(dict_t * const dict, const uintptr_t key, const uintptr_t value)
 {
 	struct dict_item *head, *item;
 

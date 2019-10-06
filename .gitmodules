@@ -1,3 +1,6 @@
 [submodule "tools/hawkmoth"]
 	path = tools/hawkmoth
 	url = https://github.com/jnikula/hawkmoth.git
+[submodule "tools/cppcheck"]
+	path = tools/cppcheck
+	url = https://github.com/danmar/cppcheck.git

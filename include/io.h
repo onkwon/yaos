@@ -1,6 +1,7 @@
 #ifndef __YAOS_IO_H__
 #define __YAOS_IO_H__
 
+#include "compiler.h"
 #include "arch/hw_io.h"
 #include "arch/atomic.h"
 
@@ -11,10 +12,6 @@ enum irq_pri {
 	IRQ_PRIORITY_DEFAULT	= 4,
 	IRQ_PRIORITY_LOWEST	= 7,
 };
-
-/** Compiler barrier */
-#define barrier()			__asm__ __volatile__("" ::: "memory")
-#define ACCESS_ONCE(val)		(*(volatile typeof(val) *)&(val))
 
 /** Data memory barrier */
 #define dmb()				__dmb()

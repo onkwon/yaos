@@ -13,4 +13,9 @@
 void debug_init(void);
 void debug_putc(const int c);
 
+void debug_print_context(uintptr_t *regs);
+void debug_print_kernel_status(uintptr_t *sp, uintptr_t lr, uintptr_t psr);
+void debug_print_user_status(uintptr_t *sp);
+void debug_print_task_status(void *task);
+
 #endif /* __YAOS_DEBUG_H__ */

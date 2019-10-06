@@ -10,7 +10,7 @@
 #include "mock_hw_io.h"
 #include "mock_atomic.h"
 
-#if !defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if !defined(CONFIG_COMMON_IRQ_HANDLER)
 uintptr_t _ram_start[PRIMARY_IRQ_MAX];
 #endif
 
@@ -23,7 +23,7 @@ void setUp(void)
 	hw_irq_init_Ignore();
 	irq_init();
 
-#if !defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if !defined(CONFIG_COMMON_IRQ_HANDLER)
 	for (int i = 0; i < PRIMARY_IRQ_MAX; i++)
 		_ram_start[i] = (uintptr_t)ISR_null;
 #endif
@@ -65,7 +65,7 @@ void test_fundamentals(void)
 	__get_cntl_ExpectAndReturn(0);
 	TEST_ASSERT_EQUAL(0, __get_cntl());
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 	extern void (*primary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int);
 	for (int i = 0; i < (PRIMARY_IRQ_MAX - NVECTOR_IRQ); i++)
 		TEST_ASSERT_EQUAL(ISR_null, primary_isr_table[i]);
@@ -103,7 +103,7 @@ void test_register_isr_success_primary(void)
 		TEST_ASSERT_EQUAL(0, register_isr(i, dummy_func));
 	}
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 	extern void (*primary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int);
 	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++)
 		TEST_ASSERT_EQUAL(dummy_func, primary_isr_table[i - NVECTOR_IRQ]);
@@ -148,13 +148,10 @@ void test_unregister_isr_primary(void)
 		take_permission();
 		__dsb_Ignore();
 		__isb_Ignore();
-		take_permission();
-		__dsb_Ignore();
-		__isb_Ignore();
 		TEST_ASSERT_EQUAL(0, unregister_isr(i));
 	}
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 	extern void (*primary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int);
 	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++)
 		TEST_ASSERT_EQUAL(ISR_null, primary_isr_table[i - NVECTOR_IRQ]);
@@ -168,7 +165,7 @@ void test_unregister_isr_primary2(void)
 {
 	test_register_isr_success_primary();
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 	extern void (*primary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int);
 	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++)
 		TEST_ASSERT_EQUAL(dummy_func, primary_isr_table[i - NVECTOR_IRQ]);
@@ -184,7 +181,7 @@ void test_unregister_isr_primary2(void)
 		TEST_ASSERT_EQUAL(0, unregister_isr(i));
 	}
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 	extern void (*primary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int);
 	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++)
 		TEST_ASSERT_EQUAL(ISR_null, primary_isr_table[i - NVECTOR_IRQ]);
@@ -192,75 +189,4 @@ void test_unregister_isr_primary2(void)
 	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++)
 		TEST_ASSERT_EQUAL(ISR_null, _ram_start[i - NVECTOR_IRQ]);
 #endif
-}
-
-void test_register_isr_register_perm(void)
-{
-	release_permission();
-	TEST_ASSERT_EQUAL(-EPERM, register_isr_register(0, NULL, false));
-}
-
-void test_register_isr_register_access(void)
-{
-	take_permission();
-	TEST_ASSERT_EQUAL(-EACCES, register_isr_register(NVECTOR_IRQ - 1, NULL, false));
-}
-
-void test_register_isr_register_range(void)
-{
-	take_permission();
-	TEST_ASSERT_EQUAL(-ERANGE, register_isr_register(PRIMARY_IRQ_MAX, NULL, false));
-}
-
-void test_register_isr_register_success(void)
-{
-	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++) {
-		take_permission();
-		TEST_ASSERT_EQUAL(0, register_isr_register(i, dummy_func2, false));
-	}
-}
-
-void test_register_isr_register_exist(void)
-{
-	test_register_isr_register_success();
-	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++) {
-		take_permission();
-		TEST_ASSERT_EQUAL(-EEXIST, register_isr_register(i, dummy_func2, false));
-	}
-}
-
-void test_register_isr_register_exist2(void)
-{
-	test_register_isr_register_success();
-	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++) {
-		take_permission();
-		TEST_ASSERT_EQUAL(0, register_isr_register(i, dummy_func2, true));
-	}
-}
-
-void test_unregister_isr_when_secondary_ctor_exist(void)
-{
-	test_register_isr_register_success();
-	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++) {
-		take_permission();
-		__dsb_Ignore();
-		__isb_Ignore();
-		TEST_ASSERT_EQUAL(0, unregister_isr(i));
-	}
-}
-
-void test_register_isr_secondary_when_secondary_ctor_exist(void)
-{
-	test_register_isr_register_success();
-
-	for (int i = NVECTOR_IRQ; i < PRIMARY_IRQ_MAX; i++) {
-		registered = false;
-		TEST_ASSERT_EQUAL(false, registered);
-		take_permission();
-		TEST_ASSERT_EQUAL(0, register_isr(mkvector(NVECTOR_IRQ, 0), dummy_func));
-		TEST_ASSERT_EQUAL(true, registered);
-	}
-
-	take_permission();
-	TEST_ASSERT_EQUAL(0, unregister_isr(mkvector(NVECTOR_IRQ, 0)));
 }

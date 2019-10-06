@@ -25,7 +25,7 @@
 #define ENTER_CRITICAL(val)			disable_irq(val)
 #define LEAVE_CRITICAL(val)			enable_irq(val)
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
 #define get_active_irq_from_isr(vector)		vector
 #else
 #define get_active_irq_from_isr(vector)		get_active_irq()
@@ -42,21 +42,6 @@
  *         failure, refer to `errno.h`
  */
 int register_isr(const int lvec, void (*handler)(const int));
-/**
- * Register a constructor of secondary ISRs. A secondary ISR gets registered by
- * a constructor that is registered prior using this function.
- *
- * @param nvec Vector number. :c:data:`nvec` is not an IRQ number but an
- *        exception number
- * @param ctor Function pointer to a constructor
- * @param force Force to register if true
- * @return 0 on success
- *
- * Unregistering can be done to set :c:func:`ctor` as intended with
- * :c:data:`force` = 1.
- */
-int register_isr_register(const int nvec,
-		int (*ctor)(const int, void (*)(const int)), const bool force);
 /**
  * Unregister ISR
  *

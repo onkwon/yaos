@@ -1,22 +1,25 @@
 #include "drivers/gpio.h"
+
 #include "bitmap.h"
 #include "dict.h"
-#include "assert.h"
 #include "syslog.h"
+
 #include "kernel/interrupt.h"
 #include "kernel/lock.h"
+
 #include <stdbool.h>
+#include <assert.h>
 
 #define SLOT_MAX			((GPIO_MAX) / 16U) // 6.25% of GPIO_MAX
 
-static DEFINE_BITMAP(_gpiomap, GPIO_MAX);
-static DEFINE_DICTIONARY_TABLE(_cb_dict, SLOT_MAX);
-static DEFINE_DICTIONARY(_cb_dict, SLOT_MAX); // isr callback dictionary for each gpio
-static DEFINE_LOCK(_cb_dict_lock);
+static DEFINE_BITMAP(gpiomap, GPIO_MAX);
+static DEFINE_DICTIONARY_TABLE(cb_dict, SLOT_MAX);
+static DEFINE_DICTIONARY(cb_dict, SLOT_MAX); // isr callback dictionary for each gpio
+static DEFINE_LOCK(cb_dict_lock);
 
 static void ISR_gpio(int vector)
 {
-	void (*f)(const int pin) = NULL;
+	void (*cb)(const int pin) = NULL;
 	uintptr_t addr;
 	uint16_t pin;
 
@@ -25,69 +28,66 @@ static void ISR_gpio(int vector)
 	assert(pin < GPIO_MAX);
 
 #if 0 // TODO: Find out which port involved to the event on stm32
-	if (!bitmap_get(_gpiomap, pin)) {
-		syslog("WARN: gpio(%u) not initialized", pin);
+	if (!bitmap_get(gpiomap, pin)) {
+		warn("gpio(%u) not initialized", pin);
 		goto out;
 	}
 #endif
 
-	spin_lock_isr(&_cb_dict_lock);
-	int t = idict_get(&_cb_dict, pin, &addr);
-	spin_unlock_isr(&_cb_dict_lock);
+	spin_lock_critical(&cb_dict_lock);
+	int t = dict_get(&cb_dict, pin, &addr);
+	spin_unlock_critical(&cb_dict_lock);
 
-	if (0 != t) {
-		syslog("WARN: no isr registered for gpio(%u)", pin);
+	if (t != 0) {
+		warn("no isr registered for gpio(%u)", pin);
 		goto out;
 	}
 
-	if ((f = (void (*)(int))addr))
-		f(pin);
+	if ((cb = (void (*)(int))addr))
+		cb(pin);
 out:
 	hw_gpio_clear_event(pin);
 }
 
-int gpio_init(const uint16_t pin, const uint32_t flags, void (*f)(const int))
+int gpio_init(const uint16_t pin, const uint32_t flags, void (*cb)(const int))
 {
-	uintptr_t irqflag;
 	int rc = -EEXIST;
 
-	if (bitmap_get(_gpiomap, pin))
+	if (bitmap_get(gpiomap, pin))
 		goto out;
 
-	if (0 > (rc = hw_gpio_init(pin, flags))) // error
+	if ((rc = hw_gpio_init(pin, flags)) < 0) // error
 		goto out;
 
-	if (0 < rc) { // interrupt enabled
-		spin_lock_irqsave(&_cb_dict_lock, &irqflag);
-		if (0 == idict_add(&_cb_dict, rc - 1, (uintptr_t)f))
+	if (rc > 0) { // interrupt enabled
+		spin_lock_irqsave(&cb_dict_lock);
+		if (dict_add(&cb_dict, rc - 1, (uintptr_t)cb) == 0)
 			rc = 0;
-		spin_unlock_irqrestore(&_cb_dict_lock, irqflag);
+		spin_unlock_irqrestore(&cb_dict_lock);
 	}
 
-	bitmap_set(_gpiomap, pin);
+	bitmap_set(gpiomap, pin);
 out:
 	return rc;
 }
 
 void gpio_fini(const uint16_t pin)
 {
-	uintptr_t irqflag;
-
-	if (!bitmap_get(_gpiomap, pin))
+	if (!bitmap_get(gpiomap, pin))
 		return;
 
 	hw_gpio_fini(pin);
 
-	spin_lock_irqsave(&_cb_dict_lock, &irqflag);
-	idict_del(&_cb_dict, pin);
-	spin_unlock_irqrestore(&_cb_dict_lock, irqflag);
+	spin_lock_irqsave(&cb_dict_lock);
+	dict_del(&cb_dict, pin);
+	spin_unlock_irqrestore(&cb_dict_lock);
 
-	bitmap_clear(_gpiomap, pin);
+	bitmap_clear(gpiomap, pin);
 }
 
 void gpio_put(const uint16_t pin, const int val)
 {
-	if (bitmap_get(_gpiomap, pin))
+	if (bitmap_get(gpiomap, pin))
 		hw_gpio_put(pin, val);
 }
 
@@ -95,7 +95,7 @@ int gpio_get(const uint16_t pin)
 {
 	int rc = -ENOENT;
 
-	if (bitmap_get(_gpiomap, pin))
+	if (bitmap_get(gpiomap, pin))
 		rc = hw_gpio_get(pin);
 
 	return rc;

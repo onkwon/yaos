@@ -33,11 +33,10 @@ void __attribute__((naked, used)) ISR_reset(void)
 	SCB_CCR   |= 0x00000008UL; /* enable unaligned access traps */
 	SCB_CCR   |= 0x00000200UL; /* 8-byte stack alignment */
 
-	/* FIXME: Align stack pointer manually at every exception entry/exit
+	/* NOTE: Align stack pointer manually at every exception entry/exit
 	 * when STKALIGN is not supported. if not nested interrupt, no problem
 	 * actually because all the tasks use psp while msp used in interrupt
-	 * context only. so should I get it done or just recommend to always
-	 * use STKALIGN option.. */
+	 * context only. Recommend to use STKALIGN option always. */
 
 #ifdef CONFIG_STACK_ALIGNMENT_4BYTE
 	SCB_CCR &= ~0x200UL;
@@ -59,5 +58,5 @@ void __attribute__((naked, used)) ISR_reset(void)
 	dsb();
 	isb();
 
-	system_init();
+	kernel_init();
 }

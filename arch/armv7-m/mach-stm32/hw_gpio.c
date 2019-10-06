@@ -4,7 +4,7 @@
 #include "io.h"
 
 #include "include/hw_exti.h"
-#include "include/clock.h"
+#include "include/hw_clock.h"
 
 #include <errno.h>
 #include <assert.h>
@@ -22,27 +22,33 @@ static inline int gpio2exti(int n)
 
 static inline uintptr_t scan_port(reg_t *reg)
 {
-	uint8_t idx = 4;
+	uint8_t idx;
 #if defined(stm32f1)
 	idx = 2;
+#else
+	idx = 4;
 #endif
 	return reg[idx];
 }
 
 static inline void write_port(reg_t *reg, reg_t data)
 {
-	uint8_t idx = 5;
+	uint8_t idx;
 #if defined(stm32f1)
 	idx = 3;
+#else
+	idx = 5;
 #endif
 	reg[idx] = data;
 }
 
 static inline void write_port_pin(reg_t *reg, uint16_t pin, int val)
 {
-	uint8_t idx = 6;
+	uint8_t idx;
 #if defined(stm32f1)
 	idx = 4;
+#else
+	idx = 6;
 #endif
 	reg[idx] = (val == 1)? (1UL << pin) : (1UL << (pin + 16));
 }
@@ -178,7 +184,7 @@ int hw_gpio_init(const uint16_t index, const uint32_t flags)
 	pin = gpio_to_ppin(index);
 	reg = gpio_to_reg(index);
 
-	__turn_apb2_clock(port + 2, true);
+	hw_clock_set_apb2(port + 2, true);
 
 	if (flags & (GPIO_MODE_ALT | GPIO_MODE_OUTPUT)) {
 		switch (flags & GPIO_SPD_MASK) {
@@ -227,7 +233,7 @@ int hw_gpio_init(const uint16_t index, const uint32_t flags)
 
 	if (flags & (GPIO_INT_FALLING | GPIO_INT_RISING)) {
 		/* AFIO deals with pin remapping and EXTI */
-		__turn_apb2_clock(0, true);
+		hw_clock_set_apb2(0, true);
 		EXTI_IMR |= 1 << pin;
 
 		if (flags & GPIO_INT_FALLING)
@@ -277,9 +283,9 @@ int hw_gpio_init(const uint16_t index, const uint32_t flags)
 	reg = gpio_to_reg(index);
 
 #if defined(stm32f3)
-	__turn_ahb1_clock(port + 17, true);
+	hw_clock_set_ahb1(port + 17, true);
 #elif defined(stm32f4)
-	__turn_ahb1_clock(port, true);
+	hw_clock_set_ahb1(port, true);
 #else
 #error undefined machine
 #endif
@@ -334,7 +340,7 @@ int hw_gpio_init(const uint16_t index, const uint32_t flags)
 
 	if (flags & (GPIO_INT_FALLING | GPIO_INT_RISING)) {
 		/* exti <- syscfg <- apb2 */
-		__turn_apb2_clock(14, true);
+		hw_clock_set_apb2(14, true);
 		EXTI_IMR |= 1 << pin;
 
 		if (flags & GPIO_INT_FALLING)
@@ -350,7 +356,6 @@ int hw_gpio_init(const uint16_t index, const uint32_t flags)
 		hw_exti_enable(index, true);
 	}
 
-out:
 	return lvector;
 }
 #endif
@@ -404,21 +409,22 @@ void hw_gpio_driver_init(void (*f)(int))
 	hw_gpio_irq_init(f);
 
 	/* FIXME: initializing of ports makes JTAG not working */
+#if 0
 	return;
-	__turn_port_clock((reg_t *)PORTA, true);
-	__turn_port_clock((reg_t *)PORTB, true);
-	__turn_port_clock((reg_t *)PORTC, true);
-	__turn_port_clock((reg_t *)PORTD, true);
-	__turn_port_clock((reg_t *)PORTE, true);
-	__turn_port_clock((reg_t *)PORTF, true);
+	hw_clock_set_port((reg_t *)PORTA, true);
+	hw_clock_set_port((reg_t *)PORTB, true);
+	hw_clock_set_port((reg_t *)PORTC, true);
+	hw_clock_set_port((reg_t *)PORTD, true);
+	hw_clock_set_port((reg_t *)PORTE, true);
+	hw_clock_set_port((reg_t *)PORTF, true);
 
 	unsigned int mode   = 0;
 	unsigned int conf   = 0;
 	unsigned int offset = 4;
 #ifdef stm32f4
-	__turn_port_clock((reg_t *)PORTG, true);
-	__turn_port_clock((reg_t *)PORTH, true);
-	__turn_port_clock((reg_t *)PORTI, true);
+	hw_clock_set_port((reg_t *)PORTG, true);
+	hw_clock_set_port((reg_t *)PORTH, true);
+	hw_clock_set_port((reg_t *)PORTI, true);
 
 	mode   = 0xffffffff; /* analog mode */
 	offset = 0xc;
@@ -444,15 +450,16 @@ void hw_gpio_driver_init(void (*f)(int))
 	*(reg_t *)PORTI = mode;
 	*(reg_t *)(PORTI + offset) = conf;
 
-	__turn_port_clock((reg_t *)PORTG, false);
-	__turn_port_clock((reg_t *)PORTH, false);
-	__turn_port_clock((reg_t *)PORTI, false);
+	hw_clock_set_port((reg_t *)PORTG, false);
+	hw_clock_set_port((reg_t *)PORTH, false);
+	hw_clock_set_port((reg_t *)PORTI, false);
 #endif
 
-	__turn_port_clock((reg_t *)PORTA, false);
-	__turn_port_clock((reg_t *)PORTB, false);
-	__turn_port_clock((reg_t *)PORTC, false);
-	__turn_port_clock((reg_t *)PORTD, false);
-	__turn_port_clock((reg_t *)PORTE, false);
-	__turn_port_clock((reg_t *)PORTF, false);
+	hw_clock_set_port((reg_t *)PORTA, false);
+	hw_clock_set_port((reg_t *)PORTB, false);
+	hw_clock_set_port((reg_t *)PORTC, false);
+	hw_clock_set_port((reg_t *)PORTD, false);
+	hw_clock_set_port((reg_t *)PORTE, false);
+	hw_clock_set_port((reg_t *)PORTF, false);
+#endif
 }

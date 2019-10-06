@@ -2,7 +2,15 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/69c0ee97ee2843d9ac4b415d9ee21b6f)](https://app.codacy.com/app/onkwon/yaos?utm_source=github.com&utm_medium=referral&utm_content=onkwon/yaos&utm_campaign=Badge_Grade_Dashboard)
 [![codecov](https://codecov.io/gh/onkwon/yaos/branch/master/graph/badge.svg)](https://codecov.io/gh/onkwon/yaos)
 
-This is an embedded operating system for Internet of Things(IoT) devices, specifically for a single-core processor without MMU virtualization. It is designed for energy efficiency and hardware independent development.
+# [yaos](https://yaos.io)
+
+## Introduction
+
+This is an embedded operating system for Internet of Things(IoT) devices, specifically for a single-core processor without MMU virtualization. It is designed for energy efficiency and hardware independent development. 
+
+Full documentation can be found in the "Documentation" directory. It is also available online at []().
+
+## Features
 
 ## Getting Started
 
@@ -16,67 +24,40 @@ What things you need to install the software and how to install them
 Give examples
 ```
 
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
+### Build
 
 ```
-Give the example
+$ git clone https://github.com/onkwon/yaos.git
+$ cd yaos
+$ make stm32f1-min (or specify your board. e.g. stm32f429i-disco)
+$ make
 ```
 
-And repeat
+#### Supported boards at the moment
 
-```
-until finished
-```
+* [mango-z1](http://www.mangoboard.com/main/?cate1=9&cate2=26&cate3=36)
+* [mycortex-stm32f4](http://www.withrobot.com/mycortex-stm32f4/)
+* [nrf52](https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF52832)
+* [stm32f429i-disco](http://www.st.com/content/st_com/en/products/evaluation-tools/product-evaluation-tools/mcu-eval-tools/stm32-mcu-eval-tools/stm32-mcu-discovery-kits/32f429idiscovery.html)
+* [stm32f469i-disco](http://www.st.com/en/evaluation-tools/32f469idiscovery.html)
+* [stm32-lcd](https://www.olimex.com/Products/ARM/ST/STM32-LCD/)
+* [ust-mpb-stm32f103](https://www.devicemart.co.kr/1089642)
+* [stm32f1-min](https://www.aliexpress.com/item/mini-Stm32f103c8t6-system-board-stm32-learning-development-board/1609777521.html)
 
-End with an example of getting some data out of the system or using it for a little demo
+### Example
 
 ## Running the tests
 
 Explain how to run the automated tests for this system
 
-### Break down into end to end tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
-## Built With
-
-* [Unity](http://www.throwtheswitch.org/unity/) - Unit testing FOR C
-* [tiny-AES-c](https://github.com/kokke/tiny-AES-c) - Small portable AES128/192/256 in C
-
-## Contributing
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Authors
-
-* **Kyunghwan Kwon** - [kwon](https://github.com/onkwon)
-
 ## License
 
-This project is licensed under the Apache-2.0 - see the [LICENSE](LICENSE) file for details
+Apache-2.0 © [Kyunghwan Kwon](https://github.com/onkwon)
 
 ## Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* [Unity](http://www.throwtheswitch.org/unity/) - Unit testing for C
+* [tiny-AES-c](https://github.com/kokke/tiny-AES-c) - Small portable AES128/192/256 in C
+* [Sphinx](http://www.sphinx-doc.org/en/master/) - Documentation
+* [Hawkmoth](https://github.com/jnikula/hawkmoth) - Sphinx Autodoc for C
+* [texane/stlink](https://github.com/texane/stlink) - STM32 discovery line linux programmer

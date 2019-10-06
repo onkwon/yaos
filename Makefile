@@ -33,11 +33,14 @@ ODFLAGS = -Dsx
 CFLAGS += -std=gnu99 -O2 \
 	  -fno-builtin -ffunction-sections -fdata-sections \
 	  -Wl,--gc-sections #-flto
-CFLAGS += -pedantic -W -Wall -Wunused-parameter -Wno-main -Wextra #-Werror -Wpointer-arith
-CFLAGS += -Wformat-nonliteral -Wcast-align -Wpointer-arith -Wbad-function-cast \
+CFLAGS += -W -Wall -Wunused-parameter -Wno-main -Wextra -Wformat-nonliteral \
+	  -Wcast-align -Wpointer-arith -Wbad-function-cast -Wnested-externs \
 	  -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations \
-	  -Winline -Wundef -Wnested-externs -Wshadow -Wconversion \
-	  -Wwrite-strings -Wno-conversion -Wstrict-aliasing -Wcast-qual
+	  -Winline -Wundef -Wshadow -Wwrite-strings -Wstrict-aliasing \
+	  -Wcast-qual -Wmissing-format-attribute -Wmissing-include-dirs \
+	  -Waggregate-return -Winit-self -Wlogical-op -Wredundant-decls \
+	  -Wstrict-overflow=5 -Wfloat-equal -Wabi=11
+CFLAGS += #-pedantic #-Wsign-conversion #-Werror #-Wno-conversion
 ifndef NDEBUG
 	CFLAGS += -g -Og
 	#CFLAGS += -fprofile-arcs -ftest-coverage
@@ -57,6 +60,7 @@ ifdef LD_LIBRARY_PATH
 	LDFLAGS += -L$(LD_LIBRARY_PATH) -lgcc
 endif
 LDFLAGS += $(LIBS)
+LDFLAGS += -Wl,-wrap,malloc -Wl,-wrap,free
 
 # Build
 
@@ -215,8 +219,13 @@ debug:
 # Unit test
 .PHONY: test
 test: $(BUILDIR)
-	$(Q)cd test && ceedling clean && ceedling
+	$(Q)cd tests && ceedling clean && ceedling
 
 .PHONY: coverage
 coverage: $(BUILDIR)
-	$(Q)cd test && ceedling gcov:all
+	$(Q)cd tests && ceedling gcov:all && ceedling utils:gcov
+
+.PHONY: check
+check: $(BUILDIR)
+	$(Q)cppcheck ./ -itests -itools --enable=all --inconclusive --check-config --suppress=missingIncludeSystem -Iinclude -Idrivers/include
+	#$(Q)python tools/cppcheck/addons/misra.py --rule-texts= *.dump

@@ -1,6 +1,8 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
+systick = systick64;
+
 PROVIDE(_rom_start   = LOADADDR);
 PROVIDE(_rom_size    = LENGTH(rom) - (LOADADDR - ORIGIN(rom)));
 PROVIDE(_ram_start   = ORIGIN(ram));
@@ -44,11 +46,6 @@ SECTIONS
 		KEEP(*(.driver_list))
 		LONG(0);
 
-		. = ALIGN(4);
-		_device_list = .;
-		KEEP(*(.device_list))
-		LONG(0);
-
 		_shell_cmdlist = .;
 		KEEP(*(.shell_cmdlist))
 		LONG(0);
@@ -57,7 +54,7 @@ SECTIONS
 		_etext = .;
 	} > rom
 
-#ifdef CONFIG_COMMON_IRQ_FRAMEWORK
+#ifdef CONFIG_COMMON_IRQ_HANDLER
 	.data :
 #else
 	.data _ram_start + _vector_size :

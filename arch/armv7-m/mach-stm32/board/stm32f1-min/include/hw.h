@@ -8,6 +8,7 @@
 #define HSE				8000000UL
 #define HSI				16000000UL
 
+#define IRQ_MAX				67
 #define NR_PORT				3U
 
 #define OPERATING_FREQUENCY_MHZ		72UL

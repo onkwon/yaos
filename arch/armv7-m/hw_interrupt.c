@@ -27,16 +27,9 @@ enum {
 extern uintptr_t _ram_start, _ram_end;
 extern const uintptr_t _rom_start;
 
-void ISR_svc(void);
-void ISR_svc_pend(void);
-void ISR_dbgmon(void);
-void ISR_systick(void);
-void ISR_fault(void);
-
 void __attribute__((weak)) ISR_null(const int nvec)
 {
 	debug("ISR is not yet registered: %x", nvec);
-	(void)nvec;
 }
 
 void __attribute__((weak)) ISR_svc(void)
@@ -86,8 +79,8 @@ __attribute__((aligned(4), used, section(".vector"))) = {
 	ISR_systick,			/* 15     : 0x3c  - SysTick */
 };
 
-#if defined(CONFIG_COMMON_IRQ_FRAMEWORK)
-static void __attribute__((naked)) ISR_irq(void)
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
+void __attribute__((naked)) ISR_irq(void)
 {
 	__asm__ __volatile__(
 			"sub	sp, sp, #8		\n\t"
@@ -102,8 +95,8 @@ static void __attribute__((naked)) ISR_irq(void)
 			"bx	lr			\n\t"
 			::: "memory");
 }
-#else /* !CONFIG_COMMON_IRQ_FRAMEWORK */
-static void ISR_irq(void)
+#else /* !CONFIG_COMMON_IRQ_HANDLER */
+void ISR_irq(void)
 {
 	ISR_null(__get_psr());
 }
@@ -262,7 +255,7 @@ void hw_irq_set_pri(const int nvec, const int pri)
 
 #include "kernel/init.h"
 
-#ifdef CONFIG_COMMON_IRQ_FRAMEWORK
+#ifdef CONFIG_COMMON_IRQ_HANDLER
 void __init hw_irq_init(void)
 {
 	SCB_VTOR = (uintptr_t)&_rom_start;

@@ -11,3 +11,6 @@ Documentation/online
 cov-int
 .DS_Store
 .*.swp
+compile_commands.json
+.gdb_history
+.jlink
