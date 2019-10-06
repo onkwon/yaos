@@ -66,10 +66,10 @@ int main(void)
 		led_state++;
 		debug("%d", led_state);
 
-		mdelay(1000);
+		mdelay(500);
 	}
 }
 #if defined(CONFIG_SCHEDULER)
 #include "kernel/task.h"
-REGISTER_TASK(main, TASK_KERNEL, 0, STACK_SIZE_DEFAULT);
+REGISTER_TASK(main, TASK_KERNEL, TASK_PRIORITY_NORMAL, STACK_SIZE_DEFAULT);
 #endif

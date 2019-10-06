@@ -2,38 +2,75 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/69c0ee97ee2843d9ac4b415d9ee21b6f)](https://app.codacy.com/app/onkwon/yaos?utm_source=github.com&utm_medium=referral&utm_content=onkwon/yaos&utm_campaign=Badge_Grade_Dashboard)
 [![codecov](https://codecov.io/gh/onkwon/yaos/branch/master/graph/badge.svg)](https://codecov.io/gh/onkwon/yaos)
 
-# [yaos](https://yaos.io)
+[yaos](https://yaos.io)
+=======================
 
-## Introduction
+# Introduction
 
-This is an embedded operating system for Internet of Things(IoT) devices, specifically for a single-core processor without MMU virtualization. It is designed for energy efficiency and hardware independent development. 
+yaos 는 embedded system 을 위한 작은 운영체제입니다. 개인적인 호기심으로부터 출발한 사이드 프로젝트입니다. 필수 기능만을 작고 견고하게 유지하는 것, 그리고 읽기 즐거운 코드로 개선해가는 것이 목표입니다.
 
-Full documentation can be found in the "Documentation" directory. It is also available online at []().
+ARM Cortex-A 아키텍처인 라즈베리파이에 포팅한 패치가 있긴 하지만, 기본적으로 yaos 는 ARM Cortex-M 아키텍처를 타겟하고 있습니다.
 
-## Features
+API 를 비롯한 각종 문서는 [Documentation](./Documentation) 디렉토리 또는 [yaos.io](https://yaos.io) 를 참고하시기 바랍니다.
 
-## Getting Started
+# Features
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+## system call support
+## user/kernel space seperation
+## posix-like api interface
+## sleep, stop, and standby power modes support
+## secure boot and firmware update
+## virtual file system
 
-### Prerequisites
+# Getting Started
 
-What things you need to install the software and how to install them
+## Fork and clone
+
+`git clone git://github.com/onkwon/yaos`
+
+## Get either of a toolchain or docker image
+
+### Toolchain
+
+Get one from [here](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) if you don't have one installed yet. Or you can compile it from source code putting more effort, which is not recommended but still worth trying.
+
+### Docker image
+
+`docker pull onkwon/yaos`
+
+## Build
+
+### [stm32f1-min](https://www.aliexpress.com/item/mini-Stm32f103c8t6-system-board-stm32-learning-development-board/1609777521.html)
+
+#### using toolchain
 
 ```
-Give examples
+make stm32f1-min
+make
 ```
 
-### Build
+#### using docker
 
 ```
-$ git clone https://github.com/onkwon/yaos.git
-$ cd yaos
-$ make stm32f1-min (or specify your board. e.g. stm32f429i-disco)
-$ make
+docker run --rm -v $(pwd):/work/yaos -w /work/yaos onkwon/yaos make stm32f1-min
+docker run --rm -v $(pwd):/work/yaos -w /work/yaos onkwon/yaos make
 ```
 
-#### Supported boards at the moment
+## Flash
+
+```
+make flash
+```
+
+### jlink
+
+### stlink
+
+### openocd
+
+### gdb
+
+# Supported boards at the moment
 
 * [mango-z1](http://www.mangoboard.com/main/?cate1=9&cate2=26&cate3=36)
 * [mycortex-stm32f4](http://www.withrobot.com/mycortex-stm32f4/)
@@ -44,17 +81,36 @@ $ make
 * [ust-mpb-stm32f103](https://www.devicemart.co.kr/1089642)
 * [stm32f1-min](https://www.aliexpress.com/item/mini-Stm32f103c8t6-system-board-stm32-learning-development-board/1609777521.html)
 
-### Example
+# Example
 
-## Running the tests
+A LED example to take a taste of how the code look like.
 
-Explain how to run the automated tests for this system
+```c
+void main()
+{
+	int fd, led = 0;
 
-## License
+	if ((fd = open("/dev/gpio20", O_WRONLY)) <= 0) {
+		printf("can not open, %x\n", fd);
+		return;
+	}
 
-Apache-2.0 © [Kyunghwan Kwon](https://github.com/onkwon)
+	while (1) {
+		write(fd, &led, 1);
+		led ^= 1;
+		sleep(1);
+	}
 
-## Acknowledgments
+	close(fd);
+}
+REGISTER_TASK(main, 0, DEFAULT_PRIORITY, STACK_SIZE_DEFAULT);
+```
+
+# Running the tests
+
+`make test` or `docker run --rm -v $(pwd):/work/yaos -w /work/yaos onkwon/yaos make test`
+
+# Acknowledgments
 
 * [Unity](http://www.throwtheswitch.org/unity/) - Unit testing for C
 * [tiny-AES-c](https://github.com/kokke/tiny-AES-c) - Small portable AES128/192/256 in C
