@@ -77,6 +77,7 @@
 
 :gcov:
     :html_report_type: basic
+    :xml_report: true
 
 #:tools:
 # Ceedling defaults to using gcc for compiling, linking, etc.
