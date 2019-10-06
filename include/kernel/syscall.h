@@ -17,10 +17,11 @@ enum {
 	SYSCALL_TIMER_CREATE,
 	SYSCALL_TIMER_DELETE,
 	SYSCALL_TIMER_NEAREST,
+	SYSCALL_REBOOT,		/* 10 */
 	SYSCALL_NR,
 };
 
-int reboot(unsigned long msec);
+int reboot(size_t msec);
 int yield(void);
 uint64_t get_systick64(void);
 int timer_create(uint32_t interval_ticks, void (*cb)(void), uint8_t run);

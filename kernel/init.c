@@ -63,7 +63,7 @@ static void __init drv_init(void)
 
 void freeze(void)
 {
-	debug("freeze");
+	alert("freeze");
 	while (1);
 }
 

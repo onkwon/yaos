@@ -3,6 +3,8 @@
 #include "kernel/debug.h"
 #include "kernel/systick.h"
 #include "kernel/timer.h"
+#include "kernel/power.h"
+#include "kernel/task.h"
 #include "syslog.h"
 #include "io.h"
 
@@ -62,7 +64,9 @@ static long sys_write(int fd, const void *buf, size_t cnt)
 long _write(int fd, const void *buf, size_t cnt)
 {
 	/* if not initialized yet or called from ISR like scheduler */
-	if (is_interrupt_disabled() || in_interrupt())
+	if (is_interrupt_disabled()
+			|| in_interrupt()
+			|| get_task_flags(current) & TF_SYSCALL)
 		return sys_write(fd, buf, cnt);
 
 	return syscall(SYSCALL_WRITE, fd, buf, cnt);
@@ -121,15 +125,6 @@ int _open(const char *pathname, int flags)
 	return -EFAULT;
 }
 
-int reboot(unsigned long msec)
-{
-	mdelay(msec);
-
-	hw_reboot();
-
-	return 0;
-}
-
 int yield(void)
 {
 	return syscall(SYSCALL_YIELD);
@@ -153,6 +148,11 @@ int timer_delete(int timerid)
 int32_t timer_nearest(void)
 {
 	return syscall(SYSCALL_TIMER_NEAREST);
+}
+
+int reboot(size_t msec)
+{
+	return syscall(SYSCALL_REBOOT, msec);
 }
 
 static int sys_reserved(void)
@@ -179,4 +179,5 @@ void *syscall_table[] = {
 	timer_create_core,		/*  7: SYSCALL_TIMER_CREATE */
 	timer_delete_core,		/*  8: SYSCALL_TIMER_DELETE */
 	timer_nearest_core,		/*  8: SYSCALL_TIMER_NEAREST */
+	sys_reboot,			/*  9: SYSCALL_REBOOT */
 };

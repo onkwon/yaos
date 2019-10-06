@@ -33,4 +33,6 @@ enum irq_pri {
 /** Test if it has the right permission */
 #define is_honored()			(in_interrupt() || is_privileged())
 
+void freeze(void);
+
 #endif /* __YAOS_IO_H__ */
