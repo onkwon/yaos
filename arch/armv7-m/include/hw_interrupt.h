@@ -79,6 +79,12 @@ enum {
   #else
     #define __trap(id)
   #endif /* NDEBUG */
+#else
+#define __sei()
+#define __cli()
+#define __irq_save(flag)
+#define __irq_restore(flag)
+#define __trap(id)
 #endif /* !defined(TEST) */
 
 #include <stdbool.h>
