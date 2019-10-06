@@ -2,8 +2,7 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/69c0ee97ee2843d9ac4b415d9ee21b6f)](https://app.codacy.com/app/onkwon/yaos?utm_source=github.com&utm_medium=referral&utm_content=onkwon/yaos&utm_campaign=Badge_Grade_Dashboard)
 [![codecov](https://codecov.io/gh/onkwon/yaos/branch/master/graph/badge.svg)](https://codecov.io/gh/onkwon/yaos)
 
-[yaos](https://yaos.io)
-=======================
+# [yaos](https://yaos.io)
 
 ## Introduction
 
