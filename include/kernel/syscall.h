@@ -24,8 +24,10 @@ enum {
 int reboot(size_t msec);
 int yield(void);
 uint64_t get_systick64(void);
+#if defined(CONFIG_TIMER) && !defined(TEST)
 int timer_create(uint32_t interval_ticks, void (*cb)(void), uint8_t run);
 int timer_delete(int timerid);
+#endif
 int32_t timer_nearest(void);
 
 #endif /* __SYSCALL_H__ */
