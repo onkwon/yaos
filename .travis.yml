@@ -22,5 +22,4 @@ script:
         - docker run -v $(pwd):/work onkwon/yaos make coverage
 
 after_success:
-        - cd tests/build/gcov/out
-        - bash <(curl -s https://codecov.io/bash)
+        - bash <(curl -s https://codecov.io/bash) -f tests/build/artifacts/gcov/report.xml
