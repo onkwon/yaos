@@ -9,6 +9,7 @@
  * timer_create() timer_delete() timer_handler() timer_nearest()
  *      O(N)           O(N)           O(1)            O(N)
  */
+#if defined(CONFIG_TIMER)
 
 #include "kernel/timer.h"
 #include "kernel/systick.h"
@@ -293,3 +294,12 @@ void timer_init(void)
 		list_init(&timers[i]);
 	}
 }
+
+#else /* !CONFIG_TIMER */
+
+#include "kernel/timer.h"
+
+int timer_run(void) { return 0; }
+void timer_init(void) {}
+
+#endif /* CONFIG_TIMER */

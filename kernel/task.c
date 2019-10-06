@@ -200,6 +200,9 @@ static void load_user_tasks(void)
 {
 	struct task *task;
 	int pri;
+	size_t nr_tasks;
+
+	nr_tasks = 0;
 
 	for (task = (struct task *)&_user_task_list; *(uintptr_t *)task; task++) {
 		if (task->addr == NULL)
@@ -225,7 +228,10 @@ static void load_user_tasks(void)
 		}
 
 		set_task_flags(task, get_task_flags(task) & ~TF_MANUAL);
+		nr_tasks++;
 	}
+
+	debug("number of tasks created: %u", nr_tasks);
 }
 
 void task_init(void)
@@ -275,4 +281,6 @@ void task_init(void)
 	/* done setting the init task
 	 * now load user tasks registered statically */
 	load_user_tasks();
+
+	debug("kmem left %u", kmem_left());
 }

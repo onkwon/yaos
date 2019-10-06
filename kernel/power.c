@@ -29,3 +29,19 @@ void sys_reboot(size_t msec)
 	syscall_delegate(reboot_core, &current->stack.p, &current->flags);
 	(void)msec;
 }
+
+void enter_sleep_mode(sleep_t sleeptype)
+{
+	switch (sleeptype) {
+	case SLEEP_DEEP:
+		//__enter_stop_mode();
+		break;
+	case SLEEP_BLACKOUT:
+		//__enter_standby_mode();
+		break;
+	case SLEEP_NAP:
+		//enter_sleep_mode_core();
+	default:
+		break;
+	}
+}

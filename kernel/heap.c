@@ -36,6 +36,11 @@ void kfree(void *ptr)
 	spin_unlock_irqrestore(&freelist_global_lock);
 }
 
+size_t kmem_left(void)
+{
+	return firstfit_left(&freelist, NULL, NULL);
+}
+
 void heap_init(void)
 {
 	uintptr_t *from;

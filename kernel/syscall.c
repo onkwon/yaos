@@ -176,8 +176,14 @@ void *syscall_table[] = {
 	task_wait,			/*  4: SYSCALL_WAIT */
 	task_wake,			/*  5: SYSCALL_WAKE */
 	get_systick64_core,		/*  6: SYSCALL_SYSTICK */
+#if defined(CONFIG_TIMER)
 	timer_create_core,		/*  7: SYSCALL_TIMER_CREATE */
 	timer_delete_core,		/*  8: SYSCALL_TIMER_DELETE */
 	timer_nearest_core,		/*  8: SYSCALL_TIMER_NEAREST */
+#else
+	sys_reserved,
+	sys_reserved,
+	sys_reserved,
+#endif
 	sys_reboot,			/*  9: SYSCALL_REBOOT */
 };
