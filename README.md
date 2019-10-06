@@ -1,6 +1,7 @@
 # yaos
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/69c0ee97ee2843d9ac4b415d9ee21b6f)](https://app.codacy.com/app/onkwon/yaos?utm_source=github.com&utm_medium=referral&utm_content=onkwon/yaos&utm_campaign=Badge_Grade_Dashboard)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fonkwon%2Fyaos.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fonkwon%2Fyaos?ref=badge_shield)
 
 yaos is an embedded operating system for Internet of Things(IoT) devices, specifically for a single-core processor without MMU virtualization. It is designed for energy efficiency and hardware independent development.
 
@@ -103,3 +104,7 @@ Synchronization primitives such as semaphore, spinlock, etc.
 ### Blocking & non-blocking I/O operations
 
 ### Device driver
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fonkwon%2Fyaos.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fonkwon%2Fyaos?ref=badge_large)
