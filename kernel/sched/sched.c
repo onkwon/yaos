@@ -39,7 +39,7 @@ static inline void update_runtime(struct task *next, struct task *prev)
 #endif
 }
 
-int runqueue_add(void *task)
+int runqueue_add_core(void *task)
 {
 	struct task *p = task;
 
@@ -54,7 +54,7 @@ int runqueue_add(void *task)
 }
 
 /* TODO: implement */
-int runqueue_del(void *task)
+int runqueue_del_core(void *task)
 {
 	struct task *p = task;
 

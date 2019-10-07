@@ -3,6 +3,7 @@
 #include "drivers/gpio.h"
 #include "arch/mach/board/pinmap.h"
 #include "kernel/systick.h"
+#include "kernel/timer.h"
 
 #define BTN_HOLD_MIN_MSEC		100
 #define BTN_HOLD_LONG_MSEC		5000
@@ -66,7 +67,7 @@ int main(void)
 		led_state++;
 		debug("%d", led_state);
 
-		mdelay(500);
+		msleep(500);
 	}
 }
 #if defined(CONFIG_SCHEDULER)

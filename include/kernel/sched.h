@@ -20,7 +20,7 @@ void schedule(void);
 void sched_init(void);
 int sched_yield(void);
 
-int runqueue_add(void *task);
-int runqueue_del(void *task);
+int runqueue_add_core(void *task);
+int runqueue_del_core(void *task);
 
 #endif /* __YAOS_SCHED_H__ */

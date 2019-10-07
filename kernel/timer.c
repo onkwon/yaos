@@ -31,7 +31,7 @@ typedef struct ktimer {
 	uint16_t round;
 	uint32_t interval;
 	uint32_t expires; /* for latency compensation */
-	void (*cb)(void);
+	void (*cb)(void *arg);
 	void *task;
 
 	struct list q;
@@ -167,7 +167,7 @@ STATIC void timer_handler(uint32_t now)
 		delete(timer, slot);
 
 		turn_task_permission_from(timer->task);
-		timer->cb();
+		timer->cb(timer->task);
 		turn_task_permission_to(flags, pri);
 
 		if (timer->run != TIMER_REPEAT)
@@ -214,7 +214,7 @@ int timer_run(void)
 	}
 
 	set_task_state(&task_timer_process, TASK_RUNNING);
-	runqueue_add(&task_timer_process);
+	runqueue_add_core(&task_timer_process);
 
 	return 0;
 }
@@ -222,7 +222,7 @@ int timer_run(void)
 /**
  * @return timer ID, a memory pointer to allocated timer in fact
 */
-int timer_create_core(uint32_t interval_ticks, void (*cb)(void), uint8_t run)
+int timer_create_core(uint32_t interval_ticks, void (*cb)(void *arg), uint8_t run)
 {
 	ktimer_t *new;
 
@@ -295,8 +295,29 @@ void timer_init(void)
 	}
 }
 
-#else /* !CONFIG_TIMER */
+static void cb_wake(void *arg)
+{
+	struct task *task = arg;
 
+	set_task_state(task, TASK_RUNNING);
+	runqueue_add(task);
+}
+
+void sleep(size_t sec)
+{
+	set_task_state(current, TASK_SLEEPING);
+	timer_create(SEC_TO_TICKS(sec), cb_wake, 1);
+	yield();
+}
+
+void msleep(size_t msec)
+{
+	set_task_state(current, TASK_SLEEPING);
+	timer_create(MSEC_TO_TICKS(msec), cb_wake, 1);
+	yield();
+}
+
+#else /* !CONFIG_TIMER */
 #include "kernel/timer.h"
 
 int timer_run(void) { return 0; }
