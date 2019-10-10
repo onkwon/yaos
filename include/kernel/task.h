@@ -138,7 +138,7 @@ struct task {
 
 struct task *current, init_task;
 
-void task_clean_zombie(void);
+void free_zombie(void);
 void task_kill(struct task *task);
 /* task_wait() and task_wake() are system calls. don't call it directly */
 int task_wait(void *waitqueue, struct task *task);

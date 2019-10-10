@@ -82,16 +82,16 @@ void schedule(void)
 #endif
 	//debug("stack %lx k %lx", (unsigned long)current->stack.p, (unsigned long)current->kstack.p);
 
-	struct task *next, *prev;
+	struct task *prev;
 
 	prev = current;
 
 #if defined(CONFIG_REALTIME)
-	if ((next = pbrr_dequeue(&pbrr))) {
-		pbrr_enqueue(&pbrr, current);
-		current = next;
-	}
+	pbrr_enqueue(&pbrr, current);
+	current = pbrr_dequeue(&pbrr);
 #endif
+	if (!current)
+		current = &init_task;
 
 	update_runtime(current, prev);
 }

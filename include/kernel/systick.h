@@ -9,6 +9,9 @@
 #include "types.h"
 
 #define SYSTICK_HZ			1000U
+#define SYSTICK_INITIAL			0xFFFFEC77 /* makes 32bit overflow in
+						      5sec at 1Khz for the
+						      system validation */
 
 #if !defined(HW_SYSCLK_MAX_KHZ)
 #define HW_SYSCLK_MAXFREQ_KHZ		(100U)
@@ -34,8 +37,11 @@ uint64_t get_systick64_core(void);
 
 unsigned long get_systick_clk(void);
 unsigned long get_systick_clk_period(void);
+unsigned long get_systick_clk_this_period(void);
 unsigned long systick_to_clks(unsigned long ticks);
 unsigned long systick_clk_to_ticks(unsigned long clks);
+void update_systick_period(unsigned long period);
+void run_systick_periodic(void);
 
 void set_timeout(unsigned long *goal, unsigned long msec);
 bool is_timedout(unsigned long goal);

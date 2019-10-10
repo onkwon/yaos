@@ -160,7 +160,7 @@ void task_kill(struct task *task)
 	sysq_push(&task->rq, &zombie_list);
 }
 
-void task_clean_zombie(void)
+void free_zombie(void)
 {
 	struct list *p;
 

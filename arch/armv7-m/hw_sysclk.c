@@ -9,7 +9,12 @@ void hw_sysclk_reset(void)
 
 void hw_sysclk_period_set(unsigned long period)
 {
-	STK_LOAD = period;
+	STK_LOAD = period - 1;
+}
+
+unsigned long hw_sysclk_period_get(void)
+{
+	return STK_LOAD + 1;
 }
 
 void hw_sysclk_run(void)

@@ -35,12 +35,14 @@ void enter_sleep_mode(sleep_t sleeptype)
 	switch (sleeptype) {
 	case SLEEP_DEEP:
 		//__enter_stop_mode();
+		debug("sleep_deep");
 		break;
 	case SLEEP_BLACKOUT:
 		//__enter_standby_mode();
 		break;
 	case SLEEP_NAP:
-		//enter_sleep_mode_core();
+		hw_enter_sleep_nap();
+		break;
 	default:
 		break;
 	}

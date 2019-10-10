@@ -126,6 +126,14 @@ static inline bool list_empty(const struct list *node)
 	return node->next == NULL;
 }
 
+static inline struct list *list_peek(struct list *head)
+{
+	if (head)
+		return head->next;
+
+	return NULL;
+}
+
 /** list queue head
  * queue implemented by singly linked list */
 struct listq_head {
@@ -175,6 +183,14 @@ static inline struct list *listq_pop(struct listq_head *head)
 static inline bool listq_empty(const struct listq_head *head)
 {
 	return head->next == NULL;
+}
+
+static inline struct list *listq_peek(struct listq_head *head)
+{
+	if (head)
+		return head->next;
+
+	return NULL;
 }
 
 #endif /* __YAOS_LLIST_H__ */
