@@ -4,9 +4,11 @@
 #include "kernel/timer.h"
 #include "kernel/power.h"
 #include "syslog.h"
+#include "heap.h"
 
 static void cleanup(void)
 {
+	bootmem_free();
 }
 
 #if defined(CONFIG_SLEEP_LONG)

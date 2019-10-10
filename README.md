@@ -16,6 +16,7 @@ API 를 비롯한 각종 문서는 [Documentation](./Documentation) 디렉토리
 
 ### system call support
 ### user/kernel space seperation
+### mpu support
 ### posix-like api interface
 ### sleep, stop, and standby power modes support
 ### secure boot and firmware update
