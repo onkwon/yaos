@@ -229,8 +229,6 @@ static void timer_process(void)
 REGISTER_TASK(timer_process, TASK_KERNEL | TF_MANUAL, TASK_PRIORITY_HIGHEST,
 		STACK_SIZE_DEFAULT);
 
-/* TODO: call only when a timer to run exists, reducing system timer interrupt
- * overhead which results in power saving */
 int timer_run(void)
 {
 	if ((nearest_remained == TIMER_EMPTY) ||

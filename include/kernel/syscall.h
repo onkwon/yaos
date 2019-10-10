@@ -30,6 +30,9 @@ uint64_t get_systick64(void);
 #if defined(CONFIG_TIMER) && (!defined(TEST) || (defined(__APPLE__) && defined(__MACH__)))
 int timer_create(uint32_t interval_ticks, void (*cb)(void *arg), uint8_t run);
 int timer_delete(int timerid);
+#else
+#define timer_create(a, b, c)
+#define timer_delete(a)
 #endif
 int32_t timer_nearest(void);
 int sysq_push(void *new, void *head);
