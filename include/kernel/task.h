@@ -9,7 +9,7 @@
 #define STACK_SIZE_DEFAULT		1536U /* bytes */
 #define STACK_SIZE_MIN			1280U /* bytes */
 
-#define HEAP_SIZE_DEFAULT		512U /* bytes */
+#define HEAP_SIZE_DEFAULT		256U /* bytes */
 #define HEAP_SIZE_MIN			128U /* bytes */
 
 #define STACK_SENTINEL			0xdeadc0deUL
@@ -138,6 +138,7 @@ struct task {
 
 struct task *current, init_task;
 
+void free_zombie(void);
 void task_kill(struct task *task);
 /* task_wait() and task_wake() are system calls. don't call it directly */
 int task_wait(void *waitqueue, struct task *task);

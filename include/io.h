@@ -33,4 +33,9 @@ enum irq_pri {
 /** Test if it has the right permission */
 #define is_honored()			(in_interrupt() || is_privileged())
 
+#define freeze() ({			\
+		alert("freeze");	\
+		while (1);		\
+})
+
 #endif /* __YAOS_IO_H__ */

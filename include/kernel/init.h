@@ -18,6 +18,5 @@
 #endif
 
 void kernel_init(void);
-void freeze(void);
 
 #endif /* __YAOS_INIT_H__ */

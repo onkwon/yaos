@@ -76,7 +76,8 @@
 :treat_externs: :include  # Now the extern-ed functions will be mocked.
 
 :gcov:
-    :html_report_type: basic
+    :html_report_type: detailed
+    :xml_report: true
 
 #:tools:
 # Ceedling defaults to using gcc for compiling, linking, etc.
@@ -104,4 +105,5 @@
     - module_generator
     - raw_output_report
     - gcov
+    - xml_tests_report
 ...

@@ -61,12 +61,6 @@ static void __init drv_init(void)
 		((void (*)(void))*func++)();
 }
 
-void freeze(void)
-{
-	debug("freeze");
-	while (1);
-}
-
 void __init kernel_init(void)
 {
 	mem_init();

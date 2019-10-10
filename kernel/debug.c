@@ -92,7 +92,7 @@ void __init debug_init(void)
 {
 	hw_debug_init(1, 2000000);
 
-#ifdef PIN_DEBUG
+#if defined(PIN_DEBUG) && defined(MODULE_GPIO)
 	//nvic_pri_set(23, 0); /* make it the highest priority */
 
 	gpio_init(PIN_DEBUG,

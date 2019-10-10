@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <assert.h>
 
+static DEFINE_LISTQ_HEAD(zombie_list);
+
 static void set_task_dressed(struct task *task, unsigned long flags,
 		const void *addr)
 {
@@ -64,8 +66,7 @@ static void __attribute__((naked)) task_decorator(void)
 	task_decorator_exec(current->addr);
 	task_decorator_run_helper(task_dtor);
 
-	// TODO: clean tasks done up
-	set_task_state(current, TASK_ZOMBIE);
+	task_kill(current);
 	yield();
 }
 
@@ -149,11 +150,24 @@ static void task_destroy(struct task *task)
 		kfree((void *)kstack);
 }
 
-// TODO: Implement
-// it only marks the task to be destroyed later, actually doing nothing
 void task_kill(struct task *task)
 {
+	if (!task || task == &init_task)
+		return;
+
 	set_task_state(task, TASK_ZOMBIE);
+	// FIXME: it gets stuck if called from an interrupt not a thread
+	sysq_push(&task->rq, &zombie_list);
+}
+
+void free_zombie(void)
+{
+	struct list *p;
+
+	while ((p = sysq_pop(&zombie_list))) {
+		struct task *task = container_of(p, struct task, rq);
+		task_destroy(task);
+	}
 }
 
 /* assume that the task itself is to be locked and the wait queue is also
@@ -189,7 +203,7 @@ int task_wake(void *waitqueue)
 	task = container_of(node, struct task, rq);
 	assert(get_task_state(task) == TASK_WAITING);
 	set_task_state(task, TASK_RUNNING);
-	runqueue_add(task);
+	runqueue_add_core(task);
 
 	return 0;
 }
@@ -200,6 +214,9 @@ static void load_user_tasks(void)
 {
 	struct task *task;
 	int pri;
+	size_t nr_tasks;
+
+	nr_tasks = 0;
 
 	for (task = (struct task *)&_user_task_list; *(uintptr_t *)task; task++) {
 		if (task->addr == NULL)
@@ -219,13 +236,16 @@ static void load_user_tasks(void)
 		if (!(get_task_flags(task) & TF_MANUAL)) {
 			/* make it runnable, and add into runqueue */
 			set_task_state(task, TASK_RUNNING);
-			if (runqueue_add(task)) {
+			if (runqueue_add_core(task)) {
 				task_destroy(task);
 			}
 		}
 
 		set_task_flags(task, get_task_flags(task) & ~TF_MANUAL);
+		nr_tasks++;
 	}
+
+	debug("number of tasks created: %u", nr_tasks);
 }
 
 void task_init(void)
@@ -275,4 +295,6 @@ void task_init(void)
 	/* done setting the init task
 	 * now load user tasks registered statically */
 	load_user_tasks();
+
+	debug("kmem left %u", kmem_left());
 }

@@ -6,6 +6,7 @@
 
 void hw_sysclk_reset(void);
 void hw_sysclk_period_set(unsigned long period);
+unsigned long hw_sysclk_period_get(void);
 void hw_sysclk_run(void);
 void hw_sysclk_stop(void);
 unsigned long hw_sysclk_freq_get(void);

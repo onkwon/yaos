@@ -3,6 +3,8 @@
 #include "kernel/debug.h"
 #include "kernel/systick.h"
 #include "kernel/timer.h"
+#include "kernel/power.h"
+#include "kernel/task.h"
 #include "syslog.h"
 #include "io.h"
 
@@ -62,7 +64,9 @@ static long sys_write(int fd, const void *buf, size_t cnt)
 long _write(int fd, const void *buf, size_t cnt)
 {
 	/* if not initialized yet or called from ISR like scheduler */
-	if (is_interrupt_disabled() || in_interrupt())
+	if (is_interrupt_disabled()
+			|| in_interrupt()
+			|| get_task_flags(current) & TF_SYSCALL)
 		return sys_write(fd, buf, cnt);
 
 	return syscall(SYSCALL_WRITE, fd, buf, cnt);
@@ -121,15 +125,6 @@ int _open(const char *pathname, int flags)
 	return -EFAULT;
 }
 
-int reboot(unsigned long msec)
-{
-	mdelay(msec);
-
-	hw_reboot();
-
-	return 0;
-}
-
 int yield(void)
 {
 	return syscall(SYSCALL_YIELD);
@@ -140,7 +135,7 @@ uint64_t get_systick64(void)
 	return syscall(SYSCALL_SYSTICK);
 }
 
-int timer_create(uint32_t interval_ticks, void (*cb)(void), uint8_t run)
+int timer_create(uint32_t interval_ticks, void (*cb)(void *arg), uint8_t run)
 {
 	return syscall(SYSCALL_TIMER_CREATE, interval_ticks, cb, run);
 }
@@ -153,6 +148,37 @@ int timer_delete(int timerid)
 int32_t timer_nearest(void)
 {
 	return syscall(SYSCALL_TIMER_NEAREST);
+}
+
+int reboot(size_t msec)
+{
+	return syscall(SYSCALL_REBOOT, msec);
+}
+
+int sysq_push(void *new, void *head)
+{
+	return syscall(SYSCALL_LISTQ_PUSH, new, head);
+}
+
+void *sysq_pop(void *head)
+{
+	return (void *)(uintptr_t)syscall(SYSCALL_LISTQ_POP, head);
+}
+
+int runqueue_add(void *task)
+{
+	return syscall(SYSCALL_RUNQUEUE_ADD, task);
+}
+
+static int sys_listq_push(struct list *new, struct listq_head *head)
+{
+	listq_push(new, head);
+	return 0;
+}
+
+static struct list *sys_listq_pop(struct listq_head *head)
+{
+	return listq_pop(head);
 }
 
 static int sys_reserved(void)
@@ -176,7 +202,17 @@ void *syscall_table[] = {
 	task_wait,			/*  4: SYSCALL_WAIT */
 	task_wake,			/*  5: SYSCALL_WAKE */
 	get_systick64_core,		/*  6: SYSCALL_SYSTICK */
+#if defined(CONFIG_TIMER)
 	timer_create_core,		/*  7: SYSCALL_TIMER_CREATE */
 	timer_delete_core,		/*  8: SYSCALL_TIMER_DELETE */
-	timer_nearest_core,		/*  8: SYSCALL_TIMER_NEAREST */
+	timer_nearest_core,		/*  9: SYSCALL_TIMER_NEAREST */
+#else
+	sys_reserved,
+	sys_reserved,
+	sys_reserved,
+#endif
+	sys_reboot,			/* 10: SYSCALL_REBOOT */
+	sys_listq_push,			/* 11: SYSCALL_LISTQ_PUSH */
+	sys_listq_pop,			/* 12: SYSCALL_LISTQ_POP */
+	runqueue_add_core,		/* 13: SYSCALL_RUNQUEUE_ADD */
 };

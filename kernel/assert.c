@@ -11,6 +11,6 @@ void __attribute__((noreturn)) __assert_func(const char * const file,
 #if !defined(NDEBUG)
 	while (1);
 #else
-	reboot();
+	reboot(0);
 #endif
 }

@@ -6,6 +6,7 @@
 #include "mock_sched.h"
 #include "mock_task.h"
 #include "mock_heap.h"
+#include "mock_syscall.h"
 
 void setUp(void)
 {
@@ -16,12 +17,6 @@ void setUp(void)
 void tearDown(void)
 {
 }
-
-/* including syscall.h causes build error because of timer function conflict
- * which is already declared in standard time.h. so not include syscall.h but
- * implement empty yield() which is only function defined in syscall.c that
- * called from timer.c. */
-void yield(void) {}
 
 static unsigned int done;
 void do_nothing(void) { done++; }

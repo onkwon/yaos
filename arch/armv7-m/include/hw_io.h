@@ -75,6 +75,9 @@ void __dsb(void);
 void __isb(void);
 uintptr_t __get_cntl(void);
 uintptr_t __get_psr(void);
+uintptr_t __get_sp(void);
+uintptr_t __get_usp(void);
+uintptr_t __get_lr(void);
 #endif /* !defined(TEST) */
 
 #define __get_ret_addr()		__get_lr()

@@ -110,22 +110,29 @@ endif
 # Compile
 ifeq ($(MODULE_UART),y)
 	SRCS += drivers/uart.c
+	DEFS += -DMODULE_UART
 endif
 ifeq ($(MODULE_TIMER),y)
 	SRCS += drivers/timer.c
+	DEFS += -DMODULE_TIMER
 endif
 ifeq ($(MODULE_GPIO),y)
 	SRCS += drivers/gpio.c
+	DEFS += -DMODULE_GPIO
 endif
 ifeq ($(MODULE_SPI),y)
 	SRCS += drivers/spi.c
+	DEFS += -DMODULE_SPI
 endif
 ifeq ($(MODULE_IR),y)
 	SRCS += drivers/ir.c
+	DEFS += -DMODULE_IR
 endif
 ifeq ($(MODULE_CLCD),y)
 	SRCS += drivers/clcd.c
+	DEFS += -DMODULE_CLCD
 endif
 ifeq ($(MODULE_LED),y)
 	SRCS += drivers/led.c
+	DEFS += -DMODULE_LED
 endif

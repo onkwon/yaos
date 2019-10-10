@@ -39,7 +39,7 @@ static inline void update_runtime(struct task *next, struct task *prev)
 #endif
 }
 
-int runqueue_add(void *task)
+int runqueue_add_core(void *task)
 {
 	struct task *p = task;
 
@@ -54,7 +54,7 @@ int runqueue_add(void *task)
 }
 
 /* TODO: implement */
-int runqueue_del(void *task)
+int runqueue_del_core(void *task)
 {
 	struct task *p = task;
 
@@ -82,16 +82,16 @@ void schedule(void)
 #endif
 	//debug("stack %lx k %lx", (unsigned long)current->stack.p, (unsigned long)current->kstack.p);
 
-	struct task *next, *prev;
+	struct task *prev;
 
 	prev = current;
 
 #if defined(CONFIG_REALTIME)
-	if ((next = pbrr_dequeue(&pbrr))) {
-		pbrr_enqueue(&pbrr, current);
-		current = next;
-	}
+	pbrr_enqueue(&pbrr, current);
+	current = pbrr_dequeue(&pbrr);
 #endif
+	if (!current)
+		current = &init_task;
 
 	update_runtime(current, prev);
 }
