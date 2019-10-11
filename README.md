@@ -14,7 +14,7 @@ API 를 비롯한 각종 문서는 [Documentation](./Documentation) 디렉토리
 
 ## Features
 
-### system call support
+### system call interface
 ### user/kernel space seperation
 ### mpu support
 ### posix-like api interface
