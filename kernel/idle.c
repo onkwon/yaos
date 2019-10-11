@@ -12,7 +12,7 @@ static void cleanup(void)
 }
 
 #if defined(CONFIG_SLEEP_LONG)
-static void update_sleep_period(void)
+static unsigned long update_sleep_period(void)
 {
 	int32_t ticks_remained;
 	unsigned long clks_to_go, period, this_period;
@@ -26,19 +26,19 @@ static void update_sleep_period(void)
 	clks_to_go = min(clks_to_go, HW_SYSCLK_RESOLUTION);
 
 	if (clks_to_go != this_period) {
+#if 0
 		debug("sleep period change from %lu(%lu) to %lu(%lu)",
 				this_period, this_period / period,
 				clks_to_go, clks_to_go / period);
+#endif
 		update_systick_period(clks_to_go);
 	}
+
+	return min(clks_to_go / period, (unsigned long)ticks_remained);
 }
 #else /* !CONFIG_SLEEP_LONG */
 #define update_sleep_period()
 #endif
-
-static void calc_cpuload(void)
-{
-}
 
 void idle_task(void)
 {
@@ -48,11 +48,27 @@ void idle_task(void)
 	set_task_state(current, TASK_STOPPED); // no more go into runqueue
 	yield();
 
+	unsigned long cpu_total, cpu_load, cpu_idle, cpu_idle_stamp;
+
+	cpu_total = cpu_load = cpu_idle = 0;
+	cpu_idle_stamp = SYSTICK_INITIAL;
+
 	while (1) {
 		free_zombie();
 
 #if defined(CONFIG_CPU_LOAD)
-		calc_cpuload();
+		unsigned long stamp = get_systick();
+		if (stamp > cpu_idle_stamp)
+			cpu_total += stamp - cpu_idle_stamp;
+		else
+			cpu_total += (unsigned long)-1 - cpu_idle_stamp + stamp;
+		cpu_idle_stamp = stamp;
+
+		if (TICKS_TO_SEC(cpu_total)) { // every second
+			cpu_load = 100UL - cpu_idle * 100 / cpu_total;
+			debug("CPU load %lu%% %lu %lu", cpu_load, cpu_idle, cpu_total);
+			cpu_total = cpu_idle = 0;
+		}
 #endif
 
 		/* TODO: check if there is any peripherals enabled that is
@@ -79,7 +95,7 @@ void idle_task(void)
 #else
 		{
 #endif
-			update_sleep_period();
+			cpu_idle += update_sleep_period();
 			enter_sleep_mode(SLEEP_NAP);
 		}
 
