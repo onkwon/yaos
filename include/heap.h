@@ -9,6 +9,7 @@ void *kmalloc(size_t size);
 void kfree(void *ptr);
 size_t kmem_left(void);
 void __init heap_init(void);
+void __init bootmem_free(void);
 
 void *__wrap_malloc(size_t size);
 void __wrap_free(void *ptr);
