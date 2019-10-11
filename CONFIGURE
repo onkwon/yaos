@@ -4,6 +4,7 @@ UPLOAD   ?= 0x08020000
 
 # 'y' to enable the functionality while 'n' to disable
 CONFIG_DEBUG?=y
+	CONFIG_DEBUG_SWO=y
 	CONFIG_DEBUG_SYSCALL=y
 	CONFIG_DEBUG_SYSCALL_NESTED=y
 CONFIG_SCHEDULER?=y
@@ -47,6 +48,9 @@ USE_AES?=n
 ifeq ($(CONFIG_DEBUG),n)
 	NDEBUG=y
 	DEFS += -DNDEBUG
+endif
+ifeq ($(CONFIG_DEBUG_SWO),y)
+	DEFS += -DDEBUG_SWO_ENABLED
 endif
 ifeq ($(CONFIG_SCHEDULER),y)
 	DEFS += -DCONFIG_SCHEDULER
