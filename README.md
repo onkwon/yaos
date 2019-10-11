@@ -2,11 +2,9 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/69c0ee97ee2843d9ac4b415d9ee21b6f)](https://app.codacy.com/app/onkwon/yaos?utm_source=github.com&utm_medium=referral&utm_content=onkwon/yaos&utm_campaign=Badge_Grade_Dashboard)
 [![codecov](https://codecov.io/gh/onkwon/yaos/branch/master/graph/badge.svg)](https://codecov.io/gh/onkwon/yaos)
 
-[yaos](https://yaos.io)
-=======================
+# [yaos](https://yaos.io)
 
-Introduction
-------------
+## Introduction
 
 yaos 는 embedded system 을 위한 작은 운영체제입니다. 개인적인 호기심으로부터 출발한 사이드 프로젝트입니다. 필수 기능만을 작고 견고하게 유지하는 것, 그리고 읽기 즐거운 코드로 개선해가는 것이 목표입니다.
 
@@ -14,27 +12,17 @@ ARM Cortex-A 아키텍처인 라즈베리파이에 포팅한 패치가 있긴 �
 
 API 를 비롯한 각종 문서는 [Documentation](./Documentation) 디렉토리 또는 [yaos.io](https://yaos.io) 를 참고하시기 바랍니다.
 
-Features
---------
+## Features
 
-system call support
+### system call support
+### user/kernel space seperation
+### mpu support
+### posix-like api interface
+### sleep, stop, and standby power modes support
+### secure boot and firmware update
+### virtual file system
 
-  desc.
-
-user/kernel space seperation
-
-mpu support
-
-posix-like api interface
-
-sleep, stop, and standby power modes support
-
-secure boot and firmware update
-
-virtual file system
-
-Getting Started
----------------
+## Getting Started
 
 ### Fork and clone
 
