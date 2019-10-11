@@ -83,14 +83,18 @@ static void ISR_break(const int vector)
 
 void debug_putc(const int c)
 {
+#if defined(DEBUG_SWO_ENABLED)
 	hw_debug_putc(c);
+#endif
 }
 
 #include <kernel/init.h>
 
 void __init debug_init(void)
 {
+#if defined(DEBUG_SWO_ENABLED)
 	hw_debug_init(1, 2000000);
+#endif
 
 #if defined(PIN_DEBUG) && defined(MODULE_GPIO)
 	//nvic_pri_set(23, 0); /* make it the highest priority */
