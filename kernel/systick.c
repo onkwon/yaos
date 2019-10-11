@@ -122,6 +122,11 @@ void systick_start(void)
 	hw_sysclk_run();
 }
 
+void systick_stop(void)
+{
+	hw_sysclk_stop();
+}
+
 void run_systick_periodic(void)
 {
 	hw_sysclk_period_set(systick_clk_period);

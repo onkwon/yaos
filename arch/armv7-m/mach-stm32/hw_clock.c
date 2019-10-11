@@ -235,12 +235,13 @@ void hw_clock_reset_apb2_conf(const unsigned long bit)
 #include "kernel/init.h"
 
 #ifdef stm32f1	/* 72MHz */
-void __attribute__((weak)) clock_init()
+void __attribute__((weak)) clock_init(void)
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2UL; /* two wait states for flash access */
 	/* prefetch buffer gets activated from reset. disable to avoid extra
 	 * flash access that consumes 20mA for 128-bit line fetching */
+	FLASH_ACR |= 1U << 4; // enable prefetch buffer
 	while ((FLASH_ACR & 7) != 2);
 
 	/* 1. Turn on HSE oscillator. */
@@ -272,7 +273,7 @@ void __attribute__((weak)) clock_init()
 	//BITBAND(&RCC_CR, CSSON, true);
 }
 #elif defined(stm32f4)	/* 168MHz */
-void __attribute__((weak)) clock_init()
+void __attribute__((weak)) clock_init(void)
 {
 	FLASH_ACR |= 5; /* five wait states */
 	/* enable prefetch, data cache(8 lines * 128 bits = 128 bytes) and
@@ -312,7 +313,7 @@ void __attribute__((weak)) clock_init()
 	//BITBAND(&RCC_CR, CSSON, true);
 }
 #elif defined(stm32f3)	/* 72MHz */
-void __attribute__((weak)) clock_init()
+void __attribute__((weak)) clock_init(void)
 {
 	/* flash access time adjustment */
 	FLASH_ACR |= 2; /* two wait states for flash access */

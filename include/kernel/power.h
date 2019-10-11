@@ -19,6 +19,8 @@ void sys_reboot(size_t msec);
 void enter_sleep_mode(sleep_t sleeptype);
 
 void hw_enter_sleep_nap(void);
+void hw_enter_sleep_deep(void);
+void hw_enter_sleep_blackout(void);
 void hw_sleep_on_exit(void);
 
 #endif /* __YAOS_POWER_H__ */
