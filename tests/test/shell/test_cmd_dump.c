@@ -94,7 +94,7 @@ void test_shell_set(void)
 	char buf[1024];
 	char cmd[80];
 
-	sprintf(cmd, "md %p\rmd %p 64\rmd\rexit\r", buf, buf);
+	snprintf(cmd, 80, "md %p\rmd %p 64\rmd\rexit\r", buf, buf);
 
 	update_rx_stream(cmd);
 	//update_tx_stream(buf);

@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #define DEFAULT_DUMP_SIZE		256UL
-#define MAX_DUMP_SIZE			8096
+#define MAX_DUMP_SIZE			8096U
 #define getbyte(addr)			(*(unsigned char *)(addr))
 
 static void (*putch)(int c);
@@ -60,7 +60,7 @@ STATIC int memdump(int argc, char **argv)
 	static uintptr_t addr;
 
 	if (argc >= 3)
-		len = min(atoi(argv[2]), MAX_DUMP_SIZE);
+		len = min((unsigned int)atoi(argv[2]), MAX_DUMP_SIZE);
 	if (argc >= 2)
 		addr = (uintptr_t)strtol(argv[1], NULL, 16);
 
