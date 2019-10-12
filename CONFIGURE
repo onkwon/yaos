@@ -143,5 +143,6 @@ ifeq ($(MODULE_LED),y)
 endif
 ifeq ($(MODULE_SHELL),y)
 	SRCS += $(wildcard shell/*.c)
+	INCS += -I$(BASEDIR)/shell
 	DEFS += -DMODULE_SHELL
 endif

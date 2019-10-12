@@ -70,6 +70,7 @@ static unsigned int readline(int (*rxc)(void), char *buf, unsigned int maxlen)
 	} while ((char)c != '\r' && (char)c != '\n');
 
 	buf[i] = '\0';
+	shell_putc('\r');
 	shell_putc('\n');
 
 	return i;
@@ -124,7 +125,7 @@ STATIC void shell(void)
 	assert(buf);
 	assert(argv);
 
-	shell_puts("Type 'help' for help on commands.\n");
+	shell_puts("Type 'help' for help on commands.\r\n");
 
 	do {
 		shell_puts("> ");
@@ -153,7 +154,7 @@ STATIC void shell(void)
 		}
 
 		if (!cmd || !cmd->name) {
-			shell_puts("unknown command\n");
+			shell_puts("unknown command\r\n");
 		}
 	} while (rc != SHELL_EXIT);
 

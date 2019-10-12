@@ -25,7 +25,7 @@ static void dump(uintptr_t saddr, size_t len, int width)
 
 	for (curr = saddr, end = curr + len;
 			curr < end; curr += width) {
-		snprintf(buf, 16, "\n%08x  ", curr);
+		snprintf(buf, 16, "\r\n%08x  ", curr);
 		putstr(buf);
 
 		for (int i = 0; i < width; i++) {
@@ -46,11 +46,12 @@ static void dump(uintptr_t saddr, size_t len, int width)
 			char c = getbyte(curr + i);
 			if (c >= 0x20 && c < 0x7f)
 				putch(c);
-			else 
+			else
 				putch('.');
-		}   
+		}
 	}
 
+	putch('\r');
 	putch('\n');
 }
 
