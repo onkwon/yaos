@@ -55,13 +55,13 @@ static unsigned int readline(int (*rxc)(void), char *buf, unsigned int maxlen)
 		case '\n':
 			break;
 		case '\b':
-			if(i){
+			if (i){
 				shell_puts("\b \b");
 				i--;
 			}
 			break;
 		default:
-			if(i < maxlen - 1){
+			if (i < maxlen - 1){
 				buf[i++] = c;
 				shell_putc((char)c);
 			}
@@ -114,7 +114,7 @@ STATIC void shell(void)
 {
 	struct shell_cmd *cmd, *prev;
 	char **argv, *buf;
-	int argc, rc, len;
+	int argc, rc;
 
 	buf = malloc(sizeof(char) * MAXLEN);
 	argv = (char **)malloc(sizeof(char *) * MAXARG);
@@ -128,7 +128,7 @@ STATIC void shell(void)
 
 	do {
 		shell_puts("> ");
-		len = readline(getc_callback, buf, MAXLEN);
+		int len = readline(getc_callback, buf, MAXLEN);
 		if (!len)
 			continue;
 
@@ -152,10 +152,10 @@ STATIC void shell(void)
 			}
 		}
 
-		if(!cmd->name) {
+		if (!cmd->name) {
 			shell_puts("unknown command\n");
 		}
-	} while(rc != SHELL_EXIT);
+	} while (rc != SHELL_EXIT);
 
 	free(argv);
 }

@@ -13,7 +13,7 @@ static int (*getch)(void);
 
 static inline void putstr(const char * const str)
 {
-	for (size_t i = 0; i < strlen(str); i++)
+	for (size_t i = 0; i < strnlen(str, 256); i++)
 		putch(str[i]);
 }
 
@@ -24,14 +24,14 @@ static void dump(uintptr_t saddr, size_t len, int width)
 
 	for (curr = saddr, end = curr + len;
 			curr < end; curr += width) {
-		sprintf(buf, "\n%08x  ", curr);
+		snprintf(buf, 16, "\n%08x  ", curr);
 		putstr(buf);
 
 		for (int i = 0; i < width; i++) {
 			if ((curr+i) >= end) {
 				putstr("   ");
 			} else {
-				sprintf(buf, "%02x ", getbyte(curr + i));
+				snprintf(buf, 8, "%02x ", getbyte(curr + i));
 				putstr(buf);
 			}
 

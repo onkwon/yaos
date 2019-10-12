@@ -9,13 +9,13 @@
 
 extern void shell(void);
 
-static int exit(int argc, char **argv)
+static int quit(int argc, char **argv)
 {
 	return SHELL_EXIT;
 	(void)argc;
 	(void)argv;
 }
-REGISTER_CMD(exit, exit, "exit");
+REGISTER_CMD(quit, quit, "quit");
 
 static int test(int argc, char **argv)
 {
@@ -26,7 +26,7 @@ static int test(int argc, char **argv)
 REGISTER_CMD(test, test, "test");
 
 struct shell_cmd *_shell_cmdlist[10] = {
-	&shell_cmd_exit,
+	&shell_cmd_quit,
 	&shell_cmd_test,
 	NULL,
 };
@@ -91,7 +91,7 @@ void test_shell_set(void)
 {
 	char buf[1024];
 
-	update_rx_stream("exit\r");
+	update_rx_stream("quit\r");
 	update_tx_stream(buf);
 
 	shell_set(mygetc, myputc);
@@ -104,7 +104,7 @@ void test_shell_unknown_command(void)
 {
 	char buf[1024];
 
-	update_rx_stream("qwergfs\rexit\r");
+	update_rx_stream("qwergfs\rquit\r");
 	update_tx_stream(buf);
 
 	shell_set(mygetc, myputc);
@@ -120,7 +120,7 @@ void test_shell_command_maxlen(void)
 	char *cmd = "12345678901234567890123456789012345678901234567890"
 		"12345678901234567890123456789012345678901234567890"
 		"12345678901234567890123456789012345678901234567890"
-		"\rexit\r";
+		"\rquit\r";
 
 	update_rx_stream(cmd);
 	update_tx_stream(buf);
