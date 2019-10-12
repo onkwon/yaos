@@ -7,8 +7,6 @@
 #include <assert.h>
 #include <string.h>
 
-#define WORD_SIZE		sizeof(long)
-
 extern void shell(void);
 
 static int exit(int argc, char **argv)

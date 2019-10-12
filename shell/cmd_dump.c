@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define DUMPSIZE_DEFAULT		256UL
+#define DEFAULT_DUMP_SIZE		256UL
 #define getbyte(addr)			(*(unsigned char *)(addr))
 
 static void (*putch)(int c);
@@ -55,7 +55,7 @@ static void dump(uintptr_t saddr, size_t len, int width)
 
 STATIC int memdump(int argc, char **argv)
 {
-	static size_t len = DUMPSIZE_DEFAULT;
+	static size_t len = DEFAULT_DUMP_SIZE;
 	static uintptr_t addr;
 
 	if (argc >= 3) len  = atoi(argv[2]);

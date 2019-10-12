@@ -2,6 +2,7 @@
 #define __SHELL_H__
 
 #include "compiler.h"
+#include "types.h"
 
 #define SHELL_EXIT			0xdead
 
