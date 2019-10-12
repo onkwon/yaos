@@ -11,7 +11,7 @@
 #define MAXARG		10
 
 #if defined(TEST)
-struct shell_cmd *_shell_cmdlist[];
+extern struct shell_cmd *_shell_cmdlist[];
 #else
 extern char _shell_cmdlist;
 #endif
@@ -141,7 +141,7 @@ STATIC void shell(void)
 		}
 
 #if defined(TEST)
-		for (cmd = _shell_cmdlist[0]; cmd->name; cmd++) {
+		for (int i = 0; (cmd = _shell_cmdlist[i]); i++) {
 #else
 		for (cmd = (void *)&_shell_cmdlist; cmd->name; cmd++) {
 #endif
@@ -152,7 +152,7 @@ STATIC void shell(void)
 			}
 		}
 
-		if (!cmd->name) {
+		if (!cmd || !cmd->name) {
 			shell_puts("unknown command\n");
 		}
 	} while (rc != SHELL_EXIT);
