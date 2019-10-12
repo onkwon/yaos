@@ -26,6 +26,8 @@ extern uintptr_t _heap_start;
 
 void *_sbrk(ptrdiff_t increment)
 {
+	/* TODO: replace dprintf() so to remove _sbrk() dependency */
+	//return NULL;
 	static uintptr_t *brk = (uintptr_t *)&_heap_start;
 
 	brk += increment / sizeof(uintptr_t);
@@ -33,7 +35,7 @@ void *_sbrk(ptrdiff_t increment)
 	return brk;
 }
 
-static long sys_write(int fd, const void *buf, size_t cnt)
+static long sys_write_core(int fd, const void *buf, size_t cnt)
 {
 	const char *dat = (const char *)buf;
 	void (*put)(const int c) = NULL;
@@ -61,13 +63,24 @@ static long sys_write(int fd, const void *buf, size_t cnt)
 	return i;
 }
 
+static long sys_write(int fd, const void *buf, size_t cnt)
+{
+	syscall_delegate(sys_write_core, &current->stack.p, &current->flags);
+
+	/* belows are to remove compiler warning. never reach here in fact */
+	(void)fd;
+	(void)buf;
+	(void)cnt;
+	return 0;
+}
+
 long _write(int fd, const void *buf, size_t cnt)
 {
 	/* if not initialized yet or called from ISR like scheduler */
 	if (is_interrupt_disabled()
 			|| in_interrupt()
 			|| get_task_flags(current) & TF_SYSCALL)
-		return sys_write(fd, buf, cnt);
+		return sys_write_core(fd, buf, cnt);
 
 	return syscall(SYSCALL_WRITE, fd, buf, cnt);
 }

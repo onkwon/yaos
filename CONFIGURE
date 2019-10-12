@@ -31,6 +31,7 @@ MODULE_SPI?=n
 MODULE_IR?=n
 MODULE_CLCD?=n
 MODULE_LED?=n
+MODULE_SHELL?=y
 
 # third party modules
 USE_CMSIS?=n
@@ -139,4 +140,9 @@ endif
 ifeq ($(MODULE_LED),y)
 	SRCS += drivers/led.c
 	DEFS += -DMODULE_LED
+endif
+ifeq ($(MODULE_SHELL),y)
+	SRCS += $(wildcard shell/*.c)
+	INCS += -I$(BASEDIR)/shell
+	DEFS += -DMODULE_SHELL
 endif
