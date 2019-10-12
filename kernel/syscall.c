@@ -26,6 +26,7 @@ extern uintptr_t _heap_start;
 
 void *_sbrk(ptrdiff_t increment)
 {
+	/* TODO: replace dprintf() so to remove _sbrk() dependency */
 	//return NULL;
 	static uintptr_t *brk = (uintptr_t *)&_heap_start;
 
