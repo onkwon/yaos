@@ -159,6 +159,7 @@ STATIC void shell(void)
 	} while (rc != SHELL_EXIT);
 
 	free(argv);
+	free(buf);
 }
 #include "kernel/task.h"
 REGISTER_TASK(shell, TASK_USER, TASK_PRIORITY_NORMAL, STACK_SIZE_DEFAULT);

@@ -6,8 +6,8 @@
 
 #define SHELL_EXIT			0xdead
 
-#define RC_STR_SHELL_WELCOME		"Type 'help' for help on commands.\n"
-#define RC_STR_SHELL_UNKNOWN		"unknown command\n"
+#define RC_STR_SHELL_WELCOME		"Type 'help' for help on commands."
+#define RC_STR_SHELL_UNKNOWN		"unknown command"
 
 struct shell_cmd {
 	const char * const name;
