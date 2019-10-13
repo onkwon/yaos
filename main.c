@@ -2,6 +2,7 @@
 
 #include "drivers/gpio.h"
 #include "arch/mach/board/pinmap.h"
+#include "kernel/syscall.h"
 #include "kernel/systick.h"
 #include "kernel/timer.h"
 
@@ -10,55 +11,75 @@
 
 #define PIN_TEST			PIN_DEBUG
 
-#include <stdlib.h>
+#define SOFTWARE_DEBOUNCING
+
+#if defined(SOFTWARE_DEBOUNCING)
+#define POLLING_PERIOD_MSEC		5
+
+static bool button_poll(void)
+{
+	static uint16_t state = 0;
+	bool pin_level;
+
+	pin_level = gpio_get(/*pin*/PIN_TEST);
+
+	state = (state << 1) | !pin_level | 0xe000;
+
+	if (state == 0xf000)
+		return true;
+
+	return false;
+}
+
+static void button_timer(void *arg)
+{
+	if (button_poll())
+		debug("CHANGED");
+
+	(void)arg;
+}
+#else
 static void gpio_interrupt_callback(const int pin)
 {
 	(void)pin;
 
-	static bool pin_level_saved = true;
+	static bool in_transition;
 	static unsigned long stamp_saved;
-	static unsigned long high, low;
+	unsigned long stamp, elapsed;
+	bool pin_level;
 
-	unsigned long stamp = TICKS_TO_MSEC(get_systick());
+	stamp = TICKS_TO_MSEC(get_systick());
+	pin_level = gpio_get(/*pin*/PIN_TEST);
 
-	if (gpio_get(/*pin*/PIN_TEST))
-		high++;
-	else
-		low++;
-
-	if (abs(stamp - stamp_saved) < BTN_HOLD_MIN_MSEC) /* debouncing */
-		return;
-
-	bool pin_level = high > low;
-	debug("H %lu L %lu", high, low);
-
-	if (pin_level_saved && !pin_level) { /* pressed */
-		debug("P[%d] stamp %lu, saved %lu = %ld", pin_level,
-				stamp, stamp_saved, stamp - stamp_saved);
-		//debug("Button pressed %lu %ld", stamp, stamp - stamp_saved);
-	} else { /* relesed */
-		unsigned long elapsed = stamp - stamp_saved;
-		if (elapsed >= BTN_HOLD_LONG_MSEC) {
-		} else {
-		}
-		//debug("Button released %lu %lu %ld", stamp, elapsed, stamp - stamp_saved);
-		debug("R[%d] stamp %lu, saved %lu = %ld", pin_level,
-				stamp, stamp_saved, stamp - stamp_saved);
+	if (stamp < stamp_saved) { /* overflow */
+		elapsed = (unsigned long)-1 - stamp_saved + stamp;
+	} else {
+		elapsed = stamp - stamp_saved;
 	}
 
+	if (in_transition && elapsed < BTN_HOLD_MIN_MSEC) /* debouncing */
+		return;
+
+	in_transition ^= true;
 	stamp_saved = stamp;
-	pin_level_saved = pin_level;
-	high = low = 0;
+
+	debug("pin level changed to %d", pin_level);
 }
+#endif
 
 int main(void)
 {
 	debug("bare metal example");
 
 	gpio_init(PIN_STATUS_LED, GPIO_MODE_OUTPUT, NULL);
+#if defined(SOFTWARE_DEBOUNCING)
+	gpio_init(PIN_DEBUG, GPIO_MODE_INPUT | GPIO_CONF_PULLUP, NULL);
+	timer_create(MSEC_TO_TICKS(POLLING_PERIOD_MSEC), button_timer, TIMER_REPEAT);
+#else
 	gpio_init(PIN_DEBUG,
 			GPIO_MODE_INPUT | GPIO_CONF_PULLUP | GPIO_INT_FALLING,
 			gpio_interrupt_callback);
+#endif
 
 	int led_state = 0;
 
