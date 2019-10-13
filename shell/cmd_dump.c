@@ -74,4 +74,4 @@ STATIC int memdump(int argc, char **argv)
 
 	return 0;
 }
-REGISTER_CMD(md, memdump, "md 0xADDR LEN");
+REGISTER_CMD(md, memdump, "md [address] [length]");
