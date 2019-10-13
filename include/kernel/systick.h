@@ -25,7 +25,7 @@
 #define SEC_TO_TICKS(sec)		((sec) * SYSTICK_HZ)
 #define TICKS_TO_SEC(ticks)		((ticks) / SYSTICK_HZ)
 #define MSEC_TO_TICKS(msec)		(SEC_TO_TICKS(msec) / 1000)
-#define TICKS_TO_MSEC(ticks)		(TICKS_TO_SEC((ticks) * 1000) / SYSTICK_HZ)
+#define TICKS_TO_MSEC(ticks)		(TICKS_TO_SEC((ticks) * 1000))
 
 #define time_after(goal, chasing)	((int)(goal)    - (int)(chasing) < 0)
 #define time_before(goal, chasing)	((int)(chasing) - (int)(goal)    < 0)
