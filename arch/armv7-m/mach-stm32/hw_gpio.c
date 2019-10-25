@@ -103,10 +103,10 @@ uint16_t hw_gpio_get_event_source(int vector)
 	unsigned int pending;
 	uint16_t pin, mask;
 
-	pin = vector;
+	pin = (uint16_t)vector;
 	mask = 1;
 
-	pin -= 22; /* EXTI0~4 */
+	pin = (uint16_t)(pin - 22); /* EXTI0~4 */
 
 	if (pin == 17) { /* EXTI5~9 */
 		pin = 5;
@@ -214,17 +214,17 @@ int hw_gpio_init(const uint16_t index, const uint32_t flags)
 		mode |= PIN_INPUT | PIN_FLOATING;
 
 	if (flags & GPIO_CONF_OPENDRAIN) {
-		mode &= ~(PIN_FLOATING);
+		mode &= (uint16_t)~(PIN_FLOATING);
 		if (flags & GPIO_MODE_ALT)
 			mode |= PIN_ALT_OPENDRAIN;
 		else
 			mode |= PIN_OPENDRAIN;
 	} else if (flags & GPIO_CONF_PULLUP) {
-		mode &= ~(PIN_FLOATING);
+		mode &= (uint16_t)~(PIN_FLOATING);
 		mode |= PIN_PULL;
 		write_port_pin(reg, pin, 1);
 	} else if (flags & GPIO_CONF_PULLDOWN) {
-		mode &= ~(PIN_FLOATING);
+		mode &= (uint16_t)~(PIN_FLOATING);
 		mode |= PIN_PULL;
 		write_port_pin(reg, pin, 0);
 	}

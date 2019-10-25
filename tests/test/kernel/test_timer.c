@@ -18,6 +18,7 @@ void tearDown(void)
 {
 }
 
+struct task *current, init_task;
 static unsigned int done;
 void do_nothing(void) { done++; }
 

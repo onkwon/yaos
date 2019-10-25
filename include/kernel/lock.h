@@ -47,7 +47,7 @@ static inline void spin_unlock(struct lock * const lock)
 {
 	dmb();
 	// guaranteed only the winner can write at a time
-	lock->turn += 1;
+	lock->turn = (uint8_t)(lock->turn + 1);
 }
 
 #if defined(CONFIG_SMP)

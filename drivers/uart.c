@@ -75,14 +75,14 @@ static int uart_open_static(const uart_t * const self,
 			goto out_unlock;
 
 		queue_init_static(&p->rxq,
-				rxbuf, rxbufsize, 1U);
+				rxbuf, (uint16_t)rxbufsize, 1U);
 	}
 	if (self->conf.tx & UART_INTERRUPT) {
 		if (!txbuf || (txbufsize <= 0))
 			goto out_unlock;
 
 		queue_init_static(&p->txq,
-				txbuf, txbufsize, 1U);
+				txbuf, (uint16_t)txbufsize, 1U);
 	}
 
 	vector = hw_uart_open(self->ch, self->conf);

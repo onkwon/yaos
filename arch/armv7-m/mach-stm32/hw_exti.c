@@ -10,8 +10,8 @@ void hw_exti_enable(uint16_t pin, const bool enable)
 
 	port = gpio_to_port(pin);
 	pin = gpio_to_ppin(pin);
-	bit = pin % 4 * 4;
-	pin = pin / 4 * 4;
+	bit = (unsigned int)(pin % 4 * 4);
+	pin = (uint16_t)(pin / 4 * 4);
 	reg = (reg_t *)((SYSCFG_BASE + 8) + pin);
 
 	do {

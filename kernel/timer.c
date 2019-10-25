@@ -73,7 +73,7 @@ static inline int update_timer(ktimer_t *timer, uint32_t interval_ticks, uint32_
 
 	timer->interval = interval_ticks;
 	timer->expires = goal;
-	timer->slot = next_slot;
+	timer->slot = (uint8_t)next_slot;
 
 	assert(!(timer->run == 0));
 
