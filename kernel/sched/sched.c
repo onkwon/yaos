@@ -57,6 +57,7 @@ int runqueue_add_core(void *task)
 int runqueue_del_core(void *task)
 {
 	struct task *p = task;
+	(void)p;
 
 	return 0;
 }

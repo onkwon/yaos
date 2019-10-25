@@ -30,19 +30,22 @@ ARFLAGS = rcs
 OCFLAGS =
 ODFLAGS = -Dsx
 
-CFLAGS += -std=gnu99 -O2 \
-	  -fno-builtin -ffunction-sections -fdata-sections \
-	  -Wl,--gc-sections #-flto
+CFLAGS += -std=gnu99 -Os \
+	  -fno-builtin -fno-common -fstack-usage \
+	  -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,--print-gc-sections #-flto
 CFLAGS += -W -Wall -Wunused-parameter -Wno-main -Wextra -Wformat-nonliteral \
 	  -Wcast-align -Wpointer-arith -Wbad-function-cast -Wnested-externs \
 	  -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations \
 	  -Winline -Wundef -Wshadow -Wwrite-strings -Wstrict-aliasing \
 	  -Wcast-qual -Wmissing-format-attribute -Wmissing-include-dirs \
 	  -Waggregate-return -Winit-self -Wlogical-op -Wredundant-decls \
-	  -Wstrict-overflow=5 -Wfloat-equal -Wabi=11
-CFLAGS += #-pedantic #-Wsign-conversion #-Werror #-Wno-conversion
+	  -Wdouble-promotion -Wfloat-equal -Wconversion -Wformat-overflow \
+	  -Wformat=2 -Wformat-truncation=2 \
+	  -Wstack-usage=328 -Wstrict-overflow=5 -Wabi=11
+	  #-pedantic
+CFLAGS += -Werror -Wno-error=aggregate-return -Wno-error=pedantic
 ifndef NDEBUG
-	CFLAGS += -g -Og
+	CFLAGS += -g3 -Og
 	#CFLAGS += -fprofile-arcs -ftest-coverage
 	#LDFLAGS += -fprofile-arcs
 endif
@@ -93,6 +96,7 @@ ifneq ($(Q),@)
 endif
 
 all: $(BUILDIR) $(OUTPUTS)
+	#@$(CROSS_COMPILE)-readelf --debug-dump=info $(BUILDIR)/$(TARGET).elf | grep "DW_AT_producer"
 	@printf "\n  Version      : $(VERSION)\n"
 	@printf "  Architecture : $(ARCH)\n"
 	@printf "  Vendor       : $(MACH)\n"

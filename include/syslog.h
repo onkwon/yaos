@@ -37,6 +37,6 @@ enum {
  *
  * ram buffer, flash memory, uart stream, or anything can be binded.
  */
-void (*printc)(const int c);
+extern void (*printc)(const int c);
 
 #endif /* __YAOS_SYSLOG_H__ */
