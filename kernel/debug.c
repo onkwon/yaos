@@ -95,7 +95,9 @@ void debug_putc(const int c)
 	hw_debug_putc(c);
 }
 #else
+#if !defined(TEST)
 #error "no debugging port specified"
+#endif
 #endif /* DEBUG_XXX_ENABLED */
 
 #include <kernel/init.h>
