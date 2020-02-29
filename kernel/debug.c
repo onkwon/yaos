@@ -81,17 +81,31 @@ static void ISR_break(const int vector)
 }
 #endif
 
+#if defined(DEBUG_RTT_ENABLED)
+#include "SEGGER_RTT.h"
+
 void debug_putc(const int c)
 {
-#if defined(DEBUG_SWO_ENABLED)
-	hw_debug_putc(c);
-#endif
+	SEGGER_RTT_PutChar(0, c);
+	//SEGGER_RTT_WriteNoLock(0, data, len);
 }
+#elif defined(DEBUG_SWO_ENABLED)
+void debug_putc(const int c)
+{
+	hw_debug_putc(c);
+}
+#else
+#error "no debugging port specified"
+#endif /* DEBUG_XXX_ENABLED */
 
 #include <kernel/init.h>
 
 void __init debug_init(void)
 {
+#if defined(DEBUG_RTT_ENABLED)
+	SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_TRIM);
+#endif
+
 #if defined(DEBUG_SWO_ENABLED)
 	hw_debug_init(1, 2000000);
 #endif

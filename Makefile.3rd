@@ -29,3 +29,10 @@ ifeq ($(USE_AES),y)
 	INCS += -I$(BASEDIR)/tools/tiny-AES-c
 	DEFS += -DCBC=1 #-DCTR=1
 endif
+
+ifeq ($(USE_RTT),y)
+	SRCS += tools/SEGGER_RTT_V654c/RTT/SEGGER_RTT.c \
+		tools/SEGGER_RTT_V654c/RTT/SEGGER_RTT_printf.c
+	INCS += -I$(BASEDIR)/tools/SEGGER_RTT_V654c/RTT
+	DEFS += -DDEBUG_RTT_ENABLED
+endif

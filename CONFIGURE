@@ -4,7 +4,7 @@ UPLOAD   ?= 0x08020000
 
 # 'y' to enable the functionality while 'n' to disable
 CONFIG_DEBUG?=y
-	CONFIG_DEBUG_SWO=y
+	CONFIG_DEBUG_SWO=n
 	CONFIG_DEBUG_SYSCALL=y
 	CONFIG_DEBUG_SYSCALL_NESTED=y
 CONFIG_SCHEDULER?=y
@@ -39,6 +39,7 @@ USE_HAL?=n
 USE_EMWIN?=n
 USE_SHA256?=n
 USE_AES?=n
+USE_RTT?=y
 
 
 ################################################################################
