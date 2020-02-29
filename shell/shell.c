@@ -62,7 +62,7 @@ static unsigned int readline(int (*rxc)(void), char *buf, unsigned int maxlen)
 			break;
 		default:
 			if (i < maxlen - 1){
-				buf[i++] = c;
+				buf[i++] = (char)c;
 				shell_putc((char)c);
 			}
 			break;

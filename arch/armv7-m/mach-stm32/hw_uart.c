@@ -175,14 +175,14 @@ static inline int hw_uart_gpio_init(const int channel, struct uart_conf conf)
 			goto errout;
 
 		if (channel < 5)
-			gpio_init(rxpin, gpio_altfunc(7), NULL);
+			gpio_init((uint16_t)rxpin, gpio_altfunc(7), NULL);
 		else /* USART6 */
-			gpio_init(rxpin, gpio_altfunc(8), NULL);
+			gpio_init((uint16_t)rxpin, gpio_altfunc(8), NULL);
 
 		/* TODO: FOR TEST, use rx pin as wake-up source */
 		/* FIXME: register handler */
 		if (UART_INTERRUPT & conf.rx)
-			hw_exti_enable(rxpin, true);
+			hw_exti_enable((uint16_t)rxpin, true);
 	}
 
 	if (conf.tx) {
@@ -190,9 +190,9 @@ static inline int hw_uart_gpio_init(const int channel, struct uart_conf conf)
 			goto errout;
 
 		if (channel < 5)
-			gpio_init(txpin, gpio_altfunc(7) | GPIO_SPD_FASTEST, NULL);
+			gpio_init((uint16_t)txpin, gpio_altfunc(7) | GPIO_SPD_FASTEST, NULL);
 		else
-			gpio_init(txpin, gpio_altfunc(8) | GPIO_SPD_FASTEST, NULL);
+			gpio_init((uint16_t)txpin, gpio_altfunc(8) | GPIO_SPD_FASTEST, NULL);
 	}
 
 	if (conf.flow) {

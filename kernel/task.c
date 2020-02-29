@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <assert.h>
 
+struct task *current, init_task;
+
 static DEFINE_LISTQ_HEAD(zombie_list);
 
 static void set_task_dressed(struct task *task, unsigned long flags,

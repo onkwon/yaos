@@ -136,7 +136,7 @@ struct task {
 		.name  = #func, \
 	}
 
-struct task *current, init_task;
+extern struct task *current, init_task;
 
 void free_zombie(void);
 void task_kill(struct task *task);

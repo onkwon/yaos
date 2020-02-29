@@ -23,7 +23,7 @@ static bool button_poll(void)
 
 	pin_level = gpio_get(/*pin*/PIN_TEST);
 
-	state = (state << 1) | !pin_level | 0xe000;
+	state = (uint16_t)((state << 1) | !pin_level | 0xe000);
 
 	if (state == 0xf000)
 		return true;

@@ -19,7 +19,7 @@ int enqueue(queue_t *q, const void * const item)
 			return -ENOSPC; /* full */
 
 		memcpy(&arr[pos * q->itemsize], item, q->itemsize);
-		pos = (pos + 1) % q->n;
+		pos = (uint16_t)((pos + 1) % q->n);
 	} while (atomic_sch(pos, &q->index));
 
 	return 0;
@@ -41,7 +41,7 @@ int dequeue(queue_t *q, void * const buf)
 			return -ENOENT; /* empty */
 
 		memcpy(buf, &arr[pos * q->itemsize], q->itemsize);
-		pos = (pos + 1) % q->n;
+		pos = (uint16_t)((pos + 1) % q->n);
 	} while (atomic_sch(pos, &q->outdex));
 
 	return 0;
