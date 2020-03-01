@@ -5,7 +5,61 @@
 
 #define VECTKEY		0x5faUL
 
+extern const uintptr_t _etext, _edata, _ebss;
 extern const uintptr_t _ram_end;
+extern uintptr_t _data, _bss;
+extern uintptr_t _init_func_list;
+
+uint64_t __attribute__((weak)) systick64;
+
+static inline void mem_init(void)
+{
+	const uintptr_t *end, *src;
+	uintptr_t *dst;
+	uintptr_t i;
+
+	/* copy .data section from flash to sram */
+	dst = (uintptr_t *)&_data;
+	end = (const uintptr_t *)&_edata;
+	src = (const uintptr_t *)&_etext;
+
+	for (i = 0; &dst[i] < end; i++)
+		dst[i] = src[i];
+
+	/* clear .bss section */
+	dst = (uintptr_t *)&_bss;
+	end = (const uintptr_t *)&_ebss;
+
+	for (i = 0; &dst[i] < end; i++)
+		dst[i] = 0;
+
+	dsb();
+}
+
+static void __init early_drv_init(void)
+{
+	uintptr_t *func = (uintptr_t *)&_init_func_list;
+
+	while (*func)
+		((void (*)(void))*func++)();
+}
+
+static void __init system_init(void)
+{
+	mem_init();
+	early_drv_init();
+}
+
+void __attribute__((weak, noreturn)) main(void)
+{
+	while (1);
+}
+
+void __init __attribute__((weak, noreturn)) kernel_init(void)
+{
+	sei();
+	main();
+}
 
 void hw_reboot(void)
 {
@@ -17,7 +71,7 @@ void hw_reboot(void)
 		| (1UL << 2); /* system reset request */
 }
 
-void __attribute__((naked, used)) ISR_reset(void)
+void __attribute__((naked, used, noreturn)) ISR_reset(void)
 {
 	__cli();
 
@@ -58,5 +112,6 @@ void __attribute__((naked, used)) ISR_reset(void)
 	dsb();
 	isb();
 
+	system_init();
 	kernel_init();
 }
