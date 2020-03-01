@@ -27,6 +27,10 @@ enum {
 extern uintptr_t _ram_start, _ram_end;
 extern const uintptr_t _rom_start;
 
+#if defined(CONFIG_COMMON_IRQ_HANDLER)
+void __attribute__((weak)) (*primary_isr_table[PRIMARY_IRQ_MAX - NVECTOR_IRQ])(const int);
+#endif
+
 void __attribute__((weak)) ISR_null(const int nvec)
 {
 	debug("ISR is not yet registered: %x", nvec);
@@ -54,6 +58,7 @@ void __attribute__((weak)) ISR_systick(void)
 
 void __attribute__((weak)) ISR_fault(void)
 {
+	__trap(0);
 	ISR_null(RC_HARD_FAULT);
 }
 
