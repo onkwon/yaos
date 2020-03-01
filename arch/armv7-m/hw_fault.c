@@ -132,5 +132,6 @@ void __attribute__((naked)) ISR_fault(void)
 		__ret();
 	}
 
+	__trap(0);
 	freeze();
 }
