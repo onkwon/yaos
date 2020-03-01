@@ -78,18 +78,19 @@ INC_ARCH = $(call FILES,arch/$(ARCH)/include,*.h) \
 	   $(call FILES,arch/$(ARCH)/mach-$(MACH)/include,*.h) \
 	   $(call FILES,arch/$(ARCH)/mach-$(MACH)/board/$(BOARD)/include,*.h)
 
-SRCS_ASM = $(call FILES,arch/$(ARCH)/,*.S)
-SRCS    += $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c $(dir)/**/*.c)) \
-	   $(wildcard arch/$(ARCH)/*.c) $(wildcard arch/$(ARCH)/mach-$(MACH)/*.c) \
-	   $(wildcard arch/$(ARCH)/mach-$(MACH)/board/$(BOARD)/*.c) \
-	   $(wildcard *.c)
+SRCS_ARCH = $(wildcard arch/$(ARCH)/*.c) $(wildcard arch/$(ARCH)/mach-$(MACH)/*.c) \
+	    $(wildcard arch/$(ARCH)/mach-$(MACH)/board/$(BOARD)/*.c)
+SRCS_ASM  = $(call FILES,arch/$(ARCH)/,*.S)
+SRCS     += $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c $(dir)/**/*.c)) \
+	    $(wildcard *.c)
 
-OBJS	 = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o)) \
-	   $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o))
+OBJS	  = $(addprefix $(BUILDIR)/, $(SRCS:.c=.o))
+OBJS_ARCH = $(addprefix $(BUILDIR)/, $(SRCS_ASM:.S=.o)) \
+	    $(addprefix $(BUILDIR)/, $(SRCS_ARCH:.c=.o))
 THIRD_PARTY_OBJS = $(addprefix $(BUILDIR)/3rd/, $(THIRD_PARTY_SRCS:.c=.o))
-OUTPUTS	 = $(addprefix $(BUILDIR)/$(TARGET)., a bin hex dump sha256 img)
 
-DEPS	 = $(OBJS:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
+DEPS	 = $(OBJS:.o=.d) $(OBJS_ARCH:.o=.d) $(THIRD_PARTY_OBJS:.o=.d)
+OUTPUTS	 = $(addprefix $(BUILDIR)/$(TARGET)., bin hex dump sha256 img)
 
 Q ?= @
 ifneq ($(Q),@)
@@ -151,22 +152,26 @@ $(BUILDIR)/%.hex: $(BUILDIR)/%.elf
 $(BUILDIR)/%.bin: $(BUILDIR)/%.elf
 	@printf "  OC       $@\n"
 	$(Q)$(OC) $(OCFLAGS) -O binary $< $@
-$(BUILDIR)/$(TARGET).elf: $(OBJS) $(THIRD_PARTY_OBJS)
+$(BUILDIR)/$(TARGET).elf: $(OBJS) $(BUILDIR)/lib$(TARGET)_arch.a $(BUILDIR)/lib$(TARGET)_3rd.a
 	@printf "  LD       $@\n"
 	@#$(Q)$(LD) -o $@ $^ -Map $(BUILDIR)/$(TARGET).map $(LDFLAGS)
 	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -o $@ $^ -Wl,-Map,$(BUILDIR)/$(TARGET).map $(LDFLAGS)
 	@#$(SZ) $@
-$(BUILDIR)/$(TARGET).a: $(OBJS) $(THIRD_PARTY_OBJS)
+$(BUILDIR)/lib$(TARGET)_3rd.a: $(THIRD_PARTY_OBJS)
+	@printf "  AR       $@\n"
+	@#$(Q)$(AR) $(ARFLAGS) -o $(join $(dir $@), $(addprefix lib, $(notdir $@))) $^
+	$(Q)$(AR) $(ARFLAGS) -o $@ $^
+$(BUILDIR)/lib$(TARGET)_arch.a: $(OBJS_ARCH)
 	@printf "  AR       $@\n"
 	$(Q)$(AR) $(ARFLAGS) -o $@ $^
-$(OBJS): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config $(LD_SCRIPT)
-	@printf "  CC       $<\n"
-	@mkdir -p $(@D)
-	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -MMD -c $< -o $@
 $(THIRD_PARTY_OBJS): $(BUILDIR)/3rd/%.o: %.c Makefile Makefile.3rd CONFIGURE .config
 	@printf "  CC       $(<F)\n"
 	@mkdir -p $(@D)
-	$(Q)$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) $(DEFS) -MMD -c $< -o $@
+	$(Q)$(CC) $(THIRD_PARTY_CFLAGS) $(THIRD_PARTY_INCS) $(DEFS) $(CFLAGS) -MMD -c $< -o $@
+$(OBJS) $(OBJS_ARCH): $(BUILDIR)/%.o: %.c Makefile CONFIGURE .config $(LD_SCRIPT)
+	@printf "  CC       $<\n"
+	@mkdir -p $(@D)
+	$(Q)$(CC) $(CFLAGS) $(INCS) $(DEFS) -MMD -c $< -o $@
 $(LD_SCRIPT): arch/$(ARCH)/mach-$(MACH)/$(LD_SCRIPT_MACH) arch/$(ARCH)/common.ld .config
 	@printf "  GEN      $@\n"
 	@mkdir -p $(@D)
