@@ -1,0 +1,11 @@
+#ifndef UNITY_CONFIG_H
+#define UNITY_CONFIG_H
+
+#include "SEGGER_RTT.h"
+
+#define UNITY_INT_WIDTH			32
+#define UNITY_OUTPUT_START()		SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_TRIM)
+#define UNITY_OUTPUT_CHAR(a)		SEGGER_RTT_PutChar(0, a)
+#define UNITY_OUTPUT_COMPLETE()
+
+#endif
